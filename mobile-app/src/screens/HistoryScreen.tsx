@@ -1,67 +1,89 @@
 import React from 'react';
-import { FlatList, View, Text, StyleSheet } from 'react-native';
-import { mockHistory } from '../mock/data';
+import { FlatList, View, Text, StyleSheet, RefreshControl } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useMockData } from '../context/MockDataContext';
+import { useTheme } from '../context/ThemeContext';
 import { SystemData } from '../types';
-import Card from '../components/Card';
+import EmptyState from '../components/EmptyState';
+import Skeleton from '../components/Skeleton';
+import { spacing, layout } from '../theme';
 
 export default function HistoryScreen() {
+  const { history, loading, refreshing, refreshData } = useMockData();
+  const { colors, typography } = useTheme();
+
   const renderItem = ({ item }: { item: SystemData }) => (
-    <Card title={new Date(item.timestamp).toLocaleString()}>
-      <View style={styles.row}>
-        <Text style={styles.label}>Feed Weight:</Text>
-        <Text style={styles.value}>{item.feedWeightGrams.toFixed(1)} g</Text>
+    <View style={[styles.card, { backgroundColor: colors.card }]} accessible={true} accessibilityRole="text" accessibilityLabel={`Log at ${new Date(item.timestamp).toLocaleString()}. Feed ${item.feedWeightGrams.toFixed(0)}g, Hopper ${item.hopperLevelPercent.toFixed(0)}%`}>
+      <View style={styles.header}>
+        <Ionicons name="time-outline" size={20} color={colors.neutral} />
+        <Text style={[typography.body, { fontWeight: 'bold', marginLeft: spacing.sm }]}>{new Date(item.timestamp).toLocaleString()}</Text>
       </View>
-      <View style={styles.row}>
-        <Text style={styles.label}>Hopper Level:</Text>
-        <Text style={styles.value}>{item.hopperLevelPercent.toFixed(1)}%</Text>
+      <View style={[styles.divider, { backgroundColor: colors.border }]} />
+      
+      <View style={styles.dataGrid}>
+        <View style={styles.dataItem}>
+          <Text style={typography.caption}>Feed</Text>
+          <Text style={[typography.bodySecondary, { fontWeight: 'bold' }]}>{item.feedWeightGrams.toFixed(0)}g</Text>
+        </View>
+        <View style={styles.dataItem}>
+          <Text style={typography.caption}>Hopper</Text>
+          <Text style={[typography.bodySecondary, { fontWeight: 'bold' }]}>{item.hopperLevelPercent.toFixed(0)}%</Text>
+        </View>
+        <View style={styles.dataItem}>
+          <Text style={typography.caption}>Water</Text>
+          <Text style={[typography.bodySecondary, { fontWeight: 'bold', color: item.waterLow ? colors.error : colors.success }]}>
+            {item.waterLow ? 'LOW' : (item.waterHigh ? 'HIGH' : 'OK')}
+          </Text>
+        </View>
+        <View style={styles.dataItem}>
+          <Text style={typography.caption}>Pump</Text>
+          <Text style={[typography.bodySecondary, { fontWeight: 'bold', color: item.pumpActive ? colors.warning : colors.neutral }]}>
+            {item.pumpActive ? 'ON' : 'OFF'}
+          </Text>
+        </View>
+        <View style={styles.dataItem}>
+          <Text style={typography.caption}>Dispenser</Text>
+          <Text style={[typography.bodySecondary, { fontWeight: 'bold', color: item.feedingActive ? colors.warning : colors.neutral }]}>
+            {item.feedingActive ? 'ON' : 'OFF'}
+          </Text>
+        </View>
       </View>
-      <View style={styles.row}>
-        <Text style={styles.label}>Water Tank:</Text>
-        <Text style={styles.value}>{item.waterLow ? 'LOW' : (item.waterHigh ? 'HIGH' : 'OK')}</Text>
-      </View>
-      <View style={styles.row}>
-        <Text style={styles.label}>Feeding Active:</Text>
-        <Text style={styles.value}>{item.feedingActive ? 'YES' : 'NO'}</Text>
-      </View>
-      <View style={styles.row}>
-        <Text style={styles.label}>Pump Active:</Text>
-        <Text style={styles.value}>{item.pumpActive ? 'YES' : 'NO'}</Text>
-      </View>
-    </Card>
+    </View>
   );
 
+  if (loading) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.list}>
+          {[1,2,3].map(i => (
+            <View key={i} style={[styles.card, { backgroundColor: colors.card }]}><Skeleton height={100} /></View>
+          ))}
+        </View>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <FlatList
-        data={mockHistory}
+        data={history}
         keyExtractor={(item) => item.timestamp}
         renderItem={renderItem}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={history.length === 0 ? styles.emptyList : styles.list}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshData} tintColor={colors.primary} />}
+        ListEmptyComponent={<EmptyState message="No history available." />}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  list: {
-    paddingBottom: 16,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 4,
-  },
-  label: {
-    fontSize: 14,
-    color: '#666',
-  },
-  value: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-  }
+  container: { flex: 1 },
+  list: { padding: spacing.md },
+  emptyList: { flexGrow: 1, justifyContent: 'center' },
+  card: { borderRadius: layout.borderRadius, padding: spacing.md, marginBottom: spacing.sm, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
+  divider: { height: 1, marginVertical: spacing.sm },
+  dataGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' },
+  dataItem: { width: '33%', marginBottom: spacing.sm, alignItems: 'flex-start' },
 });

@@ -1,5 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
+import { layout, spacing } from '../theme';
 
 interface CardProps {
   title: string;
@@ -7,10 +9,12 @@ interface CardProps {
 }
 
 export default function Card({ title, children }: CardProps) {
+  const { colors, typography } = useTheme();
+
   return (
-    <View style={styles.card}>
-      <Text style={styles.title}>{title}</Text>
-      <View style={styles.divider} />
+    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Text style={typography.h2}>{title}</Text>
+      <View style={[styles.divider, { backgroundColor: colors.border }]} />
       {children}
     </View>
   );
@@ -18,26 +22,19 @@ export default function Card({ title, children }: CardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
-    padding: 16,
-    marginVertical: 8,
-    marginHorizontal: 16,
+    borderRadius: layout.borderRadius,
+    padding: spacing.md,
+    marginVertical: spacing.sm,
+    marginHorizontal: spacing.md,
+    borderWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   divider: {
     height: 1,
-    backgroundColor: '#eee',
-    marginBottom: 12,
+    marginVertical: spacing.sm,
   }
 });

@@ -1,10 +1,17 @@
 import React from 'react';
-import { FlatList, View, Text, StyleSheet } from 'react-native';
+import { FlatList, View, Text, StyleSheet, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { mockAlerts } from '../mock/data';
+import { useMockData } from '../context/MockDataContext';
+import { useTheme } from '../context/ThemeContext';
 import { Alert } from '../types';
+import EmptyState from '../components/EmptyState';
+import Skeleton from '../components/Skeleton';
+import { spacing, layout } from '../theme';
 
 export default function NotificationsScreen() {
+  const { alerts, loading, refreshing, refreshData } = useMockData();
+  const { colors, typography } = useTheme();
+
   const getIconForType = (type: string) => {
     switch (type) {
       case 'LOW_FEED': return 'restaurant';
@@ -17,96 +24,70 @@ export default function NotificationsScreen() {
   };
 
   const getAlertColor = (type: string, resolved: boolean) => {
-    if (resolved) return '#aaa';
-    if (type === 'EMERGENCY_STOP') return '#d32f2f';
-    if (type === 'DEVICE_OFFLINE') return '#f57c00';
-    return '#1976d2';
+    if (resolved) return colors.neutral;
+    if (type === 'EMERGENCY_STOP') return colors.error;
+    if (type === 'DEVICE_OFFLINE') return colors.warning;
+    return colors.primary;
   };
 
-  const formatTitle = (type: string) => {
-    return type.replace(/_/g, ' ');
+  const renderItem = ({ item }: { item: Alert }) => {
+    const alertColor = getAlertColor(item.type, item.resolved);
+    const title = item.type.replace(/_/g, ' ');
+    
+    return (
+      <View 
+        style={[styles.alertCard, { backgroundColor: colors.card, borderLeftColor: alertColor }, item.resolved && { opacity: 0.6 }]}
+        accessible={true}
+        accessibilityRole="text"
+        accessibilityLabel={`${item.resolved ? 'Resolved' : 'Active'} alert: ${title}. Occurred at ${new Date(item.timestamp).toLocaleTimeString()}`}
+      >
+        <View style={styles.iconContainer}>
+          <Ionicons name={getIconForType(item.type) as any} size={32} color={alertColor} />
+        </View>
+        <View style={styles.textContainer}>
+          <Text style={[typography.h2, item.resolved && { textDecorationLine: 'line-through', color: colors.textSecondary }]}>
+            {title}
+          </Text>
+          <Text style={[typography.caption, { marginTop: spacing.xs }]}>{new Date(item.timestamp).toLocaleString()}</Text>
+          <Text style={[typography.caption, { fontWeight: 'bold', marginTop: spacing.sm, color: item.resolved ? colors.success : colors.error }]}>
+            {item.resolved ? 'RESOLVED' : 'ACTIVE'}
+          </Text>
+        </View>
+      </View>
+    );
   };
 
-  const renderItem = ({ item }: { item: Alert }) => (
-    <View style={[styles.alertCard, item.resolved && styles.resolvedCard]}>
-      <View style={styles.iconContainer}>
-        <Ionicons 
-          name={getIconForType(item.type) as keyof typeof Ionicons.glyphMap} 
-          size={32} 
-          color={getAlertColor(item.type, item.resolved)} 
-        />
+  if (loading) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.list}>
+          {[1,2,3].map(i => (
+            <Skeleton key={i} height={80} style={{marginBottom: 12}} />
+          ))}
+        </View>
       </View>
-      <View style={styles.textContainer}>
-        <Text style={[styles.title, item.resolved && styles.resolvedText]}>
-          {formatTitle(item.type)}
-        </Text>
-        <Text style={styles.time}>{new Date(item.timestamp).toLocaleString()}</Text>
-        <Text style={[styles.status, { color: item.resolved ? 'green' : 'red' }]}>
-          {item.resolved ? 'RESOLVED' : 'ACTION REQUIRED'}
-        </Text>
-      </View>
-    </View>
-  );
+    );
+  }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <FlatList
-        data={mockAlerts}
+        data={alerts}
         keyExtractor={item => item.id}
         renderItem={renderItem}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={alerts.length === 0 ? styles.emptyList : styles.list}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshData} tintColor={colors.primary} />}
+        ListEmptyComponent={<EmptyState iconName="checkmark-circle-outline" message="You're all caught up. No alerts." />}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  list: {
-    padding: 16,
-  },
-  alertCard: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  resolvedCard: {
-    opacity: 0.7,
-  },
-  iconContainer: {
-    marginRight: 16,
-  },
-  textContainer: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  resolvedText: {
-    color: '#666',
-    textDecorationLine: 'line-through',
-  },
-  time: {
-    fontSize: 14,
-    color: '#888',
-    marginTop: 4,
-  },
-  status: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginTop: 8,
-  }
+  container: { flex: 1 },
+  list: { padding: spacing.md },
+  emptyList: { flexGrow: 1, justifyContent: 'center' },
+  alertCard: { borderRadius: layout.borderRadius, padding: spacing.md, marginBottom: spacing.sm, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2, borderLeftWidth: 4 },
+  iconContainer: { marginRight: spacing.md },
+  textContainer: { flex: 1 },
 });

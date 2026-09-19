@@ -1,11 +1,17 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import AppNavigator from './src/navigation/AppNavigator';
+import { MockDataProvider } from './src/context/MockDataContext';
+import { ThemeProvider } from './src/context/ThemeContext';
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <AppNavigator />
-    </NavigationContainer>
+    <ThemeProvider>
+      <MockDataProvider>
+        <NavigationContainer>
+          <AppNavigator />
+        </NavigationContainer>
+      </MockDataProvider>
+    </ThemeProvider>
   );
 }
