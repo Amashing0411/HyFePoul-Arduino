@@ -53,13 +53,26 @@ The backend strictly enforces the fields defined by the Mega:
 *   **Method:** The prototype request authentication model utilizes HTTP Headers:
     *   `X-Device-ID: <deviceId>`
     *   `X-Device-Token: <device-secret>`
-*   **Secret Management:** Firebase/Google Cloud Secret Manager with supported parameterized secrets will be used for ESP32 device secrets. The raw device secret must not be stored in a normal Firestore document and must never be included in the mobile application.
+*   **Secret Management:** Firebase/Google Cloud Secret Manager is used for ESP32 device secrets (`DEVICE_TOKEN_<deviceId>`). The raw device secret must not be stored in a normal Firestore document and must never be included in the mobile application. An in-memory cache with a 5-minute TTL is utilized to reduce Secret Manager API calls.
+*   **IAM Permissions:** The Cloud Functions default service account (or the specific service account running the function) requires the `roles/secretmanager.secretAccessor` (Secret Manager Secret Accessor) role to fetch device tokens.
 *   **Cloud Function Validation Flow:** The Cloud Function must:
     1. Identify the device via `X-Device-ID`.
-    2. Verify the device secret (`X-Device-Token`).
-    3. Verify the device is registered/enabled.
-    4. Validate the request payload strictly.
-    5. Only then write to Firestore.
+    2. Verify the device secret (`X-Device-Token`) against Secret Manager using a constant-time comparison.
+    3. Validate the request payload strictly.
+    4. Only then write to Firestore.
+*   **Provisioning Process:**
+    1. Generate a cryptographically random token (at least 32 bytes).
+    2. Create `DEVICE_TOKEN_<deviceId>` in Google Cloud Secret Manager.
+    3. Store the token as the secret payload.
+    4. Flash the token and `deviceId` securely into the ESP32.
+    5. Create the Firestore device record and `setupPinHash`.
+    6. Provide the physical setup PIN to the device owner.
+    7. Owner claims the device via the `claimDevice` callable function.
+*   **Token Rotation:** Rotation is a manual administrative action. It requires:
+    1. Generating a new random token and creating a new Secret Manager version.
+    2. Flashing the updated firmware to the physical ESP32.
+    3. Verifying the new token connects successfully.
+    4. Destroying/disabling the old version in Secret Manager.
 
 ## 8. Mobile App → Firebase Access
 *   **Method:** Official Firebase JS SDK.

@@ -13,7 +13,7 @@ export const handleDeviceData = async (
     return;
   }
 
-  if (!authenticateDevice(req, res)) {
+  if (!(await authenticateDevice(req, res))) {
     return;
   }
 
@@ -86,7 +86,7 @@ export const handleDeviceEvent = async (
     return;
   }
 
-  if (!authenticateDevice(req, res)) {
+  if (!(await authenticateDevice(req, res))) {
     return;
   }
 

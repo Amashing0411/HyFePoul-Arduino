@@ -137,6 +137,48 @@ const runTests = async () => {
   const systemDataSnap2 = await db.collection("devices").doc("device-001").collection("systemData").get();
   assertEqual("    -> No Firestore write for invalid DATA", systemDataSnap2.size, 2);
 
+  // New Secret Manager & Authentication Edge Cases
+  console.log("--- Running Strict Authentication Tests ---");
+
+  // 1. Missing X-Device-ID
+  res = await sendReq("device/data", dataPayload1, {"Content-Type": "application/json", "X-Device-Token": "mock-secret-token-123"});
+  assertEqual("A1. Missing X-Device-ID rejected", res.status, 401);
+
+  // 2. Missing X-Device-Token
+  res = await sendReq("device/data", dataPayload1, {"Content-Type": "application/json", "X-Device-ID": "device-001"});
+  assertEqual("A2. Missing X-Device-Token rejected", res.status, 401);
+
+  // 3. Empty credentials
+  res = await sendReq("device/data", dataPayload1, {"Content-Type": "application/json", "X-Device-ID": "", "X-Device-Token": ""});
+  assertEqual("A3. Empty credentials rejected", res.status, 401);
+
+  // 4. Correct Secret Manager token accepted (using our emulator injection pattern)
+  const smHeaders = {"Content-Type": "application/json", "X-Device-ID": "test-sm-valid", "X-Device-Token": "test-sm-token-123"};
+  res = await sendReq("device/data", dataPayload1, smHeaders);
+  assertEqual("A4. Correct Secret Manager token accepted", res.status, 200);
+
+  // 5. Unknown device in SM rejected
+  const smUnknownHeaders = {"Content-Type": "application/json", "X-Device-ID": "test-sm-unknown", "X-Device-Token": "test-sm-token-123"};
+  res = await sendReq("device/data", dataPayload1, smUnknownHeaders);
+  assertEqual("A5. Unknown Secret Manager device rejected", res.status, 403);
+
+  // 6. Production mode rejects mock credential
+  const {authenticateDevice} = require("../lib/auth.js");
+  const origEnv = process.env.FUNCTIONS_EMULATOR;
+  process.env.FUNCTIONS_EMULATOR = "false"; // Simulate production
+  process.env.DISABLE_SM_CLIENT = "true"; // Prevent background gRPC crash
+  const mockReq = {header: (k) => k === "X-Device-ID" ? "device-001" : "mock-secret-token-123"};
+  let statusSet = 0;
+  const mockRes = {status: (s) => {
+    statusSet = s; return {json: () => {}};
+  }};
+  const authResult = await authenticateDevice(mockReq, mockRes);
+  process.env.FUNCTIONS_EMULATOR = origEnv; // Restore
+  delete process.env.DISABLE_SM_CLIENT;
+
+  assertEqual("A6. Production mode rejects mock credential", authResult, false);
+  assertEqual("    -> Status is 403", statusSet, 403);
+
   // MOBILE APP FIRESTORE SECURITY RULES TESTS
   console.log("--- Running Mobile App Security Rules Tests ---");
 
