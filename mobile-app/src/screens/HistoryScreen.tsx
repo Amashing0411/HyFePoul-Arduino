@@ -1,16 +1,17 @@
 import React from 'react';
 import { FlatList, View, Text, StyleSheet, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useMockData } from '../context/MockDataContext';
+import { useDeviceHistory } from '../hooks/useDeviceHistory';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { SystemData } from '../types';
 import EmptyState from '../components/EmptyState';
 import Skeleton from '../components/Skeleton';
+import Card from '../components/Card';
 import { spacing, layout } from '../theme';
 
 export default function HistoryScreen() {
-  const { history, loading, refreshing, refreshData } = useMockData();
+  const { history, loading, error, refreshing, refreshData } = useDeviceHistory();
   const { colors, typography } = useTheme();
   const { t } = useLanguage();
 
@@ -61,6 +62,16 @@ export default function HistoryScreen() {
             <View key={i} style={[styles.card, { backgroundColor: colors.card }]}><Skeleton height={100} /></View>
           ))}
         </View>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', padding: spacing.md }]}>
+        <Card title="Data Error">
+          <Text style={[typography.body, { color: colors.error }]}>{error}</Text>
+        </Card>
       </View>
     );
   }

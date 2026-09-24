@@ -6,6 +6,16 @@ service cloud.firestore {
       allow read: if request.auth != null && resource.data.ownerId == request.auth.uid;
       // All writes denied for mobile (Cloud Functions use Admin SDK and bypass this)
       allow write: if false;
+
+      match /systemData/{docId} {
+        allow read: if request.auth != null && get(/databases/$(database)/documents/devices/$(deviceId)).data.ownerId == request.auth.uid;
+        allow write: if false;
+      }
+
+      match /alerts/{docId} {
+        allow read: if request.auth != null && get(/databases/$(database)/documents/devices/$(deviceId)).data.ownerId == request.auth.uid;
+        allow write: if false;
+      }
     }
     match /{document=**} {
       // Default to rejecting all requests

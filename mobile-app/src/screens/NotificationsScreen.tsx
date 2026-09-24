@@ -1,16 +1,17 @@
 import React from 'react';
 import { FlatList, View, Text, StyleSheet, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useMockData } from '../context/MockDataContext';
+import { useDeviceAlerts } from '../hooks/useDeviceAlerts';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Alert } from '../types';
 import EmptyState from '../components/EmptyState';
 import Skeleton from '../components/Skeleton';
+import Card from '../components/Card';
 import { spacing, layout } from '../theme';
 
 export default function NotificationsScreen() {
-  const { alerts, loading, refreshing, refreshData } = useMockData();
+  const { alerts, loading, error, refreshing, refreshData } = useDeviceAlerts();
   const { colors, typography } = useTheme();
   const { t } = useLanguage();
 
@@ -68,6 +69,16 @@ export default function NotificationsScreen() {
             <Skeleton key={i} height={80} style={{marginBottom: 12}} />
           ))}
         </View>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', padding: spacing.md }]}>
+        <Card title="Data Error">
+          <Text style={[typography.body, { color: colors.error }]}>{error}</Text>
+        </Card>
       </View>
     );
   }
