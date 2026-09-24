@@ -1,1 +1,14 @@
-
+page Logo p0 - Logo/Loading Screen
+page Home t0 - Hopper Load Label
+page Home t1 - Water Level Label
+page Home t2 - Feed Amount
+page Home t3 - Water Level Status
+page Home t4 - Status
+page Home t5 - Time
+page Home t6 - Current Time Label
+page Home t7 - Feed Amount Unit (g)
+page Home b0 - Set Feed Schedule
+page Home b1 - Log Book
+page Home b2 - Set Feed Weight
+page Home b3 - Stop
+page Home b4 - Start
