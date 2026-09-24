@@ -1,4 +1,5 @@
 import React from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,17 +16,23 @@ import SettingsScreen from '../screens/SettingsScreen';
 
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
+import ClaimDeviceScreen from '../screens/ClaimDeviceScreen';
 import { useAuth } from '../context/AuthContext';
 
 export type RootStackParamList = {
   Splash: undefined;
   AuthStack: undefined;
+  ClaimStack: undefined;
   MainTabs: undefined;
 };
 
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
+};
+
+export type ClaimStackParamList = {
+  ClaimDevice: undefined;
 };
 
 export type MainTabParamList = {
@@ -39,6 +46,7 @@ export type MainTabParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
+const ClaimStack = createNativeStackNavigator<ClaimStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 function AuthNavigator() {
@@ -47,6 +55,14 @@ function AuthNavigator() {
       <AuthStack.Screen name="Login" component={LoginScreen} />
       <AuthStack.Screen name="Register" component={RegisterScreen} />
     </AuthStack.Navigator>
+  );
+}
+
+function ClaimNavigator() {
+  return (
+    <ClaimStack.Navigator screenOptions={{ headerShown: false }}>
+      <ClaimStack.Screen name="ClaimDevice" component={ClaimDeviceScreen} />
+    </ClaimStack.Navigator>
   );
 }
 
@@ -95,16 +111,34 @@ function MainTabs() {
 }
 
 export default function AppNavigator() {
-  const { user, loading } = useAuth();
+  const { user, loading, ownedDevices, ownershipError, checkOwnership } = useAuth();
+  const { colors, typography } = useTheme();
 
-  if (loading) {
+  if (loading || (user && ownedDevices === null && !ownershipError)) {
     return <SplashScreen />;
+  }
+
+  if (user && ownershipError) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background, padding: 24 }}>
+        <Text style={[typography.h2, { color: colors.text, textAlign: 'center', marginBottom: 16 }]}>Connection Error</Text>
+        <Text style={[typography.body, { color: '#e74c3c', textAlign: 'center', marginBottom: 24 }]}>{ownershipError}</Text>
+        <TouchableOpacity
+          style={{ backgroundColor: colors.primary, padding: 16, borderRadius: 8 }}
+          onPress={() => checkOwnership()}
+        >
+          <Text style={{ color: '#fff', fontWeight: 'bold' }}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!user ? (
         <Stack.Screen name="AuthStack" component={AuthNavigator} />
+      ) : ownedDevices && ownedDevices.length === 0 ? (
+        <Stack.Screen name="ClaimStack" component={ClaimNavigator} />
       ) : (
         <Stack.Screen name="MainTabs" component={MainTabs} />
       )}
