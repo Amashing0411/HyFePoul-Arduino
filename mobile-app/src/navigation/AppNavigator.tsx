@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 import SplashScreen from '../screens/SplashScreen';
 import DashboardScreen from '../screens/DashboardScreen';
@@ -31,6 +32,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 
 function MainTabs() {
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   return (
     <Tab.Navigator
@@ -62,12 +64,12 @@ function MainTabs() {
         }
       })}
     >
-      <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ title: 'Status' }} />
-      <Tab.Screen name="Feeding" component={FeedingScreen} />
-      <Tab.Screen name="Water" component={WaterScreen} />
-      <Tab.Screen name="History" component={HistoryScreen} />
-      <Tab.Screen name="Notifications" component={NotificationsScreen} />
-      <Tab.Screen name="Settings" component={SettingsScreen} />
+      <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ title: t('navDashboard') }} />
+      <Tab.Screen name="Feeding" component={FeedingScreen} options={{ title: t('navFeeding') }} />
+      <Tab.Screen name="Water" component={WaterScreen} options={{ title: t('navWater') }} />
+      <Tab.Screen name="History" component={HistoryScreen} options={{ title: t('navHistory') }} />
+      <Tab.Screen name="Notifications" component={NotificationsScreen} options={{ title: t('navNotifications') }} />
+      <Tab.Screen name="Settings" component={SettingsScreen} options={{ title: t('navSettings') }} />
     </Tab.Navigator>
   );
 }

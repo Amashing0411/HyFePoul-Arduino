@@ -3,6 +3,7 @@ import { FlatList, View, Text, StyleSheet, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useMockData } from '../context/MockDataContext';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Alert } from '../types';
 import EmptyState from '../components/EmptyState';
 import Skeleton from '../components/Skeleton';
@@ -11,6 +12,7 @@ import { spacing, layout } from '../theme';
 export default function NotificationsScreen() {
   const { alerts, loading, refreshing, refreshData } = useMockData();
   const { colors, typography } = useTheme();
+  const { t } = useLanguage();
 
   const getIconForType = (type: string) => {
     switch (type) {
@@ -33,13 +35,14 @@ export default function NotificationsScreen() {
   const renderItem = ({ item }: { item: Alert }) => {
     const alertColor = getAlertColor(item.type, item.resolved);
     const title = item.type.replace(/_/g, ' ');
+    const timeStr = new Date(item.timestamp).toLocaleTimeString();
     
     return (
       <View 
         style={[styles.alertCard, { backgroundColor: colors.card, borderLeftColor: alertColor }, item.resolved && { opacity: 0.6 }]}
         accessible={true}
         accessibilityRole="text"
-        accessibilityLabel={`${item.resolved ? 'Resolved' : 'Active'} alert: ${title}. Occurred at ${new Date(item.timestamp).toLocaleTimeString()}`}
+        accessibilityLabel={item.resolved ? t('alertResolvedA11y', { title, time: timeStr }) : t('alertActiveA11y', { title, time: timeStr })}
       >
         <View style={styles.iconContainer}>
           <Ionicons name={getIconForType(item.type) as any} size={32} color={alertColor} />
@@ -50,7 +53,7 @@ export default function NotificationsScreen() {
           </Text>
           <Text style={[typography.caption, { marginTop: spacing.xs }]}>{new Date(item.timestamp).toLocaleString()}</Text>
           <Text style={[typography.caption, { fontWeight: 'bold', marginTop: spacing.sm, color: item.resolved ? colors.success : colors.error }]}>
-            {item.resolved ? 'RESOLVED' : 'ACTIVE'}
+            {item.resolved ? t('resolved') : t('actionRequired')}
           </Text>
         </View>
       </View>
@@ -77,7 +80,7 @@ export default function NotificationsScreen() {
         renderItem={renderItem}
         contentContainerStyle={alerts.length === 0 ? styles.emptyList : styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshData} tintColor={colors.primary} />}
-        ListEmptyComponent={<EmptyState iconName="checkmark-circle-outline" message="You're all caught up. No alerts." />}
+        ListEmptyComponent={<EmptyState iconName="checkmark-circle-outline" message={t('allCaughtUp')} />}
       />
     </View>
   );

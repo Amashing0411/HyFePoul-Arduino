@@ -9,11 +9,13 @@ import EmptyState from '../components/EmptyState';
 import Button from '../components/Button';
 import { useMockData } from '../context/MockDataContext';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { spacing, layout } from '../theme';
 
 export default function FeedingScreen() {
   const { systemData, schedules, toggleSchedule, deleteSchedule, addSchedule, loading, refreshing, refreshData } = useMockData();
   const { colors, typography } = useTheme();
+  const { t } = useLanguage();
   const [isAdding, setIsAdding] = useState(false);
   const [newHour, setNewHour] = useState('');
   const [newMin, setNewMin] = useState('');
@@ -26,14 +28,14 @@ export default function FeedingScreen() {
   const handleAdd = () => {
     const h = parseInt(newHour, 10);
     const m = parseInt(newMin, 10);
-    const t = parseInt(newTarget, 10);
+    const tVal = parseInt(newTarget, 10);
 
     if (isNaN(h) || h < 0 || h > 23 || isNaN(m) || m < 0 || m > 59) {
-      Alert.alert('Invalid Time', 'Please enter a valid hour (0-23) and minute (0-59).');
+      Alert.alert(t('invalidTime'), t('invalidTimeMsg'));
       return;
     }
-    if (isNaN(t) || t <= 0) {
-      Alert.alert('Invalid Target', 'Target feed must be greater than 0 g.');
+    if (isNaN(tVal) || tVal <= 0) {
+      Alert.alert(t('invalidTarget'), t('invalidTargetMsg'));
       return;
     }
 
@@ -41,7 +43,7 @@ export default function FeedingScreen() {
       id: Math.random().toString(),
       hour: h,
       minute: m,
-      targetGrams: t,
+      targetGrams: tVal,
       enabled: true,
     });
     
@@ -52,17 +54,17 @@ export default function FeedingScreen() {
   };
 
   const confirmDelete = (id: string, timeStr: string) => {
-    Alert.alert('Delete Schedule', `Remove the ${timeStr} schedule?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => deleteSchedule(id) }
+    Alert.alert(t('deleteScheduleTitle'), t('deleteScheduleMsg', { time: timeStr }), [
+      { text: t('cancel'), style: 'cancel' },
+      { text: t('delete'), style: 'destructive', onPress: () => deleteSchedule(id) }
     ]);
   };
 
   if (loading) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <Card title="Feed Status"><Skeleton height={60} /></Card>
-        <Card title="Schedules"><Skeleton height={100} /></Card>
+        <Card title={t('feedStatus')}><Skeleton height={60} /></Card>
+        <Card title={t('schedules')}><Skeleton height={100} /></Card>
       </View>
     );
   }
@@ -70,25 +72,25 @@ export default function FeedingScreen() {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshData} tintColor={colors.primary} />}>
-        <Card title="Feed Status">
+        <Card title={t('feedStatus')}>
           <View style={styles.row}>
-            <Text style={typography.body}>Hopper</Text>
+            <Text style={typography.body}>{t('hopper')}</Text>
             <Text style={[typography.body, { fontWeight: 'bold' }]}>{systemData.hopperLevelPercent.toFixed(0)}%</Text>
           </View>
           <ProgressBar progress={systemData.hopperLevelPercent} color={systemData.hopperLevelPercent < 20 ? colors.error : colors.warning} />
           <View style={[styles.row, { marginTop: spacing.md }]}>
-            <Text style={typography.body}>Weight:</Text>
+            <Text style={typography.body}>{t('weight')}:</Text>
             <Text style={[typography.body, { fontWeight: 'bold' }]}>{systemData.feedWeightGrams.toFixed(0)} g</Text>
           </View>
           <View style={styles.row}>
-            <Text style={typography.body}>State:</Text>
-            <StatusBadge status={systemData.feedingActive ? 'warning' : 'success'} text={systemData.feedingActive ? 'DISPENSING' : 'IDLE'} />
+            <Text style={typography.body}>{t('state')}:</Text>
+            <StatusBadge status={systemData.feedingActive ? 'warning' : 'success'} text={systemData.feedingActive ? t('dispensing') : t('idle')} />
           </View>
         </Card>
 
-        <Card title="Schedules">
+        <Card title={t('schedules')}>
           {schedules.length === 0 && !isAdding ? (
-            <EmptyState message="No feeding schedules configured." actionText="Add Schedule" onAction={() => setIsAdding(true)} />
+            <EmptyState message={t('noSchedules')} actionText={t('addSchedule')} onAction={() => setIsAdding(true)} />
           ) : (
             schedules.map((schedule) => {
               const timeStr = formatTime(schedule.hour, schedule.minute);
@@ -104,13 +106,13 @@ export default function FeedingScreen() {
                       onValueChange={() => toggleSchedule(schedule.id)}
                       trackColor={{ false: colors.neutralLight, true: colors.primary }}
                       accessible={true}
-                      accessibilityLabel={`Toggle ${timeStr} schedule`}
+                      accessibilityLabel={t('toggleSchedule', { time: timeStr })}
                     />
                     <TouchableOpacity 
                       onPress={() => confirmDelete(schedule.id, timeStr)} 
                       style={styles.deleteBtn}
                       accessible={true}
-                      accessibilityLabel={`Delete ${timeStr} schedule`}
+                      accessibilityLabel={t('deleteScheduleA11y', { time: timeStr })}
                       hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
                     >
                       <Ionicons name="trash-outline" size={24} color={colors.error} />
@@ -122,14 +124,14 @@ export default function FeedingScreen() {
           )}
 
           {!isAdding && schedules.length > 0 && (
-            <Button title="Add Schedule" onPress={() => setIsAdding(true)} variant="outline" accessibilityLabel="Add new feeding schedule" />
+            <Button title={t('addSchedule')} onPress={() => setIsAdding(true)} variant="outline" accessibilityLabel={t('addSchedule')} />
           )}
 
           {isAdding && (
             <View style={[styles.addForm, { backgroundColor: colors.neutralLight }]}>
               <View style={styles.formRow}>
                 <View style={styles.inputGroup}>
-                  <Text style={typography.caption}>Hour</Text>
+                  <Text style={typography.caption}>{t('hour')}</Text>
                   <TextInput 
                     style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]} 
                     placeholder="0-23" 
@@ -138,12 +140,12 @@ export default function FeedingScreen() {
                     onChangeText={setNewHour} 
                     keyboardType="number-pad" 
                     maxLength={2} 
-                    accessibilityLabel="Hour input" 
+                    accessibilityLabel={t('hour')} 
                   />
                 </View>
                 <Text style={[styles.colon, { color: colors.text }]}>:</Text>
                 <View style={styles.inputGroup}>
-                  <Text style={typography.caption}>Min</Text>
+                  <Text style={typography.caption}>{t('min')}</Text>
                   <TextInput 
                     style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]} 
                     placeholder="0-59" 
@@ -152,28 +154,28 @@ export default function FeedingScreen() {
                     onChangeText={setNewMin} 
                     keyboardType="number-pad" 
                     maxLength={2} 
-                    accessibilityLabel="Minute input" 
+                    accessibilityLabel={t('min')} 
                   />
                 </View>
                 <View style={[styles.inputGroup, { marginLeft: spacing.md }]}>
-                  <Text style={typography.caption}>Amount (g)</Text>
+                  <Text style={typography.caption}>{t('amountGrams')}</Text>
                   <TextInput 
                     style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]} 
-                    placeholder="Grams" 
+                    placeholder="g" 
                     placeholderTextColor={colors.textSecondary}
                     value={newTarget} 
                     onChangeText={setNewTarget} 
                     keyboardType="number-pad" 
-                    accessibilityLabel="Target grams input" 
+                    accessibilityLabel={t('amountGrams')} 
                   />
                 </View>
               </View>
               <View style={styles.formActions}>
                 <View style={{flex: 1, marginRight: spacing.sm}}>
-                  <Button title="Cancel" onPress={() => setIsAdding(false)} variant="outline" accessibilityLabel="Cancel adding schedule" />
+                  <Button title={t('cancel')} onPress={() => setIsAdding(false)} variant="outline" accessibilityLabel={t('cancel')} />
                 </View>
                 <View style={{flex: 1}}>
-                  <Button title="Save" onPress={handleAdd} accessibilityLabel="Save new schedule" />
+                  <Button title={t('save')} onPress={handleAdd} accessibilityLabel={t('save')} />
                 </View>
               </View>
             </View>

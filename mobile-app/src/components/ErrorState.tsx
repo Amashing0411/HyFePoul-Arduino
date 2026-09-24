@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { spacing } from '../theme';
 import Button from './Button';
 
@@ -12,6 +13,7 @@ interface ErrorStateProps {
 
 export default function ErrorState({ message, onRetry }: ErrorStateProps) {
   const { colors, typography } = useTheme();
+  const { t } = useLanguage();
 
   return (
     <View style={styles.container}>
@@ -19,7 +21,7 @@ export default function ErrorState({ message, onRetry }: ErrorStateProps) {
       <Text style={[typography.body, { color: colors.error, textAlign: 'center', marginTop: spacing.md }]}>{message}</Text>
       {onRetry && (
         <View style={styles.actionContainer}>
-          <Button title="Try Again" onPress={onRetry} accessibilityLabel="Retry loading data" />
+          <Button title={t('tryAgain')} onPress={onRetry} accessibilityLabel={t('tryAgain')} />
         </View>
       )}
     </View>

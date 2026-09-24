@@ -8,15 +8,17 @@ import Skeleton from '../components/Skeleton';
 import Button from '../components/Button';
 import { useMockData } from '../context/MockDataContext';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { spacing, layout } from '../theme';
 
 export default function DashboardScreen() {
   const { deviceData, systemData, schedules, loading, refreshing, refreshData, toggleEmergencyStop } = useMockData();
   const { colors, typography } = useTheme();
+  const { t } = useLanguage();
 
   const getNextFeeding = () => {
     const activeSchedules = schedules.filter(s => s.enabled);
-    if (activeSchedules.length === 0) return 'None';
+    if (activeSchedules.length === 0) return t('none');
     
     const now = new Date();
     const currentMins = now.getHours() * 60 + now.getMinutes();
@@ -32,20 +34,20 @@ export default function DashboardScreen() {
   const handleEmergencyStop = () => {
     if (systemData.emergencyStopActive) {
       Alert.alert(
-        "Release Emergency Stop",
-        "Resume normal system operation?",
+        t('estopReleaseTitle'),
+        t('estopReleaseMsg'),
         [
-          { text: "Cancel", style: "cancel" },
-          { text: "Release", style: "destructive", onPress: toggleEmergencyStop }
+          { text: t('cancel'), style: "cancel" },
+          { text: t('releaseEmergencyStop'), style: "destructive", onPress: toggleEmergencyStop }
         ]
       );
     } else {
       Alert.alert(
-        "Activate Emergency Stop",
-        "DANGER: This will halt all motors and pumps. Proceed?",
+        t('estopActivateTitle'),
+        t('estopActivateMsg'),
         [
-          { text: "Cancel", style: "cancel" },
-          { text: "EMERGENCY STOP", style: "destructive", onPress: toggleEmergencyStop }
+          { text: t('cancel'), style: "cancel" },
+          { text: t('emergencyStop'), style: "destructive", onPress: toggleEmergencyStop }
         ]
       );
     }
@@ -54,16 +56,16 @@ export default function DashboardScreen() {
   if (loading) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <Card title="Status">
+        <Card title={t('deviceStatus')}>
           <Skeleton height={24} width="50%" />
           <Skeleton height={16} width="30%" />
         </Card>
-        <Card title="Feed">
+        <Card title={t('feedSystem')}>
           <Skeleton height={24} width="40%" />
           <Skeleton height={8} />
           <Skeleton height={24} width="40%" />
         </Card>
-        <Card title="Water">
+        <Card title={t('waterSystem')}>
           <Skeleton height={24} width="40%" />
           <Skeleton height={24} width="40%" />
         </Card>
@@ -72,14 +74,14 @@ export default function DashboardScreen() {
   }
 
   const feedColor = systemData.hopperLevelPercent < 20 ? colors.error : colors.warning;
-  const isStale = (new Date().getTime() - new Date(systemData.timestamp).getTime()) > 300000; // 5 mins
+  const isStale = (new Date().getTime() - new Date(systemData.timestamp).getTime()) > 300000; 
 
   return (
     <ScrollView 
       style={[styles.container, { backgroundColor: colors.background }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshData} tintColor={colors.primary} />}
     >
-      <Card title="Status">
+      <Card title={t('deviceStatus')}>
         <View style={styles.row}>
           <View style={styles.deviceInfo}>
             <Ionicons name="hardware-chip" size={24} color={colors.textSecondary} />
@@ -87,84 +89,84 @@ export default function DashboardScreen() {
           </View>
           <StatusBadge 
             status={deviceData.status === 'online' ? 'success' : 'offline'} 
-            text={deviceData.status.toUpperCase()} 
+            text={deviceData.status === 'online' ? t('online') : t('offline')} 
           />
         </View>
         <View style={styles.row}>
-          <Text style={typography.caption} accessible={true} accessibilityLabel={`Last updated: ${new Date(systemData.timestamp).toLocaleTimeString()}`}>
-            Updated: {new Date(systemData.timestamp).toLocaleTimeString()} {isStale && '(Stale)'}
+          <Text style={typography.caption} accessible={true} accessibilityLabel={`${t('updated')}: ${new Date(systemData.timestamp).toLocaleTimeString()}`}>
+            {t('updated')}: {new Date(systemData.timestamp).toLocaleTimeString()} {isStale && `(${t('stale')})`}
           </Text>
         </View>
       </Card>
 
-      <Card title="Feed">
+      <Card title={t('feedSystem')}>
         <View style={styles.grid}>
           <View style={styles.gridItem}>
             <Ionicons name="scale-outline" size={24} color={colors.neutral} />
-            <Text style={[typography.caption, styles.gridLabel]}>Weight</Text>
+            <Text style={[typography.caption, styles.gridLabel]}>{t('weight')}</Text>
             <Text style={[typography.body, { fontWeight: 'bold' }]}>{systemData.feedWeightGrams.toFixed(0)} g</Text>
           </View>
           <View style={styles.gridItem}>
             <Ionicons name="time-outline" size={24} color={colors.neutral} />
-            <Text style={[typography.caption, styles.gridLabel]}>Next</Text>
+            <Text style={[typography.caption, styles.gridLabel]}>{t('nextFeed')}</Text>
             <Text style={[typography.body, { fontWeight: 'bold' }]}>{getNextFeeding()}</Text>
           </View>
           <View style={styles.gridItem}>
             <Ionicons name="restaurant-outline" size={24} color={colors.neutral} />
-            <Text style={[typography.caption, styles.gridLabel]}>Status</Text>
+            <Text style={[typography.caption, styles.gridLabel]}>{t('deviceStatus')}</Text>
             <View style={styles.badgeWrapper}>
-              <StatusBadge status={systemData.feedingActive ? 'warning' : 'success'} text={systemData.feedingActive ? 'ACTIVE' : 'IDLE'} />
+              <StatusBadge status={systemData.feedingActive ? 'warning' : 'success'} text={systemData.feedingActive ? t('active') : t('idle')} />
             </View>
           </View>
         </View>
         <View style={[styles.progressContainer, { borderTopColor: colors.border }]}>
           <View style={styles.row}>
-            <Text style={typography.caption}>Hopper Level</Text>
+            <Text style={typography.caption}>{t('hopperLevel')}</Text>
             <Text style={[typography.body, { fontWeight: 'bold' }]}>{systemData.hopperLevelPercent.toFixed(0)}%</Text>
           </View>
           <ProgressBar progress={systemData.hopperLevelPercent} color={feedColor} />
         </View>
       </Card>
 
-      <Card title="Water">
+      <Card title={t('waterSystem')}>
         <View style={styles.grid}>
           <View style={styles.gridItem}>
             <Ionicons name="water-outline" size={24} color={colors.neutral} />
-            <Text style={[typography.caption, styles.gridLabel]}>Tank</Text>
+            <Text style={[typography.caption, styles.gridLabel]}>{t('tank')}</Text>
             <View style={styles.badgeWrapper}>
               <StatusBadge 
                 status={systemData.waterLow ? 'error' : (systemData.waterHigh ? 'success' : 'online')} 
-                text={systemData.waterLow ? 'LOW' : (systemData.waterHigh ? 'HIGH' : 'OK')} 
+                text={systemData.waterLow ? t('low') : (systemData.waterHigh ? t('high') : t('ok'))} 
               />
             </View>
           </View>
           <View style={styles.gridItem}>
             <Ionicons name="color-filter-outline" size={24} color={colors.neutral} />
-            <Text style={[typography.caption, styles.gridLabel]}>Pump</Text>
+            <Text style={[typography.caption, styles.gridLabel]}>{t('pump')}</Text>
             <View style={styles.badgeWrapper}>
               <StatusBadge 
                 status={systemData.pumpActive ? 'warning' : 'success'} 
-                text={systemData.pumpActive ? 'RUNNING' : 'OFF'} 
+                text={systemData.pumpActive ? t('running') : t('off')} 
               />
             </View>
           </View>
         </View>
       </Card>
 
-      <Card title="Safety">
+      <Card title={t('safety')}>
         <View style={styles.row}>
-          <Text style={typography.body}>System State:</Text>
+          <Text style={typography.body}>{t('systemState')}:</Text>
           <StatusBadge 
             status={systemData.emergencyStopActive ? 'error' : 'success'} 
-            text={systemData.emergencyStopActive ? 'HALTED' : 'RUNNING'} 
+            text={systemData.emergencyStopActive ? t('halted') : t('running')} 
           />
         </View>
         <View style={{ marginTop: spacing.md }}>
           <Button 
-            title={systemData.emergencyStopActive ? "RELEASE EMERGENCY STOP" : "EMERGENCY STOP"}
+            title={systemData.emergencyStopActive ? t('releaseEmergencyStop') : t('emergencyStop')}
             onPress={handleEmergencyStop}
             variant={systemData.emergencyStopActive ? "outline" : "danger"}
-            accessibilityLabel={systemData.emergencyStopActive ? "Release emergency stop to resume system" : "Activate emergency stop to halt system"}
+            accessibilityLabel={systemData.emergencyStopActive ? t('estopReleaseTitle') : t('estopActivateTitle')}
           />
         </View>
       </Card>

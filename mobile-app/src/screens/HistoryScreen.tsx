@@ -3,6 +3,7 @@ import { FlatList, View, Text, StyleSheet, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useMockData } from '../context/MockDataContext';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { SystemData } from '../types';
 import EmptyState from '../components/EmptyState';
 import Skeleton from '../components/Skeleton';
@@ -11,9 +12,10 @@ import { spacing, layout } from '../theme';
 export default function HistoryScreen() {
   const { history, loading, refreshing, refreshData } = useMockData();
   const { colors, typography } = useTheme();
+  const { t } = useLanguage();
 
   const renderItem = ({ item }: { item: SystemData }) => (
-    <View style={[styles.card, { backgroundColor: colors.card }]} accessible={true} accessibilityRole="text" accessibilityLabel={`Log at ${new Date(item.timestamp).toLocaleString()}. Feed ${item.feedWeightGrams.toFixed(0)}g, Hopper ${item.hopperLevelPercent.toFixed(0)}%`}>
+    <View style={[styles.card, { backgroundColor: colors.card }]} accessible={true} accessibilityRole="text" accessibilityLabel={t('historyLogA11y', { time: new Date(item.timestamp).toLocaleString(), feed: item.feedWeightGrams.toFixed(0), hopper: item.hopperLevelPercent.toFixed(0) })}>
       <View style={styles.header}>
         <Ionicons name="time-outline" size={20} color={colors.neutral} />
         <Text style={[typography.body, { fontWeight: 'bold', marginLeft: spacing.sm }]}>{new Date(item.timestamp).toLocaleString()}</Text>
@@ -22,29 +24,29 @@ export default function HistoryScreen() {
       
       <View style={styles.dataGrid}>
         <View style={styles.dataItem}>
-          <Text style={typography.caption}>Feed</Text>
+          <Text style={typography.caption}>{t('feedSystem')}</Text>
           <Text style={[typography.bodySecondary, { fontWeight: 'bold' }]}>{item.feedWeightGrams.toFixed(0)}g</Text>
         </View>
         <View style={styles.dataItem}>
-          <Text style={typography.caption}>Hopper</Text>
+          <Text style={typography.caption}>{t('hopper')}</Text>
           <Text style={[typography.bodySecondary, { fontWeight: 'bold' }]}>{item.hopperLevelPercent.toFixed(0)}%</Text>
         </View>
         <View style={styles.dataItem}>
-          <Text style={typography.caption}>Water</Text>
+          <Text style={typography.caption}>{t('waterSystem')}</Text>
           <Text style={[typography.bodySecondary, { fontWeight: 'bold', color: item.waterLow ? colors.error : colors.success }]}>
-            {item.waterLow ? 'LOW' : (item.waterHigh ? 'HIGH' : 'OK')}
+            {item.waterLow ? t('low') : (item.waterHigh ? t('high') : t('ok'))}
           </Text>
         </View>
         <View style={styles.dataItem}>
-          <Text style={typography.caption}>Pump</Text>
+          <Text style={typography.caption}>{t('pump')}</Text>
           <Text style={[typography.bodySecondary, { fontWeight: 'bold', color: item.pumpActive ? colors.warning : colors.neutral }]}>
-            {item.pumpActive ? 'ON' : 'OFF'}
+            {item.pumpActive ? t('on') : t('off')}
           </Text>
         </View>
         <View style={styles.dataItem}>
-          <Text style={typography.caption}>Dispenser</Text>
+          <Text style={typography.caption}>{t('dispenser')}</Text>
           <Text style={[typography.bodySecondary, { fontWeight: 'bold', color: item.feedingActive ? colors.warning : colors.neutral }]}>
-            {item.feedingActive ? 'ON' : 'OFF'}
+            {item.feedingActive ? t('on') : t('off')}
           </Text>
         </View>
       </View>
@@ -71,7 +73,7 @@ export default function HistoryScreen() {
         renderItem={renderItem}
         contentContainerStyle={history.length === 0 ? styles.emptyList : styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshData} tintColor={colors.primary} />}
-        ListEmptyComponent={<EmptyState message="No history available." />}
+        ListEmptyComponent={<EmptyState message={t('noHistory')} />}
       />
     </View>
   );

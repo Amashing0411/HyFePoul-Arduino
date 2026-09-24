@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Animated, Image, AccessibilityInfo } from 'reac
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Splash'>;
@@ -10,6 +11,7 @@ type Props = {
 
 export default function SplashScreen({ navigation }: Props) {
   const { colors, typography } = useTheme();
+  const { t } = useLanguage();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
@@ -51,8 +53,8 @@ export default function SplashScreen({ navigation }: Props) {
           accessible={false} 
         />
         <Text style={[typography.h1, { color: colors.primary, letterSpacing: 1 }]}>HyFePoul</Text>
-        <Text style={[typography.bodySecondary, { marginTop: 8 }]}>Management System</Text>
-        <Text style={[typography.caption, { marginTop: 4, fontStyle: 'italic' }]}>(Placeholder Logo)</Text>
+        <Text style={[typography.bodySecondary, { marginTop: 8 }]}>{t('managementSystem')}</Text>
+        <Text style={[typography.caption, { marginTop: 4, fontStyle: 'italic' }]}>{t('placeholderLogo')}</Text>
       </Animated.View>
     </View>
   );
