@@ -26,6 +26,12 @@
     "plugins": [
       "expo-font",
       "expo-notifications"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "9fca6e05-ac20-4be4-a1d6-0f554348d6ca"
+      }
+    },
+    "owner": "creebus"
   }
 }
