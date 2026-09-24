@@ -16,3 +16,4 @@ export const device = functions.https.onRequest(app);
 
 // Export device claiming functionality for the mobile app
 export {claimDevice} from "./controllers/claim";
+export {registerFcmToken} from "./controllers/fcm";

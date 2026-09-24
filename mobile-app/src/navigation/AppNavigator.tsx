@@ -18,6 +18,7 @@ import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import ClaimDeviceScreen from '../screens/ClaimDeviceScreen';
 import { useAuth } from '../context/AuthContext';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -69,6 +70,7 @@ function ClaimNavigator() {
 function MainTabs() {
   const { colors } = useTheme();
   const { t } = useLanguage();
+  usePushNotifications();
 
   return (
     <Tab.Navigator

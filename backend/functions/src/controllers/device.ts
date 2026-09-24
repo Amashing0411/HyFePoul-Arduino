@@ -1,9 +1,25 @@
+/* eslint-disable max-len */
 import {Request, Response} from "express";
 import * as admin from "firebase-admin";
 import {authenticateDevice} from "../auth";
 import {validateDeviceData, validateDeviceEvent} from "../validation";
 
 import {FieldValue} from "firebase-admin/firestore";
+
+const getNotificationBody = (eventName: string): string => {
+  switch (eventName) {
+  case "LOW_FEED": return "Low feed level detected.";
+  case "LOW_WATER": return "Low water level detected.";
+  case "PUMP_TIMEOUT": return "Water pump timeout. Check for blockages or empty reservoir.";
+  case "EMERGENCY_STOP": return "Emergency stop activated.";
+  case "DEVICE_ERROR": return "A device error occurred.";
+  case "DEVICE_OFFLINE": return "The device is offline.";
+  case "FEEDING_STARTED": return "Feeding cycle started.";
+  case "FEEDING_COMPLETED": return "Feeding cycle completed.";
+  case "DEVICE_ONLINE": return "The device is back online.";
+  default: return "A new device event occurred.";
+  }
+};
 
 export const handleDeviceData = async (
   req: Request, res: Response
@@ -111,6 +127,7 @@ export const handleDeviceEvent = async (
 
     if (isActionable) {
       const alertDocRef = alertsRef.doc(event.eventId);
+      let newlyCreated = false;
 
       await db.runTransaction(async (transaction) => {
         const doc = await transaction.get(alertDocRef);
@@ -121,8 +138,74 @@ export const handleDeviceEvent = async (
             name: event.name,
             resolved: false,
           });
+          newlyCreated = true;
         }
       });
+
+      if (newlyCreated) {
+        // Find owner of the device to send FCM
+        const deviceDoc = await db.collection("devices").doc(deviceId).get();
+        if (deviceDoc.exists) {
+          const ownerId = deviceDoc.data()?.ownerId;
+          if (ownerId) {
+            const tokensSnap = await db.collection("users").doc(ownerId).collection("fcmTokens").get();
+            const tokens = tokensSnap.docs.map((d) => d.id);
+
+            if (tokens.length > 0) {
+              const payload = {
+                notification: {
+                  title: "HyFePoul Alert",
+                  body: getNotificationBody(event.name),
+                },
+                data: {
+                  eventId: event.eventId || "",
+                  deviceId: deviceId,
+                  type: event.name,
+                },
+              };
+
+              try {
+                // Firebase Admin sendEachForMulticast accepts maximum 500 tokens.
+                // We batch the tokens to enforce this limit.
+                const CHUNK_SIZE = 500;
+                const chunks = [];
+                for (let i = 0; i < tokens.length; i += CHUNK_SIZE) {
+                  chunks.push(tokens.slice(i, i + CHUNK_SIZE));
+                }
+
+                for (const chunk of chunks) {
+                  const response = await admin.messaging().sendEachForMulticast({
+                    tokens: chunk,
+                    ...payload,
+                  });
+
+                  // Cleanup invalid tokens
+                  if (response.failureCount > 0) {
+                    const failedTokens: string[] = [];
+                    response.responses.forEach((resp, idx) => {
+                      if (!resp.success) {
+                        const errCode = resp.error?.code;
+                        if (errCode === "messaging/invalid-registration-token" || errCode === "messaging/registration-token-not-registered") {
+                          failedTokens.push(chunk[idx]);
+                        }
+                      }
+                    });
+                    if (failedTokens.length > 0) {
+                      const batch = db.batch();
+                      failedTokens.forEach((t) => {
+                        batch.delete(db.collection("users").doc(ownerId).collection("fcmTokens").doc(t));
+                      });
+                      await batch.commit();
+                    }
+                  }
+                }
+              } catch (msgErr) {
+                console.error("Error sending FCM:", msgErr);
+              }
+            }
+          }
+        }
+      }
     } else {
       // Informational event
       await alertsRef.add({
