@@ -3,3 +3,5 @@ firebase-debug.*.log
 .firebase/
 backend/functions/node_modules/
 backend/functions/lib/
+# Firebase Android client configuration
+mobile-app/google-services.json
