@@ -28,6 +28,7 @@ export const translations = {
     high: 'HIGH',
     normal: 'NORMAL',
     ok: 'OK',
+    success: 'Success',
 
     // Splash
     managementSystem: 'Management System',
@@ -68,6 +69,7 @@ export const translations = {
     invalidTimeMsg: 'Please enter a valid hour (0-23) and minute (0-59).',
     invalidTarget: 'Invalid Target',
     invalidTargetMsg: 'Target feed must be greater than 0 g.',
+    scheduleSaved: 'Schedule saved successfully.',
     deleteScheduleTitle: 'Delete Schedule',
     deleteScheduleMsg: 'Remove the {time} schedule?',
     noSchedules: 'No feeding schedules configured.',
@@ -136,6 +138,7 @@ export const translations = {
     high: 'MATAAS',
     normal: 'NORMAL',
     ok: 'AYOS',
+    success: 'Tagumpay',
 
     // Splash
     managementSystem: 'Management System',
@@ -176,6 +179,7 @@ export const translations = {
     invalidTimeMsg: 'Maglagay ng tamang oras (0-23) at minuto (0-59).',
     invalidTarget: 'Maling Dami',
     invalidTargetMsg: 'Ang dami ng pakain ay dapat higit sa 0 g.',
+    scheduleSaved: 'Na-save na ang iskedyul.',
     deleteScheduleTitle: 'Burahin ang Iskedyul',
     deleteScheduleMsg: 'Burahin ang iskedyul para sa {time}?',
     noSchedules: 'Walang nakatakdang iskedyul ng pagpapakain.',

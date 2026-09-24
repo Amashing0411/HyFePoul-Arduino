@@ -51,6 +51,8 @@ export default function FeedingScreen() {
     setNewHour('');
     setNewMin('');
     setNewTarget('');
+    
+    Alert.alert(t('success'), t('scheduleSaved'));
   };
 
   const confirmDelete = (id: string, timeStr: string) => {
