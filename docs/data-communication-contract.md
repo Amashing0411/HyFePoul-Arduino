@@ -18,15 +18,15 @@ Communication between the Mega and ESP32 will occur over a physical serial conne
 *   **Mega's Role:** Sends system status updates and critical events. Receives time synchronization and network status from the ESP32.
 *   **ESP32's Role:** Listens for Wi-Fi/Internet status, fetches NTP time (when available), and forwards the Mega's data to the backend.
 
-*(Note: The exact message framing, baud rate, and serialization protocol are provisional and subject to firmware implementation.)*
+*(Note: The exact message framing, baud rate, and serialization protocol are detailed in `docs/mega-esp32-protocol.md`, and remain provisional subject to hardware validation.)*
 
 ## 4. ESP32 ↔ Backend Communication
-The ESP32 will transmit system status updates and event-based notifications to the backend over Wi-Fi. It will also periodically poll or maintain a connection to receive commands (e.g., updating feeding schedules, triggering emergency stops) from the backend. 
+The ESP32 will transmit system status updates and event-based notifications to the backend over Wi-Fi. It may also periodically poll or maintain a connection to receive commands from the backend. **Note:** Remote command functionality is strictly reserved/future and is NOT currently implemented.
 
 *(Note: The exact protocol is an open decision pending the backend platform choice.)*
 
 ## 5. Backend ↔ Mobile App Data Requirements
-The mobile application retrieves system status, historical logs, feeding schedules, and alerts from the database. It sends user commands (e.g., adding a schedule, triggering an emergency stop) to the backend API/database, which are then securely routed down to the ESP32 and Mega.
+The mobile application retrieves system status, historical logs, feeding schedules, and alerts from the database. The downward routing of user commands (e.g., triggering an emergency stop) to the physical ESP32/Mega is a future/reserved control path subject to strict authentication, authorization, acknowledgment, timeout, and safety requirements. Currently, no user commands are routed to physical hardware.
 
 ## 6. Future Mobile App → Device Control Path
 The intended control path for future mobile commands (such as Emergency Stop or approved feeding controls) is:
@@ -45,7 +45,7 @@ The system exclusively tracks the following variables based on the authorized ha
 *   `pumpActive`: Operational state of the water pump.
 *   `feedingActive`: Operational state of the feed dispenser motor.
 *   `emergencyStopActive`: State of the physical/digital emergency stop.
-*   `esp32Status`: Connectivity/status state of the ESP32, with the exact state definition to be finalized during backend and communication implementation.
+*   `esp32Status`: Indicates ESP32 network/backend connectivity (e.g., ONLINE/OFFLINE). This is strictly separate from Mega ↔ ESP32 serial-link health.
 *   `timestamp`: The time the data was generated/recorded.
 
 *(Constraint: No temperature, humidity, air quality, or lighting data is supported or transmitted.)*
@@ -84,7 +84,7 @@ Events trigger specific notifications or logs. Authorized events include:
 *   `EMERGENCY_STOP`: E-stop is engaged (physical button or mobile command).
 *   `DEVICE_ERROR`: General fault reported by Mega (e.g., sensor failure).
 *   `DEVICE_ONLINE`: ESP32 successfully connects to Wi-Fi and backend.
-*   `DEVICE_OFFLINE`: Backend detects missed heartbeats from ESP32.
+*   `DEVICE_OFFLINE`: Backend-derived status indicating loss of the ESP32's expected network/backend communication path.
 
 ## 12. Alert Definitions
 Alerts are derived directly from events and require user attention.
@@ -106,22 +106,8 @@ To prevent database bloating and notification spam, the system uses event-based 
 *   If a sensor produces invalid or unavailable data, the Mega should indicate the invalid state explicitly rather than treating the value as a valid measurement. The final representation (e.g., null, an error flag, or a dedicated error event) remains subject to firmware/backend implementation.
 *   If the mobile app receives data older than a defined threshold, it should display a 'Stale' indicator. The final threshold will be determined after the communication method and expected update interval are established.
 
-## 16. Provisional Message Examples
-These are illustrative/provisional only — not the final firmware protocol.
-
-**ESP32 → Mega (Time and Network Status):**
-```text
-TIME|2026-09-18|19:30:00
-STATUS|ONLINE
-STATUS|OFFLINE
-```
-
-**Mega → ESP32 (Data and Events):**
-```text
-DATA|feedWeightGrams:450|hopperPercent:85|waterLow:0|waterHigh:0|pumpActive:0|feedingActive:1|emergencyStopActive:0|timeSource:RTC
-EVENT|FEEDING_STARTED
-EVENT|LOW_WATER
-```
+## 16. Mega ↔ ESP32 Protocol Reference
+The exact message formatting, framing, parsing, data validation, event ACKs, event IDs, heartbeat, time synchronization, and reserved command formats are defined authoritatively in `docs/mega-esp32-protocol.md`.
 
 ## 17. Integration Dependencies
 *   **Firmware:** Requires finalized serial parsing logic on both Mega and ESP32.
@@ -141,4 +127,8 @@ The following architectural choices are unresolved and MUST be decided before ba
 *   **Device Identification/Claiming:** How a specific physical HyFePoul device is securely linked to a user's account.
 *   **Notification Service:** Platform for handling background push notifications.
 *   **Database Retention Limits:** How long historical data and resolved alerts are stored before pruning.
-*   **Final Serial Protocol:** Deciding between raw strings, delimited text, or efficient binary/JSON payloads for the Mega ↔ ESP32 link.
+
+## 20. Serial Protocol Status
+The Mega ↔ ESP32 software-level serial protocol is defined in `docs/mega-esp32-protocol.md` and serves as the authoritative reference for message types, framing, fields, validation, acknowledgments, heartbeat behavior, event IDs, and reserved command formats.
+
+Hardware-dependent parameters such as baud rate, UART pin assignment, and buffer sizing remain provisional and require physical hardware validation before being treated as final.
