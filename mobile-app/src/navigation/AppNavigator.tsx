@@ -13,9 +13,19 @@ import NotificationsScreen from '../screens/NotificationsScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 
+import LoginScreen from '../screens/LoginScreen';
+import RegisterScreen from '../screens/RegisterScreen';
+import { useAuth } from '../context/AuthContext';
+
 export type RootStackParamList = {
   Splash: undefined;
+  AuthStack: undefined;
   MainTabs: undefined;
+};
+
+export type AuthStackParamList = {
+  Login: undefined;
+  Register: undefined;
 };
 
 export type MainTabParamList = {
@@ -28,7 +38,17 @@ export type MainTabParamList = {
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
+
+function AuthNavigator() {
+  return (
+    <AuthStack.Navigator screenOptions={{ headerShown: false }}>
+      <AuthStack.Screen name="Login" component={LoginScreen} />
+      <AuthStack.Screen name="Register" component={RegisterScreen} />
+    </AuthStack.Navigator>
+  );
+}
 
 function MainTabs() {
   const { colors } = useTheme();
@@ -75,10 +95,19 @@ function MainTabs() {
 }
 
 export default function AppNavigator() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <SplashScreen />;
+  }
+
   return (
-    <Stack.Navigator initialRouteName="Splash" screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Splash" component={SplashScreen} />
-      <Stack.Screen name="MainTabs" component={MainTabs} />
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {!user ? (
+        <Stack.Screen name="AuthStack" component={AuthNavigator} />
+      ) : (
+        <Stack.Screen name="MainTabs" component={MainTabs} />
+      )}
     </Stack.Navigator>
   );
 }

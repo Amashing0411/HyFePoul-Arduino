@@ -4,10 +4,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { spacing, layout } from '../theme';
+import { useAuth } from '../context/AuthContext';
 
 export default function SettingsScreen() {
   const { mode, toggleTheme, fontSize, setFontSize, colors, typography } = useTheme();
   const { language, setLanguage, t } = useLanguage();
+  const { signOut } = useAuth();
 
   const handleFontChange = (size: 'small' | 'medium' | 'large') => {
     setFontSize(size);
@@ -115,6 +117,19 @@ export default function SettingsScreen() {
             ))}
           </View>
         </View>
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+        {/* Logout */}
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={() => signOut()}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Log Out"
+        >
+          <Ionicons name="log-out-outline" size={24} color="#e74c3c" />
+          <Text style={[typography.body, styles.logoutText]}>Log Out</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -148,5 +163,16 @@ const styles = StyleSheet.create({
     borderRadius: layout.borderRadius / 2,
     minHeight: layout.minTouchTarget,
     justifyContent: 'center'
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+  },
+  logoutText: {
+    marginLeft: spacing.sm,
+    color: '#e74c3c',
+    fontWeight: 'bold',
   }
 });

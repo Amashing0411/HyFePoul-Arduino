@@ -5,11 +5,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 
-type Props = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'Splash'>;
-};
-
-export default function SplashScreen({ navigation }: Props) {
+export default function SplashScreen() {
   const { colors, typography } = useTheme();
   const { t } = useLanguage();
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -35,13 +31,7 @@ export default function SplashScreen({ navigation }: Props) {
         scaleAnim.setValue(1);
       }
     });
-
-    const timer = setTimeout(() => {
-      navigation.replace('MainTabs');
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, [navigation, fadeAnim, scaleAnim]);
+  }, [fadeAnim, scaleAnim]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.card }]}>
