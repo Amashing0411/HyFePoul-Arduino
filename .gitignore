@@ -1,0 +1,5 @@
+firebase-debug.log
+firebase-debug.*.log
+.firebase/
+backend/functions/node_modules/
+backend/functions/lib/
