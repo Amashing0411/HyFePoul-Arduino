@@ -16,7 +16,9 @@ Stores user profile information and notification tokens.
 ### 2. `devices`
 Stores hardware registration, status, and the current UI state.
 *   `deviceId` (Document ID): Unique identifier for the ESP32.
-*   `ownerId`: String (UID of the claiming user)
+*   `ownerId`: String (UID of the claiming user. Null if unclaimed).
+*   `claimedAt`: Timestamp (When the device was claimed. Missing if unclaimed).
+*   `setupPinHash`: String (Hash of the setup PIN. Exists only while the device is provisioned but unclaimed. Deleted atomically upon successful claim).
 *   `name`: String (e.g., "Main Coop Feeder")
 *   `esp32Status`: String (`"ONLINE"`, `"OFFLINE"`)
 *   `lastHeartbeat`: Timestamp

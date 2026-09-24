@@ -7,6 +7,10 @@ const admin = require("firebase-admin");
 admin.initializeApp({projectId: "hyfepoul-dev"});
 const db = admin.firestore();
 
+const testEnv = require("firebase-functions-test")({projectId: "hyfepoul-dev"});
+const {claimDevice} = require("../lib/controllers/claim.js");
+const claimDeviceWrapped = testEnv.wrap(claimDevice);
+
 const validHeaders = {
   "Content-Type": "application/json",
   "X-Device-ID": "device-001",
@@ -191,6 +195,95 @@ const runTests = async () => {
 
   res = await firestoreFetch("devices/device-001/alerts?documentId=hacked", "user123", "POST", {fields: {}});
   assertEqual("19. Owner write alerts denied", res.status, 403);
+
+  console.log("--- Running Device Claiming Tests ---");
+
+  // Helper to run claim tests
+  const runClaim = async (data, uid) => {
+    try {
+      const result = await claimDeviceWrapped(data, uid ? {auth: {uid}} : {});
+      return {success: true, data: result};
+    } catch (err) {
+      return {success: false, code: err.code || err.message};
+    }
+  };
+
+  const {hashPin} = require("../lib/controllers/claim.js");
+
+  // Setup claim-001 with pin '123456'
+  await db.collection("devices").doc("claim-001").set({
+    setupPinHash: hashPin("123456", "claim-001"),
+  });
+
+  // Setup claim-002 already claimed
+  await db.collection("devices").doc("claim-002").set({
+    ownerId: "existingUser",
+    setupPinHash: hashPin("999999", "claim-002"),
+  });
+
+  // 1. Unauthenticated claim
+  let claimRes = await runClaim({deviceId: "claim-001", pin: "123456"}, null);
+  assertEqual("20. Unauthenticated claim rejected", claimRes.success, false);
+  assertEqual("    -> Status is unauthenticated", claimRes.code, "unauthenticated");
+
+  // 2. Unknown device
+  claimRes = await runClaim({deviceId: "unknown-dev", pin: "123456"}, "user123");
+  assertEqual("21. Unknown device claim rejected", claimRes.success, false);
+  assertEqual("    -> Status is not-found", claimRes.code, "not-found");
+
+  // 3. Malformed deviceId
+  claimRes = await runClaim({pin: "123456"}, "user123");
+  assertEqual("22. Malformed deviceId claim rejected", claimRes.success, false);
+
+  // 4. Malformed PIN
+  claimRes = await runClaim({deviceId: "claim-001"}, "user123");
+  assertEqual("23. Malformed PIN claim rejected", claimRes.success, false);
+
+  // 5. Invalid PIN
+  claimRes = await runClaim({deviceId: "claim-001", pin: "654321"}, "user123");
+  assertEqual("24. Invalid PIN claim rejected", claimRes.success, false);
+  assertEqual("    -> Status is invalid-argument", claimRes.code, "invalid-argument");
+
+  // 6. Valid PIN + unclaimed device -> success
+  claimRes = await runClaim({deviceId: "claim-001", pin: "123456"}, "user123");
+  assertEqual("25. Valid PIN claim succeeded", claimRes.success, true);
+
+  const claimDoc = await db.collection("devices").doc("claim-001").get();
+  // 7. Verify ownerId equals authenticated UID
+  assertEqual("26. Verify ownerId assigned", claimDoc.data().ownerId, "user123");
+  // 8. Verify claimedAt exists
+  assertEqual("27. Verify claimedAt exists", !!claimDoc.data().claimedAt, true);
+  // 9. Verify setupPinHash is deleted
+  assertEqual("28. Verify setupPinHash is deleted", claimDoc.data().setupPinHash, undefined);
+
+  // 10. Same PIN after successful claim -> rejected
+  claimRes = await runClaim({deviceId: "claim-001", pin: "123456"}, "user123");
+  assertEqual("29. Same PIN after success rejected", claimRes.success, false);
+  assertEqual("    -> Status is already-exists", claimRes.code, "already-exists");
+
+  // 11. Already claimed device -> rejected
+  claimRes = await runClaim({deviceId: "claim-002", pin: "999999"}, "user456");
+  assertEqual("30. Already claimed device rejected", claimRes.success, false);
+
+  // 12. Different authenticated user attempts same device -> rejected
+  // Tested by #29 and #30 essentially.
+  claimRes = await runClaim({deviceId: "claim-001", pin: "123456"}, "user456");
+  assertEqual("31. Different user on claimed device rejected", claimRes.success, false);
+
+  // 13. Attacker knows deviceId but no PIN -> rejected
+  // Tested by #24 and #23.
+
+  // 14. Two simultaneous claim attempts -> only one succeeds
+  await db.collection("devices").doc("claim-003").set({
+    setupPinHash: hashPin("777777", "claim-003"),
+  });
+  const p1 = runClaim({deviceId: "claim-003", pin: "777777"}, "user123");
+  const p2 = runClaim({deviceId: "claim-003", pin: "777777"}, "user456");
+  const results = await Promise.all([p1, p2]);
+  const successCount = results.filter((r) => r.success).length;
+  assertEqual("32. Concurrent claims only one succeeds", successCount, 1);
+
+  testEnv.cleanup();
 
   console.log(`\nTests completed: ${passed}/${total} passed.`);
   process.exit(passed === total ? 0 : 1);

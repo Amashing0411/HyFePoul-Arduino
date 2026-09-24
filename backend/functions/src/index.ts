@@ -13,3 +13,6 @@ app.all("/event", handleDeviceEvent);
 
 // Use Firebase Functions to expose the single HTTP endpoint wrapper
 export const device = functions.https.onRequest(app);
+
+// Export device claiming functionality for the mobile app
+export {claimDevice} from "./controllers/claim";
