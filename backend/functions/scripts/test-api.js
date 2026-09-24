@@ -133,6 +133,65 @@ const runTests = async () => {
   const systemDataSnap2 = await db.collection("devices").doc("device-001").collection("systemData").get();
   assertEqual("    -> No Firestore write for invalid DATA", systemDataSnap2.size, 2);
 
+  // MOBILE APP FIRESTORE SECURITY RULES TESTS
+  console.log("--- Running Mobile App Security Rules Tests ---");
+
+  // Set up ownerId on device-001 and device-002
+  await db.collection("devices").doc("device-001").set({ownerId: "user123"}, {merge: true});
+  await db.collection("devices").doc("device-002").set({ownerId: "otherUser"});
+
+  const FIRESTORE_REST = "http://127.0.0.1:8085/v1/projects/hyfepoul-dev/databases/(default)/documents";
+
+  const getMockToken = (uid) => {
+    if (!uid) return null;
+    const header = Buffer.from(JSON.stringify({alg: "none", type: "JWT"})).toString("base64url");
+    const payload = Buffer.from(JSON.stringify({sub: uid, user_id: uid, project_id: "hyfepoul-dev"})).toString("base64url");
+    return `${header}.${payload}.`;
+  };
+
+  const firestoreFetch = async (path, uid, method = "GET", body = null) => {
+    const opts = {method};
+    if (uid) {
+      opts.headers = {Authorization: `Bearer ${getMockToken(uid)}`};
+    }
+    if (body) {
+      opts.headers = {...opts.headers, "Content-Type": "application/json"};
+      opts.body = JSON.stringify(body);
+    }
+    return fetch(`${FIRESTORE_REST}/${path}`, opts);
+  };
+
+  res = await firestoreFetch("devices/device-001", null);
+  assertEqual("11. Unauthenticated read denied", res.status, 403);
+
+  res = await firestoreFetch("devices/device-001", "user123");
+  assertEqual("12. Authenticated owner read allowed", res.status, 200);
+
+  res = await firestoreFetch("devices/device-002", "user123");
+  assertEqual("13. Authenticated non-owner read denied", res.status, 403);
+
+  res = await firestoreFetch("devices/device-001?updateMask.fieldPaths=ownerId", "user123", "PATCH", {
+    fields: {ownerId: {stringValue: "hacked"}},
+  });
+  assertEqual("14. Owner update ownerId denied", res.status, 403);
+
+  res = await firestoreFetch("devices/device-001?updateMask.fieldPaths=currentState", "user123", "PATCH", {
+    fields: {currentState: {mapValue: {fields: {}}}},
+  });
+  assertEqual("15. Owner update currentState denied", res.status, 403);
+
+  res = await firestoreFetch("devices/device-001/systemData", "user123");
+  assertEqual("16. Owner read systemData denied", res.status, 403);
+
+  res = await firestoreFetch("devices/device-001/systemData?documentId=hacked", "user123", "POST", {fields: {}});
+  assertEqual("17. Owner write systemData denied", res.status, 403);
+
+  res = await firestoreFetch("devices/device-001/alerts", "user123");
+  assertEqual("18. Owner read alerts denied", res.status, 403);
+
+  res = await firestoreFetch("devices/device-001/alerts?documentId=hacked", "user123", "POST", {fields: {}});
+  assertEqual("19. Owner write alerts denied", res.status, 403);
+
   console.log(`\nTests completed: ${passed}/${total} passed.`);
   process.exit(passed === total ? 0 : 1);
 };

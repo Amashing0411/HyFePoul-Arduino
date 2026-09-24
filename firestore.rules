@@ -1,8 +1,14 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    match /devices/{deviceId} {
+      // Authenticated users must only be able to read device documents they own.
+      allow read: if request.auth != null && resource.data.ownerId == request.auth.uid;
+      // All writes denied for mobile (Cloud Functions use Admin SDK and bypass this)
+      allow write: if false;
+    }
     match /{document=**} {
-      // Default to rejecting all requests until specific schemas are implemented
+      // Default to rejecting all requests
       allow read, write: if false;
     }
   }
