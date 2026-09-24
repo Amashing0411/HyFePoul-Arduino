@@ -21,6 +21,19 @@ module.exports = {
     "/lib/**/*", // Ignore built files.
     ".eslintrc.js", // Ignore this config file itself.
   ],
+  overrides: [
+    {
+      files: ["**/*.js"],
+      parser: "espree", // Use the default JS parser
+      parserOptions: {
+        ecmaVersion: 2020,
+        sourceType: "script",
+      },
+      rules: {
+        "@typescript-eslint/no-var-requires": "off",
+      },
+    },
+  ],
   plugins: [
     "@typescript-eslint",
     "import",

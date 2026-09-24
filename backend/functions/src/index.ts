@@ -1,7 +1,11 @@
-// import * as functions from "firebase-functions";
-// import * as admin from "firebase-admin";
+import * as functions from "firebase-functions";
+import * as express from "express";
+import {handleDeviceData, handleDeviceEvent} from "./controllers/device";
 
-// admin.initializeApp();
+const app = express();
 
-// Endpoint definitions will go here.
-// Currently empty for initialization purposes.
+app.all("/data", handleDeviceData);
+app.all("/event", handleDeviceEvent);
+
+// Use Firebase Functions to expose the single HTTP endpoint wrapper
+export const device = functions.https.onRequest(app);
