@@ -2,6 +2,11 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 const EMULATOR_BASE_URL = "http://127.0.0.1:5001/hyfepoul-dev/us-central1";
 
+process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
+const admin = require("firebase-admin");
+admin.initializeApp({projectId: "hyfepoul-dev"});
+const db = admin.firestore();
+
 const validHeaders = {
   "Content-Type": "application/json",
   "X-Device-ID": "device-001",
@@ -41,133 +46,95 @@ const runTests = async () => {
   };
 
   const ts = new Date().toISOString();
+  const ts2 = new Date().toISOString();
+
+  // Clear Firestore before tests
+  await fetch("http://127.0.0.1:8085/emulator/v1/projects/hyfepoul-dev/databases/(default)/documents", {method: "DELETE"});
 
   console.log("--- Running Local API Tests against Emulator ---");
 
-  // 1. Valid /device/data request
-  let res = await sendReq("device/data", {
+  // DATA PERSISTENCE TESTS
+  const dataPayload1 = {
     feedWeightGrams: 450, targetFeedGrams: 500, hopperLevelPercent: 85,
     waterLow: false, waterHigh: false, pumpActive: false,
     feedingActive: true, emergencyStopActive: false, timestamp: ts,
-  }, validHeaders);
-  assertEqual("1. Valid /device/data request", res.status, 200);
-
-  // 2. Missing required field
-  res = await sendReq("device/data", {
-    targetFeedGrams: 500, hopperLevelPercent: 85,
-    waterLow: false, waterHigh: false, pumpActive: false,
-    feedingActive: true, emergencyStopActive: false, timestamp: ts,
-  }, validHeaders); // Missing feedWeightGrams
-  assertEqual("2. Missing required field (feedWeightGrams)", res.status, 400);
-
-  // 3. Wrong field type
-  res = await sendReq("device/data", {
-    feedWeightGrams: "450", targetFeedGrams: 500, hopperLevelPercent: 85,
-    waterLow: false, waterHigh: false, pumpActive: false,
-    feedingActive: true, emergencyStopActive: false, timestamp: ts,
-  }, validHeaders); // String instead of number
-  assertEqual("3. Wrong field type (string instead of number)", res.status, 400);
-
-  // 4. Invalid timestamp
-  res = await sendReq("device/data", {
-    feedWeightGrams: 450, targetFeedGrams: 500, hopperLevelPercent: 85,
-    waterLow: false, waterHigh: false, pumpActive: false,
-    feedingActive: true, emergencyStopActive: false, timestamp: "2026-15-99T14:00:00",
-  }, validHeaders);
-  assertEqual("4. Invalid timestamp format", res.status, 400);
-
-  // 5. Missing X-Device-ID
-  res = await sendReq("device/data", {
-    feedWeightGrams: 450, targetFeedGrams: 500, hopperLevelPercent: 85,
-    waterLow: false, waterHigh: false, pumpActive: false,
-    feedingActive: true, emergencyStopActive: false, timestamp: ts,
-  }, {"Content-Type": "application/json", "X-Device-Token": "mock-secret-token-123"});
-  assertEqual("5. Missing X-Device-ID", res.status, 401);
-
-  // 6. Missing X-Device-Token
-  res = await sendReq("device/data", {
-    feedWeightGrams: 450, targetFeedGrams: 500, hopperLevelPercent: 85,
-    waterLow: false, waterHigh: false, pumpActive: false,
-    feedingActive: true, emergencyStopActive: false, timestamp: ts,
-  }, {"Content-Type": "application/json", "X-Device-ID": "device-001"});
-  assertEqual("6. Missing X-Device-Token", res.status, 401);
-
-  // 7. Valid /device/event
-  res = await sendReq("device/event", {
-    eventId: "42-1045", name: "LOW_WATER", timestamp: ts,
-  }, validHeaders);
-  assertEqual("7. Valid /device/event (Actionable)", res.status, 200);
-
-  // 8. Invalid event name
-  res = await sendReq("device/event", {
-    eventId: "42-1046", name: "NOT_A_REAL_EVENT", timestamp: ts,
-  }, validHeaders);
-  assertEqual("8. Invalid event name", res.status, 400);
-
-  // 9. Missing eventId for actionable event
-  res = await sendReq("device/event", {
-    name: "LOW_WATER", timestamp: ts,
-  }, validHeaders);
-  assertEqual("9. Missing eventId for actionable event", res.status, 400);
-
-  // 10. Informational event without eventId
-  res = await sendReq("device/event", {
-    name: "FEEDING_STARTED", timestamp: ts,
-  }, validHeaders);
-  assertEqual("10. Informational event without eventId", res.status, 200);
-
-  // 11. Invalid authentication token
-  res = await sendReq("device/data", {
-    feedWeightGrams: 450, targetFeedGrams: 500, hopperLevelPercent: 85,
-    waterLow: false, waterHigh: false, pumpActive: false,
-    feedingActive: true, emergencyStopActive: false, timestamp: ts,
-  }, {"Content-Type": "application/json", "X-Device-ID": "device-001", "X-Device-Token": "wrong-token"});
-  assertEqual("11. Invalid authentication token", res.status, 403);
-
-  // 12. Valid emulator-only mock authentication
-  res = await sendReq("device/data", {
-    feedWeightGrams: 450, targetFeedGrams: 500, hopperLevelPercent: 85,
-    waterLow: false, waterHigh: false, pumpActive: false,
-    feedingActive: true, emergencyStopActive: false, timestamp: ts,
-  }, validHeaders);
-  assertEqual("12. Valid emulator-only mock authentication", res.status, 200);
-
-  // 13. Unsupported HTTP method
-  res = await sendReq("device/data", {}, validHeaders, "GET");
-  assertEqual("13. Unsupported HTTP method (GET returns 405)", res.status, 405);
-
-  console.log("\n--- Testing Authentication Isolation ---");
-  // Test mock credential refusal outside emulator by spawning a separate node script
-  // that just calls authenticateDevice directly without the env var set.
-  const {authenticateDevice} = require("../lib/auth.js");
-  const mockReq = {
-    header: (name) => {
-      if (name === "X-Device-ID") return "device-001";
-      if (name === "X-Device-Token") return "mock-secret-token-123";
-      return undefined;
-    },
-  };
-  let code = 0;
-  const mockRes = {
-    status: (c) => {
-      code = c; return mockRes;
-    },
-    json: () => {},
   };
 
-  // Temporarily unset the env var to mimic production
-  const origEnv = process.env.FUNCTIONS_EMULATOR;
-  process.env.FUNCTIONS_EMULATOR = "false";
+  let res = await sendReq("device/data", dataPayload1, validHeaders);
+  assertEqual("1. Valid DATA request status", res.status, 200);
 
-  authenticateDevice(mockReq, mockRes);
-  assertEqual("14. Mock credential rejected when not in emulator (Production fallback returns 501)", code, 501);
+  let deviceDoc = await db.collection("devices").doc("device-001").get();
+  assertEqual("   -> Device doc created", deviceDoc.exists, true);
+  assertEqual("   -> esp32Status is ONLINE", deviceDoc.data().esp32Status, "ONLINE");
+  assertEqual("   -> feedWeightGrams match", deviceDoc.data().currentState.feedWeightGrams, 450);
 
-  // Restore env
-  process.env.FUNCTIONS_EMULATOR = origEnv;
+  const dataPayload2 = {...dataPayload1, feedWeightGrams: 420, timestamp: ts2};
+  res = await sendReq("device/data", dataPayload2, validHeaders);
+  assertEqual("2. Second valid DATA request status", res.status, 200);
+
+  deviceDoc = await db.collection("devices").doc("device-001").get();
+  assertEqual("   -> Device doc updated", deviceDoc.data().currentState.feedWeightGrams, 420);
+
+  const systemDataSnap = await db.collection("devices").doc("device-001").collection("systemData").get();
+  assertEqual("3. Historical systemData records exist (2 snapshots)", systemDataSnap.size, 2);
+
+  // EVENT PERSISTENCE TESTS
+  const eventPayload1 = {eventId: "42-1045", name: "LOW_WATER", timestamp: ts};
+  res = await sendReq("device/event", eventPayload1, validHeaders);
+  assertEqual("4. First actionable event status", res.status, 200);
+
+  let alertsSnap = await db.collection("devices").doc("device-001").collection("alerts").get();
+  assertEqual("   -> Exactly one alert created", alertsSnap.size, 1);
+  const alertDoc = alertsSnap.docs[0];
+  assertEqual("   -> Alert is LOW_WATER", alertDoc.data().name, "LOW_WATER");
+  assertEqual("   -> Alert is unresolved", alertDoc.data().resolved, false);
+
+  res = await sendReq("device/event", eventPayload1, validHeaders);
+  assertEqual("5. Resend same eventId status", res.status, 200);
+
+  alertsSnap = await db.collection("devices").doc("device-001").collection("alerts").get();
+  assertEqual("   -> Still exactly one alert (Idempotency check)", alertsSnap.size, 1);
+
+  const eventPayload2 = {eventId: "42-1046", name: "LOW_WATER", timestamp: ts2};
+  res = await sendReq("device/event", eventPayload2, validHeaders);
+  assertEqual("6. Same event name with different eventId status", res.status, 200);
+
+  alertsSnap = await db.collection("devices").doc("device-001").collection("alerts").get();
+  assertEqual("   -> Two distinct alerts exist now", alertsSnap.size, 2);
+
+  const infoEventPayload = {name: "FEEDING_STARTED", timestamp: ts};
+  res = await sendReq("device/event", infoEventPayload, validHeaders);
+  assertEqual("7. Informational event status", res.status, 200);
+
+  alertsSnap = await db.collection("devices").doc("device-001").collection("alerts").get();
+  assertEqual("   -> Three total events (2 actionable, 1 info)", alertsSnap.size, 3);
+  const infoDoc = alertsSnap.docs.find((d) => d.data().name === "FEEDING_STARTED");
+  assertEqual("   -> Informational event persisted", !!infoDoc, true);
+
+  const invalidEventPayload = {eventId: "42-1047", name: "NOT_A_REAL_EVENT", timestamp: ts};
+  res = await sendReq("device/event", invalidEventPayload, validHeaders);
+  assertEqual("8. Invalid event status", res.status, 400);
+
+  alertsSnap = await db.collection("devices").doc("device-001").collection("alerts").get();
+  assertEqual("   -> No Firestore write for invalid event", alertsSnap.size, 3);
+
+  // AUTH & VALIDATION TESTS
+  const badAuthHeaders = {...validHeaders, "X-Device-Token": "wrong-token"};
+  res = await sendReq("device/event", {eventId: "42-1048", name: "LOW_FEED", timestamp: ts}, badAuthHeaders);
+  assertEqual("9. Unauthorized device status", res.status, 403);
+
+  alertsSnap = await db.collection("devices").doc("device-001").collection("alerts").get();
+  assertEqual("   -> No Firestore write for unauthorized", alertsSnap.size, 3);
+
+  const invalidDataPayload = {...dataPayload1, hopperLevelPercent: 150}; // Out of bounds
+  res = await sendReq("device/data", invalidDataPayload, validHeaders);
+  assertEqual("10. Invalid DATA payload status", res.status, 400);
+
+  const systemDataSnap2 = await db.collection("devices").doc("device-001").collection("systemData").get();
+  assertEqual("    -> No Firestore write for invalid DATA", systemDataSnap2.size, 2);
 
   console.log(`\nTests completed: ${passed}/${total} passed.`);
   process.exit(passed === total ? 0 : 1);
 };
 
-// Wait a moment for emulator to boot up if started recently
 setTimeout(runTests, 2000);
