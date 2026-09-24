@@ -13,8 +13,8 @@
 - **Pending**: Wi-Fi connection logic, backend communication, and finalized serial protocol with the Mega.
 
 ### 3. Backend (Firebase)
-- **Status**: **Pending**
-- **Notes**: Architecture defined. 
+- **Status**: **In Progress**
+- **Notes**: Architecture, schemas, and API contracts defined. 
 - **Pending**: Setup Firebase project, write Cloud Functions, deploy Firestore rules, configure FCM.
 
 ### 4. Mobile Application (React Native / Expo)
