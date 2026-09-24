@@ -9,6 +9,7 @@ export const mockDeviceData: DeviceData = {
 
 export const mockSystemData: SystemData = {
   feedWeightGrams: 450,
+  targetFeedGrams: 0,
   hopperLevelPercent: 65,
   waterLow: false,
   waterHigh: true,

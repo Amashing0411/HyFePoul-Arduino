@@ -7,12 +7,14 @@ import ProgressBar from '../components/ProgressBar';
 import Skeleton from '../components/Skeleton';
 import Button from '../components/Button';
 import { useMockData } from '../context/MockDataContext';
+import { useFirebaseData } from '../context/FirebaseDataContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { spacing, layout } from '../theme';
 
 export default function DashboardScreen() {
-  const { deviceData, systemData, schedules, loading, refreshing, refreshData, toggleEmergencyStop } = useMockData();
+  const { schedules, refreshing, refreshData, toggleEmergencyStop } = useMockData();
+  const { deviceData, systemData, loading, error } = useFirebaseData();
   const { colors, typography } = useTheme();
   const { t } = useLanguage();
 
@@ -32,6 +34,7 @@ export default function DashboardScreen() {
   };
 
   const handleEmergencyStop = () => {
+    if (!systemData) return;
     if (systemData.emergencyStopActive) {
       Alert.alert(
         t('estopReleaseTitle'),
@@ -53,22 +56,30 @@ export default function DashboardScreen() {
     }
   };
 
-  if (loading) {
+  if (loading || !deviceData || !systemData) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <Card title={t('deviceStatus')}>
-          <Skeleton height={24} width="50%" />
-          <Skeleton height={16} width="30%" />
-        </Card>
-        <Card title={t('feedSystem')}>
-          <Skeleton height={24} width="40%" />
-          <Skeleton height={8} />
-          <Skeleton height={24} width="40%" />
-        </Card>
-        <Card title={t('waterSystem')}>
-          <Skeleton height={24} width="40%" />
-          <Skeleton height={24} width="40%" />
-        </Card>
+        {error ? (
+          <Card title="Connection Error">
+            <Text style={[typography.body, { color: colors.error, marginBottom: 16 }]}>{error}</Text>
+          </Card>
+        ) : (
+          <>
+            <Card title={t('deviceStatus')}>
+              <Skeleton height={24} width="50%" />
+              <Skeleton height={16} width="30%" />
+            </Card>
+            <Card title={t('feedSystem')}>
+              <Skeleton height={24} width="40%" />
+              <Skeleton height={8} />
+              <Skeleton height={24} width="40%" />
+            </Card>
+            <Card title={t('waterSystem')}>
+              <Skeleton height={24} width="40%" />
+              <Skeleton height={24} width="40%" />
+            </Card>
+          </>
+        )}
       </View>
     );
   }

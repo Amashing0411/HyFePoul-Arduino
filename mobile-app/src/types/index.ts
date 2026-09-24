@@ -1,5 +1,6 @@
 export interface SystemData {
   feedWeightGrams: number;
+  targetFeedGrams: number;
   hopperLevelPercent: number;
   waterLow: boolean;
   waterHigh: boolean;
@@ -12,8 +13,8 @@ export interface SystemData {
 export interface DeviceData {
   deviceId: string;
   name: string;
-  status: 'online' | 'offline';
-  lastHeartbeat: string;
+  status: 'online' | 'offline' | null;
+  lastHeartbeat: string | null;
 }
 
 export interface FeedSchedule {

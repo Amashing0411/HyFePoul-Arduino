@@ -6,6 +6,7 @@ import { MockDataProvider } from './src/context/MockDataContext';
 import { ThemeProvider } from './src/context/ThemeContext';
 import { LanguageProvider } from './src/context/LanguageContext';
 import { AuthProvider } from './src/context/AuthContext';
+import { FirebaseDataProvider } from './src/context/FirebaseDataContext';
 
 export default function App() {
   return (
@@ -13,11 +14,13 @@ export default function App() {
       <LanguageProvider>
         <ThemeProvider>
           <AuthProvider>
-            <MockDataProvider>
+            <FirebaseDataProvider>
+              <MockDataProvider>
               <NavigationContainer>
                 <AppNavigator />
               </NavigationContainer>
             </MockDataProvider>
+            </FirebaseDataProvider>
           </AuthProvider>
         </ThemeProvider>
       </LanguageProvider>
