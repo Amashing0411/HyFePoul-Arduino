@@ -2,3 +2,10 @@
 22:58:23.063 [main] INFO com.firebase.server.forge.App$ - Listening at 127.0.0.1:9000
 22:58:34.631 [NamespaceSystem-akka.actor.default-dispatcher-5] INFO com.firebase.core.namespace.NamespaceActor - hyfepoul-dev-default-rtdb successfully activated FBKV (SurveyIdle(0)) wait: 121ms, init: 0ms
 22:58:34.769 [NamespaceSystem-blocking-namespace-operation-dispatcher-8] INFO com.firebase.core.namespace.StateManager - Namespace hyfepoul-dev-default-rtdb status Active to Active
+23:22:29.660 [FirebaseWorkerPool-1-2] WARN com.firebase.core.persistence.backend.dummy.EmulatorMetadataPersistence - Multiple projectIds are not recommended in single project mode. Requested 
+namespace test, but the emulator is configured for hyfepoul-dev-default-rtdb. To 
+opt-out of single project mode add/set the singleProjectMode: false property in 
+the firebase.json emulators config. 
+23:22:29.665 [NamespaceSystem-akka.actor.default-dispatcher-49] INFO com.firebase.core.namespace.NamespaceActor - test successfully activated FBKV (SurveyIdle(0)) wait: 2ms, init: 0ms
+23:33:11.710 [NamespaceSystem-blocking-namespace-operation-dispatcher-55] INFO com.firebase.core.namespace.StateManager - Namespace hyfepoul-dev-default-rtdb status Active to Active
+23:33:20.674 [NamespaceSystem-blocking-namespace-operation-dispatcher-57] INFO com.firebase.core.namespace.StateManager - Namespace hyfepoul-dev-default-rtdb status Active to Active

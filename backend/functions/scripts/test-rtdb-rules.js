@@ -182,6 +182,170 @@ async function runTests() {
     }));
   });
 
+  // --- 5B.8 Remote Command Security Tests ---
+
+  // Setup command test device
+  await masterDb.ref("devices/dev3").set({ ownerId: "owner3", deviceAuthUid: "esp32_dev3" });
+  const owner3App = createAuthApp("owner3");
+  const owner3Db = owner3App.database();
+  const esp32_3App = createAuthApp("esp32_dev3");
+  const esp32_3Db = esp32_3App.database();
+
+  const validCommandPayload = {
+    commandId: "cmd1",
+    command: "MANUAL_FEED",
+    issuedBy: "owner3",
+    createdAt: 1790000000000,
+    status: "queued"
+  };
+
+  // Owner Tests
+  await test("owner creates valid command", async () => {
+    await assertSucceeds(owner3Db.ref("commands/dev3/cmd1").set(validCommandPayload));
+  });
+
+  await test("owner cannot create command for another device", async () => {
+    await assertFails(owner3Db.ref("commands/dev2/cmd2").set({
+      ...validCommandPayload,
+      commandId: "cmd2",
+      issuedBy: "owner3"
+    }));
+  });
+
+  await test("owner cannot overwrite command", async () => {
+    await assertFails(owner3Db.ref("commands/dev3/cmd1").set(validCommandPayload));
+  });
+
+  await test("owner cannot create with status != queued", async () => {
+    await assertFails(owner3Db.ref("commands/dev3/cmd3").set({
+      ...validCommandPayload,
+      commandId: "cmd3",
+      status: "acknowledged"
+    }));
+  });
+
+  await test("owner cannot spoof issuedBy", async () => {
+    await assertFails(owner3Db.ref("commands/dev3/cmd4").set({
+      ...validCommandPayload,
+      commandId: "cmd4",
+      issuedBy: "otherUser"
+    }));
+  });
+
+  await test("owner cannot modify command after creation", async () => {
+    await assertFails(owner3Db.ref("commands/dev3/cmd1/command").set("ESTOP_RELEASE"));
+  });
+
+  await test("owner cannot modify status", async () => {
+    await assertFails(owner3Db.ref("commands/dev3/cmd1/status").set("acknowledged"));
+  });
+
+  await test("owner cannot modify execution fields", async () => {
+    await assertFails(owner3Db.ref("commands/dev3/cmd1/acknowledgedAt").set(1790000000001));
+  });
+
+  await test("owner cannot read another owner's commands", async () => {
+    await assertFails(user1Db.ref("commands/dev3").once("value"));
+  });
+
+  // Device Tests
+  await test("correct ESP32 can read its commands", async () => {
+    await assertSucceeds(esp32_3Db.ref("commands/dev3").once("value"));
+  });
+
+  await test("wrong ESP32 cannot read them", async () => {
+    await assertFails(esp32Db.ref("commands/dev3").once("value"));
+  });
+
+  await test("correct ESP32 can transition execution status", async () => {
+    await assertSucceeds(esp32_3Db.ref("commands/dev3/cmd1/status").set("acknowledged"));
+  });
+
+  await test("ESP32 cannot create commands", async () => {
+    await assertFails(esp32_3Db.ref("commands/dev3/cmd5").set({
+      commandId: "cmd5",
+      command: "MANUAL_FEED",
+      issuedBy: "owner3",
+      createdAt: 1790000000000,
+      status: "queued"
+    }));
+  });
+
+  await test("ESP32 cannot modify command", async () => {
+    await assertFails(esp32_3Db.ref("commands/dev3/cmd1/command").set("ESTOP_RELEASE"));
+  });
+
+  await test("ESP32 cannot modify parameters", async () => {
+    await assertFails(esp32_3Db.ref("commands/dev3/cmd1/parameters").set({ targetGrams: 9000 }));
+  });
+
+  await test("ESP32 cannot modify issuedBy", async () => {
+    await assertFails(esp32_3Db.ref("commands/dev3/cmd1/issuedBy").set("esp32_dev3"));
+  });
+
+  await test("ESP32 cannot modify createdAt", async () => {
+    await assertFails(esp32_3Db.ref("commands/dev3/cmd1/createdAt").set(12345));
+  });
+
+  await test("ESP32 cannot access another device's commands", async () => {
+    await assertFails(esp32_3Db.ref("commands/dev2").once("value"));
+  });
+
+  // Unauthenticated Tests
+  await test("unauthenticated client cannot read commands", async () => {
+    await assertFails(unauthDb.ref("commands/dev3").once("value"));
+  });
+
+  await test("unauthenticated client cannot create commands", async () => {
+    await assertFails(unauthDb.ref("commands/dev3/cmd6").set(validCommandPayload));
+  });
+
+  await test("unauthenticated client cannot modify commands", async () => {
+    await assertFails(unauthDb.ref("commands/dev3/cmd1/status").set("failed"));
+  });
+
+  // Lifecycle Tests
+  // Current status of cmd1 is 'acknowledged' (set in test 12)
+  await test("invalid status transition rejected", async () => {
+    // Cannot go acknowledged -> queued
+    await assertFails(esp32_3Db.ref("commands/dev3/cmd1/status").set("queued"));
+  });
+
+  await test("valid transition accepted", async () => {
+    // acknowledged -> executing
+    await assertSucceeds(esp32_3Db.ref("commands/dev3/cmd1/status").set("executing"));
+  });
+
+  await test("completed command cannot be returned to queued", async () => {
+    // First make it completed
+    await assertSucceeds(esp32_3Db.ref("commands/dev3/cmd1/status").set("completed"));
+    // Then try queued
+    await assertFails(esp32_3Db.ref("commands/dev3/cmd1/status").set("queued"));
+  });
+
+  await test("failed command cannot be rewritten by owner", async () => {
+    // Setup a failed command
+    await assertSucceeds(owner3Db.ref("commands/dev3/cmdFail").set({
+      commandId: "cmdFail",
+      command: "MANUAL_FEED",
+      issuedBy: "owner3",
+      createdAt: 1790000000000,
+      status: "queued"
+    }));
+    await assertSucceeds(esp32_3Db.ref("commands/dev3/cmdFail/status").set("acknowledged"));
+    await assertSucceeds(esp32_3Db.ref("commands/dev3/cmdFail/status").set("failed"));
+    
+    // Owner tries to rewrite it to queued
+    await assertFails(owner3Db.ref("commands/dev3/cmdFail/status").set("queued"));
+    await assertFails(owner3Db.ref("commands/dev3/cmdFail").set({
+      commandId: "cmdFail",
+      command: "MANUAL_FEED",
+      issuedBy: "owner3",
+      createdAt: 1790000000000,
+      status: "queued"
+    }));
+  });
+
   console.log(`\nTests finished: ${passed} passed, ${failed} failed.`);
 
   process.exit(failed > 0 ? 1 : 0);
