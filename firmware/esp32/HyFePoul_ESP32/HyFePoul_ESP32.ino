@@ -249,11 +249,19 @@ void sendStateToFirebase(float feedWt, float targetFeed, float hopper, bool wLow
 void sendEventToFirebase(String eventName) {
   if (idToken == "" || WiFi.status() != WL_CONNECTED) return;
 
+  // Only actionable events become RTDB alerts. Informational events (like FEEDING_STARTED) 
+  // are logged locally on the Mega SD card per existing architecture.
+  if (eventName != "LOW_FEED" && eventName != "LOW_WATER" && 
+      eventName != "WATER_PUMP_TIMEOUT" && eventName != "EMERGENCY_STOP" && 
+      eventName != "DEVICE_ERROR") {
+    return;
+  }
+
   unsigned long currentTimestamp = getTimestampMillis();
   if (currentTimestamp < 1000000000000ULL) return;
 
   StaticJsonDocument<256> doc;
-  doc["eventId"] = String(millis()); // Simple unique ID
+  doc["eventId"] = eventName; // Deterministic event ID ensures idempotency
   doc["name"] = eventName;
   doc["timestamp"] = currentTimestamp;
   doc["resolved"] = false;
@@ -262,8 +270,8 @@ void sendEventToFirebase(String eventName) {
   serializeJson(doc, payload);
 
   HTTPClient http;
-  http.begin(getDatabaseUrl((String("alerts/") + DEVICE_ID + ".json").c_str()));
+  http.begin(getDatabaseUrl((String("alerts/") + DEVICE_ID + "/" + eventName + ".json").c_str()));
   http.addHeader("Content-Type", "application/json");
-  http.POST(payload);
+  http.PUT(payload); // Changed from POST to PUT for idempotency
   http.end();
 }

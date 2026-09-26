@@ -112,15 +112,23 @@ async function simulate() {
   });
   if (res.status !== 200) throw new Error(`History write failed: ${await res.text()}`);
 
-  console.log(`[ESP32] Pushing Alert EVENT|LOW_FEED...`);
+  console.log(`[ESP32] Pushing Alert EVENT|LOW_FEED (1)...`);
   const alertPayload = {
-    eventId: timestamp.toString(),
+    eventId: "LOW_FEED",
     name: "LOW_FEED",
     timestamp: timestamp,
     resolved: false
   };
-  res = await fetch(getDbUrl(`alerts/${DEVICE_ID}.json`), {
-    method: 'POST',
+  res = await fetch(getDbUrl(`alerts/${DEVICE_ID}/LOW_FEED.json`), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(alertPayload)
+  });
+  if (res.status !== 200) throw new Error(`Alert write failed: ${await res.text()}`);
+
+  console.log(`[ESP32] Pushing Alert EVENT|LOW_FEED (2) [DUPLICATE]...`);
+  res = await fetch(getDbUrl(`alerts/${DEVICE_ID}/LOW_FEED.json`), {
+    method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(alertPayload)
   });
@@ -129,6 +137,13 @@ async function simulate() {
   console.log("======================================");
   console.log("ESP32 SIMULATION SUCCESSFUL!");
   console.log("======================================");
+
+  // Fetch the alerts to see if there are duplicates (using admin bypass)
+  console.log(`[Verify] Fetching alerts from RTDB as Admin...`);
+  const adminUrl = `http://${EMULATOR_HOST}:${EMULATOR_RTDB_PORT}/alerts/${DEVICE_ID}.json?ns=${NAMESPACE}`;
+  res = await fetch(adminUrl, { headers: { 'Authorization': 'Bearer owner' } });
+  const alerts = await res.json();
+  console.log(JSON.stringify(alerts, null, 2));
 }
 
 simulate().catch(err => {
