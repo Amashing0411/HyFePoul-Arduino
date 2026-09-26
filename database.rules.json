@@ -1,0 +1,61 @@
+{
+  "rules": {
+    "deviceSecrets": {
+      "$deviceId": {
+        ".read": false,
+        ".write": false
+      }
+    },
+    "claimRequests": {
+      "$deviceId": {
+        ".read": "auth != null && data.child('uid').val() === auth.uid",
+        ".write": "auth != null && !root.child('devices').child($deviceId).child('ownerId').exists() && (!data.exists() || data.child('uid').val() === auth.uid) && newData.child('pin').isString() && newData.child('pin').val() === root.child('deviceSecrets').child($deviceId).child('setupPin').val() && newData.child('uid').val() === auth.uid"
+      }
+    },
+    "devices": {
+      "$deviceId": {
+        ".read": "auth != null && (data.child('ownerId').val() === auth.uid || data.child('deviceAuthUid').val() === auth.uid)",
+        "ownerId": {
+          ".write": "auth != null && data.val() == null && root.child('claimRequests').child($deviceId).child('uid').val() === auth.uid && newData.val() === auth.uid"
+        },
+        "deviceAuthUid": {
+          ".write": false
+        },
+        "status": {
+          ".write": "auth != null && root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid"
+        },
+        "lastHeartbeat": {
+          ".write": "auth != null && root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid"
+        },
+        "state": {
+          ".write": "auth != null && root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid",
+          "feedWeightGrams": { ".validate": "newData.isNumber()" },
+          "targetFeedGrams": { ".validate": "newData.isNumber()" },
+          "hopperLevelPercent": { ".validate": "newData.isNumber()" },
+          "waterLow": { ".validate": "newData.isBoolean()" },
+          "waterHigh": { ".validate": "newData.isBoolean()" },
+          "pumpActive": { ".validate": "newData.isBoolean()" },
+          "feedingActive": { ".validate": "newData.isBoolean()" },
+          "emergencyStopActive": { ".validate": "newData.isBoolean()" },
+          "timestamp": { ".validate": "newData.isNumber()" }
+        }
+      }
+    },
+    "systemData": {
+      "$deviceId": {
+        ".read": "auth != null && root.child('devices').child($deviceId).child('ownerId').val() === auth.uid",
+        "$pushId": {
+           ".write": "auth != null && root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid"
+        }
+      }
+    },
+    "alerts": {
+      "$deviceId": {
+        ".read": "auth != null && root.child('devices').child($deviceId).child('ownerId').val() === auth.uid",
+        "$pushId": {
+           ".write": "auth != null && root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid"
+        }
+      }
+    }
+  }
+}
