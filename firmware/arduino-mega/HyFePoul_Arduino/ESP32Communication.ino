@@ -112,6 +112,8 @@ void sendCurrentDataToESP32() {
   ESP32_SERIAL.print(F("DATA|"));
   ESP32_SERIAL.print(currentFeedWeightGrams, 1);
   ESP32_SERIAL.print('|');
+  ESP32_SERIAL.print(activeFeedTargetGrams, 1);
+  ESP32_SERIAL.print('|');
   ESP32_SERIAL.print(currentHopperLevelPercent, 1);
   ESP32_SERIAL.print('|');
   ESP32_SERIAL.print(waterLow ? 1 : 0);
