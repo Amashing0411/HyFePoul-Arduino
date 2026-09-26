@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '../services/firebase';
+import { rtdbService } from '../services/rtdbService';
 
 export default function ClaimDeviceScreen() {
   const [deviceId, setDeviceId] = useState('');
@@ -11,7 +10,7 @@ export default function ClaimDeviceScreen() {
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const { checkOwnership, signOut } = useAuth();
+  const { user, checkOwnership, signOut } = useAuth();
   const { colors, typography } = useTheme();
 
   const handleClaim = async () => {
@@ -24,26 +23,30 @@ export default function ClaimDeviceScreen() {
     setErrorMsg('');
     
     try {
-      const claimDeviceFn = httpsCallable(functions, 'claimDevice');
-      await claimDeviceFn({ deviceId: deviceId.trim(), pin: pin.trim() });
+      if (!user) {
+        setErrorMsg('You must be logged in to claim a device.');
+        setIsSubmitting(false);
+        return;
+      }
+      
+      const cleanDeviceId = deviceId.trim();
+      const cleanPin = pin.trim();
+
+      // Step 1: Create claim request
+      await rtdbService.createClaimRequest(cleanDeviceId, user.uid, cleanPin);
+      
+      // Step 2: Establish ownership
+      await rtdbService.establishOwnership(cleanDeviceId, user.uid);
       
       // If successful, re-query ownership to route to MainTabs
       await checkOwnership();
     } catch (error: any) {
-      const code = error.code || 'unknown';
-      if (code === 'functions/unauthenticated') {
-        setErrorMsg('You must be logged in to claim a device.');
-      } else if (code === 'functions/invalid-argument') {
-        setErrorMsg('Invalid Device ID or Setup PIN.');
-      } else if (code === 'functions/not-found') {
-        setErrorMsg('Unknown device. Please check the Device ID.');
-      } else if (code === 'functions/already-exists') {
-        setErrorMsg('This device has already been claimed.');
-      } else if (code === 'functions/failed-precondition') {
-        setErrorMsg('Device is not ready to be claimed (missing setup PIN).');
+      console.error('Claim error:', error);
+      const msg = error.message || '';
+      if (msg.includes('permission_denied') || msg.includes('Permission denied')) {
+        setErrorMsg('Claim denied. Invalid Device ID, incorrect Setup PIN, or device already claimed.');
       } else {
         setErrorMsg('An unexpected error occurred. Please try again.');
-        console.error('Claim error:', error);
       }
     } finally {
       setIsSubmitting(false);

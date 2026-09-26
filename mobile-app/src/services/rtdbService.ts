@@ -1,4 +1,4 @@
-import { ref, set, onValue, query, orderByChild, limitToLast } from 'firebase/database';
+import { ref, set, onValue, query, orderByChild, limitToLast, get, equalTo } from 'firebase/database';
 import { rtdb } from './firebase';
 import { RTDBDevice, RTDBSystemDataSnapshot, RTDBAlert } from '../types/rtdb';
 
@@ -129,5 +129,18 @@ export const rtdbService = {
       }
     );
     return () => unsubscribe();
+  },
+
+  async getDevicesByOwner(uid: string): Promise<any[]> {
+    const devicesQuery = query(ref(rtdb, 'devices'), orderByChild('ownerId'), equalTo(uid));
+    const snapshot = await get(devicesQuery);
+    if (!snapshot.exists()) {
+      return [];
+    }
+    const devices: any[] = [];
+    snapshot.forEach((childSnap) => {
+      devices.push({ id: childSnap.key, ...childSnap.val() });
+    });
+    return devices;
   }
 };

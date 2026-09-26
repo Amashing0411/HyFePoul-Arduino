@@ -13,6 +13,7 @@
       }
     },
     "devices": {
+      ".indexOn": ["ownerId"],
       "$deviceId": {
         ".read": "auth != null && (data.child('ownerId').val() === auth.uid || data.child('deviceAuthUid').val() === auth.uid)",
         "ownerId": {
@@ -43,6 +44,7 @@
     },
     "systemData": {
       "$deviceId": {
+        ".indexOn": ["timestamp"],
         ".read": "auth != null && root.child('devices').child($deviceId).child('ownerId').val() === auth.uid",
         "$pushId": {
            ".write": "auth != null && root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid"
@@ -51,6 +53,7 @@
     },
     "alerts": {
       "$deviceId": {
+        ".indexOn": ["timestamp"],
         ".read": "auth != null && root.child('devices').child($deviceId).child('ownerId').val() === auth.uid",
         "$pushId": {
            ".write": "auth != null && root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid"

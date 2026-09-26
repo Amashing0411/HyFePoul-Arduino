@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { collection, query, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
-import { db } from '../services/firebase';
 import { useAuth } from '../context/AuthContext';
 import { SystemData } from '../types';
+import { rtdbService } from '../services/rtdbService';
 
 export function useDeviceHistory() {
   const { ownedDevices } = useAuth();
@@ -11,86 +10,55 @@ export function useDeviceHistory() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchHistory = useCallback(async (isRefresh = false) => {
+  useEffect(() => {
     if (!ownedDevices || ownedDevices.length === 0) {
       setHistory([]);
       setLoading(false);
       return;
     }
 
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+    setLoading(true);
     setError(null);
 
     const activeDeviceId = ownedDevices[0].id;
     
-    try {
-      const q = query(
-        collection(db, `devices/${activeDeviceId}/systemData`),
-        orderBy('timestamp', 'desc'),
-        limit(50)
-      );
-      const snapshot = await getDocs(q);
-      const data: SystemData[] = [];
+    const unsubscribe = rtdbService.subscribeToHistory(activeDeviceId, 50, (records, err) => {
+      if (err) {
+        console.error('Error fetching history from RTDB:', err);
+        setError('Failed to load history.');
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
 
-      snapshot.forEach(docSnap => {
-        const d = docSnap.data();
-        
-        let mappedTimestamp: string;
-        if (d.timestamp instanceof Timestamp) {
-          mappedTimestamp = d.timestamp.toDate().toISOString();
-        } else if (typeof d.timestamp === 'string') {
-          mappedTimestamp = d.timestamp;
-        } else if (typeof d.timestamp === 'number') {
-          mappedTimestamp = new Date(d.timestamp).toISOString();
-        } else {
-          console.warn(`Skipping malformed history record ${docSnap.id}: invalid timestamp.`);
-          return;
-        }
+      const mappedData = records.map(d => ({
+        feedWeightGrams: d.feedWeightGrams,
+        targetFeedGrams: d.targetFeedGrams,
+        hopperLevelPercent: d.hopperLevelPercent,
+        waterLow: d.waterLow,
+        waterHigh: d.waterHigh,
+        pumpActive: d.pumpActive,
+        feedingActive: d.feedingActive,
+        emergencyStopActive: d.emergencyStopActive,
+        timestamp: new Date(d.timestamp).toISOString()
+      }));
 
-        if (
-          typeof d.feedWeightGrams !== 'number' || !isFinite(d.feedWeightGrams) ||
-          typeof d.hopperLevelPercent !== 'number' || !isFinite(d.hopperLevelPercent) ||
-          typeof d.waterLow !== 'boolean' ||
-          typeof d.waterHigh !== 'boolean' ||
-          typeof d.pumpActive !== 'boolean' ||
-          typeof d.feedingActive !== 'boolean' ||
-          typeof d.emergencyStopActive !== 'boolean'
-        ) {
-          console.warn(`Skipping malformed history record ${docSnap.id}: missing or invalid fields.`);
-          return;
-        }
-
-        // targetFeedGrams is optional in history records (depends on if it was recorded)
-        // If it exists, it should be a number.
-        const targetFeed = typeof d.targetFeedGrams === 'number' && isFinite(d.targetFeedGrams) ? d.targetFeedGrams : 0;
-
-        data.push({
-          feedWeightGrams: d.feedWeightGrams,
-          targetFeedGrams: targetFeed,
-          hopperLevelPercent: d.hopperLevelPercent,
-          waterLow: d.waterLow,
-          waterHigh: d.waterHigh,
-          pumpActive: d.pumpActive,
-          feedingActive: d.feedingActive,
-          emergencyStopActive: d.emergencyStopActive,
-          timestamp: mappedTimestamp
-        });
-      });
-
-      setHistory(data);
-    } catch (err) {
-      console.error('Error fetching history:', err);
-      setError('Failed to load history.');
-    } finally {
+      // RTDB limitToLast with orderByChild('timestamp') returns oldest first (ascending).
+      // The UI usually expects newest first, so we reverse it.
+      setHistory(mappedData.reverse());
       setLoading(false);
       setRefreshing(false);
-    }
+    });
+
+    return () => unsubscribe();
   }, [ownedDevices]);
 
-  useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
+  // Provide a dummy refreshData to satisfy the existing interface
+  const refreshData = useCallback(() => {
+    setRefreshing(true);
+    // RTDB listener automatically handles updates, but we can simulate a brief refresh state
+    setTimeout(() => setRefreshing(false), 500);
+  }, []);
 
-  return { history, loading, error, refreshing, refreshData: () => fetchHistory(true) };
+  return { history, loading, error, refreshing, refreshData };
 }

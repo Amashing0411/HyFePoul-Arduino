@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { collection, query, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
-import { db } from '../services/firebase';
 import { useAuth } from '../context/AuthContext';
 import { Alert, AlertType } from '../types';
+import { rtdbService } from '../services/rtdbService';
 
 export function useDeviceAlerts() {
   const { ownedDevices } = useAuth();
@@ -11,74 +10,48 @@ export function useDeviceAlerts() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchAlerts = useCallback(async (isRefresh = false) => {
+  useEffect(() => {
     if (!ownedDevices || ownedDevices.length === 0) {
       setAlerts([]);
       setLoading(false);
       return;
     }
 
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+    setLoading(true);
     setError(null);
 
     const activeDeviceId = ownedDevices[0].id;
     
-    try {
-      const q = query(
-        collection(db, `devices/${activeDeviceId}/alerts`),
-        orderBy('timestamp', 'desc'),
-        limit(50)
-      );
-      const snapshot = await getDocs(q);
-      const data: Alert[] = [];
+    const unsubscribe = rtdbService.subscribeToAlerts(activeDeviceId, 50, (records, err) => {
+      if (err) {
+        console.error('Error fetching alerts from RTDB:', err);
+        setError('Failed to load alerts.');
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
 
-      snapshot.forEach(docSnap => {
-        const d = docSnap.data();
-        
-        let mappedTimestamp: string;
-        if (d.timestamp instanceof Timestamp) {
-          mappedTimestamp = d.timestamp.toDate().toISOString();
-        } else if (typeof d.timestamp === 'string') {
-          mappedTimestamp = d.timestamp;
-        } else if (typeof d.timestamp === 'number') {
-          mappedTimestamp = new Date(d.timestamp).toISOString();
-        } else {
-          console.warn(`Skipping malformed alert record ${docSnap.id}: invalid timestamp.`);
-          return;
-        }
+      const mappedData: Alert[] = records.map(d => ({
+        id: d.eventId,
+        type: d.name as AlertType,
+        timestamp: new Date(d.timestamp).toISOString(),
+        resolved: d.resolved
+      }));
 
-        if (typeof d.type !== 'string' || !d.type) {
-          console.warn(`Skipping malformed alert record ${docSnap.id}: invalid type.`);
-          return;
-        }
-
-        if (typeof d.resolved !== 'boolean') {
-          console.warn(`Skipping malformed alert record ${docSnap.id}: missing or invalid resolved field.`);
-          return;
-        }
-
-        data.push({
-          id: docSnap.id,
-          type: d.type as AlertType,
-          timestamp: mappedTimestamp,
-          resolved: d.resolved
-        });
-      });
-
-      setAlerts(data);
-    } catch (err) {
-      console.error('Error fetching alerts:', err);
-      setError('Failed to load alerts.');
-    } finally {
+      // Reverse to show newest first
+      setAlerts(mappedData.reverse());
       setLoading(false);
       setRefreshing(false);
-    }
+    });
+
+    return () => unsubscribe();
   }, [ownedDevices]);
 
-  useEffect(() => {
-    fetchAlerts();
-  }, [fetchAlerts]);
+  // Provide a dummy refreshData to satisfy the existing interface
+  const refreshData = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 500);
+  }, []);
 
-  return { alerts, loading, error, refreshing, refreshData: () => fetchAlerts(true) };
+  return { alerts, loading, error, refreshing, refreshData };
 }

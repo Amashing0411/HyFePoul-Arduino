@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
+import { rtdbService } from '../services/rtdbService';
 
 interface AuthContextType {
   user: User | null;
@@ -25,17 +26,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const checkOwnership = async (currentUser: User) => {
     setOwnershipError(null);
     try {
-      const q = query(collection(db, 'devices'), where('ownerId', '==', currentUser.uid));
-      const querySnapshot = await getDocs(q);
-      const devices: any[] = [];
-      querySnapshot.forEach((doc) => {
-        devices.push({ id: doc.id, ...doc.data() });
-      });
+      // Migrate from Firestore to RTDB
+      const devices = await rtdbService.getDevicesByOwner(currentUser.uid);
       setOwnedDevices(devices);
     } catch (error: any) {
-      console.error("Error fetching owned devices:", error);
-      // DO NOT mask this as an empty array (which would redirect to ClaimDeviceScreen).
-      // Keep ownedDevices as null, but expose the error.
+      console.error("Error fetching owned devices from RTDB:", error);
       setOwnershipError(error.message || 'Failed to check device ownership.');
     }
   };

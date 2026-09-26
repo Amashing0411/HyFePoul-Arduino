@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { doc, onSnapshot, Timestamp } from 'firebase/firestore';
-import { db } from '../services/firebase';
+// import { doc, onSnapshot, Timestamp } from 'firebase/firestore';
+// import { db } from '../services/firebase';
+import { rtdbService } from '../services/rtdbService';
 import { useAuth } from './AuthContext';
 import { DeviceData, SystemData } from '../types';
 
@@ -37,77 +38,41 @@ export const FirebaseDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setLoading(true);
     setError(null);
 
-    const deviceRef = doc(db, 'devices', activeDeviceId);
-    
-    const unsubscribe = onSnapshot(
-      deviceRef,
-      (docSnap) => {
-        if (!docSnap.exists()) {
-          setError(`Device document not found for ID: ${activeDeviceId}`);
+    const unsubscribe = rtdbService.subscribeToDevice(
+      activeDeviceId,
+      (deviceSnap, err) => {
+        if (err) {
+          console.error("RTDB device listener error:", err);
+          setError(err.message || 'Failed to sync device status. Please check your connection.');
           setLoading(false);
           return;
         }
 
-        const data = docSnap.data();
-        // Validate esp32Status without coercing missing to offline
-        let mappedStatus: 'online' | 'offline' | null = null;
-        if (data.esp32Status === 'online' || data.esp32Status === 'offline') {
-          mappedStatus = data.esp32Status;
-        }
-
-        let mappedHeartbeat: string | null = null;
-        if (data.lastHeartbeat instanceof Timestamp) {
-          mappedHeartbeat = data.lastHeartbeat.toDate().toISOString();
-        } else if (typeof data.lastHeartbeat === 'string') {
-          mappedHeartbeat = data.lastHeartbeat;
+        if (!deviceSnap) {
+          setError(`Device not found for ID: ${activeDeviceId}`);
+          setLoading(false);
+          return;
         }
 
         // Map device-level fields
         const mappedDeviceData: DeviceData = {
-          deviceId: docSnap.id,
-          name: typeof data.name === 'string' ? data.name : 'Unnamed Device',
-          status: mappedStatus,
-          lastHeartbeat: mappedHeartbeat
+          deviceId: activeDeviceId,
+          name: 'Smart Coop Device', // RTDB does not currently store a name, default it
+          status: deviceSnap.status,
+          lastHeartbeat: new Date(deviceSnap.lastHeartbeat).toISOString()
         };
 
-        // Map systemData (from currentState)
-        const currentState = data.currentState;
-        if (!currentState || typeof currentState !== 'object') {
-          setError(`Invalid device state: Missing currentState object.`);
+        // Map systemData (from device state)
+        const currentState = deviceSnap.state;
+        if (!currentState) {
+          // Device hasn't reported state yet
+          setDeviceData(mappedDeviceData);
+          setSystemData(null);
           setLoading(false);
+          setError(null);
           return;
         }
         
-        // Strict timestamp validation
-        let mappedTimestamp: string;
-        if (currentState.timestamp instanceof Timestamp) {
-          mappedTimestamp = currentState.timestamp.toDate().toISOString();
-        } else if (typeof currentState.timestamp === 'string') {
-          mappedTimestamp = currentState.timestamp;
-        } else if (typeof currentState.timestamp === 'number') {
-          mappedTimestamp = new Date(currentState.timestamp).toISOString();
-        } else {
-          setError(`Invalid device state: Missing or invalid timestamp.`);
-          setLoading(false);
-          return;
-        }
-
-        // Strict validation for required fields
-        if (
-          typeof currentState.feedWeightGrams !== 'number' || !isFinite(currentState.feedWeightGrams) ||
-          typeof currentState.targetFeedGrams !== 'number' || !isFinite(currentState.targetFeedGrams) ||
-          typeof currentState.hopperLevelPercent !== 'number' || !isFinite(currentState.hopperLevelPercent) ||
-          typeof currentState.waterLow !== 'boolean' ||
-          typeof currentState.waterHigh !== 'boolean' ||
-          typeof currentState.pumpActive !== 'boolean' ||
-          typeof currentState.feedingActive !== 'boolean' ||
-          typeof currentState.emergencyStopActive !== 'boolean'
-        ) {
-          setError(`Invalid device state: Missing or invalid required sensor fields.`);
-          setLoading(false);
-          return;
-        }
-
         const mappedSystemData: SystemData = {
           feedWeightGrams: currentState.feedWeightGrams,
           targetFeedGrams: currentState.targetFeedGrams,
@@ -117,18 +82,13 @@ export const FirebaseDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
           pumpActive: currentState.pumpActive,
           feedingActive: currentState.feedingActive,
           emergencyStopActive: currentState.emergencyStopActive,
-          timestamp: mappedTimestamp
+          timestamp: new Date(currentState.timestamp).toISOString()
         };
 
         setDeviceData(mappedDeviceData);
         setSystemData(mappedSystemData);
         setLoading(false);
         setError(null);
-      },
-      (err) => {
-        console.error("Firestore device listener error:", err);
-        setError('Failed to sync device status. Please check your connection.');
-        setLoading(false);
       }
     );
 
