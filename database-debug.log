@@ -9,3 +9,10 @@ the firebase.json emulators config.
 23:22:29.665 [NamespaceSystem-akka.actor.default-dispatcher-49] INFO com.firebase.core.namespace.NamespaceActor - test successfully activated FBKV (SurveyIdle(0)) wait: 2ms, init: 0ms
 23:33:11.710 [NamespaceSystem-blocking-namespace-operation-dispatcher-55] INFO com.firebase.core.namespace.StateManager - Namespace hyfepoul-dev-default-rtdb status Active to Active
 23:33:20.674 [NamespaceSystem-blocking-namespace-operation-dispatcher-57] INFO com.firebase.core.namespace.StateManager - Namespace hyfepoul-dev-default-rtdb status Active to Active
+23:37:19.335 [NamespaceSystem-blocking-namespace-operation-dispatcher-70] INFO com.firebase.core.namespace.StateManager - Namespace hyfepoul-dev-default-rtdb status Active to Active
+23:39:00.277 [FirebaseWorkerPool-1-2] WARN com.firebase.core.persistence.backend.dummy.EmulatorMetadataPersistence - Multiple projectIds are not recommended in single project mode. Requested 
+namespace fake-server, but the emulator is configured for hyfepoul-dev-default-rtdb,test. To 
+opt-out of single project mode add/set the singleProjectMode: false property in 
+the firebase.json emulators config. 
+23:39:00.281 [NamespaceSystem-akka.actor.default-dispatcher-72] INFO com.firebase.core.namespace.NamespaceActor - fake-server successfully activated FBKV (SurveyIdle(0)) wait: 2ms, init: 0ms
+23:47:17.672 [FirebaseWorkerPool-1-2] WARN com.firebase.server.forge.App$ - Received service account token wron...oken, assuming ownership.

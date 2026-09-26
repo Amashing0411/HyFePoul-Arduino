@@ -53,6 +53,7 @@
     },
     "commands": {
       "$deviceId": {
+        ".indexOn": ["status"],
         ".read": "auth != null && (root.child('devices').child($deviceId).child('ownerId').val() === auth.uid || root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid)",
         "$commandId": {
           ".write": "auth != null && root.child('devices').child($deviceId).child('ownerId').val() === auth.uid && !data.exists()",
