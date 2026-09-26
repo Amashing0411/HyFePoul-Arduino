@@ -1,5 +1,5 @@
 import { initializeApp, getApp, getApps } from 'firebase/app';
-import { initializeAuth, getAuth } from 'firebase/auth';
+import { getAuth, connectAuthEmulator, initializeAuth } from 'firebase/auth';
 // @ts-ignore - TS resolves the browser types by default, missing the RN export
 import { getReactNativePersistence } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
@@ -18,15 +18,16 @@ const firebaseConfig = {
   messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || 'PLACEHOLDER_MESSAGING_SENDER_ID',
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || 'PLACEHOLDER_APP_ID',
   // Database URL is required for RTDB to initialize properly (especially in Spark / default instances)
-  databaseURL: process.env.EXPO_PUBLIC_FIREBASE_DATABASE_URL || 'https://hyfepoul-dev-default-rtdb.firebaseio.com',
+  databaseURL: process.env.EXPO_PUBLIC_FIREBASE_DATABASE_URL || 'http://127.0.0.1:9000/?ns=hyfepoul-dev-default-rtdb',
 };
 
 // Initialize Firebase
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Auth with React Native Persistence
+// Initialize Auth
+// Since tests don't have React Native environment, we dynamically choose persistence
 const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage)
+  persistence: typeof window !== 'undefined' ? getReactNativePersistence(AsyncStorage) : undefined
 });
 
 // Initialize Firestore (default in-memory cache)
@@ -39,16 +40,15 @@ const functions = getFunctions(app);
 const rtdb = getDatabase(app);
 
 // Use local emulators in development if explicit environment variable is set
-if (__DEV__ && process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATOR === 'true') {
+if (process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATOR === 'true') {
   // Use 10.0.2.2 for Android Emulator, or localhost/custom IP for physical device
   const host = process.env.EXPO_PUBLIC_EMULATOR_HOST || '10.0.2.2';
   
-  // Only connect if not already connected (Firebase SDK throws if called multiple times)
+  // Only connect if not already connected
   try {
-    // connectFirestoreEmulator(db, host, 8085);
-    // connectFunctionsEmulator(functions, host, 5001);
+    connectAuthEmulator(auth, `http://${host}:9099`, { disableWarnings: true });
     connectDatabaseEmulator(rtdb, host, 9000);
-    console.log(`Connected to RTDB Emulator on ${host}:9000`);
+    console.log(`Connected to Auth/RTDB Emulators on ${host}`);
   } catch (err) {
     console.log('Emulators already connected or connection failed.', err);
   }
