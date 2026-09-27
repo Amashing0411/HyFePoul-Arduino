@@ -62,6 +62,10 @@ void startFeeding(uint8_t scheduleIndex) {
     return;
   }
 
+  if (feedingActive) {
+    return;
+  }
+
   activeFeedTargetGrams = feedSchedules[scheduleIndex].targetGrams;
   feedingActive = true;
   feedingCompleted = false;
@@ -86,6 +90,7 @@ void startFeeding(uint8_t scheduleIndex) {
 
 void startRemoteFeeding(float targetGrams) {
   if (emergencyStopActive) return;
+  if (feedingActive) return;
 
   activeFeedTargetGrams = targetGrams;
   feedingActive = true;

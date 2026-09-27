@@ -346,6 +346,62 @@ async function runTests() {
     }));
   });
 
+  // ==========================================
+  // SCHEDULES TESTS (5B.13 & 5B.14)
+  // ==========================================
+  
+  await test("Schedules: owner can create valid schedule", async () => {
+    await assertSucceeds(owner3Db.ref("schedules/dev3/sched_0").set({
+      scheduleId: "sched_0",
+      hour: 9,
+      minute: 30,
+      targetGrams: 250,
+      enabled: true,
+      daysOfWeek: [1,2,3,4,5,6,7]
+    }));
+  });
+
+  await test("Schedules: owner cannot create invalid schedule (hour 25)", async () => {
+    await assertFails(owner3Db.ref("schedules/dev3/sched_1").set({
+      scheduleId: "sched_1",
+      hour: 25,
+      minute: 30,
+      targetGrams: 250,
+      enabled: true,
+      daysOfWeek: [1]
+    }));
+  });
+
+  await test("Schedules: owner cannot create invalid schedule (target > 2000)", async () => {
+    await assertFails(owner3Db.ref("schedules/dev3/sched_2").set({
+      scheduleId: "sched_2",
+      hour: 12,
+      minute: 0,
+      targetGrams: 5000,
+      enabled: true,
+      daysOfWeek: [1]
+    }));
+  });
+
+  await test("Schedules: device cannot modify schedules", async () => {
+    await assertFails(esp32_3Db.ref("schedules/dev3/sched_0").set({
+      scheduleId: "sched_0",
+      hour: 10,
+      minute: 0,
+      targetGrams: 250,
+      enabled: true,
+      daysOfWeek: [1]
+    }));
+  });
+
+  await test("Schedules: unauthenticated cannot read schedules", async () => {
+    await assertFails(unauthDb.ref("schedules/dev3").once("value"));
+  });
+
+  await test("Schedules: device can read schedules", async () => {
+    await assertSucceeds(esp32_3Db.ref("schedules/dev3").once("value"));
+  });
+
   console.log(`\nTests finished: ${passed} passed, ${failed} failed.`);
 
   process.exit(failed > 0 ? 1 : 0);

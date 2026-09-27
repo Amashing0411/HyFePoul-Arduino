@@ -14,6 +14,11 @@ let feedingActive = false;
 let currentFeedWeightGrams = 0;
 let activeRemoteCommandId = "";
 let outputLog = [];
+let feedSchedules = [
+  { hour: 7, minute: 0, targetGrams: 250, enabled: true },
+  { hour: 12, minute: 0, targetGrams: 250, enabled: true },
+  { hour: 17, minute: 0, targetGrams: 250, enabled: true }
+];
 
 const pinStates = {
   EMERGENCY_STOP_PIN: 1, // HIGH = OK, LOW = ESTOP
@@ -35,8 +40,25 @@ const sendCmdDone = (id, status, reason = "") => {
 
 const startRemoteFeeding = (target) => {
   if (emergencyStopActive) return;
+  if (feedingActive) return;
   feedingActive = true;
   pinStates.DISPENSER_RELAY_PIN = 1;
+};
+
+const startScheduledFeeding = (index) => {
+  if (emergencyStopActive || feedingActive || index >= 3) return;
+  feedingActive = true;
+  pinStates.DISPENSER_RELAY_PIN = 1;
+};
+
+const checkScheduledFeeding = (simHour, simMinute) => {
+  for (let i = 0; i < 3; i++) {
+    if (!feedSchedules[i].enabled) continue;
+    if (simHour === feedSchedules[i].hour && simMinute === feedSchedules[i].minute) {
+       startScheduledFeeding(i);
+       return; // Execute only one
+    }
+  }
 };
 
 // --- The Exact C++ Parsing Logic Translated to JS ---
@@ -153,6 +175,11 @@ const processRemoteCommand = (line) => {
       sendCmdAck(cmdId, "REJECTED", "INVALID_TARGET");
       return;
     }
+    
+    feedSchedules[idx].hour = hr;
+    feedSchedules[idx].minute = mn;
+    feedSchedules[idx].targetGrams = tgt;
+    feedSchedules[idx].enabled = en;
     
     activeRemoteCommandId = cmdId;
     sendCmdAck(cmdId, "ACCEPTED");
@@ -303,6 +330,46 @@ runTest("16. invalid SCHEDULE_SET (missing params)", () => {
 runTest("17. invalid SCHEDULE_SET (invalid index)", () => {
   processRemoteCommand("CMD|ID:cmd15|ACTION:SCHEDULE_SET|IDX:4|HR:7|MIN:30|TGT:250|EN:1");
   assertLogContains("CMD_ACK|ID:cmd15|STATUS:REJECTED|REASON:INVALID_INDEX");
+});
+
+runTest("18. E2E: Sync schedule and trigger via RTC", () => {
+  // Sync schedule 0
+  processRemoteCommand("CMD|ID:e2e1|ACTION:SCHEDULE_SET|IDX:0|HR:9|MIN:30|TGT:250|EN:1");
+  assertLogContains("CMD_ACK|ID:e2e1|STATUS:ACCEPTED");
+  
+  if (feedSchedules[0].hour !== 9 || feedSchedules[0].minute !== 30 || feedSchedules[0].targetGrams !== 250 || feedSchedules[0].enabled !== true) {
+    throw new Error("Schedule 0 not updated correctly");
+  }
+
+  // Simulate RTC reaching 09:30
+  checkScheduledFeeding(9, 30);
+  if (!feedingActive || pinStates.DISPENSER_RELAY_PIN !== 1) {
+    throw new Error("Scheduled feeding did not start");
+  }
+});
+
+runTest("19. E2E: Manual feed blocks scheduled feed", () => {
+  // Reset
+  feedingActive = false;
+  pinStates.DISPENSER_RELAY_PIN = 0;
+  
+  // Sync schedule 1
+  processRemoteCommand("CMD|ID:e2e2|ACTION:SCHEDULE_SET|IDX:1|HR:14|MIN:0|TGT:300|EN:1");
+  
+  // Start manual feed
+  processRemoteCommand("CMD|ID:m1|ACTION:MANUAL_FEED|TARGET:100");
+  if (!feedingActive) throw new Error("Manual feeding failed to start");
+  
+  // Simulate RTC reaching 14:00 while manual feed is running
+  checkScheduledFeeding(14, 0);
+  
+  // End manual feed
+  feedingActive = false;
+  pinStates.DISPENSER_RELAY_PIN = 0;
+  
+  // Simulate RTC next minute
+  checkScheduledFeeding(14, 1);
+  if (feedingActive) throw new Error("Scheduled feed bypassed the safety block and executed later incorrectly");
 });
 
 console.log("ALL SIMULATION TESTS PASSED.");
