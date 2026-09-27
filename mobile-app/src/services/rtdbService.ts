@@ -1,6 +1,6 @@
 import { ref, set, onValue, query, orderByChild, limitToLast, get, equalTo } from 'firebase/database';
 import { rtdb } from './firebase';
-import { RTDBDevice, RTDBSystemDataSnapshot, RTDBAlert, RTDBCommand, RTDBCommandAction } from '../types/rtdb';
+import { RTDBDevice, RTDBSystemDataSnapshot, RTDBAlert, RTDBCommand, RTDBCommandAction, RTDBSchedule } from '../types/rtdb';
 
 /**
  * Lightweight runtime validation
@@ -183,6 +183,35 @@ export const rtdbService = {
         
         // Sort newest first by createdAt
         records.sort((a, b) => b.createdAt - a.createdAt);
+        callback(records);
+      },
+      (error) => {
+        callback([], error);
+      }
+    );
+    return () => unsubscribe();
+  },
+
+  async updateSchedule(deviceId: string, schedule: RTDBSchedule): Promise<void> {
+    const schedRef = ref(rtdb, `schedules/${deviceId}/${schedule.scheduleId}`);
+    await set(schedRef, schedule);
+  },
+
+  subscribeToSchedules(deviceId: string, callback: (schedules: RTDBSchedule[], error?: Error) => void): () => void {
+    const schedQuery = query(ref(rtdb, `schedules/${deviceId}`));
+    const unsubscribe = onValue(
+      schedQuery,
+      (snapshot) => {
+        if (!snapshot.exists()) {
+          callback([]);
+          return;
+        }
+        
+        const records: RTDBSchedule[] = [];
+        snapshot.forEach((childSnap) => {
+          records.push(childSnap.val() as RTDBSchedule);
+        });
+        
         callback(records);
       },
       (error) => {

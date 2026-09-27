@@ -123,6 +123,42 @@ const processRemoteCommand = (line) => {
     sendCmdDone(cmdId, "SUCCESS");
     activeRemoteCommandId = "";
   }
+  else if (action === "SCHEDULE_SET") {
+    const idxStr = extractMegaValue(line, "IDX:");
+    const hrStr = extractMegaValue(line, "HR:");
+    const minStr = extractMegaValue(line, "MIN:");
+    const tgtStr = extractMegaValue(line, "TGT:");
+    const enStr = extractMegaValue(line, "EN:");
+    
+    if (idxStr === "" || hrStr === "" || minStr === "" || tgtStr === "" || enStr === "") {
+      sendCmdAck(cmdId, "REJECTED", "MALFORMED_SCHEDULE");
+      return;
+    }
+    
+    const idx = parseInt(idxStr, 10);
+    const hr = parseInt(hrStr, 10);
+    const mn = parseInt(minStr, 10);
+    const tgt = parseFloat(tgtStr);
+    const en = (enStr === "1" || enStr === "true");
+    
+    if (isNaN(idx) || idx < 0 || idx >= 3) {
+      sendCmdAck(cmdId, "REJECTED", "INVALID_INDEX");
+      return;
+    }
+    if (isNaN(hr) || hr < 0 || hr > 23 || isNaN(mn) || mn < 0 || mn > 59) {
+      sendCmdAck(cmdId, "REJECTED", "INVALID_TIME");
+      return;
+    }
+    if (isNaN(tgt) || tgt <= 0 || tgt > 5000.0) {
+      sendCmdAck(cmdId, "REJECTED", "INVALID_TARGET");
+      return;
+    }
+    
+    activeRemoteCommandId = cmdId;
+    sendCmdAck(cmdId, "ACCEPTED");
+    sendCmdDone(cmdId, "SUCCESS");
+    activeRemoteCommandId = "";
+  }
   else {
     sendCmdAck(cmdId, "REJECTED", "UNKNOWN_COMMAND");
   }
@@ -251,6 +287,22 @@ runTest("12. valid STATUS_REQ", () => {
 runTest("14. SYSTEM_RESTART safety behavior", () => {
   processRemoteCommand("CMD|ID:cmd12|ACTION:SYSTEM_RESTART");
   assertLogContains("CMD_ACK|ID:cmd12|STATUS:REJECTED|REASON:NOT_IMPLEMENTED_SAFELY");
+});
+
+runTest("15. valid SCHEDULE_SET", () => {
+  processRemoteCommand("CMD|ID:cmd13|ACTION:SCHEDULE_SET|IDX:0|HR:7|MIN:30|TGT:250|EN:1");
+  assertLogContains("CMD_ACK|ID:cmd13|STATUS:ACCEPTED");
+  assertLogContains("CMD_DONE|ID:cmd13|STATUS:SUCCESS");
+});
+
+runTest("16. invalid SCHEDULE_SET (missing params)", () => {
+  processRemoteCommand("CMD|ID:cmd14|ACTION:SCHEDULE_SET|IDX:0|HR:7");
+  assertLogContains("CMD_ACK|ID:cmd14|STATUS:REJECTED|REASON:MALFORMED_SCHEDULE");
+});
+
+runTest("17. invalid SCHEDULE_SET (invalid index)", () => {
+  processRemoteCommand("CMD|ID:cmd15|ACTION:SCHEDULE_SET|IDX:4|HR:7|MIN:30|TGT:250|EN:1");
+  assertLogContains("CMD_ACK|ID:cmd15|STATUS:REJECTED|REASON:INVALID_INDEX");
 });
 
 console.log("ALL SIMULATION TESTS PASSED.");

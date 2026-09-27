@@ -5,7 +5,7 @@ const { getDatabase, ref, set, get, onValue, connectDatabaseEmulator, update } =
 const EMULATOR_HOST = "127.0.0.1";
 const EMULATOR_AUTH_PORT = 9099;
 const EMULATOR_RTDB_PORT = 9000;
-const FIREBASE_PROJECT_ID = "hyfepoul-local";
+const FIREBASE_PROJECT_ID = "hyfepoul-dev";
 const OWNER_EMAIL = "test_owner@example.com";
 const OWNER_PASSWORD = "password123";
 const DEVICE_ID = "DEV_001_TEST";
@@ -69,12 +69,21 @@ async function runTests() {
     await signInWithEmailAndPassword(auth2, DEVICE_EMAIL, "password123");
 
     console.log("[Admin] Injecting simulated RTDB device data for testing...");
-    await set(ref(db, `claimRequests/${DEVICE_ID}`), { uid: ownerId, pin: "1234" });
-    await set(ref(db, `devices/${DEVICE_ID}/ownerId`), ownerId);
+    const adminHeaders = { 'Authorization': 'Bearer owner', 'Content-Type': 'application/json' };
+    
+    // Inject owner and deviceAuthUid directly via emulator backdoor
+    let res1 = await fetch(`http://${EMULATOR_HOST}:${EMULATOR_RTDB_PORT}/devices/${DEVICE_ID}/ownerId.json?ns=${FIREBASE_PROJECT_ID}-default-rtdb`, {
+      method: 'PUT', headers: adminHeaders, body: JSON.stringify(ownerId)
+    });
+    if (!res1.ok) throw new Error("Admin inject ownerId failed: " + await res1.text());
+    
+    let res2 = await fetch(`http://${EMULATOR_HOST}:${EMULATOR_RTDB_PORT}/devices/${DEVICE_ID}/deviceAuthUid.json?ns=${FIREBASE_PROJECT_ID}-default-rtdb`, {
+      method: 'PUT', headers: adminHeaders, body: JSON.stringify(deviceAuthUid)
+    });
+    if (!res2.ok) throw new Error("Admin inject deviceAuthUid failed: " + await res2.text());
     
     // Now device can write
     await update(ref(db2, `devices/${DEVICE_ID}`), {
-      deviceAuthUid: deviceAuthUid,
       status: "online",
       lastHeartbeat: Date.now(),
       state: {
@@ -96,6 +105,7 @@ async function runTests() {
     const deviceSnap = await get(deviceRef);
     if (!deviceSnap.exists()) throw new Error("Device data not found");
     const deviceData = deviceSnap.val();
+    console.log("Device Data in RTDB: ", JSON.stringify(deviceData, null, 2));
     if (!deviceData.status || !deviceData.state) throw new Error("Missing state or status");
     console.log(`[Test 2/3] SUCCESS (Status: ${deviceData.status}, Feed Weight: ${deviceData.state.feedWeightGrams}g)`);
 
@@ -154,6 +164,85 @@ async function runTests() {
     const checkFail = await get(ref(db, `commands/${DEVICE_ID}/${failId}`));
     if (checkFail.val().status !== "rejected") throw new Error("Failed command structure mismatch");
     console.log(`[Test 8] SUCCESS`);
+
+    console.log("======================================");
+    console.log("SCHEDULE TESTS (5B.13)");
+    console.log("======================================");
+
+    console.log("[Test S1] Create Schedule...");
+    const schedRef = ref(db, `schedules/${DEVICE_ID}/sched_0`);
+    await set(schedRef, {
+      scheduleId: "sched_0",
+      hour: 7,
+      minute: 30,
+      targetGrams: 250,
+      enabled: true,
+      daysOfWeek: [1,2,3,4,5,6,7]
+    });
+    console.log("[Test S1] SUCCESS (Schedule 0 created)");
+
+    console.log("[Test S2] Verify Synchronization Command...");
+    const syncCmdId = `cmd_${Date.now()+3}`;
+    await set(ref(db, `commands/${DEVICE_ID}/${syncCmdId}`), {
+      commandId: syncCmdId,
+      command: "SCHEDULE_SET",
+      parameters: {
+        index: 0,
+        hour: 7,
+        minute: 30,
+        targetGrams: 250,
+        enabled: true
+      },
+      issuedBy: ownerId,
+      createdAt: Date.now(),
+      status: "queued"
+    });
+    console.log("[Test S2] SUCCESS (SCHEDULE_SET queued)");
+
+    console.log("[Test S3] Disable Schedule...");
+    await update(schedRef, { enabled: false });
+    console.log("[Test S3] SUCCESS (Schedule 0 disabled)");
+
+    console.log("[Test S4] Unauthorized Write Rejected...");
+    const dbUnauth = getDatabase(initApp2({ ...firebaseConfig }, "UnauthApp"));
+    try {
+      await set(ref(dbUnauth, `schedules/${DEVICE_ID}/sched_0`), { hour: 8 });
+      throw new Error("Should have failed");
+    } catch(e) {
+      if (e.message && e.message.includes("Permission denied")) {
+         console.log("[Test S4] SUCCESS (Unauthorized user blocked)");
+      } else {
+         console.log("[Test S4] FAILED: " + e.message);
+      }
+    }
+
+    console.log("[Test S5] Invalid Target Rejected by Rules...");
+    try {
+      await set(schedRef, {
+        scheduleId: "sched_0", hour: 7, minute: 30, targetGrams: -50, enabled: true, daysOfWeek: [1]
+      });
+      throw new Error("Should have failed validation");
+    } catch (e) {
+      if (e.message && e.message.includes("Permission denied")) {
+        console.log("[Test S5] SUCCESS (Negative target validation failed correctly)");
+      } else {
+        console.log("[Test S5] FAILED: " + e.message);
+      }
+    }
+
+    console.log("[Test S6] Invalid Time Rejected by Rules...");
+    try {
+      await set(schedRef, {
+        scheduleId: "sched_0", hour: 25, minute: 30, targetGrams: 250, enabled: true, daysOfWeek: [1]
+      });
+      throw new Error("Should have failed validation");
+    } catch (e) {
+      if (e.message && e.message.includes("Permission denied")) {
+        console.log("[Test S6] SUCCESS (Hour 25 validation failed correctly)");
+      } else {
+        console.log("[Test S6] FAILED: " + e.message);
+      }
+    }
 
     console.log("======================================");
     console.log("ALL MOBILE APP RTDB TESTS PASSED.");

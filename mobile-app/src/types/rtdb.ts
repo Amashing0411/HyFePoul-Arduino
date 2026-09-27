@@ -59,7 +59,16 @@ export interface RTDBClaimRequest {
 }
 
 export type RTDBCommandStatus = 'queued' | 'acknowledged' | 'executing' | 'completed' | 'failed' | 'rejected';
-export type RTDBCommandAction = 'MANUAL_FEED' | 'ESTOP_RELEASE' | 'SYSTEM_RESTART' | 'STATUS_REQ';
+export type RTDBCommandAction = 'MANUAL_FEED' | 'ESTOP_RELEASE' | 'SYSTEM_RESTART' | 'STATUS_REQ' | 'SCHEDULE_SET';
+
+export interface RTDBSchedule {
+  scheduleId: string;
+  hour: number;
+  minute: number;
+  targetGrams: number;
+  enabled: boolean;
+  daysOfWeek: number[]; // Not currently used by Mega, but required by schema
+}
 
 /**
  * Remote command object, stored in /commands/{deviceId}/{commandId}

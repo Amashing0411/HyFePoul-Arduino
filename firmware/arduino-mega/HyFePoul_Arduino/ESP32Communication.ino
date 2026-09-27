@@ -240,6 +240,59 @@ void processRemoteCommand(String line) {
     sendCmdDone(cmdId, "SUCCESS", "");
     activeRemoteCommandId = "";
   }
+  else if (action == "SCHEDULE_SET") {
+    String idxStr = extractMegaValue(line, "IDX:");
+    String hrStr = extractMegaValue(line, "HR:");
+    String minStr = extractMegaValue(line, "MIN:");
+    String tgtStr = extractMegaValue(line, "TGT:");
+    String enStr = extractMegaValue(line, "EN:");
+    
+    if (idxStr == "" || hrStr == "" || minStr == "" || tgtStr == "" || enStr == "") {
+      sendCmdAck(cmdId, "REJECTED", "MALFORMED_SCHEDULE");
+      return;
+    }
+    
+    int idx = idxStr.toInt();
+    int hr = hrStr.toInt();
+    int mn = minStr.toInt();
+    float tgt = tgtStr.toFloat();
+    bool en = (enStr == "1" || enStr == "true");
+    
+    if (idx < 0 || idx >= FEED_SCHEDULE_COUNT) {
+      sendCmdAck(cmdId, "REJECTED", "INVALID_INDEX");
+      return;
+    }
+    if (hr < 0 || hr > 23 || mn < 0 || mn > 59) {
+      sendCmdAck(cmdId, "REJECTED", "INVALID_TIME");
+      return;
+    }
+    if (tgt <= 0 || tgt > 5000.0) {
+      sendCmdAck(cmdId, "REJECTED", "INVALID_TARGET");
+      return;
+    }
+    
+    feedSchedules[idx].hour = hr;
+    feedSchedules[idx].minute = mn;
+    feedSchedules[idx].targetGrams = tgt;
+    feedSchedules[idx].enabled = en;
+    
+    activeRemoteCommandId = cmdId;
+    sendCmdAck(cmdId, "ACCEPTED", "");
+    
+    Serial.print(F("Remote schedule set: ["));
+    Serial.print(idx);
+    Serial.print(F("] "));
+    Serial.print(hr);
+    Serial.print(F(":"));
+    Serial.print(mn);
+    Serial.print(F(" Target: "));
+    Serial.print(tgt);
+    Serial.print(F(" Enabled: "));
+    Serial.println(en);
+    
+    sendCmdDone(cmdId, "SUCCESS", "");
+    activeRemoteCommandId = "";
+  }
   else {
     sendCmdAck(cmdId, "REJECTED", "UNKNOWN_COMMAND");
   }

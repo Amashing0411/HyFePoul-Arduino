@@ -378,7 +378,7 @@ void pollCommands() {
           }
           
           if (commandName != "MANUAL_FEED" && commandName != "ESTOP_RELEASE" && 
-              commandName != "SYSTEM_RESTART" && commandName != "STATUS_REQ") {
+              commandName != "SYSTEM_RESTART" && commandName != "STATUS_REQ" && commandName != "SCHEDULE_SET") {
             continue; // Not whitelisted
           }
 
@@ -400,6 +400,12 @@ void pollCommands() {
                JsonObject params = cmd["parameters"].as<JsonObject>();
                if (commandName == "MANUAL_FEED" && params.containsKey("targetGrams")) {
                  paramsStr = "|TARGET:" + params["targetGrams"].as<String>();
+               } else if (commandName == "SCHEDULE_SET" && params.containsKey("index")) {
+                 paramsStr = "|IDX:" + params["index"].as<String>() +
+                             "|HR:" + params["hour"].as<String>() +
+                             "|MIN:" + params["minute"].as<String>() +
+                             "|TGT:" + params["targetGrams"].as<String>() +
+                             "|EN:" + (params["enabled"].as<bool>() ? "1" : "0");
                }
             }
             MEGA_SERIAL.print("CMD|ID:" + cmdId + "|ACTION:" + commandName + paramsStr + "\n");

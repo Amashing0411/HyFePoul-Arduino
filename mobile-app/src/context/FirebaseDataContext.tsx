@@ -2,15 +2,17 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { rtdbService } from '../services/rtdbService';
 import { useAuth } from './AuthContext';
 import { DeviceData, SystemData } from '../types';
-import { RTDBCommand, RTDBCommandAction } from '../types/rtdb';
+import { RTDBCommand, RTDBCommandAction, RTDBSchedule } from '../types/rtdb';
 
 interface FirebaseDataContextType {
   deviceData: DeviceData | null;
   systemData: SystemData | null;
   commands: RTDBCommand[];
+  schedules: RTDBSchedule[];
   loading: boolean;
   error: string | null;
   issueCommand: (command: RTDBCommandAction, parameters?: Record<string, any>) => Promise<string | null>;
+  updateSchedule: (schedule: RTDBSchedule) => Promise<void>;
 }
 
 const FirebaseDataContext = createContext<FirebaseDataContextType | undefined>(undefined);
@@ -21,6 +23,7 @@ export const FirebaseDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [deviceData, setDeviceData] = useState<DeviceData | null>(null);
   const [systemData, setSystemData] = useState<SystemData | null>(null);
   const [commands, setCommands] = useState<RTDBCommand[]>([]);
+  const [schedules, setSchedules] = useState<RTDBSchedule[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -106,9 +109,21 @@ export const FirebaseDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
     );
 
+    const unsubscribeSchedules = rtdbService.subscribeToSchedules(
+      activeDeviceId,
+      (scheds, err) => {
+        if (err) {
+          console.error("RTDB schedules listener error:", err);
+          return;
+        }
+        setSchedules(scheds);
+      }
+    );
+
     return () => {
       unsubscribeDevice();
       unsubscribeCommands();
+      unsubscribeSchedules();
     };
   }, [ownedDevices]);
 
@@ -123,8 +138,30 @@ export const FirebaseDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
+  const updateSchedule = async (schedule: RTDBSchedule): Promise<void> => {
+    if (!ownedDevices || ownedDevices.length === 0 || !user) return;
+    try {
+      const activeDeviceId = ownedDevices[0].id;
+      await rtdbService.updateSchedule(activeDeviceId, schedule);
+      
+      // Also send the sync command to the ESP32
+      const match = schedule.scheduleId.match(/sched_(\d+)/);
+      const index = match ? parseInt(match[1], 10) : 0;
+      await rtdbService.createCommand(activeDeviceId, 'SCHEDULE_SET', user.uid, {
+        index: index,
+        hour: schedule.hour,
+        minute: schedule.minute,
+        targetGrams: schedule.targetGrams,
+        enabled: schedule.enabled
+      });
+    } catch (e) {
+      console.error("Failed to update schedule:", e);
+      throw e;
+    }
+  };
+
   return (
-    <FirebaseDataContext.Provider value={{ deviceData, systemData, commands, loading, error, issueCommand }}>
+    <FirebaseDataContext.Provider value={{ deviceData, systemData, commands, schedules, loading, error, issueCommand, updateSchedule }}>
       {children}
     </FirebaseDataContext.Provider>
   );

@@ -62,7 +62,7 @@
             ".validate": "newData.isString() && newData.val() === $commandId"
           },
           "command": {
-            ".validate": "newData.isString() && (newData.val() === 'MANUAL_FEED' || newData.val() === 'ESTOP_RELEASE' || newData.val() === 'SYSTEM_RESTART' || newData.val() === 'STATUS_REQ')"
+            ".validate": "newData.isString() && (newData.val() === 'MANUAL_FEED' || newData.val() === 'ESTOP_RELEASE' || newData.val() === 'SYSTEM_RESTART' || newData.val() === 'STATUS_REQ' || newData.val() === 'SCHEDULE_SET')"
           },
           "issuedBy": {
             ".validate": "newData.isString() && newData.val() === auth.uid"
@@ -92,6 +92,30 @@
           "error": {
             ".write": "auth != null && root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid",
             ".validate": "newData.isString()"
+          }
+        }
+      }
+    },
+    "schedules": {
+      "$deviceId": {
+        ".read": "auth != null && (root.child('devices').child($deviceId).child('ownerId').val() === auth.uid || root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid)",
+        "$scheduleId": {
+          ".write": "auth != null && root.child('devices').child($deviceId).child('ownerId').val() === auth.uid",
+          ".validate": "newData.hasChildren(['scheduleId', 'hour', 'minute', 'targetGrams', 'enabled', 'daysOfWeek'])",
+          "scheduleId": {
+            ".validate": "newData.isString() && newData.val() === $scheduleId"
+          },
+          "hour": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 23"
+          },
+          "minute": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 59"
+          },
+          "targetGrams": {
+            ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 2000"
+          },
+          "enabled": {
+            ".validate": "newData.isBoolean()"
           }
         }
       }
