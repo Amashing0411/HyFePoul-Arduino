@@ -2,3 +2,12 @@
 17:47:56.740 [main] INFO com.firebase.server.forge.App$ - Listening at 127.0.0.1:9000
 17:48:43.345 [NamespaceSystem-akka.actor.default-dispatcher-5] INFO com.firebase.core.namespace.NamespaceActor - hyfepoul-dev-default-rtdb successfully activated FBKV (SurveyIdle(0)) wait: 166ms, init: 0ms
 17:48:43.489 [NamespaceSystem-blocking-namespace-operation-dispatcher-8] INFO com.firebase.core.namespace.StateManager - Namespace hyfepoul-dev-default-rtdb status Active to Active
+19:56:54.217 [FirebaseWorkerPool-1-3] WARN com.firebase.core.persistence.backend.dummy.EmulatorMetadataPersistence - Multiple projectIds are not recommended in single project mode. Requested 
+namespace hyfepoul-local-default-rtdb, but the emulator is configured for hyfepoul-dev-default-rtdb. To 
+opt-out of single project mode add/set the singleProjectMode: false property in 
+the firebase.json emulators config. 
+19:56:54.230 [FirebaseWorkerPool-1-3] WARN com.firebase.server.forge.App$ - Received service account token eyJh...ifQ., assuming ownership.
+19:56:54.236 [NamespaceSystem-akka.actor.default-dispatcher-27] INFO com.firebase.core.namespace.NamespaceActor - hyfepoul-local-default-rtdb successfully activated FBKV (SurveyIdle(0)) wait: 6ms, init: 0ms
+19:57:14.070 [FirebaseWorkerPool-1-1] WARN com.firebase.server.forge.App$ - Received service account token eyJh...ifQ., assuming ownership.
+19:57:42.581 [FirebaseWorkerPool-1-2] WARN com.firebase.server.forge.App$ - Received service account token eyJh...In0., assuming ownership.
+19:57:42.640 [FirebaseWorkerPool-1-3] WARN com.firebase.server.forge.App$ - Received service account token eyJh...In0., assuming ownership.

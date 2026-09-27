@@ -57,3 +57,21 @@ export interface RTDBClaimRequest {
   uid: string; // The human user's Firebase Auth UID
   pin: string; // The plaintext setup PIN provided by the user
 }
+
+export type RTDBCommandStatus = 'queued' | 'acknowledged' | 'executing' | 'completed' | 'failed' | 'rejected';
+export type RTDBCommandAction = 'MANUAL_FEED' | 'ESTOP_RELEASE' | 'SYSTEM_RESTART' | 'STATUS_REQ';
+
+/**
+ * Remote command object, stored in /commands/{deviceId}/{commandId}
+ */
+export interface RTDBCommand {
+  commandId: string;
+  command: RTDBCommandAction;
+  parameters?: Record<string, any>;
+  issuedBy: string; // Owner UID
+  createdAt: number;
+  status: RTDBCommandStatus;
+  acknowledgedAt?: number;
+  completedAt?: number;
+  error?: string;
+}

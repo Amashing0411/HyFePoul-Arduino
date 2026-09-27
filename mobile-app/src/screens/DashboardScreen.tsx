@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ScrollView, View, Text, StyleSheet, RefreshControl, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Card from '../components/Card';
@@ -6,54 +6,72 @@ import StatusBadge from '../components/StatusBadge';
 import ProgressBar from '../components/ProgressBar';
 import Skeleton from '../components/Skeleton';
 import Button from '../components/Button';
-import { useMockData } from '../context/MockDataContext';
 import { useFirebaseData } from '../context/FirebaseDataContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { spacing, layout } from '../theme';
 
 export default function DashboardScreen() {
-  const { schedules, refreshing, refreshData, toggleEmergencyStop } = useMockData();
-  const { deviceData, systemData, loading, error } = useFirebaseData();
+  const { deviceData, systemData, commands, loading, error, issueCommand } = useFirebaseData();
   const { colors, typography } = useTheme();
   const { t } = useLanguage();
+  
+  const [refreshing, setRefreshing] = useState(false);
 
-  const getNextFeeding = () => {
-    const activeSchedules = schedules.filter(s => s.enabled);
-    if (activeSchedules.length === 0) return t('none');
-    
-    const now = new Date();
-    const currentMins = now.getHours() * 60 + now.getMinutes();
-    
-    let next = activeSchedules.find(s => (s.hour * 60 + s.minute) > currentMins);
-    if (!next) next = activeSchedules[0]; 
-
-    const h = next.hour.toString().padStart(2, '0');
-    const m = next.minute.toString().padStart(2, '0');
-    return `${h}:${m}`;
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await issueCommand('STATUS_REQ');
+    setTimeout(() => setRefreshing(false), 1500);
   };
 
   const handleEmergencyStop = () => {
     if (!systemData) return;
     if (systemData.emergencyStopActive) {
       Alert.alert(
-        t('estopReleaseTitle'),
-        t('estopReleaseMsg'),
+        t('estopReleaseTitle') || "Release E-Stop",
+        t('estopReleaseMsg') || "Are you sure you want to release the emergency stop? Only do this if the physical switch is cleared.",
         [
-          { text: t('cancel'), style: "cancel" },
-          { text: t('releaseEmergencyStop'), style: "destructive", onPress: toggleEmergencyStop }
+          { text: t('cancel') || "Cancel", style: "cancel" },
+          { 
+            text: t('releaseEmergencyStop') || "Release", 
+            style: "destructive", 
+            onPress: () => issueCommand('ESTOP_RELEASE')
+          }
         ]
       );
     } else {
       Alert.alert(
-        t('estopActivateTitle'),
-        t('estopActivateMsg'),
+        "Remote E-Stop Activation",
+        "The system does not currently support activating E-Stop via remote command. E-Stop must be triggered physically.",
         [
-          { text: t('cancel'), style: "cancel" },
-          { text: t('emergencyStop'), style: "destructive", onPress: toggleEmergencyStop }
+          { text: "OK", style: "default" }
         ]
       );
     }
+  };
+
+  const handleManualFeed = () => {
+    Alert.prompt(
+      "Manual Feed",
+      "Enter target weight in grams (e.g. 500):",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Start Feed", 
+          onPress: (text) => {
+            const grams = parseFloat(text || "");
+            if (!isNaN(grams) && grams > 0) {
+              issueCommand('MANUAL_FEED', { targetGrams: grams });
+            } else {
+              Alert.alert("Invalid Input", "Please enter a valid number.");
+            }
+          }
+        }
+      ],
+      "plain-text",
+      "500",
+      "number-pad"
+    );
   };
 
   if (loading || !deviceData || !systemData) {
@@ -86,11 +104,12 @@ export default function DashboardScreen() {
 
   const feedColor = systemData.hopperLevelPercent < 20 ? colors.error : colors.warning;
   const isStale = (new Date().getTime() - new Date(systemData.timestamp).getTime()) > 300000; 
+  const activeCommand = commands.length > 0 ? commands[0] : null;
 
   return (
     <ScrollView 
       style={[styles.container, { backgroundColor: colors.background }]}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshData} tintColor={colors.primary} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
     >
       <Card title={t('deviceStatus')}>
         <View style={styles.row}>
@@ -104,7 +123,7 @@ export default function DashboardScreen() {
           />
         </View>
         <View style={styles.row}>
-          <Text style={typography.caption} accessible={true} accessibilityLabel={`${t('updated')}: ${new Date(systemData.timestamp).toLocaleTimeString()}`}>
+          <Text style={typography.caption}>
             {t('updated')}: {new Date(systemData.timestamp).toLocaleTimeString()} {isStale && `(${t('stale')})`}
           </Text>
         </View>
@@ -116,11 +135,6 @@ export default function DashboardScreen() {
             <Ionicons name="scale-outline" size={24} color={colors.neutral} />
             <Text style={[typography.caption, styles.gridLabel]}>{t('weight')}</Text>
             <Text style={[typography.body, { fontWeight: 'bold' }]}>{systemData.feedWeightGrams.toFixed(0)} g</Text>
-          </View>
-          <View style={styles.gridItem}>
-            <Ionicons name="time-outline" size={24} color={colors.neutral} />
-            <Text style={[typography.caption, styles.gridLabel]}>{t('nextFeed')}</Text>
-            <Text style={[typography.body, { fontWeight: 'bold' }]}>{getNextFeeding()}</Text>
           </View>
           <View style={styles.gridItem}>
             <Ionicons name="restaurant-outline" size={24} color={colors.neutral} />
@@ -136,6 +150,14 @@ export default function DashboardScreen() {
             <Text style={[typography.body, { fontWeight: 'bold' }]}>{systemData.hopperLevelPercent.toFixed(0)}%</Text>
           </View>
           <ProgressBar progress={systemData.hopperLevelPercent} color={feedColor} />
+        </View>
+        
+        <View style={{ marginTop: spacing.md }}>
+          <Button 
+            title="Manual Feed"
+            onPress={handleManualFeed}
+            variant="outline"
+          />
         </View>
       </Card>
 
@@ -174,13 +196,35 @@ export default function DashboardScreen() {
         </View>
         <View style={{ marginTop: spacing.md }}>
           <Button 
-            title={systemData.emergencyStopActive ? t('releaseEmergencyStop') : t('emergencyStop')}
+            title={systemData.emergencyStopActive ? t('releaseEmergencyStop') || "Release E-Stop" : t('emergencyStop') || "E-Stop Engaged"}
             onPress={handleEmergencyStop}
             variant={systemData.emergencyStopActive ? "outline" : "danger"}
-            accessibilityLabel={systemData.emergencyStopActive ? t('estopReleaseTitle') : t('estopActivateTitle')}
           />
         </View>
       </Card>
+
+      {activeCommand && (
+        <Card title="Last Remote Command">
+          <View style={styles.row}>
+            <Text style={typography.body}>{activeCommand.command}</Text>
+            <StatusBadge 
+              status={
+                activeCommand.status === 'completed' ? 'success' :
+                activeCommand.status === 'failed' || activeCommand.status === 'rejected' ? 'error' : 'warning'
+              } 
+              text={activeCommand.status.toUpperCase()} 
+            />
+          </View>
+          {activeCommand.error && (
+            <Text style={[typography.caption, { color: colors.error, marginTop: spacing.xs }]}>
+              {activeCommand.error}
+            </Text>
+          )}
+          <Text style={[typography.caption, { marginTop: spacing.xs, color: colors.textSecondary }]}>
+            {new Date(activeCommand.createdAt).toLocaleTimeString()}
+          </Text>
+        </Card>
+      )}
     </ScrollView>
   );
 }

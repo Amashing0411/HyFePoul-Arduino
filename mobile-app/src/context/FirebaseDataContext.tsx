@@ -1,24 +1,26 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-// import { doc, onSnapshot, Timestamp } from 'firebase/firestore';
-// import { db } from '../services/firebase';
 import { rtdbService } from '../services/rtdbService';
 import { useAuth } from './AuthContext';
 import { DeviceData, SystemData } from '../types';
+import { RTDBCommand, RTDBCommandAction } from '../types/rtdb';
 
 interface FirebaseDataContextType {
   deviceData: DeviceData | null;
   systemData: SystemData | null;
+  commands: RTDBCommand[];
   loading: boolean;
   error: string | null;
+  issueCommand: (command: RTDBCommandAction, parameters?: Record<string, any>) => Promise<string | null>;
 }
 
 const FirebaseDataContext = createContext<FirebaseDataContextType | undefined>(undefined);
 
 export const FirebaseDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { ownedDevices } = useAuth();
+  const { user, ownedDevices } = useAuth();
   
   const [deviceData, setDeviceData] = useState<DeviceData | null>(null);
   const [systemData, setSystemData] = useState<SystemData | null>(null);
+  const [commands, setCommands] = useState<RTDBCommand[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,7 +40,7 @@ export const FirebaseDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setLoading(true);
     setError(null);
 
-    const unsubscribe = rtdbService.subscribeToDevice(
+    const unsubscribeDevice = rtdbService.subscribeToDevice(
       activeDeviceId,
       (deviceSnap, err) => {
         if (err) {
@@ -92,14 +94,37 @@ export const FirebaseDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
     );
 
+    const unsubscribeCommands = rtdbService.subscribeToCommands(
+      activeDeviceId,
+      10,
+      (cmds, err) => {
+        if (err) {
+          console.error("RTDB commands listener error:", err);
+          return;
+        }
+        setCommands(cmds);
+      }
+    );
+
     return () => {
-      // Unsubscribe when component unmounts or active device changes
-      unsubscribe();
+      unsubscribeDevice();
+      unsubscribeCommands();
     };
   }, [ownedDevices]);
 
+  const issueCommand = async (command: RTDBCommandAction, parameters?: Record<string, any>): Promise<string | null> => {
+    if (!ownedDevices || ownedDevices.length === 0 || !user) return null;
+    try {
+      const activeDeviceId = ownedDevices[0].id;
+      return await rtdbService.createCommand(activeDeviceId, command, user.uid, parameters);
+    } catch (e) {
+      console.error("Failed to issue command:", e);
+      return null;
+    }
+  };
+
   return (
-    <FirebaseDataContext.Provider value={{ deviceData, systemData, loading, error }}>
+    <FirebaseDataContext.Provider value={{ deviceData, systemData, commands, loading, error, issueCommand }}>
       {children}
     </FirebaseDataContext.Provider>
   );

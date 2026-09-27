@@ -1,6 +1,6 @@
 import { ref, set, onValue, query, orderByChild, limitToLast, get, equalTo } from 'firebase/database';
 import { rtdb } from './firebase';
-import { RTDBDevice, RTDBSystemDataSnapshot, RTDBAlert } from '../types/rtdb';
+import { RTDBDevice, RTDBSystemDataSnapshot, RTDBAlert, RTDBCommand, RTDBCommandAction } from '../types/rtdb';
 
 /**
  * Lightweight runtime validation
@@ -142,5 +142,53 @@ export const rtdbService = {
       devices.push({ id: childSnap.key, ...childSnap.val() });
     });
     return devices;
+  },
+
+  async createCommand(deviceId: string, command: RTDBCommandAction, issuedBy: string, parameters?: Record<string, any>): Promise<string> {
+    const commandId = `cmd_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+    const cmdRef = ref(rtdb, `commands/${deviceId}/${commandId}`);
+    
+    const payload: RTDBCommand = {
+      commandId,
+      command,
+      issuedBy,
+      createdAt: Date.now(),
+      status: 'queued'
+    };
+    if (parameters) {
+      payload.parameters = parameters;
+    }
+    
+    await set(cmdRef, payload);
+    return commandId;
+  },
+
+  subscribeToCommands(deviceId: string, limit: number = 10, callback: (commands: RTDBCommand[], error?: Error) => void): () => void {
+    const cmdsQuery = query(ref(rtdb, `commands/${deviceId}`), limitToLast(limit));
+    const unsubscribe = onValue(
+      cmdsQuery,
+      (snapshot) => {
+        if (!snapshot.exists()) {
+          callback([]);
+          return;
+        }
+        
+        const records: RTDBCommand[] = [];
+        snapshot.forEach((childSnap) => {
+          const val = childSnap.val();
+          if (val && val.commandId && val.command && val.status) { // Light validation
+            records.push(val as RTDBCommand);
+          }
+        });
+        
+        // Sort newest first by createdAt
+        records.sort((a, b) => b.createdAt - a.createdAt);
+        callback(records);
+      },
+      (error) => {
+        callback([], error);
+      }
+    );
+    return () => unsubscribe();
   }
 };
