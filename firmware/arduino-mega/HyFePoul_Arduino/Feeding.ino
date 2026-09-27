@@ -84,9 +84,37 @@ void startFeeding(uint8_t scheduleIndex) {
   queueAlertEvent("FEEDING_STARTED");
 }
 
+void startRemoteFeeding(float targetGrams) {
+  if (emergencyStopActive) return;
+
+  activeFeedTargetGrams = targetGrams;
+  feedingActive = true;
+  feedingCompleted = false;
+  feedingStartMillis = millis();
+  
+  // Do not modify the schedule index for manual remote feed
+  
+  if (scale.is_ready()) {
+    scale.tare();
+    currentFeedWeightGrams = 0.0f;
+  }
+
+  digitalWrite(DISPENSER_RELAY_PIN, HIGH);
+  
+  Serial.print(F("REMOTE FEED START | Target: "));
+  Serial.print(activeFeedTargetGrams);
+  Serial.println(F(" g"));
+
+  logEventToSD("REMOTE_FEEDING_STARTED");
+}
+
 void runActiveFeeding() {
   if (emergencyStopActive) {
     stopFeeding("EMERGENCY_STOP");
+    if (activeRemoteCommandId != "") {
+      sendCmdDone(activeRemoteCommandId, "FAILED", "ESTOP_ACTIVE");
+      activeRemoteCommandId = "";
+    }
     return;
   }
 
@@ -104,6 +132,10 @@ void runActiveFeeding() {
     stopFeeding("TARGET_REACHED");
     feedingCompleted = true;
     queueAlertEvent("FEEDING_COMPLETED");
+    if (activeRemoteCommandId != "") {
+      sendCmdDone(activeRemoteCommandId, "SUCCESS", "");
+      activeRemoteCommandId = "";
+    }
     return;
   }
 
@@ -112,6 +144,10 @@ void runActiveFeeding() {
     stopFeeding("FEEDING_TIMEOUT");
     queueAlertEvent("FEEDING_TIMEOUT");
     triggerAlarm();
+    if (activeRemoteCommandId != "") {
+      sendCmdDone(activeRemoteCommandId, "FAILED", "FEEDING_TIMEOUT");
+      activeRemoteCommandId = "";
+    }
     return;
   }
 }

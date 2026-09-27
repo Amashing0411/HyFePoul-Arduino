@@ -90,6 +90,11 @@ void processESP32Line(String line) {
     return;
   }
 
+  if (line.startsWith("CMD|")) {
+    processRemoteCommand(line);
+    return;
+  }
+
   if (line == "STATUS|ONLINE") {
     esp32Online = true;
     return;
@@ -140,4 +145,126 @@ void sendEventToESP32(const String& eventName) {
 
 void queueAlertEvent(const String& eventName) {
   pendingAlertEvent = eventName;
+}
+
+String extractMegaValue(String line, String key) {
+  int keyIndex = line.indexOf(key);
+  if (keyIndex == -1) return "";
+  int valStart = keyIndex + key.length();
+  int valEnd = line.indexOf('|', valStart);
+  if (valEnd == -1) valEnd = line.length();
+  return line.substring(valStart, valEnd);
+}
+
+void processRemoteCommand(String line) {
+  // CMD|ID:<id>|ACTION:<command>|TARGET:<grams>
+  String cmdId = extractMegaValue(line, "ID:");
+  String action = extractMegaValue(line, "ACTION:");
+  
+  if (cmdId == "" || action == "") {
+    if (cmdId != "") {
+      sendCmdAck(cmdId, "REJECTED", "MALFORMED");
+    }
+    return;
+  }
+
+  // Duplicate check
+  if (activeRemoteCommandId != "" && activeRemoteCommandId == cmdId) {
+    sendCmdAck(cmdId, "REJECTED", "DUPLICATE_ID");
+    return;
+  }
+  
+  // Busy check
+  if (activeRemoteCommandId != "") {
+    sendCmdAck(cmdId, "REJECTED", "SYSTEM_BUSY");
+    return;
+  }
+  
+  if (action == "MANUAL_FEED") {
+    String targetStr = extractMegaValue(line, "TARGET:");
+    if (targetStr == "") {
+      sendCmdAck(cmdId, "REJECTED", "MISSING_TARGET");
+      return;
+    }
+    float targetGrams = targetStr.toFloat();
+    if (targetGrams <= 0 || targetGrams > 5000.0) { 
+      sendCmdAck(cmdId, "REJECTED", "INVALID_TARGET");
+      return;
+    }
+    
+    if (emergencyStopActive) {
+      sendCmdAck(cmdId, "REJECTED", "ESTOP_ACTIVE");
+      return;
+    }
+    
+    if (feedingActive) {
+      sendCmdAck(cmdId, "REJECTED", "FEEDING_ACTIVE");
+      return;
+    }
+    
+    activeRemoteCommandId = cmdId;
+    sendCmdAck(cmdId, "ACCEPTED", "");
+    
+    startRemoteFeeding(targetGrams);
+  }
+  else if (action == "ESTOP_RELEASE") {
+    if (digitalRead(EMERGENCY_STOP_PIN) == LOW) {
+      sendCmdAck(cmdId, "REJECTED", "PHYSICAL_ESTOP_ENGAGED");
+      return;
+    }
+    
+    if (!emergencyStopActive) {
+      sendCmdAck(cmdId, "REJECTED", "ESTOP_NOT_ACTIVE");
+      return;
+    }
+    
+    activeRemoteCommandId = cmdId;
+    sendCmdAck(cmdId, "ACCEPTED", "");
+    
+    emergencyStopActive = false;
+    Serial.println(F("Emergency stop released by remote."));
+    logEventToSD("EMERGENCY_STOP_RELEASED_REMOTE");
+    
+    sendCmdDone(cmdId, "SUCCESS", "");
+    activeRemoteCommandId = "";
+  }
+  else if (action == "SYSTEM_RESTART") {
+    sendCmdAck(cmdId, "REJECTED", "NOT_IMPLEMENTED_SAFELY");
+  }
+  else if (action == "STATUS_REQ") {
+    activeRemoteCommandId = cmdId;
+    sendCmdAck(cmdId, "ACCEPTED", "");
+    
+    sendCurrentDataToESP32();
+    
+    sendCmdDone(cmdId, "SUCCESS", "");
+    activeRemoteCommandId = "";
+  }
+  else {
+    sendCmdAck(cmdId, "REJECTED", "UNKNOWN_COMMAND");
+  }
+}
+
+void sendCmdAck(String id, String status, String reason) {
+  ESP32_SERIAL.print(F("CMD_ACK|ID:"));
+  ESP32_SERIAL.print(id);
+  ESP32_SERIAL.print(F("|STATUS:"));
+  ESP32_SERIAL.print(status);
+  if (reason.length() > 0) {
+    ESP32_SERIAL.print(F("|REASON:"));
+    ESP32_SERIAL.print(reason);
+  }
+  ESP32_SERIAL.println();
+}
+
+void sendCmdDone(String id, String status, String reason) {
+  ESP32_SERIAL.print(F("CMD_DONE|ID:"));
+  ESP32_SERIAL.print(id);
+  ESP32_SERIAL.print(F("|STATUS:"));
+  ESP32_SERIAL.print(status);
+  if (reason.length() > 0) {
+    ESP32_SERIAL.print(F("|REASON:"));
+    ESP32_SERIAL.print(reason);
+  }
+  ESP32_SERIAL.println();
 }

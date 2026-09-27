@@ -137,6 +137,7 @@ bool emergencyStopActive = false;
 bool esp32Online = false;
 unsigned long lastESP32MessageMillis = 0;
 unsigned long lastNetworkTimeMillis = 0;
+String activeRemoteCommandId = "";
 
 // Time
 enum TimeSource {
@@ -197,16 +198,16 @@ void initializePins() {
   pinMode(WATER_LOW_PIN, INPUT_PULLUP);
   pinMode(WATER_HIGH_PIN, INPUT_PULLUP);
 
-  pinMode(WATER_PUMP_RELAY_PIN, OUTPUT);
-  pinMode(DISPENSER_RELAY_PIN, OUTPUT);
-
   pinMode(EMERGENCY_STOP_PIN, INPUT_PULLUP);
-  pinMode(BUZZER_PIN, OUTPUT);
 
   // IMPORTANT:
-  // Assumes relay OFF = LOW.
-  // Confirm whether the physical relay module is active LOW or active HIGH.
+  // Ensure relays remain in their safe state (OFF = LOW)
+  // before engaging the output drivers to prevent startup glitches.
   digitalWrite(WATER_PUMP_RELAY_PIN, LOW);
   digitalWrite(DISPENSER_RELAY_PIN, LOW);
   digitalWrite(BUZZER_PIN, LOW);
+
+  pinMode(WATER_PUMP_RELAY_PIN, OUTPUT);
+  pinMode(DISPENSER_RELAY_PIN, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
 }
