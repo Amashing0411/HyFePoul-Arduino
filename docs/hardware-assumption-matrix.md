@@ -1,54 +1,33 @@
 # HYFEPOUL HARDWARE ASSUMPTION MATRIX
-*This matrix separates hardware-dependent assumptions into their respective confidence tiers. It must be strictly maintained during physical hardware commissioning.*
 
-## A. CONFIRMED FROM DESIGN/SOURCE
-These values are explicitly defined in the software architecture and `Config.ino` logic.
+*This document defines the software-intended hardware configuration. These are INTENDED MAPPINGS, NOT PHYSICALLY VERIFIED FACTS.*
 
-- **Primary Controller:** Arduino Mega 2560 (handles physical constraints, I/O, safety overrides).
-- **Communication Module:** ESP32 (handles Wi-Fi, RTDB connection, NTP time).
-- **UART Protocol:** Text-based over `Serial1` at `115200` baud.
-- **Relay Initial State:** Software enforces `digitalWrite(LOW)` prior to setting `OUTPUT` mode.
-- **ESP32 Timeout:** `ESP32_TIMEOUT_MS = 15000` (Mega assumes offline if no heartbeat).
-- **Feed Timeout:** `FEEDING_TIMEOUT_MS = 30000` (Safety cutoff if weight doesn't increase).
-- **Pump Timeout:** `WATER_PUMP_MAX_RUNTIME_MS = 120000` (Safety cutoff for pump).
-- **E-Stop Software Handling:** Configured as `INPUT_PULLUP`, dropping all relays to `LOW`.
+## Architecture Assumptions
+- **Arduino Mega 2560**: Primary controller and hardware safety authority.
+- **ESP32**: Wi-Fi/Internet communication co-processor and transport broker.
 
-## B. PROVISIONAL / REQUIRES PHYSICAL VERIFICATION
-These values exist in `Config.ino` as placeholder constants but MUST be verified against the physical fabrication.
+## Pin & Interface Assumptions
 
-- **Arduino Mega Pins:**
-  - HX711 DOUT: `30`
-  - HX711 SCK: `31`
-  - Ultrasonic TRIG: `32`
-  - Ultrasonic ECHO: `33`
-  - Water LOW Float: `34`
-  - Water HIGH Float: `35`
-  - Pump Relay: `36`
-  - Dispenser Relay: `37`
-  - Emergency Stop: `38`
-  - Buzzer: `39`
-  - SD CS: `53`
-  - Mega RX1/TX1: `19/18` (Mapped to ESP32 UART)
-  - Mega RX2/TX2: `17/16` (Mapped to Nextion UART)
-  - RTC SDA/SCL: `20/21`
-- **ESP32 UART Pins:** The specific physical pins on the ESP32 wired to Mega 18/19.
-- **Mega ↔ ESP32 Logic-Level Compatibility:** Does the hardware feature a level shifter (5V ↔ 3.3V)?
-- **Relay Active HIGH/LOW Behavior:** Do the physical relay modules close their NO contacts on a `HIGH` signal or `LOW` signal?
-- **E-Stop Electrical Behavior:** Is the physical switch Normally Closed (NC) or Normally Open (NO)?
-- **Power Rails:** Are the pump/motor and logic boards on properly isolated/regulated rails?
-- **Common Ground:** Are the Mega, ESP32, Relays, and Sensors physically sharing a stable ground?
+| Component | Expected Role | Expected Interface | Expected Mega Pin | Expected ESP32 Pin | Expected Logic Level | Software Dependency | Verification Status | Physical Verification Required |
+|---|---|---|---|---|---|---|---|---|
+| ESP32 Co-processor | Wi-Fi/RTDB Bridge | UART (Serial1) | RX: 19, TX: 18 | RX: GPIO16, TX: GPIO17 | **3.3V (ESP32) vs 5V (Mega)** | `<Arduino.h>` HardwareSerial | Unverified | Level-shifting / common ground |
+| Nextion HMI | Local Display | UART (Serial2) | RX: 17, TX: 16 | N/A | **5V** | `<Arduino.h>` HardwareSerial | Unverified | Baud rate matching (9600), Logic levels |
+| RTC (DS3231) | Fallback Clock | I2C | SDA: 20, SCL: 21 | N/A | **5V** (I2C) | `RTClib` | Unverified | I2C pullups, Address |
+| SD Card Reader | Data Logging | SPI | CS: 53, MOSI: 51, MISO: 50, SCK: 52 | N/A | **5V** (or 3.3V w/ onboard reg) | `<SD.h>`, `<SPI.h>` | Unverified | SPI logic level compatibility |
+| HX711 Amp | Load Cell Digitizer | 2-wire serial | DOUT: 30, SCK: 31 | N/A | **5V** | `HX711 Arduino Library` | Unverified | Load cell wiring (E+/E-/A+/A-) |
+| Ultrasonic Sensor | Hopper Feed Level | Trigger / Echo | TRIG: 32, ECHO: 33 | N/A | **5V** | `<Arduino.h>` pulseIn | Unverified | Acoustic range, mounting |
+| Water LOW Float | Tank Level Sensor | Digital Input | 34 | N/A | **5V** (INPUT_PULLUP) | `<Arduino.h>` digitalRead | Unverified | NO vs NC polarity |
+| Water HIGH Float | Tank Level Sensor | Digital Input | 35 | N/A | **5V** (INPUT_PULLUP) | `<Arduino.h>` digitalRead | Unverified | NO vs NC polarity |
+| E-Stop Button | Emergency Cutoff | Digital Input | 38 | N/A | **5V** (INPUT_PULLUP) | `<Arduino.h>` digitalRead | Unverified | Hardware isolation vs just GPIO |
+| Pump Relay | Water Pump Control | Digital Output | 36 | N/A | **5V** | `<Arduino.h>` digitalWrite | Unverified | Active-HIGH vs Active-LOW |
+| Dispenser Relay | Feed Motor Control | Digital Output | 37 | N/A | **5V** | `<Arduino.h>` digitalWrite | Unverified | Active-HIGH vs Active-LOW |
+| Buzzer | Audible Alarm | Digital Output | 39 | N/A | **5V** | `<Arduino.h>` digitalWrite | Unverified | Passive vs Active buzzer |
 
-## C. CALIBRATION REQUIRED
-These values must be physically measured on the workbench. The code placeholders are arbitrary.
+## Calibration Assumptions (Must be established physically)
+| Component | Metric | Assumed Placeholder Value |
+|---|---|---|
+| Load Cell | Calibration Factor | `-7050.0f` |
+| Ultrasonic | Hopper Empty Distance | `40.0f` cm |
+| Ultrasonic | Hopper Full Distance | `5.0f` cm |
 
-- **HX711 Calibration Factor:** Currently `-7050.0f`. **(NOT CALIBRATED)**
-- **Hopper Empty Distance:** Currently `40.0f` cm. **(NOT CALIBRATED)**
-- **Hopper Full Distance:** Currently `5.0f` cm. **(NOT CALIBRATED)**
-
-## D. UNKNOWN UNTIL PROTOTYPE ARRIVES
-These aspects are hardware mysteries that cannot be determined until the physical delivery.
-
-- **Load Cell Capacity:** e.g., 5kg, 10kg, 20kg.
-- **Relay Physical Wiring (NO vs NC):** Are the motors wired to Normally Open to ensure fail-safe behavior if the Mega loses power?
-- **True E-Stop Power Interruption:** Does the E-Stop button sever the 12V supply to the actuators, or does it only notify the Mega GPIO?
-- **Water Float Logic:** Does the float switch read CLOSED when floating up or down?
+**NOTE:** Do not treat these values as verified. Physical testing is strictly required when the prototype arrives.

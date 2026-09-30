@@ -1,70 +1,38 @@
-# HYFEPOUL HARDWARE DEBUGGING LOG TEMPLATE
-*Use this template to document any discrepancies between expected software behavior and actual physical hardware behavior. Do not blindly change firmware until the root cause is investigated.*
+# HARDWARE DEBUGGING LOG TEMPLATE
 
-## ENTRY TEMPLATE
+Use this template to document any discrepancies found during physical commissioning.
 
-**Date/Time:** YYYY-MM-DD HH:MM
-**Subsystem:** (e.g., UART, Load Cell, Relay, ESP32 Power)
+## Discrepancy Record: [DR-YYYYMMDD-00X]
 
+**Date:** YYYY-MM-DD
+**Investigator:** [Name]
+**Subsystem:** [e.g., Power, ESP32 UART, Pump Relay]
+
+### Description
 **Expected Behavior:**
-(What the software/architecture dictates should happen)
+[Describe what the software/architecture assumed would happen.]
 
-**Actual Behavior:**
-(What the physical prototype actually did)
+**Observed Behavior:**
+[Describe what physically happened on the hardware.]
 
 **Evidence:**
-(Serial log snippet, multimeter reading, photo, etc.)
+[e.g., Multimeter read 2.1V, Serial log showed "NaN", Relay clicked but motor didn't spin, attached Photo 1]
 
-**Suspected Cause:**
-(e.g., Wiring reversed, active-low relay module, ground loop, noise)
+### Classification
+- [ ] A. Software assumption incorrect
+- [ ] B. Fabrication/wiring incorrect
+- [ ] C. Component specification differs
+- [ ] D. Documentation incorrect
+- [ ] E. Hardware design intentionally changed
+- [ ] F. Unknown — requires investigation
 
-**Category:** [ ] Hardware Issue  [ ] Software Issue  [ ] Unknown
+### Root Cause Analysis
+[Briefly explain why the discrepancy occurred.]
 
-**Investigation / Test Performed:**
-(e.g., "Probed Pin 36 with multimeter while commanding HIGH via Serial")
+### Required Correction
+[State exactly what needs to be changed. e.g., "Change WATER_LOW pin configuration in Config.ino from INPUT_PULLUP to INPUT", or "Rewire Mega TX through logic level converter before hitting ESP32 RX".]
 
-**Change Made:**
-(e.g., "Swapped TX and RX wires", "Inverted LOW/HIGH logic in Config.ino")
-
-**Result:**
-(e.g., "Relay now actuates correctly", "UART communication established")
-
-**Commit / Reference:**
-(Hash or branch name if software was altered)
-
-**Final Status:** [ ] RESOLVED  [ ] PENDING
-
----
-
-## EXAMPLE ENTRY
-
-**Date/Time:** 2026-10-31 10:00
-**Subsystem:** UART Communication (Mega <-> ESP32)
-
-**Expected Behavior:**
-ESP32 receives `DATA|...` strings from Mega cleanly.
-
-**Actual Behavior:**
-ESP32 serial monitor shows garbage characters ``.
-
-**Evidence:**
-Serial output screenshot.
-
-**Suspected Cause:**
-Baud rate mismatch or missing common ground between Mega and ESP32.
-
-**Category:** [x] Hardware Issue  [ ] Software Issue  [ ] Unknown
-
-**Investigation / Test Performed:**
-Checked ground pins. Found that ESP32 ground was isolated from Mega ground.
-
-**Change Made:**
-Wired ESP32 GND to Mega GND plane.
-
-**Result:**
-Strings parse perfectly.
-
-**Commit / Reference:**
-N/A (Hardware fix only).
-
-**Final Status:** [x] RESOLVED  [ ] PENDING
+### Sign-off
+**Person Responsible for Correction:** [Name]
+**Correction Applied (Date):** [YYYY-MM-DD]
+**Retest Result:** [PASS / FAIL]
