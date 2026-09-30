@@ -346,10 +346,10 @@ void pollCommands() {
 
   HTTPClient http;
   // Use the indexOn "status" to fetch only queued commands efficiently
-  String url = String(FIREBASE_USE_EMULATOR ? "http://" + EMULATOR_HOST + ":" + EMULATOR_RTDB_PORT : "https://" + FIREBASE_PROJECT_ID + "-default-rtdb.firebaseio.com") 
+  String url = (FIREBASE_USE_EMULATOR ? (String("http://") + EMULATOR_HOST + ":" + EMULATOR_RTDB_PORT) : (String("https://") + FIREBASE_PROJECT_ID + "-default-rtdb.firebaseio.com")) 
                + "/commands/" + DEVICE_ID + ".json"
                + "?orderBy=\"status\"&equalTo=\"queued\""
-               + (FIREBASE_USE_EMULATOR ? "&ns=" + FIREBASE_PROJECT_ID + "-default-rtdb" : "")
+               + (FIREBASE_USE_EMULATOR ? (String("&ns=") + FIREBASE_PROJECT_ID + "-default-rtdb") : String(""))
                + "&auth=" + idToken;
                
   http.begin(url);

@@ -4,15 +4,27 @@ import { Ionicons } from '@expo/vector-icons';
 import Card from '../components/Card';
 import StatusBadge from '../components/StatusBadge';
 import Skeleton from '../components/Skeleton';
-import { useMockData } from '../context/MockDataContext';
+import { useFirebaseData } from '../context/FirebaseDataContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { spacing, layout } from '../theme';
 
 export default function WaterScreen() {
-  const { systemData, loading, refreshing, refreshData } = useMockData();
+  const { systemData, loading, error } = useFirebaseData();
+  const refreshing = false;
+  const refreshData = () => {};
   const { colors, typography } = useTheme();
   const { t } = useLanguage();
+
+  if (loading || !systemData) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Card title={t('waterTank')}><Skeleton height={150} /></Card>
+        <Card title={t('pumpSystem')}><Skeleton height={100} /></Card>
+      </View>
+    );
+  }
+
   const { waterLow, waterHigh, pumpActive, timestamp } = systemData;
 
   const getTankStatus = () => {
@@ -23,15 +35,6 @@ export default function WaterScreen() {
 
   const tank = getTankStatus();
   const isStale = (new Date().getTime() - new Date(timestamp).getTime()) > 300000;
-
-  if (loading) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <Card title={t('waterTank')}><Skeleton height={150} /></Card>
-        <Card title={t('pumpSystem')}><Skeleton height={100} /></Card>
-      </View>
-    );
-  }
 
   return (
     <ScrollView 

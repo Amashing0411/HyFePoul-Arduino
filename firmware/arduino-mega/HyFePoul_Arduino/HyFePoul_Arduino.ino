@@ -12,6 +12,8 @@
   Arduino IDE compiles all .ino files in this folder as one sketch.
 */
 
+#include "HyFePoul.h"
+
 void setup() {
   initializeSystem();
 }

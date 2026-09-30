@@ -57,12 +57,12 @@ export default function FeedingScreen() {
     const tg = parseInt(newTarget, 10);
 
     if (isNaN(h) || h < 0 || h > 23 || isNaN(m) || m < 0 || m > 59) {
-      Alert.alert(t('error') || "Error", t('invalidTime') || "Please enter a valid time (00-23 for hours, 00-59 for minutes).");
+      Alert.alert("Error", "Please enter a valid time (00-23 for hours, 00-59 for minutes).");
       return;
     }
 
     if (isNaN(tg) || tg <= 0 || tg > 2000) {
-      Alert.alert(t('error') || "Error", t('invalidTarget') || "Please enter a valid target weight (1-2000g).");
+      Alert.alert("Error", "Please enter a valid target weight (1-2000g).");
       return;
     }
 
@@ -89,7 +89,7 @@ export default function FeedingScreen() {
     
     Alert.alert(
       t('delete') || "Delete",
-      t('confirmDelete') || "Are you sure you want to delete this schedule?",
+      "Are you sure you want to delete this schedule?",
       [
         { text: t('cancel') || "Cancel", style: "cancel" },
         { 
@@ -143,7 +143,7 @@ export default function FeedingScreen() {
         { text: "Cancel", style: "cancel" },
         { 
           text: "Start Feed", 
-          onPress: (text) => {
+          onPress: (text?: string) => {
             const grams = parseFloat(text || "");
             if (!isNaN(grams) && grams > 0 && grams <= 2000) {
               issueCommand('MANUAL_FEED', { targetGrams: grams });
@@ -174,6 +174,7 @@ export default function FeedingScreen() {
 
   const feedColor = systemData.hopperLevelPercent < 20 ? colors.error : colors.warning;
   
+  const activeCommand = commands.length > 0 ? commands[0] : null;
   // Find if there is a pending sync command for schedules
   const pendingSyncCmd = commands.find(c => c.command === 'SCHEDULE_SET' && (c.status === 'queued' || c.status === 'acknowledged' || c.status === 'executing'));
 
@@ -216,9 +217,33 @@ export default function FeedingScreen() {
               onPress={handleManualFeed}
               variant="outline"
               disabled={systemData.emergencyStopActive || systemData.feedingActive}
+              accessibilityLabel="Manual Feed"
             />
           </View>
         </Card>
+
+        {activeCommand && (
+          <Card title="Command Status">
+            <View style={styles.row}>
+              <Text style={typography.body}>{activeCommand.command}</Text>
+              <StatusBadge 
+                status={
+                  activeCommand.status === 'completed' ? 'success' :
+                  activeCommand.status === 'failed' || activeCommand.status === 'rejected' ? 'error' : 'warning'
+                } 
+                text={activeCommand.status.toUpperCase()} 
+              />
+            </View>
+            {activeCommand.error && (
+              <Text style={[typography.caption, { color: colors.error, marginTop: spacing.xs }]}>
+                {activeCommand.error}
+              </Text>
+            )}
+            <Text style={[typography.caption, { marginTop: spacing.xs, color: colors.textSecondary }]}>
+              {new Date(activeCommand.createdAt).toLocaleTimeString()}
+            </Text>
+          </Card>
+        )}
 
         <View style={styles.sectionHeader}>
           <Text style={typography.h2}>{t('schedules') || "Feeding Schedules"}</Text>
@@ -239,7 +264,7 @@ export default function FeedingScreen() {
               <Card key={`edit_${index}`} title={`Edit Schedule ${index + 1}`}>
                 <View style={styles.formRow}>
                   <View style={styles.inputGroup}>
-                    <Text style={typography.caption}>{t('time')}</Text>
+                    <Text style={typography.caption}>Time</Text>
                     <View style={styles.timeInputContainer}>
                       <TextInput 
                         style={[styles.input, typography.body, { borderColor: colors.border, color: colors.text }]}
@@ -263,7 +288,7 @@ export default function FeedingScreen() {
                     </View>
                   </View>
                   <View style={styles.inputGroup}>
-                    <Text style={typography.caption}>{t('amount')}</Text>
+                    <Text style={typography.caption}>Amount</Text>
                     <TextInput 
                       style={[styles.input, typography.body, { borderColor: colors.border, color: colors.text }]}
                       value={newTarget}
@@ -275,8 +300,12 @@ export default function FeedingScreen() {
                   </View>
                 </View>
                 <View style={[styles.row, { marginTop: spacing.md }]}>
-                  <Button title={t('cancel')} onPress={() => setEditingIndex(null)} variant="outline" style={{ flex: 1, marginRight: spacing.xs }} />
-                  <Button title={t('save')} onPress={saveEdit} style={{ flex: 1, marginLeft: spacing.xs }} />
+                  <View style={{ flex: 1, marginRight: spacing.xs }}>
+                    <Button title={t('cancel')} onPress={() => setEditingIndex(null)} variant="outline" accessibilityLabel="Cancel" />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: spacing.xs }}>
+                    <Button title={t('save')} onPress={saveEdit} accessibilityLabel="Save" />
+                  </View>
                 </View>
               </Card>
             );

@@ -4,7 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import { layout, spacing } from '../theme';
 
 interface CardProps {
-  title: string;
+  title?: string;
   children: React.ReactNode;
 }
 
@@ -13,8 +13,12 @@ export default function Card({ title, children }: CardProps) {
 
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <Text style={typography.h2}>{title}</Text>
-      <View style={[styles.divider, { backgroundColor: colors.border }]} />
+      {title ? (
+        <>
+          <Text style={typography.h2}>{title}</Text>
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        </>
+      ) : null}
       {children}
     </View>
   );

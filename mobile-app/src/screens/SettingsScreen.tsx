@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext';
 export default function SettingsScreen() {
   const { mode, toggleTheme, fontSize, setFontSize, colors, typography } = useTheme();
   const { language, setLanguage, t } = useLanguage();
-  const { signOut } = useAuth();
+  const { user, ownedDevices, signOut } = useAuth();
 
   const handleFontChange = (size: 'small' | 'medium' | 'large') => {
     setFontSize(size);
@@ -18,6 +18,30 @@ export default function SettingsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Text style={[typography.h1, styles.header]}>{t('settings')}</Text>
+
+      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, marginBottom: spacing.md }]}>
+        <View style={styles.column}>
+          <View style={styles.iconText}>
+            <Ionicons name="person-circle-outline" size={24} color={colors.primary} />
+            <Text style={[typography.body, styles.label]}>Account</Text>
+          </View>
+          <Text style={[typography.bodySecondary, { marginTop: spacing.xs, marginLeft: 32 }]}>
+            {user?.email || 'Unknown User'}
+          </Text>
+        </View>
+
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+        <View style={styles.column}>
+          <View style={styles.iconText}>
+            <Ionicons name="hardware-chip-outline" size={24} color={colors.primary} />
+            <Text style={[typography.body, styles.label]}>Active Device</Text>
+          </View>
+          <Text style={[typography.bodySecondary, { marginTop: spacing.xs, marginLeft: 32 }]}>
+            {ownedDevices && ownedDevices.length > 0 ? ownedDevices[0].id : 'No Device Claimed'}
+          </Text>
+        </View>
+      </View>
 
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
         

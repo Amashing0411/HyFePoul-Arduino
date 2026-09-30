@@ -58,7 +58,7 @@ export default function DashboardScreen() {
         { text: "Cancel", style: "cancel" },
         { 
           text: "Start Feed", 
-          onPress: (text) => {
+          onPress: (text?: string) => {
             const grams = parseFloat(text || "");
             if (!isNaN(grams) && grams > 0) {
               issueCommand('MANUAL_FEED', { targetGrams: grams });
@@ -157,6 +157,7 @@ export default function DashboardScreen() {
             title="Manual Feed"
             onPress={handleManualFeed}
             variant="outline"
+            accessibilityLabel="Manual Feed"
           />
         </View>
       </Card>
@@ -199,6 +200,7 @@ export default function DashboardScreen() {
             title={systemData.emergencyStopActive ? t('releaseEmergencyStop') || "Release E-Stop" : t('emergencyStop') || "E-Stop Engaged"}
             onPress={handleEmergencyStop}
             variant={systemData.emergencyStopActive ? "outline" : "danger"}
+            accessibilityLabel={systemData.emergencyStopActive ? "Release E-Stop" : "Emergency Stop"}
           />
         </View>
       </Card>

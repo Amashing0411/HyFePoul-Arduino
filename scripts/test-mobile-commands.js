@@ -43,30 +43,23 @@ async function runTests() {
     const ownerId = userCredential.user.uid;
     console.log(`[Test 1] SUCCESS (Owner UID: ${ownerId})`);
 
-    // Create ESP32 test account
-    const DEVICE_EMAIL = "device@example.com";
-    let deviceCredential;
-    try {
-      deviceCredential = await signInWithEmailAndPassword(auth, DEVICE_EMAIL, "password123");
-    } catch (e) {
-      const { createUserWithEmailAndPassword } = require('firebase/auth');
-      deviceCredential = await createUserWithEmailAndPassword(auth, DEVICE_EMAIL, "password123");
-    }
-    const deviceAuthUid = deviceCredential.user.uid;
-
-    // Inject data directly via REST bypassing rules using standard emulator bypass (not supported, let's just use the owner to set ownerId and device to set state)
-    // Actually we can't easily sign in two users at once in the same Firebase Auth SDK instance easily without multiple apps.
-    // Instead of using the client SDK, let's just make REST calls directly without auth which might fail due to rules, OR we just temporarily allow writes in the emulator by modifying rules.
-    // Or we can just use the Admin SDK, but it's not installed here.
-    // Let's use the REST API with a token if we can, but since this is just a test script, let's just spawn a second app.
-    
     const { initializeApp: initApp2 } = require('firebase/app');
     const app2 = initApp2(firebaseConfig, 'DeviceApp');
     const auth2 = getAuth(app2);
     const db2 = getDatabase(app2);
     connectAuthEmulator(auth2, `http://${EMULATOR_HOST}:${EMULATOR_AUTH_PORT}`);
     connectDatabaseEmulator(db2, EMULATOR_HOST, EMULATOR_RTDB_PORT);
-    await signInWithEmailAndPassword(auth2, DEVICE_EMAIL, "password123");
+
+    // Create ESP32 test account using auth2
+    const DEVICE_EMAIL = "device@example.com";
+    let deviceCredential;
+    try {
+      deviceCredential = await signInWithEmailAndPassword(auth2, DEVICE_EMAIL, "password123");
+    } catch (e) {
+      const { createUserWithEmailAndPassword } = require('firebase/auth');
+      deviceCredential = await createUserWithEmailAndPassword(auth2, DEVICE_EMAIL, "password123");
+    }
+    const deviceAuthUid = deviceCredential.user.uid;
 
     console.log("[Admin] Injecting simulated RTDB device data for testing...");
     const adminHeaders = { 'Authorization': 'Bearer owner', 'Content-Type': 'application/json' };
@@ -153,16 +146,21 @@ async function runTests() {
     // TEST 8
     console.log("[Test 8] Simulating Failed/Rejected command display...");
     const failId = `cmd_${Date.now()+2}`;
-    await set(ref(db, `commands/${DEVICE_ID}/${failId}`), {
+    const failRef = ref(db, `commands/${DEVICE_ID}/${failId}`);
+    await set(failRef, {
       commandId: failId,
       command: "SYSTEM_RESTART",
       issuedBy: ownerId,
       createdAt: Date.now(),
-      status: "rejected",
-      error: "NOT_IMPLEMENTED_SAFELY"
+      status: "queued"
     });
+    
+    const failRefDevice = ref(db2, `commands/${DEVICE_ID}/${failId}`);
+    await update(failRefDevice, { status: "acknowledged", acknowledgedAt: Date.now() });
+    await update(failRefDevice, { status: "failed", error: "NOT_IMPLEMENTED_SAFELY", completedAt: Date.now() });
+
     const checkFail = await get(ref(db, `commands/${DEVICE_ID}/${failId}`));
-    if (checkFail.val().status !== "rejected") throw new Error("Failed command structure mismatch");
+    if (checkFail.val().status !== "failed") throw new Error("Failed command structure mismatch");
     console.log(`[Test 8] SUCCESS`);
 
     console.log("======================================");
