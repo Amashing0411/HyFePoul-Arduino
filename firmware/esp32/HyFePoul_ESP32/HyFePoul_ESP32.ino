@@ -113,7 +113,7 @@ String getDatabaseUrl(const char* path) {
   if (FIREBASE_USE_EMULATOR) {
     return String("http://") + EMULATOR_HOST + ":" + EMULATOR_RTDB_PORT + "/" + path + "?ns=" + FIREBASE_PROJECT_ID + "-default-rtdb&auth=" + idToken;
   }
-  return String("https://") + FIREBASE_PROJECT_ID + "-default-rtdb.firebaseio.com/" + path + "?auth=" + idToken;
+  return String("https://") + FIREBASE_PROJECT_ID + "-default-rtdb.asia-southeast1.firebasedatabase.app/" + path + "?auth=" + idToken;
 }
 
 void authenticateFirebase() {
@@ -346,7 +346,7 @@ void pollCommands() {
 
   HTTPClient http;
   // Use the indexOn "status" to fetch only queued commands efficiently
-  String url = (FIREBASE_USE_EMULATOR ? (String("http://") + EMULATOR_HOST + ":" + EMULATOR_RTDB_PORT) : (String("https://") + FIREBASE_PROJECT_ID + "-default-rtdb.firebaseio.com")) 
+  String url = (FIREBASE_USE_EMULATOR ? (String("http://") + EMULATOR_HOST + ":" + EMULATOR_RTDB_PORT) : (String("https://") + FIREBASE_PROJECT_ID + "-default-rtdb.asia-southeast1.firebasedatabase.app")) 
                + "/commands/" + DEVICE_ID + ".json"
                + "?orderBy=\"status\"&equalTo=\"queued\""
                + (FIREBASE_USE_EMULATOR ? (String("&ns=") + FIREBASE_PROJECT_ID + "-default-rtdb") : String(""))

@@ -21,7 +21,7 @@
 #define FIREBASE_API_KEY "AIzaSy_YOUR_API_KEY"
 
 // ESP32 dedicated Firebase Auth Account
-#define FIREBASE_AUTH_EMAIL "esp32@test.com"
+#define FIREBASE_AUTH_EMAIL "hyfepoul-prod-device@test.com"
 #define FIREBASE_AUTH_PASSWORD "esp32_secret_password"
 
 #define FIREBASE_USE_EMULATOR false
