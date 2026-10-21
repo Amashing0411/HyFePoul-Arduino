@@ -22,7 +22,8 @@ void handleFeeding() {
 }
 
 void checkScheduledFeeding() {
-  DateTime now = getCurrentDateTime();
+  // Schedules (and the daily reset below) follow the local wall clock.
+  DateTime now = getLocalDateTime();
 
   for (uint8_t i = 0; i < FEED_SCHEDULE_COUNT; i++) {
     if (!feedSchedules[i].enabled) {

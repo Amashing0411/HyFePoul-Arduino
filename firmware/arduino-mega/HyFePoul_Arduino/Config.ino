@@ -76,6 +76,11 @@ const unsigned long WATER_PUMP_MAX_RUNTIME_MS = 120000UL;
 const unsigned long ESP32_TIMEOUT_MS = 15000UL;
 const unsigned long ESP32_TIME_SYNC_INTERVAL_MS = 300000UL;
 
+// Local time offset from UTC (Philippine Standard Time, no DST).
+// The RTC, SD log and DATA packets stay in UTC; this offset is applied only
+// where the user's wall clock matters (feed schedules, Nextion clock).
+const int16_t LOCAL_UTC_OFFSET_MINUTES = 480;
+
 // SD logging interval.
 const unsigned long SD_LOG_INTERVAL_MS = 30000UL;
 

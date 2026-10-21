@@ -84,7 +84,7 @@ String getSystemStatusText() {
 }
 
 String getCurrentTimeText() {
-  DateTime now = getCurrentDateTime();
+  DateTime now = getLocalDateTime();
 
   char buffer[9];
   snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d",

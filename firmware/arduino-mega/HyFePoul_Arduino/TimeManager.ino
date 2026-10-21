@@ -63,6 +63,13 @@ DateTime getCurrentDateTime() {
   return DateTime(F(__DATE__), F(__TIME__));
 }
 
+// Local wall-clock time. Schedules are entered by the user in local time,
+// while the RTC holds UTC.
+DateTime getLocalDateTime() {
+  return getCurrentDateTime() +
+         TimeSpan((int32_t)LOCAL_UTC_OFFSET_MINUTES * 60L);
+}
+
 void processNetworkTime(const String& datePart, const String& timePart) {
   int year, month, day;
   int hour, minute, second;

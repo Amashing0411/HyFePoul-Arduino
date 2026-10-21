@@ -158,6 +158,13 @@ const checkScheduledFeeding = (simHour, simMinute) => {
   }
 };
 
+// Mirrors getLocalDateTime(): the RTC holds UTC, schedules are local time.
+const LOCAL_UTC_OFFSET_MINUTES = 480;
+const checkScheduledFeedingAtUtc = (utcHour, utcMinute) => {
+  const localTotal = (utcHour * 60 + utcMinute + LOCAL_UTC_OFFSET_MINUTES) % (24 * 60);
+  checkScheduledFeeding(Math.floor(localTotal / 60), localTotal % 60);
+};
+
 // --- The Exact C++ Parsing Logic Translated to JS ---
 const extractMegaValue = (line, key) => {
   const keyIndex = line.indexOf(key);
@@ -568,6 +575,24 @@ runTest("24. FW-3: LOW_WATER only when pump cannot refill, once per low episode"
   updateHydration();
   waterHigh = false;
   alertQueue = [];
+});
+
+runTest("25. FW-4: local 07:00 schedule fires at 23:00 UTC, not 07:00 UTC", () => {
+  feedingActive = false;
+  emergencyStopActive = false;
+  activeRemoteCommandId = "";
+  processRemoteCommand("CMD|ID:fw4|ACTION:SCHEDULE_SET|IDX:0|HR:7|MIN:0|TGT:250|EN:1");
+  assertLogContains("CMD_DONE|ID:fw4|STATUS:SUCCESS");
+
+  // 07:00 UTC is 15:00 PHT: must not feed.
+  checkScheduledFeedingAtUtc(7, 0);
+  if (feedingActive) throw new Error("Fed at 07:00 UTC (15:00 local)");
+
+  // 23:00 UTC is 07:00 PHT: must feed.
+  checkScheduledFeedingAtUtc(23, 0);
+  if (!feedingActive) throw new Error("Did not feed at 07:00 local");
+  feedingActive = false;
+  pinStates.DISPENSER_RELAY_PIN = 0;
 });
 
 console.log("ALL SIMULATION TESTS PASSED.");
