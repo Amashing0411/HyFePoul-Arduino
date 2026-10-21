@@ -66,6 +66,8 @@ export default function FeedingScreen() {
       return;
     }
 
+    // The Mega runs every schedule daily (decision D3), so all days are
+    // always written to satisfy the RTDB schema.
     const payload: RTDBSchedule = {
       scheduleId: `sched_${editingIndex}`,
       hour: h,
@@ -97,17 +99,8 @@ export default function FeedingScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              // Delete from Firebase using updateSchedule with null? 
-              // Wait, updateSchedule expects a valid schedule. We should disable it first on Mega!
-              await issueCommand('SCHEDULE_SET', {
-                index, hour: 0, minute: 0, targetGrams: 250, enabled: false
-              });
-              
-              // We need a delete function in FirebaseDataContext
-              // Since we don't have one, we can just disable it and keep it, OR we add deleteSchedule
-              // Let's just disable it instead of completely removing the node if delete isn't in context
-              // Actually, I can use rtdbService directly? No, keep it in context.
-              // I will just disable it and set it to 00:00.
+              // "Delete" disables the slot and resets it to 00:00. updateSchedule
+              // also queues the matching SCHEDULE_SET for the Mega.
               await updateSchedule({
                 scheduleId: `sched_${index}`,
                 hour: 0, minute: 0, targetGrams: 250, enabled: false, daysOfWeek: [1,2,3,4,5,6,7]
@@ -252,7 +245,7 @@ export default function FeedingScreen() {
           )}
         </View>
         <Text style={[typography.caption, { marginBottom: spacing.md }]}>
-          Supports up to 3 daily schedules. Synchronization to the physical device occurs automatically.
+          {t('schedulesRunDaily')}
         </Text>
 
         {[0, 1, 2].map(index => {

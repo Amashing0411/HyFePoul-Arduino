@@ -67,7 +67,7 @@ export interface RTDBSchedule {
   minute: number;
   targetGrams: number;
   enabled: boolean;
-  daysOfWeek: number[]; // Not currently used by Mega, but required by schema
+  daysOfWeek: number[]; // Required by the RTDB schema; the app always writes all 7 days because the Mega runs schedules daily (decision D3)
 }
 
 /**
