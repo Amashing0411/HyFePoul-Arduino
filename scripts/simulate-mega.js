@@ -124,15 +124,39 @@ const finishRemoteCommand = (status, reason = "") => {
   activeRemoteCommandId = "";
 };
 
-// Mirrors the E-stop trip branch of handleSafety() in Safety.ino.
+// Mirrors handleSafety() / tripEmergencyStop() / resetEmergencyStop() in
+// Safety.ino. The E-stop latches; releasing the button does not clear it.
+let emergencyButtonPressed = false;
+
+const tripEmergencyStop = () => {
+  emergencyStopActive = true;
+  pinStates.DISPENSER_RELAY_PIN = 0;
+  feedingActive = false;
+  waterPumpActive = false;
+  finishRemoteCommand("FAILED", "ESTOP_ACTIVE");
+  queueAlertEvent("EMERGENCY_STOP");
+};
+
 const handleSafety = () => {
   const pressed = pinStates.EMERGENCY_STOP_PIN === 0;
-  if (pressed && !emergencyStopActive) {
-    emergencyStopActive = true;
-    pinStates.DISPENSER_RELAY_PIN = 0;
-    feedingActive = false;
-    finishRemoteCommand("FAILED", "ESTOP_ACTIVE");
+  if (pressed && !emergencyButtonPressed) {
+    emergencyButtonPressed = true;
+    if (!emergencyStopActive) tripEmergencyStop();
   }
+  if (!pressed && emergencyButtonPressed) {
+    emergencyButtonPressed = false;
+  }
+  if (emergencyStopActive) pinStates.DISPENSER_RELAY_PIN = 0;
+};
+
+// Returns null on success, otherwise the rejection reason.
+const resetEmergencyStop = () => {
+  if (pinStates.EMERGENCY_STOP_PIN === 0) return "PHYSICAL_ESTOP_ENGAGED";
+  if (!emergencyStopActive) return "ESTOP_NOT_ACTIVE";
+  emergencyStopActive = false;
+  waterPumpFaultLatched = false;
+  queueAlertEvent("EMERGENCY_STOP_RELEASED");
+  return null;
 };
 
 const startRemoteFeeding = (target) => {
@@ -221,23 +245,13 @@ const processRemoteCommand = (line) => {
     startRemoteFeeding(targetGrams);
   }
   else if (action === "ESTOP_RELEASE") {
-    if (pinStates.EMERGENCY_STOP_PIN === 0) {
-      sendCmdAck(cmdId, "REJECTED", "PHYSICAL_ESTOP_ENGAGED");
+    const rejectReason = resetEmergencyStop();
+    if (rejectReason !== null) {
+      sendCmdAck(cmdId, "REJECTED", rejectReason);
       return;
     }
-    
-    if (!emergencyStopActive) {
-      sendCmdAck(cmdId, "REJECTED", "ESTOP_NOT_ACTIVE");
-      return;
-    }
-    
-    activeRemoteCommandId = cmdId;
     sendCmdAck(cmdId, "ACCEPTED");
-    
-    emergencyStopActive = false;
-    
     sendCmdDone(cmdId, "SUCCESS");
-    activeRemoteCommandId = "";
   }
   else if (action === "SYSTEM_RESTART") {
     sendCmdAck(cmdId, "REJECTED", "NOT_IMPLEMENTED_SAFELY");
@@ -593,6 +607,61 @@ runTest("25. FW-4: local 07:00 schedule fires at 23:00 UTC, not 07:00 UTC", () =
   if (!feedingActive) throw new Error("Did not feed at 07:00 local");
   feedingActive = false;
   pinStates.DISPENSER_RELAY_PIN = 0;
+});
+
+runTest("26. FW-5: E-stop stays latched after button release until remote reset", () => {
+  emergencyStopActive = false;
+  emergencyButtonPressed = false;
+  activeRemoteCommandId = "";
+  pinStates.EMERGENCY_STOP_PIN = 1;
+  alertQueue = [];
+
+  pinStates.EMERGENCY_STOP_PIN = 0;
+  handleSafety();
+  if (!emergencyStopActive) throw new Error("E-stop did not trip");
+
+  // Release the button: automation must NOT resume.
+  pinStates.EMERGENCY_STOP_PIN = 1;
+  handleSafety();
+  handleSafety();
+  if (!emergencyStopActive) throw new Error("E-stop auto-released");
+
+  waterLow = true;
+  waterHigh = false;
+  updateHydration();
+  if (waterPumpActive) throw new Error("Pump ran while E-stop latched");
+  processRemoteCommand("CMD|ID:fw5a|ACTION:MANUAL_FEED|TARGET:100");
+  assertLogContains("CMD_ACK|ID:fw5a|STATUS:REJECTED|REASON:ESTOP_ACTIVE");
+
+  // Explicit reset clears the latch.
+  processRemoteCommand("CMD|ID:fw5b|ACTION:ESTOP_RELEASE");
+  assertLogContains("CMD_ACK|ID:fw5b|STATUS:ACCEPTED");
+  assertLogContains("CMD_DONE|ID:fw5b|STATUS:SUCCESS");
+  assertLogContains("QUEUED:EMERGENCY_STOP_RELEASED");
+  if (emergencyStopActive) throw new Error("Reset did not clear latch");
+
+  waterLow = false;
+  stopWaterPump();
+  alertQueue = [];
+});
+
+runTest("27. FW-5: reset rejected while button still pressed; reset clears pump fault", () => {
+  emergencyStopActive = false;
+  emergencyButtonPressed = false;
+  pinStates.EMERGENCY_STOP_PIN = 0;
+  handleSafety();
+  waterPumpFaultLatched = true;
+
+  processRemoteCommand("CMD|ID:fw5c|ACTION:ESTOP_RELEASE");
+  assertLogContains("CMD_ACK|ID:fw5c|STATUS:REJECTED|REASON:PHYSICAL_ESTOP_ENGAGED");
+  if (!emergencyStopActive) throw new Error("Latch cleared while button pressed");
+
+  pinStates.EMERGENCY_STOP_PIN = 1;
+  handleSafety();
+  processRemoteCommand("CMD|ID:fw5d|ACTION:ESTOP_RELEASE");
+  assertLogContains("CMD_DONE|ID:fw5d|STATUS:SUCCESS");
+  if (waterPumpFaultLatched) throw new Error("Reset should clear pump fault latch");
+  alertQueue = [];
 });
 
 console.log("ALL SIMULATION TESTS PASSED.");

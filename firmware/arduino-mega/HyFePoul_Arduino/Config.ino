@@ -136,7 +136,10 @@ bool waterPumpActive = false;
 unsigned long waterPumpStartMillis = 0;
 
 // Safety
+// emergencyStopActive is the latched stop state; emergencyButtonPressed is
+// the live physical button state.
 bool emergencyStopActive = false;
+bool emergencyButtonPressed = false;
 
 // ESP32
 bool esp32Online = false;

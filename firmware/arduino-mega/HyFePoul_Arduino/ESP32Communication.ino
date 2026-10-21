@@ -220,25 +220,16 @@ void processRemoteCommand(String line) {
     startRemoteFeeding(targetGrams);
   }
   else if (action == "ESTOP_RELEASE") {
-    if (digitalRead(EMERGENCY_STOP_PIN) == LOW) {
-      sendCmdAck(cmdId, "REJECTED", "PHYSICAL_ESTOP_ENGAGED");
+    const char* rejectReason =
+        resetEmergencyStop("EMERGENCY_STOP_RELEASED_REMOTE");
+
+    if (rejectReason != NULL) {
+      sendCmdAck(cmdId, "REJECTED", rejectReason);
       return;
     }
-    
-    if (!emergencyStopActive) {
-      sendCmdAck(cmdId, "REJECTED", "ESTOP_NOT_ACTIVE");
-      return;
-    }
-    
-    activeRemoteCommandId = cmdId;
+
     sendCmdAck(cmdId, "ACCEPTED", "");
-    
-    emergencyStopActive = false;
-    Serial.println(F("Emergency stop released by remote."));
-    logEventToSD("EMERGENCY_STOP_RELEASED_REMOTE");
-    
     sendCmdDone(cmdId, "SUCCESS", "");
-    activeRemoteCommandId = "";
   }
   else if (action == "SYSTEM_RESTART") {
     sendCmdAck(cmdId, "REJECTED", "NOT_IMPLEMENTED_SAFELY");

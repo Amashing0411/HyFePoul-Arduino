@@ -21,6 +21,7 @@ void setup() {
 void loop() {
   // Safety is checked first so an emergency stop can take priority.
   handleSafety();
+  handleLocalConsole();
 
   // Keep time updated from ESP32 network time when available.
   // RTC is used as the fallback source.
