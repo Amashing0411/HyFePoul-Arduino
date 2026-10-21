@@ -38,6 +38,58 @@ const sendCmdDone = (id, status, reason = "") => {
   outputLog.push(msg);
 };
 
+// --- Hydration state (Hydration.ino) ---
+const WATER_PUMP_MAX_RUNTIME_MS = 120000;
+let simMillis = 0;
+let waterLow = false;
+let waterHigh = false;
+let waterPumpActive = false;
+let waterPumpStartMillis = 0;
+let waterPumpFaultLatched = false;
+
+const queueAlertEvent = (eventName) => {
+  outputLog.push(`QUEUED:${eventName}`);
+};
+
+const startWaterPump = () => {
+  if (waterPumpActive || emergencyStopActive || waterPumpFaultLatched) return;
+  waterPumpActive = true;
+  waterPumpStartMillis = simMillis;
+};
+
+const stopWaterPump = () => {
+  waterPumpActive = false;
+};
+
+const checkWaterPumpTimeout = () => {
+  if (!waterPumpActive) return;
+  if (simMillis - waterPumpStartMillis >= WATER_PUMP_MAX_RUNTIME_MS) {
+    stopWaterPump();
+    if (!waterPumpFaultLatched) {
+      waterPumpFaultLatched = true;
+      queueAlertEvent("WATER_PUMP_TIMEOUT");
+    }
+  }
+};
+
+const controlWaterPump = () => {
+  if (waterHigh) {
+    stopWaterPump();
+    waterPumpFaultLatched = false;
+    return;
+  }
+  if (waterLow && !waterHigh) startWaterPump();
+  checkWaterPumpTimeout();
+};
+
+const updateHydration = () => {
+  if (emergencyStopActive) {
+    stopWaterPump();
+    return;
+  }
+  controlWaterPump();
+};
+
 // Mirrors finishRemoteCommand() in ESP32Communication.ino.
 const finishRemoteCommand = (status, reason = "") => {
   if (activeRemoteCommandId === "") return;
@@ -410,6 +462,36 @@ runTest("20. FW-1: E-stop during remote feed reports failure and frees command s
   processRemoteCommand("CMD|ID:fw1b|ACTION:STATUS_REQ");
   assertLogNotContains("SYSTEM_BUSY");
   assertLogContains("CMD_DONE|ID:fw1b|STATUS:SUCCESS");
+});
+
+runTest("21. FW-2: pump timeout latches and does not restart while water stays low", () => {
+  emergencyStopActive = false;
+  pinStates.EMERGENCY_STOP_PIN = 1;
+  simMillis = 0;
+  waterLow = true;
+  waterHigh = false;
+
+  updateHydration();
+  if (!waterPumpActive) throw new Error("Pump should start on low water");
+
+  simMillis = WATER_PUMP_MAX_RUNTIME_MS;
+  updateHydration();
+  if (waterPumpActive) throw new Error("Pump should stop at max runtime");
+  if (!waterPumpFaultLatched) throw new Error("Fault should be latched");
+  assertLogContains("QUEUED:WATER_PUMP_TIMEOUT");
+
+  // Water is still low on later loops: the pump must stay off.
+  simMillis += 100;
+  updateHydration();
+  simMillis += 5000;
+  updateHydration();
+  if (waterPumpActive) throw new Error("Pump restarted despite latched fault");
+
+  // Reaching the high float clears the latch.
+  waterLow = false;
+  waterHigh = true;
+  updateHydration();
+  if (waterPumpFaultLatched) throw new Error("High level should clear the fault latch");
 });
 
 console.log("ALL SIMULATION TESTS PASSED.");

@@ -157,7 +157,9 @@ unsigned long lastSDLogMillis = 0;
 // Alerts
 String pendingAlertEvent = "";
 bool lowFeedAlertSent = false;
-bool waterPumpTimeoutAlertSent = false;
+// Set when the pump hits its max runtime; blocks restarts until the high
+// float switch is reached or the E-stop is reset.
+bool waterPumpFaultLatched = false;
 
 // Buzzer
 bool buzzerActive = false;
