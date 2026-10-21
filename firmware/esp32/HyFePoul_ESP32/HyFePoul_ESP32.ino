@@ -17,10 +17,23 @@ const int   daylightOffset_sec = 0;
 
 // Command Management
 String activeCommandId = "";
+String activeCommandName = "";
 String activeCommandStatus = "";
 unsigned long activeCommandStartMillis = 0;
 const unsigned long UART_ACK_TIMEOUT = 3000;
 const unsigned long UART_EXEC_TIMEOUT = 120000;
+
+// Schedule restore: re-send /schedules/{deviceId} to the Mega after either
+// board restarts or after a schedule command failed. One SCHEDULE_SET per
+// slot, each waiting for its CMD_ACK, using short IDs R0..R2 so every line
+// fits the Mega's 64-byte UART receive buffer. Not written to /commands.
+const uint8_t SCHEDULE_SLOT_COUNT = 3;
+const unsigned long SCHEDULE_RESTORE_RETRY_MS = 30000;
+bool scheduleRestorePending = true; // restore once after ESP32 boot
+int scheduleRestoreIndex = -1;      // slot awaiting CMD_ACK, -1 = idle
+unsigned long scheduleRestoreSentMillis = 0;
+unsigned long nextScheduleRestoreMillis = 0;
+String scheduleRestoreLines[SCHEDULE_SLOT_COUNT];
 
 void setup() {
   Serial.begin(115200);
@@ -76,8 +89,11 @@ void loop() {
     pollCommands();
     lastCommandPoll = millis();
   }
-  
+
   checkCommandTimeout();
+
+  // 5. Re-send schedules to the Mega when needed
+  handleScheduleRestore();
 }
 
 // ---------------------------------------------------------
@@ -194,6 +210,13 @@ void processMegaLine(String line) {
   } 
   else if (line.startsWith("EVENT|")) {
     String eventName = line.substring(6);
+
+    if (eventName == "SYSTEM_START") {
+      // The Mega restarted: re-send the RTDB schedules (overrides whatever
+      // it loaded from EEPROM or defaults).
+      requestScheduleRestore();
+    }
+
     sendEventToFirebase(eventName);
   }
   else if (line.startsWith("CMD_ACK|")) {
@@ -201,13 +224,19 @@ void processMegaLine(String line) {
     String id = extractValue(line, "ID:");
     String status = extractValue(line, "STATUS:");
     String reason = extractValue(line, "REASON:");
-    
+
+    if (scheduleRestoreIndex >= 0 && id == String("R") + scheduleRestoreIndex) {
+      handleScheduleRestoreAck(status, reason);
+      return;
+    }
+
     if (id == activeCommandId) {
       if (status == "ACCEPTED") {
         activeCommandStatus = "executing";
         updateCommandStatus(id, "executing", "");
       } else if (status == "REJECTED") {
         updateCommandStatus(id, "failed", reason.length() > 0 ? reason : "REJECTED_BY_MEGA");
+        if (activeCommandName == "SCHEDULE_SET") requestScheduleRestore();
         activeCommandId = "";
       }
     }
@@ -338,8 +367,9 @@ void sendEventToFirebase(String eventName) {
 void pollCommands() {
   if (idToken == "" || WiFi.status() != WL_CONNECTED) return;
   
-  // We only poll for new commands if we aren't busy.
-  if (activeCommandId != "") return;
+  // We only poll for new commands if we aren't busy (including a schedule
+  // restore, so restore and command lines never interleave on the UART).
+  if (activeCommandId != "" || scheduleRestoreIndex >= 0) return;
 
   unsigned long currentTimestamp = getTimestampMillis();
   if (currentTimestamp < 1000000000000ULL) return; // NTP not synced
@@ -385,12 +415,15 @@ void pollCommands() {
           // Check stale
           if (currentTimestamp > createdAt && (currentTimestamp - createdAt) > 300000UL) {
             updateCommandStatus(cmdId, "failed", "STALE_COMMAND");
+            // The schedule change never reached the Mega; repair from RTDB.
+            if (commandName == "SCHEDULE_SET") requestScheduleRestore();
             continue;
           }
 
           // Accept it
           if (updateCommandStatus(cmdId, "acknowledged", "")) {
             activeCommandId = cmdId;
+            activeCommandName = commandName;
             activeCommandStatus = "acknowledged";
             activeCommandStartMillis = millis();
             
@@ -453,6 +486,8 @@ void checkCommandTimeout() {
   if (activeCommandStatus == "acknowledged") {
     if (millis() - activeCommandStartMillis > UART_ACK_TIMEOUT) {
       updateCommandStatus(activeCommandId, "failed", "UART_TIMEOUT");
+      // A cut-off SCHEDULE_SET line (see Mega RX buffer limit) lands here.
+      if (activeCommandName == "SCHEDULE_SET") requestScheduleRestore();
       activeCommandId = "";
     }
   } else if (activeCommandStatus == "executing") {
@@ -461,4 +496,115 @@ void checkCommandTimeout() {
       activeCommandId = "";
     }
   }
+}
+
+// ---------------------------------------------------------
+// Schedule Restore (RTDB -> Mega)
+// ---------------------------------------------------------
+void requestScheduleRestore() {
+  scheduleRestorePending = true;
+  nextScheduleRestoreMillis = millis();
+}
+
+// Builds one SCHEDULE_SET line per slot from /schedules/{deviceId}.
+// A slot that is missing or invalid in RTDB is sent as disabled, so the
+// Mega never runs a schedule the app does not show. Returns false (and
+// leaves the Mega's EEPROM copy in charge) if RTDB could not be read.
+bool fetchScheduleRestoreLines() {
+  if (idToken == "" || WiFi.status() != WL_CONNECTED) return false;
+
+  HTTPClient http;
+  http.begin(getDatabaseUrl((String("schedules/") + DEVICE_ID + ".json").c_str()));
+  int code = http.GET();
+  String payload = code == 200 ? http.getString() : "";
+  http.end();
+
+  if (code != 200) {
+    Serial.print("Schedule restore: read failed, code ");
+    Serial.println(code);
+    return false;
+  }
+
+  DynamicJsonDocument doc(1536);
+  if (payload != "null" && deserializeJson(doc, payload)) {
+    Serial.println("Schedule restore: unreadable /schedules payload.");
+    return false;
+  }
+
+  for (uint8_t i = 0; i < SCHEDULE_SLOT_COUNT; i++) {
+    JsonVariant slot = doc[String("sched_") + i];
+    int hour = slot["hour"] | -1;
+    int minute = slot["minute"] | -1;
+    float target = slot["targetGrams"] | 0.0f;
+    bool valid = slot["enabled"].is<bool>() &&
+                 hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59 &&
+                 target > 0.0f && target <= 2000.0f;
+
+    // Whole grams keep the line within 63 bytes; the app only saves integers.
+    long grams = valid ? lround(target) : 250;
+    if (grams < 1) grams = 1;
+    bool enabled = valid && slot["enabled"].as<bool>();
+
+    scheduleRestoreLines[i] = String("CMD|ID:R") + i +
+                              "|ACTION:SCHEDULE_SET|IDX:" + i +
+                              "|HR:" + (valid ? hour : 0) +
+                              "|MIN:" + (valid ? minute : 0) +
+                              "|TGT:" + grams +
+                              "|EN:" + (enabled ? "1" : "0");
+  }
+
+  return true;
+}
+
+void sendScheduleRestoreLine() {
+  MEGA_SERIAL.print(scheduleRestoreLines[scheduleRestoreIndex] + "\n");
+  scheduleRestoreSentMillis = millis();
+}
+
+void abortScheduleRestore() {
+  scheduleRestoreIndex = -1;
+  scheduleRestorePending = true;
+  nextScheduleRestoreMillis = millis() + SCHEDULE_RESTORE_RETRY_MS;
+}
+
+void handleScheduleRestoreAck(const String& status, const String& reason) {
+  if (status != "ACCEPTED") {
+    Serial.print("Schedule restore: slot rejected by Mega (");
+    Serial.print(reason);
+    Serial.println("), retrying later.");
+    abortScheduleRestore();
+    return;
+  }
+
+  scheduleRestoreIndex++;
+
+  if (scheduleRestoreIndex >= SCHEDULE_SLOT_COUNT) {
+    scheduleRestoreIndex = -1;
+    scheduleRestorePending = false;
+    Serial.println("Schedule restore complete.");
+    return;
+  }
+
+  sendScheduleRestoreLine();
+}
+
+void handleScheduleRestore() {
+  if (scheduleRestoreIndex >= 0) {
+    if (millis() - scheduleRestoreSentMillis > UART_ACK_TIMEOUT) {
+      Serial.println("Schedule restore: no ACK from Mega, retrying later.");
+      abortScheduleRestore();
+    }
+    return;
+  }
+
+  if (!scheduleRestorePending || activeCommandId != "") return;
+  if ((long)(millis() - nextScheduleRestoreMillis) < 0) return;
+
+  if (!fetchScheduleRestoreLines()) {
+    nextScheduleRestoreMillis = millis() + SCHEDULE_RESTORE_RETRY_MS;
+    return;
+  }
+
+  scheduleRestoreIndex = 0;
+  sendScheduleRestoreLine();
 }
