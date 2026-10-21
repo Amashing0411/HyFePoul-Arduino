@@ -69,6 +69,14 @@ Install external libraries via:
 arduino-cli lib install "ArduinoJson@6.21.5"
 ```
 
+### Credentials File (`Config.h`)
+
+`firmware/esp32/HyFePoul_ESP32/Config.h` is gitignored because it holds the Wi-Fi credentials and the device's Firebase account. Before the first build, create it from the tracked template and fill in the real values:
+```powershell
+Copy-Item firmware/esp32/HyFePoul_ESP32/Config.example.h firmware/esp32/HyFePoul_ESP32/Config.h
+```
+The build fails with a missing `Config.h` until this is done. Never commit `Config.h`.
+
 ### Compile Command
 
 To verify the ESP32 firmware, run from the repository root:

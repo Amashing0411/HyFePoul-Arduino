@@ -1,3 +1,7 @@
+// Template for Config.h.
+// Copy this file to Config.h in the same folder and fill in the real values.
+// Config.h is gitignored: never commit Wi-Fi or device-account credentials.
+
 #ifndef CONFIG_H
 #define CONFIG_H
 
@@ -18,11 +22,11 @@
 // For production, use actual Firebase project details.
 // For emulator, set FIREBASE_USE_EMULATOR to true.
 #define FIREBASE_PROJECT_ID "hyfepoul-dev"
-#define FIREBASE_API_KEY "AIzaSy_YOUR_API_KEY"
+#define FIREBASE_API_KEY "YOUR_FIREBASE_WEB_API_KEY"
 
 // ESP32 dedicated Firebase Auth Account
-#define FIREBASE_AUTH_EMAIL "hyfepoul-prod-device@test.com"
-#define FIREBASE_AUTH_PASSWORD "esp32_secret_password"
+#define FIREBASE_AUTH_EMAIL "YOUR_DEVICE_ACCOUNT_EMAIL"
+#define FIREBASE_AUTH_PASSWORD "YOUR_DEVICE_ACCOUNT_PASSWORD"
 
 #define FIREBASE_USE_EMULATOR false
 #define EMULATOR_HOST "192.168.1.100" // Replace with your computer's IP running emulators
