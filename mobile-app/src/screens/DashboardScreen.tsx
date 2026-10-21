@@ -15,7 +15,7 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { MainTabParamList } from '../navigation/AppNavigator';
 
 export default function DashboardScreen() {
-  const { deviceData, systemData, commands, loading, error, issueCommand } = useFirebaseData();
+  const { deviceData, systemData, deviceOnline, nowMs, commands, loading, error, issueCommand } = useFirebaseData();
   const { colors, typography } = useTheme();
   const { t } = useLanguage();
   const navigation = useNavigation<BottomTabNavigationProp<MainTabParamList>>();
@@ -90,7 +90,7 @@ export default function DashboardScreen() {
   }
 
   const feedColor = systemData.hopperLevelPercent < 20 ? colors.error : colors.warning;
-  const isStale = (new Date().getTime() - new Date(systemData.timestamp).getTime()) > 300000; 
+  const isStale = (nowMs - new Date(systemData.timestamp).getTime()) > 300000;
   const activeCommand = commands.length > 0 ? commands[0] : null;
 
   return (
@@ -104,9 +104,9 @@ export default function DashboardScreen() {
             <Ionicons name="hardware-chip" size={24} color={colors.textSecondary} />
             <Text style={[typography.h2, { marginLeft: spacing.sm }]}>{deviceData.name}</Text>
           </View>
-          <StatusBadge 
-            status={deviceData.status === 'online' ? 'success' : 'offline'} 
-            text={deviceData.status === 'online' ? t('online') : t('offline')} 
+          <StatusBadge
+            status={deviceOnline ? 'success' : 'offline'}
+            text={deviceOnline ? t('online') : t('offline')}
           />
         </View>
         <View style={styles.row}>
@@ -114,6 +114,11 @@ export default function DashboardScreen() {
             {t('updated')}: {new Date(systemData.timestamp).toLocaleTimeString()} {isStale && `(${t('stale')})`}
           </Text>
         </View>
+        {!deviceOnline && deviceData.lastHeartbeat && (
+          <Text style={[typography.caption, { color: colors.error, marginTop: spacing.xs }]}>
+            {t('lastHeardFrom', { time: new Date(deviceData.lastHeartbeat).toLocaleString() })}
+          </Text>
+        )}
       </Card>
 
       <Card title={t('feedSystem')}>

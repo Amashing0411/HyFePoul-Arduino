@@ -26,7 +26,7 @@ const COMMAND_STATUS_LABELS: Partial<Record<RTDBCommandStatus, 'cmdQueued' | 'cm
 const IN_FLIGHT_STATUSES: RTDBCommandStatus[] = ['queued', 'acknowledged', 'executing'];
 
 export default function FeedingScreen() {
-  const { deviceData, systemData, schedules, commands, loading, error, issueCommand, updateSchedule } = useFirebaseData();
+  const { deviceData, systemData, deviceOnline, schedules, commands, loading, error, issueCommand, updateSchedule } = useFirebaseData();
   const { colors, typography } = useTheme();
   const { t } = useLanguage();
   
@@ -200,6 +200,9 @@ export default function FeedingScreen() {
   const activeCommand = commands.length > 0 ? commands[0] : null;
   // Block a second manual feed until the first one has finished.
   const manualFeedInFlight = commands.some(c => c.command === 'MANUAL_FEED' && IN_FLIGHT_STATUSES.includes(c.status));
+  // An offline device would only pick a feed up later (or let it go stale),
+  // so manual feeding is blocked until heartbeats resume.
+  const manualFeedBlocked = systemData.emergencyStopActive || systemData.feedingActive || manualFeedInFlight || !deviceOnline;
   // Find if there is a pending sync command for schedules
   const pendingSyncCmd = commands.find(c => c.command === 'SCHEDULE_SET' && (c.status === 'queued' || c.status === 'acknowledged' || c.status === 'executing'));
 
@@ -245,7 +248,7 @@ export default function FeedingScreen() {
                 title={t('manualFeed')}
                 onPress={() => setManualTarget('500')}
                 variant="outline"
-                disabled={systemData.emergencyStopActive || systemData.feedingActive || manualFeedInFlight}
+                disabled={manualFeedBlocked}
                 accessibilityLabel={t('manualFeed')}
               />
             ) : (
@@ -267,12 +270,17 @@ export default function FeedingScreen() {
                     <Button
                       title={t('startFeed')}
                       onPress={startManualFeed}
-                      disabled={systemData.emergencyStopActive || systemData.feedingActive || manualFeedInFlight}
+                      disabled={manualFeedBlocked}
                       accessibilityLabel={t('startFeed')}
                     />
                   </View>
                 </View>
               </View>
+            )}
+            {!deviceOnline && (
+              <Text style={[typography.caption, { color: colors.error, marginTop: spacing.xs }]}>
+                {t('deviceOfflineHint')}
+              </Text>
             )}
           </View>
         </Card>
