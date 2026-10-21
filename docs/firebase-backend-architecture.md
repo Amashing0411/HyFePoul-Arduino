@@ -1,5 +1,12 @@
 # Firebase Backend Architecture Plan
 
+> **Historical: superseded, not deployed.** This plan (Cloud Firestore collections, Cloud Functions, FCM push, Secret Manager device tokens) was replaced by **Firebase Auth + Realtime Database with security rules and no server code**, to stay on the free Spark plan. The `backend/functions` code is kept for reference only; the app no longer calls it. For the current design see:
+> - [`architecture.md`](architecture.md): system overview
+> - [`database-schema.md`](database-schema.md): RTDB structure and rules
+> - [`notifications.md`](notifications.md): alerts without server push
+>
+> The content below is kept as a record of the earlier design and as a starting point if a paid plan is ever approved.
+
 ## 1. Overview
 This document outlines the proposed Firebase backend architecture for the HyFePoul system. It bridges the ESP32 (acting as a Wi-Fi gateway for the Arduino Mega) and the React Native Mobile Application. 
 
