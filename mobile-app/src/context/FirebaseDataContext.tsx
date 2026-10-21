@@ -3,10 +3,18 @@ import { rtdbService } from '../services/rtdbService';
 import { useAuth } from './AuthContext';
 import { DeviceData, SystemData } from '../types';
 import { RTDBCommand, RTDBCommandAction, RTDBSchedule } from '../types/rtdb';
+import { isDeviceOnline } from '../utils/deviceStatus';
+
+// How often heartbeat-based online status is re-evaluated without new data.
+const STATUS_RECHECK_MS = 15_000;
 
 interface FirebaseDataContextType {
   deviceData: DeviceData | null;
   systemData: SystemData | null;
+  /** Online = status "online" and a heartbeat within the last 90 s. */
+  deviceOnline: boolean;
+  /** Current time, refreshed every 15 s, for age/staleness displays. */
+  nowMs: number;
   commands: RTDBCommand[];
   schedules: RTDBSchedule[];
   loading: boolean;
@@ -26,6 +34,18 @@ export const FirebaseDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [schedules, setSchedules] = useState<RTDBSchedule[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [nowMs, setNowMs] = useState<number>(Date.now());
+
+  // Heartbeats stop arriving when the device goes offline, so no data event
+  // would ever flip the status; re-evaluate on a timer instead.
+  useEffect(() => {
+    const timer = setInterval(() => setNowMs(Date.now()), STATUS_RECHECK_MS);
+    return () => clearInterval(timer);
+  }, []);
+
+  const deviceOnline = deviceData
+    ? isDeviceOnline(deviceData.status, deviceData.lastHeartbeat, nowMs)
+    : false;
 
   useEffect(() => {
     // If no devices or ownedDevices not loaded yet, reset state and do not subscribe
@@ -161,7 +181,7 @@ export const FirebaseDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   return (
-    <FirebaseDataContext.Provider value={{ deviceData, systemData, commands, schedules, loading, error, issueCommand, updateSchedule }}>
+    <FirebaseDataContext.Provider value={{ deviceData, systemData, deviceOnline, nowMs, commands, schedules, loading, error, issueCommand, updateSchedule }}>
       {children}
     </FirebaseDataContext.Provider>
   );

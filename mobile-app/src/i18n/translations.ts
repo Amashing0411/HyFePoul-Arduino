@@ -111,6 +111,8 @@ export const translations = {
     lastScaleReading: 'Last scale reading: {weight} g at {time}.',
     awaitingScaleReading: 'Waiting for the next scale reading from the device.',
     schedulesRunDaily: 'Up to 3 schedules. Each runs every day at the set local time. Changes are sent to the device automatically.',
+    lastHeardFrom: 'No contact from the device since {time}.',
+    deviceOfflineHint: 'The device is offline. Manual feeding is unavailable until it reconnects; scheduled feeding continues on the device.',
 
     // History
     dispenser: 'Dispenser',
@@ -240,6 +242,8 @@ export const translations = {
     lastScaleReading: 'Huling basa ng timbangan: {weight} g noong {time}.',
     awaitingScaleReading: 'Hinihintay ang susunod na basa ng timbangan mula sa device.',
     schedulesRunDaily: 'Hanggang 3 iskedyul. Bawat isa ay tumatakbo araw-araw sa itinakdang oras. Awtomatikong ipinapadala ang mga pagbabago sa device.',
+    lastHeardFrom: 'Walang balita mula sa device mula noong {time}.',
+    deviceOfflineHint: 'Offline ang device. Hindi magagamit ang manwal na pakain hanggang makakonekta ito muli; tuloy pa rin ang nakaiskedyul na pakain sa device.',
 
     // History
     dispenser: 'Makina ng Pakain',
