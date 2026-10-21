@@ -7,9 +7,26 @@ import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import { getDatabase, connectDatabaseEmulator } from 'firebase/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// PLACEHOLDER CONFIGURATION
-// In production, these should be securely injected via environment variables
-// (e.g., EXPO_PUBLIC_FIREBASE_API_KEY).
+// Configuration is injected through EXPO_PUBLIC_* environment variables
+// (mobile-app/.env.local for local runs, eas.json "env" for EAS builds).
+const useFirebaseEmulator = process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATOR === 'true';
+
+// The emulator URL is only an acceptable fallback for emulator runs and Jest.
+// Any other build without a configured URL would silently point RTDB at
+// 127.0.0.1 on the phone, so fail loudly instead.
+const EMULATOR_DATABASE_URL = 'http://127.0.0.1:9000/?ns=hyfepoul-dev-default-rtdb';
+const databaseURL =
+  process.env.EXPO_PUBLIC_FIREBASE_DATABASE_URL ||
+  (useFirebaseEmulator || process.env.NODE_ENV === 'test' ? EMULATOR_DATABASE_URL : undefined);
+
+if (!databaseURL) {
+  throw new Error(
+    'EXPO_PUBLIC_FIREBASE_DATABASE_URL is not set. Add it to mobile-app/.env.local ' +
+    '(local) or the eas.json build profile env (EAS), or set ' +
+    'EXPO_PUBLIC_USE_FIREBASE_EMULATOR=true to use the local emulators.'
+  );
+}
+
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || 'PLACEHOLDER_API_KEY',
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || 'PLACEHOLDER_AUTH_DOMAIN',
@@ -17,8 +34,9 @@ const firebaseConfig = {
   storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || 'PLACEHOLDER_STORAGE_BUCKET',
   messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || 'PLACEHOLDER_MESSAGING_SENDER_ID',
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || 'PLACEHOLDER_APP_ID',
-  // Database URL is required for RTDB to initialize properly (especially in Spark / default instances)
-  databaseURL: process.env.EXPO_PUBLIC_FIREBASE_DATABASE_URL || 'http://127.0.0.1:9000/?ns=hyfepoul-dev-default-rtdb',
+  // The production instance is regional (asia-southeast1), so its URL cannot
+  // be derived from the project ID.
+  databaseURL,
 };
 
 // Initialize Firebase
@@ -40,7 +58,7 @@ const functions = getFunctions(app);
 const rtdb = getDatabase(app);
 
 // Use local emulators in development if explicit environment variable is set
-if (process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATOR === 'true') {
+if (useFirebaseEmulator) {
   // Use 10.0.2.2 for Android Emulator, or localhost/custom IP for physical device
   const host = process.env.EXPO_PUBLIC_EMULATOR_HOST || '10.0.2.2';
   
