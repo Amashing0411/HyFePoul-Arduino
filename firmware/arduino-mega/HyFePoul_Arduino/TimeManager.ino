@@ -33,10 +33,10 @@ void initializeRTC() {
 }
 
 void updateTimeManager() {
-  // Check whether the ESP32 is still communicating.
-  if (millis() - lastESP32MessageMillis > ESP32_TIMEOUT_MS) {
-    esp32Online = false;
-  }
+  // Online only while the ESP32 reports it AND the UART link is alive.
+  bool linkAlive = lastESP32MessageMillis != 0 &&
+                   millis() - lastESP32MessageMillis <= ESP32_TIMEOUT_MS;
+  esp32Online = esp32ReportsOnline && linkAlive;
 
   // Network time is considered valid only when a valid TIME packet
   // has recently been received.

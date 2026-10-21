@@ -80,8 +80,9 @@ void processESP32Line(String line) {
     return;
   }
 
+  // Any line proves the UART link is alive; whether the device is online
+  // comes only from STATUS lines (see updateTimeManager()).
   lastESP32MessageMillis = millis();
-  esp32Online = true;
 
   Serial.print(F("ESP32 RX: "));
   Serial.println(line);
@@ -108,12 +109,12 @@ void processESP32Line(String line) {
   }
 
   if (line == "STATUS|ONLINE") {
-    esp32Online = true;
+    esp32ReportsOnline = true;
     return;
   }
 
   if (line == "STATUS|OFFLINE") {
-    esp32Online = false;
+    esp32ReportsOnline = false;
     return;
   }
 
