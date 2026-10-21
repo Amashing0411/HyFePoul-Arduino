@@ -17,19 +17,28 @@
 
 void updateNextion() {
   static unsigned long lastNextionUpdate = 0;
+  static uint8_t nextField = 0;
 
-  if (millis() - lastNextionUpdate < 500UL) {
+  // One field per update: a single field fits in Serial2's 64-byte transmit
+  // buffer, so the write does not block. Writing all six at once (~130 bytes
+  // at 9600 baud) blocked for ~70 ms, during which the ESP32 UART was not
+  // read. Each field still refreshes about every 600 ms.
+  if (millis() - lastNextionUpdate < 100UL) {
     return;
   }
 
   lastNextionUpdate = millis();
 
-  setNextionText("tFeed", String(currentFeedWeightGrams, 1) + " g");
-  setNextionText("tHopper", String(currentHopperLevelPercent, 0) + "%");
-  setNextionText("tWater", getWaterStatusText());
-  setNextionText("tStatus", getSystemStatusText());
-  setNextionText("tTime", getCurrentTimeText());
-  setNextionText("tNetwork", esp32Online ? "ONLINE" : "OFFLINE");
+  switch (nextField) {
+    case 0: setNextionText("tFeed", String(currentFeedWeightGrams, 1) + " g"); break;
+    case 1: setNextionText("tHopper", String(currentHopperLevelPercent, 0) + "%"); break;
+    case 2: setNextionText("tWater", getWaterStatusText()); break;
+    case 3: setNextionText("tStatus", getSystemStatusText()); break;
+    case 4: setNextionText("tTime", getCurrentTimeText()); break;
+    default: setNextionText("tNetwork", esp32Online ? "ONLINE" : "OFFLINE"); break;
+  }
+
+  nextField = (nextField + 1) % 6;
 
   // PLACEHOLDER:
   // Add actual page/button event handling once the final Nextion HMI

@@ -62,6 +62,17 @@ void receiveESP32Messages() {
   }
 }
 
+// Idle wait that keeps draining the ESP32 UART. Serial1 has only a 64-byte
+// receive buffer, which cannot hold a full command line (up to ~82 bytes)
+// across a plain delay().
+void waitServicingESP32(unsigned long durationMs) {
+  unsigned long start = millis();
+
+  while (millis() - start < durationMs) {
+    receiveESP32Messages();
+  }
+}
+
 void processESP32Line(String line) {
   line.trim();
 
@@ -278,7 +289,8 @@ void processRemoteCommand(String line) {
     feedSchedules[idx].minute = mn;
     feedSchedules[idx].targetGrams = tgt;
     feedSchedules[idx].enabled = en;
-    
+    saveSchedulesToEEPROM();
+
     activeRemoteCommandId = cmdId;
     sendCmdAck(cmdId, "ACCEPTED", "");
     
