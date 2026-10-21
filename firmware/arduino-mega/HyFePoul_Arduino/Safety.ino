@@ -25,6 +25,9 @@ void handleSafety() {
     feedingActive = false;
     waterPumpActive = false;
 
+    // A remote feed interrupted here would otherwise never report back.
+    finishRemoteCommand("FAILED", "ESTOP_ACTIVE");
+
     Serial.println(F("!!! EMERGENCY STOP ACTIVE !!!"));
 
     logEventToSD("EMERGENCY_STOP");

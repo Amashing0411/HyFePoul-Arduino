@@ -38,6 +38,24 @@ const sendCmdDone = (id, status, reason = "") => {
   outputLog.push(msg);
 };
 
+// Mirrors finishRemoteCommand() in ESP32Communication.ino.
+const finishRemoteCommand = (status, reason = "") => {
+  if (activeRemoteCommandId === "") return;
+  sendCmdDone(activeRemoteCommandId, status, reason);
+  activeRemoteCommandId = "";
+};
+
+// Mirrors the E-stop trip branch of handleSafety() in Safety.ino.
+const handleSafety = () => {
+  const pressed = pinStates.EMERGENCY_STOP_PIN === 0;
+  if (pressed && !emergencyStopActive) {
+    emergencyStopActive = true;
+    pinStates.DISPENSER_RELAY_PIN = 0;
+    feedingActive = false;
+    finishRemoteCommand("FAILED", "ESTOP_ACTIVE");
+  }
+};
+
 const startRemoteFeeding = (target) => {
   if (emergencyStopActive) return;
   if (feedingActive) return;
@@ -370,6 +388,28 @@ runTest("19. E2E: Manual feed blocks scheduled feed", () => {
   // Simulate RTC next minute
   checkScheduledFeeding(14, 1);
   if (feedingActive) throw new Error("Scheduled feed bypassed the safety block and executed later incorrectly");
+});
+
+// Clean up after test 19 (manual feed m1 left the command slot occupied).
+activeRemoteCommandId = "";
+
+runTest("20. FW-1: E-stop during remote feed reports failure and frees command slot", () => {
+  pinStates.EMERGENCY_STOP_PIN = 1;
+  emergencyStopActive = false;
+  feedingActive = false;
+
+  processRemoteCommand("CMD|ID:fw1a|ACTION:MANUAL_FEED|TARGET:200");
+  assertActive(true);
+
+  pinStates.EMERGENCY_STOP_PIN = 0;
+  handleSafety();
+  assertLogContains("CMD_DONE|ID:fw1a|STATUS:FAILED|REASON:ESTOP_ACTIVE");
+  if (activeRemoteCommandId !== "") throw new Error("Command slot was not freed");
+
+  // A later command must not be rejected as SYSTEM_BUSY.
+  processRemoteCommand("CMD|ID:fw1b|ACTION:STATUS_REQ");
+  assertLogNotContains("SYSTEM_BUSY");
+  assertLogContains("CMD_DONE|ID:fw1b|STATUS:SUCCESS");
 });
 
 console.log("ALL SIMULATION TESTS PASSED.");

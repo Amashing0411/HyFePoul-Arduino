@@ -310,6 +310,17 @@ void sendCmdAck(String id, String status, String reason) {
   ESP32_SERIAL.println();
 }
 
+// Reports the outcome of the in-progress remote command (if any) and
+// frees the command slot so later commands are not rejected as busy.
+void finishRemoteCommand(const char* status, const char* reason) {
+  if (activeRemoteCommandId == "") {
+    return;
+  }
+
+  sendCmdDone(activeRemoteCommandId, status, reason);
+  activeRemoteCommandId = "";
+}
+
 void sendCmdDone(String id, String status, String reason) {
   ESP32_SERIAL.print(F("CMD_DONE|ID:"));
   ESP32_SERIAL.print(id);
