@@ -21,10 +21,10 @@
 | Claim Device | ✅ | ✅ RTDB | ✅ | ✅ | ✅ | ✅ | ❌ |
 | Dashboard (Status) | ✅ | ✅ RTDB | ✅ | ✅ | ⚠️ | ✅ | ❌ |
 | Feeding | ✅ | ✅ RTDB | ✅ | ✅ | ⚠️ | ✅ | ❌ |
-| Water | ✅ | ✅ RTDB | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Water | ✅ | ✅ RTDB | ✅ | ✅ | ❌ | ✅ | ❌ |
 | History | ✅ | ✅ RTDB | ✅ | ✅ | ✅ (service) | ❌ | ❌ |
 | Notifications | ✅ | ✅ RTDB + local notifications | ✅ | ✅ | ✅ (service) | ✅ | ❌ |
-| Settings | ✅ | ✅ Auth | — | — | ❌ | ❌ | ❌ |
+| Settings | ✅ | ✅ Auth | — | — | ❌ | ⚠️ (log out only) | ❌ |
 
 ## Per screen
 
@@ -88,8 +88,9 @@
   - ✅ in-progress blocking;
   - ✅ offline blocking and note;
   - ✅ schedule Save with one tap while the keyboard is open writes `sched_0` (all 7 days) and queues `SCHEDULE_SET`.
+- ✅ **R-31 (`95c3761`):** opening the editor for slot 2 scrolls it fully above the tab bar (emulator).
+- Error card when the device listener fails (previously an endless skeleton).
 - **Remaining:**
-  - the editor opens partly under the tab bar (R-31);
   - enable/disable toggle and delete not exercised on the emulator;
   - physical phone.
 
@@ -98,8 +99,8 @@
 - **Backend:** shares the device listener and the context's heartbeat-based `deviceOnline` / `nowMs`.
 - **Error / loading:** skeletons while loading; error card on a listener error (before R-30 this left the skeleton up forever).
 - **R-30 done (`be9d714`):** the stale label is live; offline is shown; the no-op pull-to-refresh is removed (data is live).
-- **Emulator:** ❌ not opened in the test sessions.
-- **Remaining:** emulator and phone check.
+- **Emulator:** ✅ with an offline device: "No contact from the device since …" shown above the last-known float and pump states (tank full, low float clear, high float triggered, pump idle).
+- **Remaining:** physical phone.
 
 ### History
 - **UI:** list of the latest 50 `systemData` records, newest first, with feed, hopper and water/pump; local date and time (`toLocaleString`, which shows PHT on a phone set to the Philippines).
@@ -125,10 +126,9 @@
   - physical phone.
 
 ### Settings
-- **UI:** signed-in email, claimed device ID (or "No Device Claimed"), dark mode, text size, language (English/Tagalog), sign out.
-- **Emulator:** ❌ not opened in the test sessions.
+- **UI:** signed-in email, claimed device ID (or "No Device Claimed"), dark mode, text size, language (English/Tagalog), Log Out with confirmation.
+- **Emulator:** ✅ **R-35 (`95c3761`):** Log Out asks first; Cancel keeps the session; confirming returns to the login screen. Dark mode, text size and language not exercised.
 - **Remaining:**
-  - sign-out has no confirmation (R-35);
   - Tagalog review (R-34);
   - optional app version display (R-44).
 
@@ -141,6 +141,6 @@
 | Only Auth and RTDB initialised (Firestore/Functions removed, R-32) | ✅ |
 | Listener clean-up on sign-out (access denied afterwards) | ✅ automated |
 | Expo Go | ❌ not supported (expo-notifications on SDK 57); use a development build |
-| Lint | ❌ no mobile ESLint (R-33) |
+| Lint | ✅ `npm run lint` (expo lint, R-33): 0 errors; 3 documented `set-state-in-effect` warnings |
 | Type-check | ✅ `npm run typecheck` |
 | iOS | ❌ not built (R-41) |
