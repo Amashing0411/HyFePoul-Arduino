@@ -11,7 +11,19 @@ import { useFirebaseData } from '../context/FirebaseDataContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { spacing, layout } from '../theme';
-import { RTDBSchedule } from '../types/rtdb';
+import { RTDBCommand, RTDBCommandStatus, RTDBSchedule } from '../types/rtdb';
+
+// Plain-language command states. "completed" only means the device reported
+// done, not that someone checked the feeder.
+const COMMAND_STATUS_LABELS: Partial<Record<RTDBCommandStatus, 'cmdQueued' | 'cmdAcknowledged' | 'cmdExecuting' | 'cmdCompleted' | 'cmdFailed'>> = {
+  queued: 'cmdQueued',
+  acknowledged: 'cmdAcknowledged',
+  executing: 'cmdExecuting',
+  completed: 'cmdCompleted',
+  failed: 'cmdFailed',
+};
+
+const IN_FLIGHT_STATUSES: RTDBCommandStatus[] = ['queued', 'acknowledged', 'executing'];
 
 export default function FeedingScreen() {
   const { deviceData, systemData, schedules, commands, loading, error, issueCommand, updateSchedule } = useFirebaseData();
@@ -24,6 +36,9 @@ export default function FeedingScreen() {
   const [newHour, setNewHour] = useState('');
   const [newMin, setNewMin] = useState('');
   const [newTarget, setNewTarget] = useState('');
+  // null = manual feed form hidden. Alert.prompt is iOS-only, so the target
+  // is entered inline to work on Android.
+  const [manualTarget, setManualTarget] = useState<string | null>(null);
 
   const formatTime = (h: number, m: number) => {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
@@ -128,27 +143,42 @@ export default function FeedingScreen() {
     }
   };
 
-  const handleManualFeed = () => {
-    Alert.prompt(
-      "Manual Feed",
-      "Enter target weight in grams (e.g. 500):",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Start Feed", 
-          onPress: (text?: string) => {
-            const grams = parseFloat(text || "");
-            if (!isNaN(grams) && grams > 0 && grams <= 2000) {
-              issueCommand('MANUAL_FEED', { targetGrams: grams });
-            } else {
-              Alert.alert("Invalid Input", "Please enter a valid number (1-2000g).");
-            }
-          }
-        }
-      ],
-      "plain-text",
-      "500",
-      "number-pad"
+  const startManualFeed = async () => {
+    const grams = parseFloat(manualTarget || '');
+    if (isNaN(grams) || grams <= 0 || grams > 2000) {
+      Alert.alert(t('manualFeed'), t('invalidFeedTarget'));
+      return;
+    }
+    setManualTarget(null);
+    await issueCommand('MANUAL_FEED', { targetGrams: grams });
+  };
+
+  // What the app can actually show as evidence for a finished manual feed:
+  // the Mega only reports SUCCESS when its scale reading reached the target,
+  // and the dispensed weight arrives separately in the next state update.
+  const renderFeedEvidence = (command: RTDBCommand) => {
+    if (command.command !== 'MANUAL_FEED' || command.status !== 'completed' || !systemData) {
+      return null;
+    }
+
+    const target = command.parameters?.targetGrams;
+    const readingTime = new Date(systemData.timestamp).getTime();
+    const readingIsAfterCompletion = command.completedAt !== undefined && readingTime >= command.completedAt;
+
+    return (
+      <View style={{ marginTop: spacing.xs }}>
+        {target !== undefined && (
+          <Text style={typography.caption}>{t('feedCompletedEvidence', { target })}</Text>
+        )}
+        <Text style={[typography.caption, { color: colors.textSecondary }]}>
+          {readingIsAfterCompletion
+            ? t('lastScaleReading', {
+                weight: systemData.feedWeightGrams.toFixed(0),
+                time: new Date(readingTime).toLocaleTimeString(),
+              })
+            : t('awaitingScaleReading')}
+        </Text>
+      </View>
     );
   };
 
@@ -168,6 +198,8 @@ export default function FeedingScreen() {
   const feedColor = systemData.hopperLevelPercent < 20 ? colors.error : colors.warning;
   
   const activeCommand = commands.length > 0 ? commands[0] : null;
+  // Block a second manual feed until the first one has finished.
+  const manualFeedInFlight = commands.some(c => c.command === 'MANUAL_FEED' && IN_FLIGHT_STATUSES.includes(c.status));
   // Find if there is a pending sync command for schedules
   const pendingSyncCmd = commands.find(c => c.command === 'SCHEDULE_SET' && (c.status === 'queued' || c.status === 'acknowledged' || c.status === 'executing'));
 
@@ -205,26 +237,53 @@ export default function FeedingScreen() {
           </View>
           
           <View style={{ marginTop: spacing.md }}>
-            <Button 
-              title="Manual Feed"
-              onPress={handleManualFeed}
-              variant="outline"
-              disabled={systemData.emergencyStopActive || systemData.feedingActive}
-              accessibilityLabel="Manual Feed"
-            />
+            {manualTarget === null ? (
+              <Button
+                title={t('manualFeed')}
+                onPress={() => setManualTarget('500')}
+                variant="outline"
+                disabled={systemData.emergencyStopActive || systemData.feedingActive || manualFeedInFlight}
+                accessibilityLabel={t('manualFeed')}
+              />
+            ) : (
+              <View>
+                <Text style={typography.caption}>{t('manualFeedPrompt')}</Text>
+                <TextInput
+                  style={[styles.input, typography.body, { borderColor: colors.border, color: colors.text }]}
+                  value={manualTarget}
+                  onChangeText={setManualTarget}
+                  keyboardType="number-pad"
+                  maxLength={4}
+                  accessibilityLabel={t('manualFeedPrompt')}
+                />
+                <View style={[styles.row, { marginTop: spacing.sm }]}>
+                  <View style={{ flex: 1, marginRight: spacing.xs }}>
+                    <Button title={t('cancel')} onPress={() => setManualTarget(null)} variant="outline" accessibilityLabel={t('cancel')} />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: spacing.xs }}>
+                    <Button
+                      title={t('startFeed')}
+                      onPress={startManualFeed}
+                      disabled={systemData.emergencyStopActive || systemData.feedingActive || manualFeedInFlight}
+                      accessibilityLabel={t('startFeed')}
+                    />
+                  </View>
+                </View>
+              </View>
+            )}
           </View>
         </Card>
 
         {activeCommand && (
-          <Card title="Command Status">
+          <Card title={t('commandStatus')}>
             <View style={styles.row}>
               <Text style={typography.body}>{activeCommand.command}</Text>
-              <StatusBadge 
+              <StatusBadge
                 status={
                   activeCommand.status === 'completed' ? 'success' :
                   activeCommand.status === 'failed' || activeCommand.status === 'rejected' ? 'error' : 'warning'
-                } 
-                text={activeCommand.status.toUpperCase()} 
+                }
+                text={COMMAND_STATUS_LABELS[activeCommand.status] ? t(COMMAND_STATUS_LABELS[activeCommand.status]!) : activeCommand.status.toUpperCase()}
               />
             </View>
             {activeCommand.error && (
@@ -232,6 +291,7 @@ export default function FeedingScreen() {
                 {activeCommand.error}
               </Text>
             )}
+            {renderFeedEvidence(activeCommand)}
             <Text style={[typography.caption, { marginTop: spacing.xs, color: colors.textSecondary }]}>
               {new Date(activeCommand.createdAt).toLocaleTimeString()}
             </Text>
