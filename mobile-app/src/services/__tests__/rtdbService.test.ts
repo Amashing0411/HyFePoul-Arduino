@@ -6,156 +6,140 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   removeItem: jest.fn(),
 }));
 
-jest.mock('firebase/auth', () => ({
-  initializeAuth: jest.fn(),
-  getAuth: jest.fn(),
-  getReactNativePersistence: jest.fn(),
-}));
+jest.mock('firebase/auth', () => {
+  const actual = jest.requireActual('firebase/auth') as any;
+  return {
+    ...actual,
+    getReactNativePersistence: jest.fn(),
+  };
+});
+
+process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
+process.env.FIREBASE_DATABASE_EMULATOR_HOST = '127.0.0.1:9000';
+process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATOR = 'true';
+process.env.EXPO_PUBLIC_EMULATOR_HOST = '127.0.0.1';
 
 import { rtdbService, isValidDeviceState, isValidDevice, isValidAlert } from '../rtdbService';
-import { RTDBDevice, RTDBDeviceState, RTDBAlert, RTDBSystemDataSnapshot } from '../../types/rtdb';
-import { ref, set, get } from 'firebase/database';
-import { rtdb } from '../firebase';
+import { RTDBDevice, RTDBDeviceState, RTDBAlert } from '../../types/rtdb';
+import { auth } from '../firebase';
+import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 
-describe('rtdbService - Data Layer Validation & Behavior', () => {
+// Seeds the emulator as admin (bypasses security rules). Each run uses its
+// own device IDs and never wipes the root, so it cannot disturb other suites.
+const adminPut = async (path: string, data: any) => {
+  const url = `http://127.0.0.1:9000/${path}.json?ns=hyfepoul-dev-default-rtdb`;
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: { 'Authorization': 'Bearer owner' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error(`adminPut failed: ${res.statusText}`);
+};
+
+const runId = Date.now().toString(36);
+const deviceIds = {
+  owned: `svc-owned-${runId}`,
+  other: `svc-other-${runId}`,
+  listener: `svc-listener-${runId}`,
+};
+
+const getFirstCallback = <T>(subscribe: (cb: (data: T, error?: Error) => void) => () => void) =>
+  new Promise<{ data: T; error?: Error }>((resolve) => {
+    let unsubscribe: (() => void) | undefined;
+    let done = false;
+    unsubscribe = subscribe((data, error) => {
+      if (done) return;
+      done = true;
+      // The callback can fire before subscribe() returns.
+      setTimeout(() => unsubscribe && unsubscribe(), 0);
+      resolve({ data, error });
+    });
+  });
+
+describe('rtdbService - validation functions', () => {
+  it('isValidDeviceState handles good and bad input', () => {
+    const validState: RTDBDeviceState = {
+      feedWeightGrams: 500, targetFeedGrams: 1000, hopperLevelPercent: 50,
+      waterLow: false, waterHigh: true, pumpActive: false,
+      feedingActive: true, emergencyStopActive: false, timestamp: 1690000000,
+    };
+    expect(isValidDeviceState(validState)).toBe(true);
+    expect(isValidDeviceState(null)).toBe(false);
+    expect(isValidDeviceState({ feedWeightGrams: '500' })).toBe(false);
+  });
+
+  it('isValidDevice handles good and bad input', () => {
+    const validDevice: RTDBDevice = { ownerId: 'user1', deviceAuthUid: 'esp32', status: 'online', lastHeartbeat: 1690000000 };
+    expect(isValidDevice(validDevice)).toBe(true);
+    expect(isValidDevice({ status: 'broken', lastHeartbeat: 123 })).toBe(false);
+  });
+
+  it('isValidAlert handles good and bad input', () => {
+    const alert: RTDBAlert = { eventId: 'evt1', name: 'LOW_FEED', timestamp: 12345, resolved: false };
+    expect(isValidAlert(alert)).toBe(true);
+    expect(isValidAlert({ name: 'LOW_FEED' })).toBe(false);
+  });
+});
+
+// Claiming and owner/device authorization are covered by
+// rtdbIntegration.test.ts; this suite covers the service-layer queries and
+// runtime filtering as an authenticated owner.
+describe('rtdbService - owner data access (emulator)', () => {
+  let ownerUid = '';
+
   beforeAll(async () => {
-    // Clear the emulator database before running tests
-    await set(ref(rtdb, '/'), null);
+    const cred = await createUserWithEmailAndPassword(auth, `svc-owner-${runId}@test.com`, 'password');
+    ownerUid = cred.user.uid;
+
+    const device = (ownerId: string): RTDBDevice => ({
+      ownerId, deviceAuthUid: `esp32-${runId}`, status: 'online', lastHeartbeat: 1690000000,
+    });
+    await adminPut(`devices/${deviceIds.owned}`, device(ownerUid));
+    await adminPut(`devices/${deviceIds.other}`, device(`someone-else-${runId}`));
+    await adminPut(`devices/${deviceIds.listener}`, { ...device(ownerUid), status: 'weird', lastHeartbeat: 'not_a_number' });
+
+    const snapshot = (feedWeightGrams: number, timestamp: number): RTDBDeviceState => ({
+      feedWeightGrams, targetFeedGrams: 1000, hopperLevelPercent: 50, waterLow: false, waterHigh: true,
+      pumpActive: false, feedingActive: true, emergencyStopActive: false, timestamp,
+    });
+    await adminPut(`systemData/${deviceIds.owned}`, {
+      push1: snapshot(500, 1000),
+      push2: snapshot(400, 2000),
+      push3: { bad: 'data' },
+    });
+
+    await adminPut(`alerts/${deviceIds.owned}`, {
+      push1: { eventId: '1', name: 'LOW_FEED', timestamp: 3000, resolved: false },
+      push2: { eventId: '2', name: 'LOW_WATER', timestamp: 1000, resolved: true },
+      push3: { eventId: '3' },
+    });
   });
 
   afterAll(async () => {
-    // Clean up
-    await set(ref(rtdb, '/'), null);
+    await signOut(auth);
   });
 
-  describe('Validation Functions', () => {
-    it('isValidDeviceState handles good and bad input', () => {
-      const validState: RTDBDeviceState = {
-        feedWeightGrams: 500, targetFeedGrams: 1000, hopperLevelPercent: 50,
-        waterLow: false, waterHigh: true, pumpActive: false,
-        feedingActive: true, emergencyStopActive: false, timestamp: 1690000000,
-      };
-      expect(isValidDeviceState(validState)).toBe(true);
-      expect(isValidDeviceState(null)).toBe(false);
-      expect(isValidDeviceState({ feedWeightGrams: '500' })).toBe(false);
-    });
-
-    it('isValidDevice handles good and bad input', () => {
-      const validDevice: RTDBDevice = { ownerId: 'user1', deviceAuthUid: 'esp32', status: 'online', lastHeartbeat: 1690000000 };
-      expect(isValidDevice(validDevice)).toBe(true);
-      expect(isValidDevice({ status: 'broken', lastHeartbeat: 123 })).toBe(false);
-    });
-
-    it('isValidAlert handles good and bad input', () => {
-      const alert: RTDBAlert = { eventId: 'evt1', name: 'LOW_FEED', timestamp: 12345, resolved: false };
-      expect(isValidAlert(alert)).toBe(true);
-      expect(isValidAlert({ name: 'LOW_FEED' })).toBe(false);
-    });
+  it('getDevicesByOwner returns only the signed-in owner\'s devices', async () => {
+    const devices = await rtdbService.getDevicesByOwner(ownerUid);
+    const ids = devices.map((d) => d.id).sort();
+    expect(ids).toEqual([deviceIds.listener, deviceIds.owned].sort());
   });
 
-  describe('Device Claiming Flow', () => {
-    it('creates a claim request', async () => {
-      await rtdbService.createClaimRequest('test-dev', 'user1', '123456');
-      const snap = await get(ref(rtdb, 'claimRequests/test-dev'));
-      expect(snap.val()).toEqual({ uid: 'user1', pin: '123456' });
-    });
-
-    it('establishes ownership', async () => {
-      await rtdbService.establishOwnership('test-dev', 'user1');
-      const snap = await get(ref(rtdb, 'devices/test-dev/ownerId'));
-      expect(snap.val()).toEqual('user1');
-    });
+  it('subscribeToDevice reports malformed device data as an error', async () => {
+    const res = await getFirstCallback<RTDBDevice | null>((cb) => rtdbService.subscribeToDevice(deviceIds.listener, cb));
+    expect(res.data).toBeNull();
+    expect(res.error?.message).toBe('Malformed device data received');
   });
 
-  describe('Listeners & Runtime Filtering', () => {
-    it('subscribeToDevice receives valid updates and filters invalid ones', (done) => {
-      // Because we bypass security rules in this test (we just use the generic SDK which connects to the emulator
-      // without auth by default, which works since we disabled rules for tests or we are testing data layer only).
-      // Wait, we didn't disable rules. The generic SDK will FAIL to write to protected paths unless we are auth'd.
-      // But we just successfully wrote to `claimRequests` and `ownerId` above?
-      // Ah! In Checkpoint 5B.1, we ran the emulator rules. If the emulator is running WITH rules, unauth writes will fail.
-      // Let's see if the tests pass first. If they fail with PERMISSION_DENIED, we'll need to mock the test to use an admin SDK or mock the RTDB module.
-      
-      const deviceId = 'listener-dev';
-      const validDevice: RTDBDevice = {
-        ownerId: 'user1', deviceAuthUid: 'esp32', status: 'online', lastHeartbeat: 1690000000
-      };
+  it('subscribeToHistory returns ordered data and skips malformed records', async () => {
+    const res = await getFirstCallback<any[]>((cb) => rtdbService.subscribeToHistory(deviceIds.owned, 5, cb));
+    expect(res.error).toBeUndefined();
+    expect(res.data.map((r) => r.timestamp)).toEqual([1000, 2000]);
+  });
 
-      let callCount = 0;
-      const unsubscribe = rtdbService.subscribeToDevice(deviceId, async (device, error) => {
-        callCount++;
-        if (callCount === 1) {
-          // First call is null because it's empty
-          expect(device).toBeNull();
-          await set(ref(rtdb, `devices/${deviceId}`), validDevice);
-        } else if (callCount === 2) {
-          // Second call gets the valid device
-          expect(device).toEqual(validDevice);
-          // Now write a malformed device
-          await set(ref(rtdb, `devices/${deviceId}`), { status: 'weird', lastHeartbeat: 'not_a_number' });
-        } else if (callCount === 3) {
-          // Third call gets an error because the data is malformed
-          expect(device).toBeNull();
-          expect(error).toBeDefined();
-          expect(error?.message).toBe("Malformed device data received");
-          unsubscribe();
-          done();
-        }
-      });
-    });
-
-    it('subscribeToHistory returns ordered data and skips malformed', (done) => {
-      const deviceId = 'hist-dev';
-      const snap1 = { feedWeightGrams: 500, targetFeedGrams: 1000, hopperLevelPercent: 50, waterLow: false, waterHigh: true, pumpActive: false, feedingActive: true, emergencyStopActive: false, timestamp: 1000 };
-      const snap2 = { feedWeightGrams: 400, targetFeedGrams: 1000, hopperLevelPercent: 40, waterLow: false, waterHigh: true, pumpActive: false, feedingActive: true, emergencyStopActive: false, timestamp: 2000 };
-      const snapMalformed = { bad: 'data' };
-
-      const setup = async () => {
-        await set(ref(rtdb, `systemData/${deviceId}/push1`), snap1);
-        await set(ref(rtdb, `systemData/${deviceId}/push2`), snap2);
-        await set(ref(rtdb, `systemData/${deviceId}/push3`), snapMalformed); // Should be filtered out
-        
-        let initialCall = true;
-        const unsubscribe = rtdbService.subscribeToHistory(deviceId, 5, (records, error) => {
-          if (!initialCall) return;
-          initialCall = false;
-          expect(error).toBeUndefined();
-          expect(records.length).toBe(2);
-          // Ordered by timestamp (ascending)
-          expect(records[0].timestamp).toBe(1000);
-          expect(records[1].timestamp).toBe(2000);
-          unsubscribe();
-          done();
-        });
-      };
-      setup();
-    });
-
-    it('subscribeToAlerts returns ordered alerts and skips malformed', (done) => {
-      const deviceId = 'alert-dev';
-      const alert1: RTDBAlert = { eventId: '1', name: 'LOW_FEED', timestamp: 3000, resolved: false };
-      const alert2: RTDBAlert = { eventId: '2', name: 'LOW_WATER', timestamp: 1000, resolved: true };
-      const badAlert = { eventId: '3' };
-
-      const setup = async () => {
-        await set(ref(rtdb, `alerts/${deviceId}/push1`), alert1);
-        await set(ref(rtdb, `alerts/${deviceId}/push2`), alert2);
-        await set(ref(rtdb, `alerts/${deviceId}/push3`), badAlert); // filtered
-        
-        let initialCall = true;
-        const unsubscribe = rtdbService.subscribeToAlerts(deviceId, 5, (alerts, error) => {
-          if (!initialCall) return;
-          initialCall = false;
-          expect(error).toBeUndefined();
-          expect(alerts.length).toBe(2);
-          // Ordered by timestamp: 1000 first, 3000 second
-          expect(alerts[0].timestamp).toBe(1000);
-          expect(alerts[1].timestamp).toBe(3000);
-          unsubscribe();
-          done();
-        });
-      };
-      setup();
-    });
+  it('subscribeToAlerts returns ordered alerts and skips malformed ones', async () => {
+    const res = await getFirstCallback<RTDBAlert[]>((cb) => rtdbService.subscribeToAlerts(deviceIds.owned, 5, cb));
+    expect(res.error).toBeUndefined();
+    expect(res.data.map((a) => a.timestamp)).toEqual([1000, 3000]);
   });
 });

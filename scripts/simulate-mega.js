@@ -38,6 +38,127 @@ const sendCmdDone = (id, status, reason = "") => {
   outputLog.push(msg);
 };
 
+// --- Hydration state (Hydration.ino) ---
+const WATER_PUMP_MAX_RUNTIME_MS = 120000;
+let simMillis = 0;
+let waterLow = false;
+let waterHigh = false;
+let waterPumpActive = false;
+let waterPumpStartMillis = 0;
+let waterPumpFaultLatched = false;
+
+// --- Alert queue (Config.ino / ESP32Communication.ino) ---
+const ALERT_QUEUE_SIZE = 4;
+let alertQueue = [];
+let lowWaterAlertSent = false;
+
+const queueAlertEvent = (eventName) => {
+  outputLog.push(`QUEUED:${eventName}`);
+  if (alertQueue.length === ALERT_QUEUE_SIZE) {
+    outputLog.push(`DROPPED:${alertQueue.shift()}`);
+  }
+  alertQueue.push(eventName);
+};
+
+// One alert per loop, as in handleESP32Communication().
+const sendNextAlert = () => {
+  if (alertQueue.length > 0) outputLog.push(`EVENT|${alertQueue.shift()}`);
+};
+
+const checkLowWaterAlert = () => {
+  const cannotRefill = emergencyStopActive || waterPumpFaultLatched;
+  if (waterLow && cannotRefill) {
+    if (!lowWaterAlertSent) {
+      lowWaterAlertSent = true;
+      queueAlertEvent("LOW_WATER");
+    }
+  } else if (!waterLow) {
+    lowWaterAlertSent = false;
+  }
+};
+
+const startWaterPump = () => {
+  if (waterPumpActive || emergencyStopActive || waterPumpFaultLatched) return;
+  waterPumpActive = true;
+  waterPumpStartMillis = simMillis;
+};
+
+const stopWaterPump = () => {
+  waterPumpActive = false;
+};
+
+const checkWaterPumpTimeout = () => {
+  if (!waterPumpActive) return;
+  if (simMillis - waterPumpStartMillis >= WATER_PUMP_MAX_RUNTIME_MS) {
+    stopWaterPump();
+    if (!waterPumpFaultLatched) {
+      waterPumpFaultLatched = true;
+      queueAlertEvent("WATER_PUMP_TIMEOUT");
+    }
+  }
+};
+
+const controlWaterPump = () => {
+  if (waterHigh) {
+    stopWaterPump();
+    waterPumpFaultLatched = false;
+    return;
+  }
+  if (waterLow && !waterHigh) startWaterPump();
+  checkWaterPumpTimeout();
+};
+
+const updateHydration = () => {
+  if (emergencyStopActive) {
+    stopWaterPump();
+  } else {
+    controlWaterPump();
+  }
+  checkLowWaterAlert();
+};
+
+// Mirrors finishRemoteCommand() in ESP32Communication.ino.
+const finishRemoteCommand = (status, reason = "") => {
+  if (activeRemoteCommandId === "") return;
+  sendCmdDone(activeRemoteCommandId, status, reason);
+  activeRemoteCommandId = "";
+};
+
+// Mirrors handleSafety() / tripEmergencyStop() / resetEmergencyStop() in
+// Safety.ino. The E-stop latches; releasing the button does not clear it.
+let emergencyButtonPressed = false;
+
+const tripEmergencyStop = () => {
+  emergencyStopActive = true;
+  pinStates.DISPENSER_RELAY_PIN = 0;
+  feedingActive = false;
+  waterPumpActive = false;
+  finishRemoteCommand("FAILED", "ESTOP_ACTIVE");
+  queueAlertEvent("EMERGENCY_STOP");
+};
+
+const handleSafety = () => {
+  const pressed = pinStates.EMERGENCY_STOP_PIN === 0;
+  if (pressed && !emergencyButtonPressed) {
+    emergencyButtonPressed = true;
+    if (!emergencyStopActive) tripEmergencyStop();
+  }
+  if (!pressed && emergencyButtonPressed) {
+    emergencyButtonPressed = false;
+  }
+  if (emergencyStopActive) pinStates.DISPENSER_RELAY_PIN = 0;
+};
+
+// Returns null on success, otherwise the rejection reason.
+const resetEmergencyStop = () => {
+  if (pinStates.EMERGENCY_STOP_PIN === 0) return "PHYSICAL_ESTOP_ENGAGED";
+  if (!emergencyStopActive) return "ESTOP_NOT_ACTIVE";
+  emergencyStopActive = false;
+  waterPumpFaultLatched = false;
+  queueAlertEvent("EMERGENCY_STOP_RELEASED");
+  return null;
+};
+
 const startRemoteFeeding = (target) => {
   if (emergencyStopActive) return;
   if (feedingActive) return;
@@ -59,6 +180,13 @@ const checkScheduledFeeding = (simHour, simMinute) => {
        return; // Execute only one
     }
   }
+};
+
+// Mirrors getLocalDateTime(): the RTC holds UTC, schedules are local time.
+const LOCAL_UTC_OFFSET_MINUTES = 480;
+const checkScheduledFeedingAtUtc = (utcHour, utcMinute) => {
+  const localTotal = (utcHour * 60 + utcMinute + LOCAL_UTC_OFFSET_MINUTES) % (24 * 60);
+  checkScheduledFeeding(Math.floor(localTotal / 60), localTotal % 60);
 };
 
 // --- The Exact C++ Parsing Logic Translated to JS ---
@@ -117,23 +245,13 @@ const processRemoteCommand = (line) => {
     startRemoteFeeding(targetGrams);
   }
   else if (action === "ESTOP_RELEASE") {
-    if (pinStates.EMERGENCY_STOP_PIN === 0) {
-      sendCmdAck(cmdId, "REJECTED", "PHYSICAL_ESTOP_ENGAGED");
+    const rejectReason = resetEmergencyStop();
+    if (rejectReason !== null) {
+      sendCmdAck(cmdId, "REJECTED", rejectReason);
       return;
     }
-    
-    if (!emergencyStopActive) {
-      sendCmdAck(cmdId, "REJECTED", "ESTOP_NOT_ACTIVE");
-      return;
-    }
-    
-    activeRemoteCommandId = cmdId;
     sendCmdAck(cmdId, "ACCEPTED");
-    
-    emergencyStopActive = false;
-    
     sendCmdDone(cmdId, "SUCCESS");
-    activeRemoteCommandId = "";
   }
   else if (action === "SYSTEM_RESTART") {
     sendCmdAck(cmdId, "REJECTED", "NOT_IMPLEMENTED_SAFELY");
@@ -370,6 +488,180 @@ runTest("19. E2E: Manual feed blocks scheduled feed", () => {
   // Simulate RTC next minute
   checkScheduledFeeding(14, 1);
   if (feedingActive) throw new Error("Scheduled feed bypassed the safety block and executed later incorrectly");
+});
+
+// Clean up after test 19 (manual feed m1 left the command slot occupied).
+activeRemoteCommandId = "";
+
+runTest("20. FW-1: E-stop during remote feed reports failure and frees command slot", () => {
+  pinStates.EMERGENCY_STOP_PIN = 1;
+  emergencyStopActive = false;
+  feedingActive = false;
+
+  processRemoteCommand("CMD|ID:fw1a|ACTION:MANUAL_FEED|TARGET:200");
+  assertActive(true);
+
+  pinStates.EMERGENCY_STOP_PIN = 0;
+  handleSafety();
+  assertLogContains("CMD_DONE|ID:fw1a|STATUS:FAILED|REASON:ESTOP_ACTIVE");
+  if (activeRemoteCommandId !== "") throw new Error("Command slot was not freed");
+
+  // A later command must not be rejected as SYSTEM_BUSY.
+  processRemoteCommand("CMD|ID:fw1b|ACTION:STATUS_REQ");
+  assertLogNotContains("SYSTEM_BUSY");
+  assertLogContains("CMD_DONE|ID:fw1b|STATUS:SUCCESS");
+});
+
+runTest("21. FW-2: pump timeout latches and does not restart while water stays low", () => {
+  emergencyStopActive = false;
+  pinStates.EMERGENCY_STOP_PIN = 1;
+  simMillis = 0;
+  waterLow = true;
+  waterHigh = false;
+
+  updateHydration();
+  if (!waterPumpActive) throw new Error("Pump should start on low water");
+
+  simMillis = WATER_PUMP_MAX_RUNTIME_MS;
+  updateHydration();
+  if (waterPumpActive) throw new Error("Pump should stop at max runtime");
+  if (!waterPumpFaultLatched) throw new Error("Fault should be latched");
+  assertLogContains("QUEUED:WATER_PUMP_TIMEOUT");
+
+  // Water is still low on later loops: the pump must stay off.
+  simMillis += 100;
+  updateHydration();
+  simMillis += 5000;
+  updateHydration();
+  if (waterPumpActive) throw new Error("Pump restarted despite latched fault");
+
+  // Reaching the high float clears the latch.
+  waterLow = false;
+  waterHigh = true;
+  updateHydration();
+  if (waterPumpFaultLatched) throw new Error("High level should clear the fault latch");
+});
+
+runTest("22. FW-3: alerts raised in the same loop are all delivered in order", () => {
+  alertQueue = [];
+  queueAlertEvent("FEEDING_COMPLETED");
+  queueAlertEvent("LOW_FEED");
+  sendNextAlert();
+  sendNextAlert();
+  const events = outputLog.filter(l => l.startsWith("EVENT|"));
+  if (events.join(",") !== "EVENT|FEEDING_COMPLETED,EVENT|LOW_FEED") {
+    throw new Error("Unexpected event order: " + events.join(","));
+  }
+});
+
+runTest("23. FW-3: full alert queue drops the oldest entry", () => {
+  alertQueue = [];
+  ["A", "B", "C", "D", "E"].forEach(queueAlertEvent);
+  assertLogContains("DROPPED:A");
+  if (alertQueue.join(",") !== "B,C,D,E") throw new Error("Queue contents: " + alertQueue.join(","));
+  alertQueue = [];
+});
+
+runTest("24. FW-3: LOW_WATER only when pump cannot refill, once per low episode", () => {
+  alertQueue = [];
+  emergencyStopActive = false;
+  waterPumpFaultLatched = false;
+  waterPumpActive = false;
+  lowWaterAlertSent = false;
+  simMillis = 0;
+  waterHigh = false;
+  waterLow = true;
+
+  // Normal refill: no LOW_WATER.
+  updateHydration();
+  assertLogNotContains("QUEUED:LOW_WATER");
+
+  // Pump times out while still low: LOW_WATER raised exactly once.
+  simMillis = WATER_PUMP_MAX_RUNTIME_MS;
+  updateHydration();
+  updateHydration();
+  const count = outputLog.filter(l => l === "QUEUED:LOW_WATER").length;
+  if (count !== 1) throw new Error(`Expected 1 LOW_WATER, got ${count}`);
+
+  // Clean up hydration state.
+  waterLow = false;
+  waterHigh = true;
+  updateHydration();
+  waterHigh = false;
+  alertQueue = [];
+});
+
+runTest("25. FW-4: local 07:00 schedule fires at 23:00 UTC, not 07:00 UTC", () => {
+  feedingActive = false;
+  emergencyStopActive = false;
+  activeRemoteCommandId = "";
+  processRemoteCommand("CMD|ID:fw4|ACTION:SCHEDULE_SET|IDX:0|HR:7|MIN:0|TGT:250|EN:1");
+  assertLogContains("CMD_DONE|ID:fw4|STATUS:SUCCESS");
+
+  // 07:00 UTC is 15:00 PHT: must not feed.
+  checkScheduledFeedingAtUtc(7, 0);
+  if (feedingActive) throw new Error("Fed at 07:00 UTC (15:00 local)");
+
+  // 23:00 UTC is 07:00 PHT: must feed.
+  checkScheduledFeedingAtUtc(23, 0);
+  if (!feedingActive) throw new Error("Did not feed at 07:00 local");
+  feedingActive = false;
+  pinStates.DISPENSER_RELAY_PIN = 0;
+});
+
+runTest("26. FW-5: E-stop stays latched after button release until remote reset", () => {
+  emergencyStopActive = false;
+  emergencyButtonPressed = false;
+  activeRemoteCommandId = "";
+  pinStates.EMERGENCY_STOP_PIN = 1;
+  alertQueue = [];
+
+  pinStates.EMERGENCY_STOP_PIN = 0;
+  handleSafety();
+  if (!emergencyStopActive) throw new Error("E-stop did not trip");
+
+  // Release the button: automation must NOT resume.
+  pinStates.EMERGENCY_STOP_PIN = 1;
+  handleSafety();
+  handleSafety();
+  if (!emergencyStopActive) throw new Error("E-stop auto-released");
+
+  waterLow = true;
+  waterHigh = false;
+  updateHydration();
+  if (waterPumpActive) throw new Error("Pump ran while E-stop latched");
+  processRemoteCommand("CMD|ID:fw5a|ACTION:MANUAL_FEED|TARGET:100");
+  assertLogContains("CMD_ACK|ID:fw5a|STATUS:REJECTED|REASON:ESTOP_ACTIVE");
+
+  // Explicit reset clears the latch.
+  processRemoteCommand("CMD|ID:fw5b|ACTION:ESTOP_RELEASE");
+  assertLogContains("CMD_ACK|ID:fw5b|STATUS:ACCEPTED");
+  assertLogContains("CMD_DONE|ID:fw5b|STATUS:SUCCESS");
+  assertLogContains("QUEUED:EMERGENCY_STOP_RELEASED");
+  if (emergencyStopActive) throw new Error("Reset did not clear latch");
+
+  waterLow = false;
+  stopWaterPump();
+  alertQueue = [];
+});
+
+runTest("27. FW-5: reset rejected while button still pressed; reset clears pump fault", () => {
+  emergencyStopActive = false;
+  emergencyButtonPressed = false;
+  pinStates.EMERGENCY_STOP_PIN = 0;
+  handleSafety();
+  waterPumpFaultLatched = true;
+
+  processRemoteCommand("CMD|ID:fw5c|ACTION:ESTOP_RELEASE");
+  assertLogContains("CMD_ACK|ID:fw5c|STATUS:REJECTED|REASON:PHYSICAL_ESTOP_ENGAGED");
+  if (!emergencyStopActive) throw new Error("Latch cleared while button pressed");
+
+  pinStates.EMERGENCY_STOP_PIN = 1;
+  handleSafety();
+  processRemoteCommand("CMD|ID:fw5d|ACTION:ESTOP_RELEASE");
+  assertLogContains("CMD_DONE|ID:fw5d|STATUS:SUCCESS");
+  if (waterPumpFaultLatched) throw new Error("Reset should clear pump fault latch");
+  alertQueue = [];
 });
 
 console.log("ALL SIMULATION TESTS PASSED.");

@@ -11,5 +11,6 @@ extern const unsigned long MAIN_LOOP_DELAY_MS;
 // Arduino builder parsing errors.
 String formatTimestamp(const DateTime& dateTime);
 DateTime getCurrentDateTime();
+DateTime getLocalDateTime();
 
 #endif

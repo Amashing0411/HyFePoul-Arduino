@@ -36,10 +36,11 @@ void handleESP32Communication() {
     lastDataSendMillis = millis();
   }
 
-  // If an alert was queued, send it once.
-  if (pendingAlertEvent.length() > 0) {
-    sendEventToESP32(pendingAlertEvent);
-    pendingAlertEvent = "";
+  // Send at most one queued alert per loop to keep UART bursts short.
+  if (alertQueueCount > 0) {
+    sendEventToESP32(alertQueue[alertQueueHead]);
+    alertQueueHead = (alertQueueHead + 1) % ALERT_QUEUE_SIZE;
+    alertQueueCount--;
   }
 }
 
@@ -143,8 +144,19 @@ void sendEventToESP32(const String& eventName) {
   Serial.println(eventName);
 }
 
-void queueAlertEvent(const String& eventName) {
-  pendingAlertEvent = eventName;
+// eventName must be a string literal (the queue stores the pointer).
+void queueAlertEvent(const char* eventName) {
+  if (alertQueueCount == ALERT_QUEUE_SIZE) {
+    // Queue full: drop the oldest alert so the newest state is reported.
+    Serial.print(F("WARNING: alert queue full, dropped: "));
+    Serial.println(alertQueue[alertQueueHead]);
+    alertQueueHead = (alertQueueHead + 1) % ALERT_QUEUE_SIZE;
+    alertQueueCount--;
+  }
+
+  uint8_t tail = (alertQueueHead + alertQueueCount) % ALERT_QUEUE_SIZE;
+  alertQueue[tail] = eventName;
+  alertQueueCount++;
 }
 
 String extractMegaValue(String line, String key) {
@@ -208,25 +220,16 @@ void processRemoteCommand(String line) {
     startRemoteFeeding(targetGrams);
   }
   else if (action == "ESTOP_RELEASE") {
-    if (digitalRead(EMERGENCY_STOP_PIN) == LOW) {
-      sendCmdAck(cmdId, "REJECTED", "PHYSICAL_ESTOP_ENGAGED");
+    const char* rejectReason =
+        resetEmergencyStop("EMERGENCY_STOP_RELEASED_REMOTE");
+
+    if (rejectReason != NULL) {
+      sendCmdAck(cmdId, "REJECTED", rejectReason);
       return;
     }
-    
-    if (!emergencyStopActive) {
-      sendCmdAck(cmdId, "REJECTED", "ESTOP_NOT_ACTIVE");
-      return;
-    }
-    
-    activeRemoteCommandId = cmdId;
+
     sendCmdAck(cmdId, "ACCEPTED", "");
-    
-    emergencyStopActive = false;
-    Serial.println(F("Emergency stop released by remote."));
-    logEventToSD("EMERGENCY_STOP_RELEASED_REMOTE");
-    
     sendCmdDone(cmdId, "SUCCESS", "");
-    activeRemoteCommandId = "";
   }
   else if (action == "SYSTEM_RESTART") {
     sendCmdAck(cmdId, "REJECTED", "NOT_IMPLEMENTED_SAFELY");
@@ -308,6 +311,17 @@ void sendCmdAck(String id, String status, String reason) {
     ESP32_SERIAL.print(reason);
   }
   ESP32_SERIAL.println();
+}
+
+// Reports the outcome of the in-progress remote command (if any) and
+// frees the command slot so later commands are not rejected as busy.
+void finishRemoteCommand(const char* status, const char* reason) {
+  if (activeRemoteCommandId == "") {
+    return;
+  }
+
+  sendCmdDone(activeRemoteCommandId, status, reason);
+  activeRemoteCommandId = "";
 }
 
 void sendCmdDone(String id, String status, String reason) {

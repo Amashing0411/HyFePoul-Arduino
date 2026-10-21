@@ -140,7 +140,8 @@ To prevent timezone logic overhead on the 8-bit Mega, **the entire hardware stac
 *   **ESP32:** Fetches NTP time in UTC.
 *   **Mega RTC:** Stores and maintains time in UTC.
 *   **Payloads:** All `timestamp` fields in `DATA` and SD logs are recorded in UTC (ISO 8601 `Z` format).
-*   **Local Time Conversion:** The conversion to Philippine Standard Time (UTC+8) is handled exclusively by the Mobile App and Backend for user display.
+*   **Local Time Conversion:** The conversion to Philippine Standard Time (UTC+8) for history and alert display is handled by the Mobile App.
+*   **Feed Schedules (exception):** `SCHEDULE_SET` hours and minutes are local wall-clock time, exactly as the user enters them in the app and as stored under `/schedules`. The Mega applies a fixed offset (`LOCAL_UTC_OFFSET_MINUTES = 480` in `Config.ino`) to the UTC RTC time only when matching schedules and when drawing the Nextion clock (`getLocalDateTime()`). The protocol itself is unchanged; the RTC, `DATA` and SD log remain UTC. The Philippines has no daylight saving time, so a fixed offset is sufficient.
 
 ## 11. Safety / Offline Behavior
 *   **ESP32 Loses Wi-Fi/Internet:** The Mega continues local poultry-management functions using its own logic and RTC. Feeding and hydration do NOT depend on the Internet. 

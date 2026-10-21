@@ -100,6 +100,10 @@ DO NOT assume voltages based on component markings without measuring.
 8. Verify attempting a remote `MANUAL_FEED` returns `failed` (`ESTOP_ACTIVE`).
 9. Verify sending `ESTOP_RELEASE` via software does NOT re-energize the actuator (physical unlatching required).
 10. Verify system recovers safely only after physical unlatch and software release.
+11. Release the physical E-Stop **without** sending a reset. Verify the Mega stays stopped (Nextion shows `STOPPED`, pump does not start even with the low float active, `MANUAL_FEED` still returns `ESTOP_ACTIVE`).
+12. With the button released, type `RESET` in the Mega USB serial monitor (115200 baud). Verify `Emergency stop reset.` is printed and automation resumes. Repeat with the button pressed and verify `RESET rejected: PHYSICAL_ESTOP_ENGAGED`.
+13. Start a remote `MANUAL_FEED`, then press the E-Stop mid-feed. Verify the command ends as `failed` with `ESTOP_ACTIVE`, and that a following `STATUS_REQ` completes (not rejected as `SYSTEM_BUSY`).
+14. Hold the low float switch active with the pump outlet disconnected for more than 120 s. Verify the pump stops at the timeout, does **not** restart, `WATER_PUMP_TIMEOUT` and `LOW_WATER` alerts appear once, and the fault clears only when the high float is reached or the E-Stop is reset.
 
 ## 7. Relay / Actuator Commissioning
 

@@ -76,6 +76,11 @@ const unsigned long WATER_PUMP_MAX_RUNTIME_MS = 120000UL;
 const unsigned long ESP32_TIMEOUT_MS = 15000UL;
 const unsigned long ESP32_TIME_SYNC_INTERVAL_MS = 300000UL;
 
+// Local time offset from UTC (Philippine Standard Time, no DST).
+// The RTC, SD log and DATA packets stay in UTC; this offset is applied only
+// where the user's wall clock matters (feed schedules, Nextion clock).
+const int16_t LOCAL_UTC_OFFSET_MINUTES = 480;
+
 // SD logging interval.
 const unsigned long SD_LOG_INTERVAL_MS = 30000UL;
 
@@ -131,7 +136,10 @@ bool waterPumpActive = false;
 unsigned long waterPumpStartMillis = 0;
 
 // Safety
+// emergencyStopActive is the latched stop state; emergencyButtonPressed is
+// the live physical button state.
 bool emergencyStopActive = false;
+bool emergencyButtonPressed = false;
 
 // ESP32
 bool esp32Online = false;
@@ -155,9 +163,18 @@ bool sdAvailable = false;
 unsigned long lastSDLogMillis = 0;
 
 // Alerts
-String pendingAlertEvent = "";
+// Small FIFO so alerts raised in the same loop are not overwritten.
+// Entries point to string literals, so no copies are kept in RAM.
+const uint8_t ALERT_QUEUE_SIZE = 4;
+const char* alertQueue[ALERT_QUEUE_SIZE];
+uint8_t alertQueueHead = 0;
+uint8_t alertQueueCount = 0;
+
 bool lowFeedAlertSent = false;
-bool waterPumpTimeoutAlertSent = false;
+bool lowWaterAlertSent = false;
+// Set when the pump hits its max runtime; blocks restarts until the high
+// float switch is reached or the E-stop is reset.
+bool waterPumpFaultLatched = false;
 
 // Buzzer
 bool buzzerActive = false;

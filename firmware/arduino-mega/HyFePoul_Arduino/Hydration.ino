@@ -16,10 +16,27 @@ void updateHydration() {
 
   if (emergencyStopActive) {
     stopWaterPump("EMERGENCY_STOP");
-    return;
+  } else {
+    controlWaterPump();
   }
 
-  controlWaterPump();
+  checkLowWaterAlert();
+}
+
+// LOW_WATER is only actionable when the pump cannot refill the drinker
+// (E-stop active or pump fault latched). Normal refill cycles stay silent.
+void checkLowWaterAlert() {
+  bool cannotRefill = emergencyStopActive || waterPumpFaultLatched;
+
+  if (waterLow && cannotRefill) {
+    if (!lowWaterAlertSent) {
+      lowWaterAlertSent = true;
+      queueAlertEvent("LOW_WATER");
+      logEventToSD("LOW_WATER");
+    }
+  } else if (!waterLow) {
+    lowWaterAlertSent = false;
+  }
 }
 
 bool isWaterLow() {
@@ -38,7 +55,7 @@ void controlWaterPump() {
   // If the high-level switch is active, stop pumping.
   if (waterHigh) {
     stopWaterPump("HIGH_LEVEL_REACHED");
-    waterPumpTimeoutAlertSent = false;
+    waterPumpFaultLatched = false;
     return;
   }
 
@@ -53,7 +70,7 @@ void controlWaterPump() {
 }
 
 void startWaterPump() {
-  if (waterPumpActive || emergencyStopActive) {
+  if (waterPumpActive || emergencyStopActive || waterPumpFaultLatched) {
     return;
   }
 
@@ -86,8 +103,10 @@ void checkWaterPumpTimeout() {
   if (millis() - waterPumpStartMillis >= WATER_PUMP_MAX_RUNTIME_MS) {
     stopWaterPump("WATER_PUMP_TIMEOUT");
 
-    if (!waterPumpTimeoutAlertSent) {
-      waterPumpTimeoutAlertSent = true;
+    // Latch the fault so the still-low water level does not restart the
+    // pump on the next loop.
+    if (!waterPumpFaultLatched) {
+      waterPumpFaultLatched = true;
       queueAlertEvent("WATER_PUMP_TIMEOUT");
       triggerAlarm();
     }

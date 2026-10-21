@@ -22,7 +22,8 @@ void handleFeeding() {
 }
 
 void checkScheduledFeeding() {
-  DateTime now = getCurrentDateTime();
+  // Schedules (and the daily reset below) follow the local wall clock.
+  DateTime now = getLocalDateTime();
 
   for (uint8_t i = 0; i < FEED_SCHEDULE_COUNT; i++) {
     if (!feedSchedules[i].enabled) {
@@ -116,10 +117,7 @@ void startRemoteFeeding(float targetGrams) {
 void runActiveFeeding() {
   if (emergencyStopActive) {
     stopFeeding("EMERGENCY_STOP");
-    if (activeRemoteCommandId != "") {
-      sendCmdDone(activeRemoteCommandId, "FAILED", "ESTOP_ACTIVE");
-      activeRemoteCommandId = "";
-    }
+    finishRemoteCommand("FAILED", "ESTOP_ACTIVE");
     return;
   }
 
@@ -137,10 +135,7 @@ void runActiveFeeding() {
     stopFeeding("TARGET_REACHED");
     feedingCompleted = true;
     queueAlertEvent("FEEDING_COMPLETED");
-    if (activeRemoteCommandId != "") {
-      sendCmdDone(activeRemoteCommandId, "SUCCESS", "");
-      activeRemoteCommandId = "";
-    }
+    finishRemoteCommand("SUCCESS", "");
     return;
   }
 
@@ -149,10 +144,7 @@ void runActiveFeeding() {
     stopFeeding("FEEDING_TIMEOUT");
     queueAlertEvent("FEEDING_TIMEOUT");
     triggerAlarm();
-    if (activeRemoteCommandId != "") {
-      sendCmdDone(activeRemoteCommandId, "FAILED", "FEEDING_TIMEOUT");
-      activeRemoteCommandId = "";
-    }
+    finishRemoteCommand("FAILED", "FEEDING_TIMEOUT");
     return;
   }
 }
