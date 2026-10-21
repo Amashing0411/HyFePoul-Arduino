@@ -84,6 +84,10 @@ To verify the ESP32 firmware, run from the repository root:
 arduino-cli compile --fqbn esp32:esp32:esp32 firmware/esp32/HyFePoul_ESP32
 ```
 
+**Build notes (Phase 4):**
+- **Core Debug Level must be "None"** (the default) for any deployed build. At Debug or Verbose, `HTTPClient` logs request URLs, which contain the Firebase ID token. The sketch prints a compile-time `#warning` in that case.
+- The sketch uses about **86%** of the default 1.3 MB app partition, because the built-in CA certificate bundle used to verify Firebase's TLS certificate adds roughly 73 KB. If new features push it over, select a larger partition scheme (for example `--fqbn esp32:esp32:esp32:PartitionScheme=huge_app`, which drops OTA updates). Do not remove the CA bundle.
+
 ---
 
 ## Verifying Toolchain & Troubleshooting

@@ -310,6 +310,20 @@ Tests:
 | ESP-4 | Make sure the HTTP calls cannot starve the UART buffer. Measure the worst-case loop time and the UART RX buffer size (set `setRxBufferSize` if needed). |
 | ESP-5 | Reconcile the protocol doc, firmware README, and both parsers so the `DATA` field list, line endings, and max line lengths match. |
 
+**Phase 4 results (2026-10-21, branch `phase4-esp32-robustness`):**
+
+| ID | Commit | Result |
+|----|--------|--------|
+| ESP-1 | `74034f1`, `63d6266` | `setup()` no longer blocks on Wi-Fi. The ESP32 reconnects every 15 s while down, signs in again as needed, and restores schedules after reconnecting. `STATUS|ONLINE/OFFLINE` is sent on change and every 10 s. The Mega's `esp32Online` now follows `STATUS` plus a 15 s link timeout; previously any line set it, and the 15 s timeout combined with 30 s `TIME` made it flicker. `getLocalTime()` no longer blocks for 5 s while NTP is unsynced. |
+| ESP-2 | `74034f1` | **Found:** in esp32 core 3.3.12, `http.begin(httpsUrl)` without a CA certificate calls `setInsecure()` (`HTTPClient` `TLSTraits::verify`), so no certificate was checked, including on the sign-in carrying the device password. **Fixed:** a shared `NetworkClientSecure` with `useBuiltinCACertBundle()` is used for all production requests, and requests are no longer nested. Flash went from 80% to 86%. |
+| ESP-3 | `74034f1` | **Found (F27):** the sign-in response was parsed into `StaticJsonDocument<512>`, but a real Firebase ID token alone is about 1 KB, so `idToken` would become `"null"` while the log said "Auth successful". **Fixed:** filtered parse into 2 KB, rejection of empty tokens, `expiresIn` parsed from its string form, rollover-safe expiry, and a refresh after a 401. Token logging: no code path prints URLs, but `HTTPClient` logs them at Core Debug Level Debug/Verbose, so the build now emits a `#warning` at those levels. The token travels in the `?auth=` query over verified TLS (the standard RTDB REST method). |
+| ESP-4 | `74034f1` | **F26 resolved for app commands:** the Mega now sees short UART IDs `C0`–`C9`, and `SCHEDULE_SET` values are integers, so the longest app line is 62 characters + `\n` (it was about 82). Lines are built before acknowledging; anything over 63 characters fails as `LINE_TOO_LONG`. All UART output goes through `sendToMega()` (length guard, 50 ms spacing). Remaining risk: back-to-back lines arriving while the Mega is blocked, which is now unlikely given the spacing. |
+| ESP-5 | this commit | `docs/mega-esp32-protocol.md` rewritten from the firmware (messages, reasons, lifecycle, timing, security, and the differences from the original design); the Mega README's protocol section was replaced with a summary that links to it. |
+
+Tests: Mega simulator 34/34 (new test 33: link status); ESP32 simulator, including new UART line tests U1–U4; rules 61/61; Jest 25/25; mobile commands and E2E pass; Mega and ESP32 compile.
+
+**Not verified on hardware:** TLS against the real Firebase certificate chain, sign-in with a real (about 1 KB) ID token, Wi-Fi drop and recovery, and UART behaviour. Bench steps 16–21 were added to `hardware-commissioning-procedure.md` §5. **No host C++ compiler is available here**, so the ESP32 C++ changes are compile-checked only; the simulators mirror the logic.
+
 ### Phase 5 — Mobile app completion audit (screen by screen)
 
 For Login, Registration, Claim Device, Dashboard, Feeding, Water, History, Notifications, and Settings, check against the brief's §4 checklist:

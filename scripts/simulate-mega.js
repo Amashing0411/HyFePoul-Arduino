@@ -117,6 +117,23 @@ const updateHydration = () => {
   checkLowWaterAlert();
 };
 
+// --- ESP32 link status (ESP32Communication.ino / TimeManager.ino) ---
+const ESP32_TIMEOUT_MS = 15000;
+let esp32ReportsOnline = false;
+let lastESP32MessageMillis = 0;
+let esp32Online = false;
+
+const receiveESP32Line = (line) => {
+  lastESP32MessageMillis = simMillis;
+  if (line === "STATUS|ONLINE") esp32ReportsOnline = true;
+  else if (line === "STATUS|OFFLINE") esp32ReportsOnline = false;
+};
+
+const updateLinkStatus = () => {
+  const linkAlive = lastESP32MessageMillis !== 0 && simMillis - lastESP32MessageMillis <= ESP32_TIMEOUT_MS;
+  esp32Online = esp32ReportsOnline && linkAlive;
+};
+
 // Mirrors finishRemoteCommand() in ESP32Communication.ino.
 const finishRemoteCommand = (status, reason = "") => {
   if (activeRemoteCommandId === "") return;
@@ -794,6 +811,40 @@ runTest("32. Phase 3: restore is rejected while a remote feed is running (ESP32 
   if (feedSchedules[0].hour === 8) throw new Error("Busy restore should not change the slot");
   feedingActive = false;
   activeRemoteCommandId = "";
+});
+
+runTest("33. Phase 4: online status follows ESP32 STATUS reports plus a 15 s link timeout", () => {
+  simMillis = 1000;
+  esp32ReportsOnline = false;
+  lastESP32MessageMillis = 0;
+
+  // A TIME line proves the link but does not mean the device is online.
+  receiveESP32Line("TIME|2026-10-21|06:00:00");
+  updateLinkStatus();
+  if (esp32Online) throw new Error("TIME alone must not mark the device online");
+
+  receiveESP32Line("STATUS|ONLINE");
+  updateLinkStatus();
+  if (!esp32Online) throw new Error("STATUS|ONLINE should mark online");
+
+  // 10 s STATUS heartbeats keep it online.
+  for (let i = 0; i < 3; i++) {
+    simMillis += 10000;
+    receiveESP32Line("STATUS|ONLINE");
+    updateLinkStatus();
+    if (!esp32Online) throw new Error("Heartbeats should keep it online");
+  }
+
+  // ESP32 reports Wi-Fi loss.
+  receiveESP32Line("STATUS|OFFLINE");
+  updateLinkStatus();
+  if (esp32Online) throw new Error("STATUS|OFFLINE should mark offline");
+
+  // Back online, then the UART goes silent (ESP32 crashed or unplugged).
+  receiveESP32Line("STATUS|ONLINE");
+  simMillis += 16000;
+  updateLinkStatus();
+  if (esp32Online) throw new Error("Silent link should time out to offline");
 });
 
 console.log("ALL SIMULATION TESTS PASSED.");

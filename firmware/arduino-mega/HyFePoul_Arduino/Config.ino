@@ -142,7 +142,11 @@ bool emergencyStopActive = false;
 bool emergencyButtonPressed = false;
 
 // ESP32
+// esp32Online = the ESP32 reports Wi-Fi + Firebase session (STATUS|ONLINE)
+// AND the UART link is alive (a line within ESP32_TIMEOUT_MS). The ESP32
+// sends STATUS every 10 s, which doubles as the link heartbeat.
 bool esp32Online = false;
+bool esp32ReportsOnline = false;
 unsigned long lastESP32MessageMillis = 0;
 unsigned long lastNetworkTimeMillis = 0;
 String activeRemoteCommandId = "";

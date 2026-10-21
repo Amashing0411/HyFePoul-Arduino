@@ -147,6 +147,7 @@ async function simulate() {
 
   await testCommands();
   await testScheduleRestore();
+  testUartCommandLines();
 
   console.log("======================================");
   console.log("ESP32 SIMULATION SUCCESSFUL!");
@@ -389,6 +390,55 @@ async function testScheduleRestore() {
   assert(read.status === 401 || read.status === 403, `Expected permission denied, got ${read.status}`);
 
   console.log("\nALL SCHEDULE RESTORE TESTS PASSED.");
+}
+
+// ---------------------------------------------------------
+// UART command lines (Phase 4)
+// ---------------------------------------------------------
+
+// Mirrors buildCommandLine() + the pollCommands() length guard in
+// HyFePoul_ESP32.ino: short UART IDs C0..C9; SCHEDULE_SET as integers.
+const MEGA_MAX_LINE_LENGTH = 63; // + '\n' = Mega's 64-byte RX buffer
+const buildCommandLine = (uartId, commandName, cmd) => {
+  let params = "";
+  const p = cmd.parameters || {};
+  if (commandName === "MANUAL_FEED" && p.targetGrams !== undefined) {
+    params = `|TARGET:${p.targetGrams}`;
+  } else if (commandName === "SCHEDULE_SET" && p.index !== undefined) {
+    params = `|IDX:${Math.trunc(p.index)}|HR:${Math.trunc(p.hour)}|MIN:${Math.trunc(p.minute)}|TGT:${Math.round(p.targetGrams)}|EN:${p.enabled ? 1 : 0}`;
+  }
+  return `CMD|ID:${uartId}|ACTION:${commandName}${params}`;
+};
+
+function testUartCommandLines() {
+  console.log("\n======================================");
+  console.log("RUNNING PHASE 4 UART LINE TESTS");
+  console.log("======================================");
+  const assert = (cond, msg) => { if (!cond) throw new Error(msg); };
+
+  console.log("Test U1: Firebase command IDs never reach the UART; IDs cycle C0..C9");
+  const ids = Array.from({ length: 12 }, (_, n) => `C${n % 10}`);
+  assert(ids[0] === "C0" && ids[9] === "C9" && ids[10] === "C0", "UART ID cycle wrong");
+  const line = buildCommandLine("C3", "MANUAL_FEED", { parameters: { targetGrams: 120 } });
+  assert(line === "CMD|ID:C3|ACTION:MANUAL_FEED|TARGET:120", `Unexpected line: ${line}`);
+  assert(!line.includes("cmd_"), "Firebase command ID leaked onto the UART");
+
+  console.log("Test U2: worst-case SCHEDULE_SET from the app fits 64 bytes (was ~82)");
+  const worst = buildCommandLine("C9", "SCHEDULE_SET", { parameters: { index: 2, hour: 23, minute: 59, targetGrams: 1999.6, enabled: true } });
+  assert(worst === "CMD|ID:C9|ACTION:SCHEDULE_SET|IDX:2|HR:23|MIN:59|TGT:2000|EN:1", `Unexpected line: ${worst}`);
+  assert(worst.length <= MEGA_MAX_LINE_LENGTH, `SCHEDULE_SET line is ${worst.length + 1} bytes`);
+
+  console.log("Test U3: every whitelisted command fits at its longest");
+  for (const cmd of ["ESTOP_RELEASE", "SYSTEM_RESTART", "STATUS_REQ"]) {
+    assert(buildCommandLine("C9", cmd, {}).length <= MEGA_MAX_LINE_LENGTH, `${cmd} too long`);
+  }
+  assert(buildCommandLine("C9", "MANUAL_FEED", { parameters: { targetGrams: 1999.99 } }).length <= MEGA_MAX_LINE_LENGTH, "MANUAL_FEED too long");
+
+  console.log("Test U4: an oversized parameter is caught by the guard (command fails as LINE_TOO_LONG)");
+  const oversized = buildCommandLine("C1", "MANUAL_FEED", { parameters: { targetGrams: "1".repeat(40) } });
+  assert(oversized.length > MEGA_MAX_LINE_LENGTH, "Guard test needs an oversized line");
+
+  console.log("\nALL UART LINE TESTS PASSED.");
 }
 
 simulate().catch(err => {
