@@ -1,25 +1,33 @@
 # Notification Strategy
 
-This document outlines how critical events from the HyFePoul hardware are delivered to the user's mobile device.
+This document describes how HyFePoul alerts reach the user **as currently implemented**. The project stays on the Firebase Spark (no-billing) plan, which rules out Cloud Functions and therefore server-sent push notifications.
 
-## Infrastructure
+## Current path (RTDB alert feed + local notifications)
 
-We utilize **Firebase Cloud Messaging (FCM)** to handle push notifications. 
+1. **Mega** raises an alert event (for example `LOW_FEED`) and sends `EVENT|LOW_FEED` to the ESP32 over UART.
+2. **ESP32** forwards only actionable events (`LOW_FEED`, `LOW_WATER`, `WATER_PUMP_TIMEOUT`, `EMERGENCY_STOP`, `DEVICE_ERROR`). It writes each one with `PUT` to `/alerts/{deviceId}/{eventName}`, so there is **one record per alert type**, overwritten with the latest timestamp. Informational events (for example `FEEDING_STARTED`) are logged only on the Mega SD card.
+3. **Mobile app, Notifications tab** (`useDeviceAlerts`): subscribes to `/alerts/{deviceId}` and lists the latest report of each alert type, newest first.
+4. **Mobile app, local notifications** (`useAlertNotifications`): while the app is running, the same subscription compares each alert's timestamp with the last one seen. A newer timestamp raises an on-device notification on the Android channel `alerts`. The first snapshot after the app opens is treated as a baseline, so existing alerts are not re-notified on every launch.
 
-1. **Trigger**: The ESP32 sends an event (e.g., `POST /device/event` with `LOW_FEED`) to the Firebase Cloud Function API.
-2. **Deduplication**: The Cloud Function uses the Mega-generated `eventId` as the idempotency key. If the same `eventId` is received again, the request is treated as a retry/duplicate and must not create another alert or notification. A new event with a different `eventId` is treated as a new event, even if the same event type currently has or previously had an alert.
-3. **Processing**: If valid, the Cloud Function creates an alert document in Firestore.
-4. **Delivery**: The Cloud Function looks up the `fcmTokens` associated with the device's owner and sends a payload to FCM.
-5. **Reception**: The React Native mobile app receives the push notification and alerts the user, even if the app is in the background.
+## Limitations (do not describe this as push notifications)
 
-## Key Alert Types (Actionable)
+- **No delivery while the app is closed.** Local notifications come from the running app. Alerts raised while the app is closed or killed by the OS appear in the Notifications tab the next time the app opens, but no phone notification is shown for them.
+- **No resolution tracking yet.** Nothing currently sets `resolved: true` (the ESP32 does not forward `EMERGENCY_STOP_RELEASED`, and there is no backend). The app therefore labels unresolved records "Last reported" rather than "Active" or "Action required".
+- **One record per type.** Two `LOW_FEED` occurrences produce a single record holding the later timestamp. The full sequence is in the Mega SD log.
+- **Permission.** Android 13+ asks for notification permission on first launch after login. If it is denied, the in-app alert feed still works.
 
-*   **Emergency Stop**: (`EMERGENCY_STOP`) Triggered immediately when the physical emergency stop button on the Mega is engaged.
-*   **Low Feed**: (`LOW_FEED`) Triggered when the ultrasonic sensor detects the hopper is below the configured threshold.
-*   **Water Pump Timeout**: (`PUMP_TIMEOUT`) Triggered if the water pump runs continuously beyond the safety threshold.
-*   **Low Water**: (`LOW_WATER`) Triggered when float switches indicate a dry tank.
-*   **Device Offline**: (`DEVICE_OFFLINE`) Triggered by the backend if it detects missed heartbeats from the ESP32 network connection.
-*   **Device Error**: (`DEVICE_ERROR`) General fault reported by the Mega (e.g., sensor failure).
+## Alert types
 
-## Alert Resolution
-Alerts are created with a `resolved: false` state. When subsequent `DATA` payloads indicate the condition has normalized (e.g., water tank is refilled), the backend automatically marks the alert as `resolved: true`, reflecting immediately on the mobile dashboard.
+| Event | Raised by | Meaning |
+|-------|-----------|---------|
+| `EMERGENCY_STOP` | Mega, `Safety.ino` | Physical E-stop pressed. The stop is latched until it is reset. |
+| `LOW_FEED` | Mega, `FeedLevel.ino` | Hopper level at or below 20% (clears above 25%). |
+| `WATER_PUMP_TIMEOUT` | Mega, `Hydration.ino` | Pump hit its maximum runtime. The fault is latched until the high float is reached or the E-stop is reset. |
+| `LOW_WATER` | Mega, `Hydration.ino` | Water is low **and** the pump cannot refill it (E-stop active or pump fault latched). Normal refills do not raise it. |
+| `DEVICE_ERROR` | Whitelisted on the ESP32 | Not raised by the current Mega firmware. |
+
+`DEVICE_OFFLINE` appears in the app's icon map but is not produced by anything in the current architecture. Offline detection needs either a backend or app-side logic based on `devices/{id}/lastHeartbeat`.
+
+## Legacy FCM path (not active)
+
+`backend/functions` still contains the earlier Firestore and Cloud Functions pipeline (`registerFcmToken`, FCM sends from alert processing). It is **not deployed** and would require the Blaze plan. The app hook that registered FCM tokens (`usePushNotifications.ts`) was removed in Phase 2. To restore it, recover that file from git history (it was last present in commit `c5e5f6c`) and deploy the functions after a billing decision.

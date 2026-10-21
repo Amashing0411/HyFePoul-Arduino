@@ -10,12 +10,16 @@ import { useFirebaseData } from '../context/FirebaseDataContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { spacing, layout } from '../theme';
+import { useNavigation } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { MainTabParamList } from '../navigation/AppNavigator';
 
 export default function DashboardScreen() {
   const { deviceData, systemData, commands, loading, error, issueCommand } = useFirebaseData();
   const { colors, typography } = useTheme();
   const { t } = useLanguage();
-  
+  const navigation = useNavigation<BottomTabNavigationProp<MainTabParamList>>();
+
   const [refreshing, setRefreshing] = useState(false);
 
   const handleRefresh = async () => {
@@ -50,28 +54,11 @@ export default function DashboardScreen() {
     }
   };
 
+  // Manual feed lives on the Feeding tab (inline target entry, limits,
+  // E-stop and in-flight checks, command status). Alert.prompt, used here
+  // before, is iOS-only and did nothing on Android.
   const handleManualFeed = () => {
-    Alert.prompt(
-      "Manual Feed",
-      "Enter target weight in grams (e.g. 500):",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Start Feed", 
-          onPress: (text?: string) => {
-            const grams = parseFloat(text || "");
-            if (!isNaN(grams) && grams > 0) {
-              issueCommand('MANUAL_FEED', { targetGrams: grams });
-            } else {
-              Alert.alert("Invalid Input", "Please enter a valid number.");
-            }
-          }
-        }
-      ],
-      "plain-text",
-      "500",
-      "number-pad"
-    );
+    navigation.navigate('Feeding');
   };
 
   if (loading || !deviceData || !systemData) {
@@ -153,11 +140,11 @@ export default function DashboardScreen() {
         </View>
         
         <View style={{ marginTop: spacing.md }}>
-          <Button 
-            title="Manual Feed"
+          <Button
+            title={t('manualFeed')}
             onPress={handleManualFeed}
             variant="outline"
-            accessibilityLabel="Manual Feed"
+            accessibilityLabel={t('manualFeed')}
           />
         </View>
       </Card>
