@@ -1,31 +1,30 @@
 # Development Status
 
-## Current Phase: Architecture Initialization
+**Updated:** 2026-10-21. **Current phase:** software complete for the prototype scope. **Hardware commissioning has not started** (prototype not yet available).
 
-### 1. Arduino Mega (Primary Controller)
-- **Status**: **Drafted / Relocated**
-- **Notes**: The core logic (feeding, hydration, time management, safety, Nextion interface, SD logging, and serial communication placeholder) is drafted. The code has been safely relocated to `firmware/arduino-mega/HyFePoul_Arduino/`.
-- **Pending**: Hardware validation, sensor calibration, Nextion integration, and final testing.
+Read these before starting new work:
 
-### 2. ESP32 (Communication Module)
-- **Status**: **Pending**
-- **Notes**: Awaiting implementation.
-- **Pending**: Wi-Fi connection logic, backend communication, and finalized serial protocol with the Mega.
+| Document | Use it for |
+|----------|-----------|
+| [`current-project-status-audit.md`](current-project-status-audit.md) | What works, what is only simulated, known defects, readiness by area |
+| [`remaining-work-roadmap.md`](remaining-work-roadmap.md) | Prioritised open tasks (IDs `R-xx`), with files, tests and acceptance criteria |
+| [`mobile-app-completion-matrix.md`](mobile-app-completion-matrix.md) | Screen-by-screen app status and test evidence |
+| [`hardware-integration-test-plan.md`](hardware-integration-test-plan.md) | Physical tests `HIT-01`–`HIT-15`, all currently `BLOCKED` |
+| [`checkpoint-current-status-report.md`](checkpoint-current-status-report.md) | What was changed in the audit, commands run, results |
+| [`comprehensive-work-plan.md`](comprehensive-work-plan.md) | Full history: findings F1–F27, decisions D1–D6, per-phase evidence |
 
-### 3. Backend (Firebase)
-- **Status**: **In Progress / Initialized**
-- **Notes**: Architecture, schemas, and API contracts defined. Checkpoints 3B-3D established device claiming and API keys. Checkpoints 4E and 4F established Firestore alert generation and FCM push notifications.
-- **FCM Architecture**: Mobile registration tokens are explicitly isolated within `users/{uid}/fcmTokens/{token}` using an Admin SDK HTTPS Callable (`registerFcmToken`) to prevent clients from writing tokens directly or exposing them to unauthorized devices. FCM delivery is processed exclusively as an idempotent side-effect of actionable hardware events resolving safely into persistent Firestore alerts.
-- **Pending**: Final device hardware deployment, complete Cloud Function coverage, scheduled feed triggers.
+## Subsystems at a glance
 
-### 4. Mobile Application (React Native / Expo)
-- **Status**: **In Progress (Checkpoint 4F)**
-- **Notes**: Firebase Auth, Device Claiming (4C), Live Data (4D), and Historical/Notification fetching (4E) are complete.
-- **FCM Status**: Checkpoint 4F implemented Android Push Notifications using `expo-notifications`. Physical FCM delivery is **NOT YET VERIFIED**.
-- **Expo FCM Build Requirements**: Native Android push delivery completely bypasses Expo Go due to requiring FCM natively. A custom EAS build (`eas build -p android --profile development`) plus an explicit `google-services.json` injection is definitively required.
-- **Pending**: Final UI/UX refinement, iOS support, and real-world hardware integration.
+| Subsystem | Status |
+|-----------|--------|
+| **Arduino Mega** (primary controller) | Logic complete: feeding, hydration, latching E-stop, EEPROM schedules, SD log. Simulated (34 tests) and compile-checked. Calibration and pins **unverified**; Nextion component names are placeholders (R-20). |
+| **ESP32** (communication bridge) | Complete: Wi-Fi reconnect, verified TLS, Firebase sign-in, RTDB writes, command transport, schedule restore. Simulated and compile-checked; **never flashed**. |
+| **Firebase** (Auth + RTDB, Spark plan) | Rules deployed to `hyfepoul-dev` (2026-10-21) and covered by 61 tests. Firestore and Cloud Functions are **not used**. |
+| **Mobile app** (React Native / Expo SDK 57) | Feature-complete; Jest 30/30; verified on the Android emulator with a development build. **Not yet run on a physical phone against production.** Expo Go is not supported. |
+| **Nextion HMI** | HMI project in `Nextion/`; firmware mapping to the real IDs is pending (R-20). |
 
-### 5. Nextion Touchscreen (Local HMI)
-- **Status**: **Pending**
-- **Notes**: Placeholder folder created at `firmware/nextion/`.
-- **Pending**: GUI design, component mapping, and generation of `.HMI`/`.tft` files.
+## Constraints (from AGENTS.md)
+
+- The Mega is the authority for control and safety; the ESP32 only communicates; the app talks only to Firebase.
+- No paid infrastructure (no Blaze, no Cloud Functions). Phone notifications therefore work only while the app is running.
+- Fixed hardware scope; no GSM/SMS or extra sensors.
