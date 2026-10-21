@@ -341,6 +341,36 @@ Also in this phase:
 - Nextion (F14): map `t0`–`t7` to real values. Handle `b3 Stop` as a software stop request and `b4 Start` as the E-stop reset, subject to D1. Leave `b0`/`b2` (schedule and weight entry) as a scoped follow-up.
 - Add `test`, `typecheck`, and `lint` scripts to `mobile-app/package.json` (F16).
 
+**Phase 5 results, first batch (2026-10-21, branch `phase5-app-finish`):**
+
+| Item | Commit | Result |
+|------|--------|--------|
+| F25 offline indicator | `e517efb` | Online = `status == "online"` **and** a heartbeat within 90 s (three missed 30 s heartbeats), re-evaluated every 15 s without needing new data. The Dashboard shows OFFLINE and "No contact from the device since …". The Feeding screen blocks manual feed while offline and notes that scheduled feeding continues on the device. 5 unit tests. |
+| App name | `5100d1d` | `app.json` `name` is now "HyFePoul". The `slug` stays `mobile-app` to keep the EAS project link. |
+| Schema doc | `38c60d2` | `docs/database-schema.md` rewritten for RTDB (it described Firestore). Adds a `systemData` growth estimate (~2 MB/day, unbounded) and flags a retention decision. |
+
+**Android emulator test (dev build, local Firebase emulators, throwaway test accounts):**
+
+| Check | Result |
+|-------|--------|
+| App name appears as "HyFePoul" (developer menu, Android permission prompt "Allow HyFePoul to send you notifications?") | PASS |
+| New user with no devices lands on Claim Device (owned-device query returns empty) | PASS |
+| Claim with a **wrong PIN**, one tap with the keyboard open: denied by the rules, clear message, `ownerId` unchanged | PASS |
+| Claim with the **correct PIN**: `ownerId` set to the claimant, app moves to the main tabs | PASS |
+| Heartbeat 17 min old while `status` still says "online": Dashboard shows OFFLINE, "(Stale)" and "No contact since …"; Feeding shows Manual Feed disabled plus the offline note | PASS |
+| Heartbeat 75 s old: online, Manual Feed enabled; 30 s later, with **no new data**, it flips to offline automatically | PASS |
+| Schedule editor: set 06:45 / 300 g and press Save **once with the keyboard open**: editor closes, `schedules/device-002/sched_0` = {06:45, 300 g, enabled, all 7 days}, matching `SCHEDULE_SET` queued | PASS |
+
+Notes:
+- The first emulator boot hung its GPU (black screenshots, frozen UI); a restart with `-gpu swiftshader_indirect -no-snapshot` fixed it. This is an emulator issue, not an app issue.
+- An unexplained `STATUS_REQ` was found during testing. Only the pull-to-refresh handlers send it, so it was traced to an accidental refresh gesture during mis-aimed test taps, not to app logic.
+- The red "Claim error" toast on a wrong PIN is React Native's development-only LogBox reacting to `console.error`; it does not appear in release builds.
+- On the Feeding screen, the schedule editor for slot 1 opens at the bottom of the list, partly under the tab bar until scrolled. It works, but scrolling it into view when it opens would be nicer (minor, open).
+
+Regression: Jest 30/30 (25 existing + 5 new), rules 61/61, ESP32 and Mega simulators, mobile commands, E2E journey, `tsc` all pass.
+
+**Still open from Phase 5:** the Nextion mapping (F14), mobile ESLint (F16), removing the unused Firestore/Functions initialisation from the app (F21), a Tagalog review, and a test on a physical phone against production.
+
 ### Phase 6 — Documentation deliverables
 
 | ID | File | Content |
