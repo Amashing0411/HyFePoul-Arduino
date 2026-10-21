@@ -182,6 +182,72 @@ const checkScheduledFeeding = (simHour, simMinute) => {
   }
 };
 
+// --- EEPROM schedule store (ScheduleStorage.ino), byte-for-byte ---
+// 25 bytes: magic u16 LE | version u8 | 3 x {hour u8, minute u8, float32 LE, enabled u8} | checksum u8
+const FIRMWARE_DEFAULT_SCHEDULES = () => [
+  { hour: 7, minute: 0, targetGrams: 500, enabled: true },
+  { hour: 12, minute: 0, targetGrams: 500, enabled: true },
+  { hour: 18, minute: 0, targetGrams: 500, enabled: true }
+];
+let eeprom = new Uint8Array(4096).fill(0xFF); // blank AVR EEPROM
+let eepromByteWrites = 0;
+
+const scheduleChecksum = (bytes) => {
+  let sum = 0;
+  for (const b of bytes) sum = ((((sum << 1) | (sum >> 7)) & 0xFF) ^ b) & 0xFF;
+  return sum;
+};
+
+const serializeScheduleStore = (schedules) => {
+  const bytes = new Uint8Array(25);
+  const dv = new DataView(bytes.buffer);
+  dv.setUint16(0, 0x4846, true);
+  dv.setUint8(2, 1);
+  schedules.forEach((s, i) => {
+    const o = 3 + i * 7;
+    dv.setUint8(o, s.hour);
+    dv.setUint8(o + 1, s.minute);
+    dv.setFloat32(o + 2, s.targetGrams, true);
+    dv.setUint8(o + 6, s.enabled ? 1 : 0);
+  });
+  bytes[24] = scheduleChecksum(bytes.subarray(0, 24));
+  return bytes;
+};
+
+// EEPROM.put() -> update(): only changed bytes are written.
+const saveSchedulesToEEPROM = () => {
+  serializeScheduleStore(feedSchedules).forEach((v, i) => {
+    if (eeprom[i] !== v) { eeprom[i] = v; eepromByteWrites++; }
+  });
+};
+
+const loadSchedulesFromEEPROM = () => {
+  const bytes = eeprom.slice(0, 25);
+  const dv = new DataView(bytes.buffer);
+  if (dv.getUint16(0, true) !== 0x4846 || dv.getUint8(2) !== 1) return false;
+  if (scheduleChecksum(bytes.subarray(0, 24)) !== bytes[24]) return false;
+  const slots = [];
+  for (let i = 0; i < 3; i++) {
+    const o = 3 + i * 7;
+    const slot = {
+      hour: dv.getUint8(o), minute: dv.getUint8(o + 1),
+      targetGrams: dv.getFloat32(o + 2, true), enabled: dv.getUint8(o + 6) !== 0
+    };
+    if (slot.hour > 23 || slot.minute > 59 || !(slot.targetGrams > 0 && slot.targetGrams <= 5000)) return false;
+    slots.push(slot);
+  }
+  feedSchedules = slots;
+  return true;
+};
+
+// Mega power cycle: RAM back to firmware defaults, then initializeSchedules().
+const rebootMega = () => {
+  feedSchedules = FIRMWARE_DEFAULT_SCHEDULES();
+  feedingActive = false;
+  activeRemoteCommandId = "";
+  return loadSchedulesFromEEPROM();
+};
+
 // Mirrors getLocalDateTime(): the RTC holds UTC, schedules are local time.
 const LOCAL_UTC_OFFSET_MINUTES = 480;
 const checkScheduledFeedingAtUtc = (utcHour, utcMinute) => {
@@ -298,7 +364,8 @@ const processRemoteCommand = (line) => {
     feedSchedules[idx].minute = mn;
     feedSchedules[idx].targetGrams = tgt;
     feedSchedules[idx].enabled = en;
-    
+    saveSchedulesToEEPROM();
+
     activeRemoteCommandId = cmdId;
     sendCmdAck(cmdId, "ACCEPTED");
     sendCmdDone(cmdId, "SUCCESS");
@@ -662,6 +729,71 @@ runTest("27. FW-5: reset rejected while button still pressed; reset clears pump 
   assertLogContains("CMD_DONE|ID:fw5d|STATUS:SUCCESS");
   if (waterPumpFaultLatched) throw new Error("Reset should clear pump fault latch");
   alertQueue = [];
+});
+
+runTest("28. Phase 3: blank EEPROM falls back to firmware defaults", () => {
+  eeprom = new Uint8Array(4096).fill(0xFF);
+  if (rebootMega() !== false) throw new Error("Blank EEPROM should not load");
+  if (feedSchedules[0].targetGrams !== 500 || !feedSchedules[2].enabled) throw new Error("Defaults not in place");
+});
+
+runTest("29. Phase 3: schedule changes survive a Mega power cycle", () => {
+  processRemoteCommand("CMD|ID:p3a|ACTION:SCHEDULE_SET|IDX:0|HR:6|MIN:45|TGT:300|EN:1");
+  processRemoteCommand("CMD|ID:p3b|ACTION:SCHEDULE_SET|IDX:1|HR:0|MIN:0|TGT:250|EN:0");
+  processRemoteCommand("CMD|ID:p3c|ACTION:SCHEDULE_SET|IDX:2|HR:0|MIN:0|TGT:250|EN:0");
+  assertLogContains("CMD_DONE|ID:p3c|STATUS:SUCCESS");
+
+  if (rebootMega() !== true) throw new Error("Saved schedules did not load");
+  const s = feedSchedules;
+  if (s[0].hour !== 6 || s[0].minute !== 45 || s[0].targetGrams !== 300 || !s[0].enabled) throw new Error("Slot 0 not restored");
+  if (s[1].enabled || s[2].enabled) throw new Error("Deleted slots came back enabled after reboot");
+
+  // A deleted slot must not feed after the reboot (old bug: defaults re-enabled).
+  checkScheduledFeeding(12, 0);
+  if (feedingActive) throw new Error("Fed from a deleted default schedule after reboot");
+});
+
+runTest("30. Phase 3: corrupted EEPROM record is rejected (defaults used)", () => {
+  eeprom[5] ^= 0x01; // flip one bit inside slot 0
+  if (rebootMega() !== false) throw new Error("Corrupted record was accepted");
+  if (feedSchedules[0].hour !== 7) throw new Error("Defaults not restored after corruption");
+});
+
+runTest("31. Phase 3: ACK-paced RTDB restore (R0..R2) applies slots; repeating it writes nothing", () => {
+  eeprom = new Uint8Array(4096).fill(0xFF);
+  rebootMega();
+  const restoreLines = [
+    "CMD|ID:R0|ACTION:SCHEDULE_SET|IDX:0|HR:12|MIN:30|TGT:2000|EN:1",
+    "CMD|ID:R1|ACTION:SCHEDULE_SET|IDX:1|HR:0|MIN:0|TGT:250|EN:0",
+    "CMD|ID:R2|ACTION:SCHEDULE_SET|IDX:2|HR:0|MIN:0|TGT:250|EN:0"
+  ];
+  for (const line of restoreLines) {
+    // Must fit the Mega's 64-byte Serial1 RX buffer including the newline.
+    if (line.length + 1 > 64) throw new Error(`Restore line too long (${line.length + 1} bytes): ${line}`);
+    outputLog = [];
+    processRemoteCommand(line);
+    const id = line.match(/ID:(R\d)/)[1];
+    assertLogContains(`CMD_ACK|ID:${id}|STATUS:ACCEPTED`);
+  }
+  if (feedSchedules[0].hour !== 12 || feedSchedules[1].enabled || feedSchedules[2].enabled) throw new Error("Restore not applied");
+
+  const writesBefore = eepromByteWrites;
+  restoreLines.forEach(line => processRemoteCommand(line));
+  if (eepromByteWrites !== writesBefore) throw new Error("Identical restore rewrote EEPROM bytes");
+
+  if (rebootMega() !== true || feedSchedules[0].targetGrams !== 2000) throw new Error("Restored schedule not persisted");
+});
+
+runTest("32. Phase 3: restore is rejected while a remote feed is running (ESP32 retries later)", () => {
+  feedingActive = false;
+  activeRemoteCommandId = "";
+  processRemoteCommand("CMD|ID:busyfeed|ACTION:MANUAL_FEED|TARGET:100");
+  outputLog = [];
+  processRemoteCommand("CMD|ID:R0|ACTION:SCHEDULE_SET|IDX:0|HR:8|MIN:0|TGT:250|EN:1");
+  assertLogContains("CMD_ACK|ID:R0|STATUS:REJECTED|REASON:SYSTEM_BUSY");
+  if (feedSchedules[0].hour === 8) throw new Error("Busy restore should not change the slot");
+  feedingActive = false;
+  activeRemoteCommandId = "";
 });
 
 console.log("ALL SIMULATION TESTS PASSED.");

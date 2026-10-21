@@ -19,7 +19,8 @@ Arduino Mega 2560 (primary controller)
 - `ESP32Communication.ino` — Mega↔ESP32 placeholder protocol
 - `Nextion.ino` — Nextion display interface placeholder
 - `SDLogging.ino` — CSV data logging
-- `Safety.ino` — emergency stop and buzzer
+- `Safety.ino` — emergency stop (latched until reset) and buzzer
+- `ScheduleStorage.ino` — feeding schedules saved to and loaded from EEPROM (survive power loss)
 
 ## Libraries required
 

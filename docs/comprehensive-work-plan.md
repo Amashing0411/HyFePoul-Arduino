@@ -251,6 +251,55 @@ Regression after Phase 2:
 
 **Exit:** a simulated reboot test shows schedules restored from both EEPROM and RTDB with no duplicate feeding.
 
+#### 3.1 Trace of current behaviour (2026-10-21, before any Phase 3 change)
+
+Where the truth lives today: **RTDB** `/schedules/{deviceId}/sched_0..2` holds what the user set. The **Mega** holds `feedSchedules[3]` in RAM only, with hard-coded defaults of 07:00, 12:00 and 18:00, 500 g each, all enabled (`Config.ino:100`). There is no other copy.
+
+| Scenario | What happens now | Problem |
+|----------|------------------|---------|
+| App restart or second session | The app re-reads `/schedules` | None |
+| User edits a schedule while the device is online | App writes `/schedules/...` and queues `SCHEDULE_SET`; ESP32 polls every 5 s and forwards it over UART; Mega overwrites the slot in RAM | See F26: the UART line may be cut off |
+| Edit while the device is offline for more than 5 min | ESP32 later marks the command `failed / STALE_COMMAND` | RTDB and the Mega now disagree until the next edit |
+| **Mega reset or power loss** | RAM is lost and the Mega falls back to the 3 defaults | **The device feeds 500 g at 07:00, 12:00 and 18:00 even if the user deleted or changed those schedules, while the app still shows the user's schedules** |
+| ESP32 reset | Nothing is re-sent | A missed or failed sync is never repaired |
+| New user, nothing in `/schedules` | The app shows empty slots | The Mega silently runs the 3 defaults |
+| Delete or disable | `SCHEDULE_SET … EN:0`; the Mega disables the slot in RAM | Lost on reset, so the defaults come back **enabled** |
+| Same `SCHEDULE_SET` twice | The slot is overwritten with identical values | None (idempotent) |
+| Mega offline | Keeps running its RAM schedules from the RTC | Correct, but only until the next reset |
+| Cloud-saved vs device-confirmed | The app shows "Syncing…" while the command is in flight; `completed` means the Mega accepted it | Nothing persistent records what the device is actually running |
+| `SYSTEM_START` | Logged to SD only (`Config.ino`); never sent to the ESP32 | The ESP32 cannot tell that the Mega restarted |
+
+**F26 (new, affects all UART commands).** The AVR core gives `Serial1` a **64-byte** receive buffer (`HardwareSerial.h`: `SERIAL_RX_BUFFER_SIZE 64` on boards with more than 1 KB RAM). A `SCHEDULE_SET` line built from an app command is about **81 bytes**. A `MANUAL_FEED` line is about 61 bytes. The Mega drains the buffer only once per loop, then sits in `delay(100)`. While it waits, a line longer than 64 bytes loses its tail, newline included, and runs into the next line. On hardware, app schedule changes would very likely arrive cut off; the reply would be a rejection or no `CMD_ACK` at all (`UART_TIMEOUT`). The JS simulators pass whole strings, so they cannot show this. Other blocking spots that make it worse:
+- The Nextion refresh writes about 130 bytes at 9600 baud, which blocks around 70 ms once the 64-byte transmit buffer is full.
+- `pulseIn` waits up to 30 ms when the ultrasonic sensor is missing.
+- `scale.get_units(3)` waits for about 2–3 HX711 samples while feeding.
+- SD card writes.
+
+#### 3.2 Design implemented in Phase 3 (D4)
+
+- **Mega EEPROM store.** A 25-byte record at address 0: magic `0x4846`, version 1, three slots (hour, minute, float target, enabled), and a rotate-XOR checksum. It is loaded at boot after a check of magic, version, checksum and value ranges. If the check fails (blank or corrupt EEPROM), the defaults are used, as decided in D4, and `SCHEDULES_DEFAULTS` is logged. It is saved after every accepted `SCHEDULE_SET`. `EEPROM.put` uses `update()`, so unchanged bytes are not rewritten (no extra wear from repeated restores).
+- **`SYSTEM_START` to the ESP32.** The Mega queues `EVENT|SYSTEM_START` at boot. The ESP32 does not forward it to RTDB (it is not on the alert whitelist); it uses it as the restore trigger.
+- **RTDB is the source of truth when online.** The ESP32 restores after its own boot, after `EVENT|SYSTEM_START`, and after any `SCHEDULE_SET` that failed (stale, rejected, or timed out). It reads `/schedules/{deviceId}` and sends **one slot at a time**, waiting for each `CMD_ACK` before sending the next, so lines never arrive back to back. A slot missing from RTDB is sent as **disabled**, which removes the "new user runs hidden defaults" mismatch. If the read fails, nothing is changed and the EEPROM copy stays in charge. A rejection (for example `SYSTEM_BUSY` during a feed) or a missing ACK means a retry after 30 s.
+- **Short restore IDs.** Restore lines use `R0`, `R1` and `R2`, which keeps every restore line at 63 bytes or less including the newline. They are not written to `/commands`.
+- **Reducing F26 on the Mega.** The main-loop `delay()` becomes a wait that keeps reading the ESP32 UART, and the Nextion refresh writes one field per update, so it no longer blocks on the transmit buffer. **Remaining risk:** the 61–81-byte app command lines can still be cut off if they arrive during an SD write, a missing-sensor `pulseIn`, or the HX711 read while feeding. A cut-off `SCHEDULE_SET` now triggers a restore, which repairs it. Other commands fail visibly with `UART_TIMEOUT`. Shorter app command IDs on the UART are a possible Phase 4 item, and the bench test in Phase 7 should measure this.
+- **Not done (deferred by D4):** a device-confirmed marker in RTDB, which needs a rules change.
+
+#### 3.3 Phase 3 results (2026-10-21, branch `phase3-schedule-persistence`)
+
+| Commit | Content |
+|--------|---------|
+| `f6f6bae` | Trace and design (3.1, 3.2) |
+| `270c597` | Mega: `ScheduleStorage.ino` EEPROM store, `SYSTEM_START` to the ESP32, UART servicing during the idle wait, one Nextion field per update |
+| `27834d9` | ESP32: RTDB → Mega restore, paced by ACK, with `R0`–`R2` IDs and retries |
+
+Tests:
+- Mega simulator 33/33 (new tests 28–32: blank/corrupt EEPROM, power-cycle persistence including deleted defaults staying deleted, restore lines of 64 bytes or less, no EEPROM rewrites on a repeated restore, restore rejected while busy).
+- ESP32 simulator restore tests R1–R4 pass against the emulator rules. Test 5 now asserts the stale-command write.
+- Rules 61/61, Jest 25/25, mobile commands and E2E pass.
+- Both firmware builds compile: Mega RAM 2,427 B (29%), ESP32 flash 1,056,004 B (80%).
+
+**Exit criterion met in simulation only.** The JS simulators mirror the C++; they do not run it. The 64-byte UART limit, the real EEPROM, and restore timing need the bench checks added to `hardware-commissioning-procedure.md` §9 "Schedule persistence".
+
 ### Phase 4 — ESP32 robustness
 
 | ID | Task |

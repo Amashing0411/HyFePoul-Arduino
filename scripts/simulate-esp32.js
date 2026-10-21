@@ -146,6 +146,7 @@ async function simulate() {
   console.log(JSON.stringify(alerts, null, 2));
 
   await testCommands();
+  await testScheduleRestore();
 
   console.log("======================================");
   console.log("ESP32 SIMULATION SUCCESSFUL!");
@@ -252,7 +253,11 @@ async function testCommands() {
   });
   queued = await esp32PollCommands();
   if (queued && queued["cmd_stale"]) {
-    await esp32UpdateStatus("cmd_stale", "failed", "STALE_COMMAND");
+    // Must actually succeed: the rules previously rejected queued -> failed
+    // and this test did not notice (fixed by RULES-1).
+    if (!(await esp32UpdateStatus("cmd_stale", "failed", "STALE_COMMAND"))) {
+      throw new Error("ESP32 could not mark the stale command failed");
+    }
     console.log("  -> Stale command correctly marked failed by ESP32");
   }
 
@@ -317,6 +322,73 @@ async function testCommands() {
   console.log("  -> Multiple queued commands read successfully, C++ logic iterates them sequentially.");
 
   console.log("\nALL COMMAND TESTS PASSED.");
+}
+
+// ---------------------------------------------------------
+// Schedule Restore (Phase 3)
+// ---------------------------------------------------------
+
+// Mirrors fetchScheduleRestoreLines() in HyFePoul_ESP32.ino: one SCHEDULE_SET
+// per slot; missing/invalid slots are sent disabled; whole grams.
+const buildScheduleRestoreLines = (schedules) => {
+  const lines = [];
+  for (let i = 0; i < 3; i++) {
+    const slot = (schedules || {})[`sched_${i}`] || {};
+    const valid = typeof slot.enabled === 'boolean' &&
+      Number.isInteger(slot.hour) && slot.hour >= 0 && slot.hour <= 23 &&
+      Number.isInteger(slot.minute) && slot.minute >= 0 && slot.minute <= 59 &&
+      typeof slot.targetGrams === 'number' && slot.targetGrams > 0 && slot.targetGrams <= 2000;
+    const grams = Math.max(1, valid ? Math.round(slot.targetGrams) : 250);
+    lines.push(`CMD|ID:R${i}|ACTION:SCHEDULE_SET|IDX:${i}|HR:${valid ? slot.hour : 0}|MIN:${valid ? slot.minute : 0}|TGT:${grams}|EN:${valid && slot.enabled ? 1 : 0}`);
+  }
+  return lines;
+};
+
+async function testScheduleRestore() {
+  console.log("\n======================================");
+  console.log("RUNNING PHASE 3 SCHEDULE RESTORE TESTS");
+  console.log("======================================");
+
+  const adminPut = async (path, data) => {
+    const res = await fetch(`http://${EMULATOR_HOST}:${EMULATOR_RTDB_PORT}/${path}.json?ns=${NAMESPACE}`, {
+      method: 'PUT', headers: { 'Authorization': 'Bearer owner' }, body: JSON.stringify(data)
+    });
+    if (res.status !== 200) throw new Error(`adminPut ${path} failed`);
+  };
+  const deviceReadSchedules = async (token = idToken) => {
+    const res = await fetch(`http://${EMULATOR_HOST}:${EMULATOR_RTDB_PORT}/schedules/${DEVICE_ID}.json?ns=${NAMESPACE}&auth=${token}`);
+    return { status: res.status, body: res.status === 200 ? await res.json() : null };
+  };
+  const assert = (cond, msg) => { if (!cond) throw new Error(msg); };
+
+  console.log("Test R1: device reads /schedules with its own token; slots map to restore lines");
+  await adminPut(`schedules/${DEVICE_ID}`, {
+    sched_0: { scheduleId: "sched_0", hour: 9, minute: 30, targetGrams: 250, enabled: true, daysOfWeek: [1,2,3,4,5,6,7] },
+    sched_2: { scheduleId: "sched_2", hour: 18, minute: 0, targetGrams: 1999.6, enabled: false, daysOfWeek: [1,2,3,4,5,6,7] }
+  });
+  let read = await deviceReadSchedules();
+  assert(read.status === 200, `Device could not read schedules (HTTP ${read.status})`);
+  let lines = buildScheduleRestoreLines(read.body);
+  assert(lines[0] === "CMD|ID:R0|ACTION:SCHEDULE_SET|IDX:0|HR:9|MIN:30|TGT:250|EN:1", `R0 wrong: ${lines[0]}`);
+  assert(lines[1] === "CMD|ID:R1|ACTION:SCHEDULE_SET|IDX:1|HR:0|MIN:0|TGT:250|EN:0", `Missing slot not disabled: ${lines[1]}`);
+  assert(lines[2] === "CMD|ID:R2|ACTION:SCHEDULE_SET|IDX:2|HR:18|MIN:0|TGT:2000|EN:0", `R2 wrong: ${lines[2]}`);
+
+  console.log("Test R2: no schedules in RTDB -> every slot sent disabled");
+  await adminPut(`schedules/${DEVICE_ID}`, null);
+  read = await deviceReadSchedules();
+  assert(read.status === 200 && read.body === null, "Expected empty schedules");
+  lines = buildScheduleRestoreLines(read.body);
+  assert(lines.every(l => l.endsWith("|EN:0")), "Empty RTDB must disable all slots");
+
+  console.log("Test R3: worst-case line fits the Mega's 64-byte UART buffer");
+  const worst = buildScheduleRestoreLines({ sched_2: { hour: 23, minute: 59, targetGrams: 2000, enabled: true } })[2];
+  assert(worst.length + 1 <= 64, `Restore line is ${worst.length + 1} bytes`);
+
+  console.log("Test R4: failed read (bad token) -> no restore lines, Mega keeps its EEPROM copy");
+  read = await deviceReadSchedules("wrong_token");
+  assert(read.status === 401 || read.status === 403, `Expected permission denied, got ${read.status}`);
+
+  console.log("\nALL SCHEDULE RESTORE TESTS PASSED.");
 }
 
 simulate().catch(err => {

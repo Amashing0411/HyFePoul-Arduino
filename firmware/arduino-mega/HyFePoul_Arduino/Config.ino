@@ -195,6 +195,9 @@ void initializeSystem() {
   initializeRTC();
   initializeSD();
 
+  // After SD so the load result is logged.
+  initializeSchedules();
+
   // Initial sensor reads.
   updateFeedLevel();
   updateHydration();
@@ -206,6 +209,9 @@ void initializeSystem() {
   Serial.println(F("================================"));
 
   logEventToSD("SYSTEM_START");
+
+  // Tells the ESP32 to re-send the RTDB schedules after a Mega restart.
+  queueAlertEvent("SYSTEM_START");
 }
 
 void initializePins() {

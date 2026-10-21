@@ -46,7 +46,7 @@ void loop() {
   // Non-blocking alarm handling.
   updateBuzzer();
 
-  // Small loop interval. Replace with millis()-based scheduling later
-  // if tighter response time is required.
-  delay(MAIN_LOOP_DELAY_MS);
+  // Small loop interval. The wait keeps reading the ESP32 UART so command
+  // lines longer than the 64-byte receive buffer are not cut off.
+  waitServicingESP32(MAIN_LOOP_DELAY_MS);
 }
