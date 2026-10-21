@@ -17,11 +17,11 @@ Read these before starting new work:
 
 | Subsystem | Status |
 |-----------|--------|
-| **Arduino Mega** (primary controller) | Logic complete: feeding, hydration, latching E-stop, EEPROM schedules, SD log. Simulated (34 tests) and compile-checked. Calibration and pins **unverified**; Nextion component names are placeholders (R-20). |
+| **Arduino Mega** (primary controller) | Logic complete: feeding, hydration, latching E-stop, EEPROM schedules, SD log. Simulated (36 tests) and compile-checked. Calibration and pins **unverified**; what the load cell weighs needs a decision (R-16). |
 | **ESP32** (communication bridge) | Complete: Wi-Fi reconnect, verified TLS, Firebase sign-in, RTDB writes, command transport, schedule restore. Simulated and compile-checked; **never flashed**. |
 | **Firebase** (Auth + RTDB, Spark plan) | Rules deployed to `hyfepoul-dev` (2026-10-21) and covered by 61 tests. Firestore and Cloud Functions are **not used**. |
 | **Mobile app** (React Native / Expo SDK 57) | Feature-complete; Jest 30/30; verified on the Android emulator with a development build. **Not yet run on a physical phone against production.** Expo Go is not supported. |
-| **Nextion HMI** | HMI project in `Nextion/`; firmware mapping to the real IDs is pending (R-20). |
+| **Nextion HMI** | HMI project in `Nextion/`. Firmware writes the real Home page fields; the Stop/Start buttons are coded but stay disabled until their IDs are read on the bench (R-20). |
 
 ## Constraints (from AGENTS.md)
 
