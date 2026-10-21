@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Animated, StyleSheet, AccessibilityInfo, ViewStyle, DimensionValue } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { layout } from '../theme';
@@ -11,7 +11,8 @@ interface SkeletonProps {
 
 export default function Skeleton({ width = '100%', height = 20, style }: SkeletonProps) {
   const { colors } = useTheme();
-  const opacity = useRef(new Animated.Value(0.3)).current;
+  // Lazy state keeps one Animated.Value per mount without reading a ref during render.
+  const [opacity] = useState(() => new Animated.Value(0.3));
 
   useEffect(() => {
     let animation: Animated.CompositeAnimation;

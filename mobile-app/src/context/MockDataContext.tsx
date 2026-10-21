@@ -28,7 +28,7 @@ export const MockDataProvider = ({ children }: { children: ReactNode }) => {
   const [systemData, setSystemData] = useState<SystemData>(mockSystemData);
   const [schedules, setSchedules] = useState<FeedSchedule[]>(mockSchedules);
   const [alerts, setAlerts] = useState<Alert[]>(mockAlerts);
-  const [history, setHistory] = useState<SystemData[]>(mockHistory);
+  const [history] = useState<SystemData[]>(mockHistory);
   
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

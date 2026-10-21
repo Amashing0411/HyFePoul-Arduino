@@ -45,8 +45,11 @@ export function useAlertNotifications() {
   const { t } = useLanguage();
 
   // Keep the latest translator without re-subscribing on language change.
+  // Updated in an effect, not during render.
   const tRef = useRef(t);
-  tRef.current = t;
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
 
   const activeDeviceId = ownedDevices && ownedDevices.length > 0 ? ownedDevices[0].id : null;
 

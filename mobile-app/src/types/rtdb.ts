@@ -33,9 +33,8 @@ export interface RTDBDevice {
 /**
  * A historical snapshot of the device state stored in /systemData/{deviceId}/{pushId}
  */
-export interface RTDBSystemDataSnapshot extends RTDBDeviceState {
-  // Same exact properties as RTDBDeviceState, representing a fixed point in time.
-}
+// Same exact properties as RTDBDeviceState, representing a fixed point in time.
+export type RTDBSystemDataSnapshot = RTDBDeviceState;
 
 export type RTDBAlertType = 'LOW_FEED' | 'LOW_WATER' | 'WATER_PUMP_TIMEOUT' | 'EMERGENCY_STOP' | 'DEVICE_OFFLINE';
 
