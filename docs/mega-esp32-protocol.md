@@ -157,6 +157,18 @@ The control path (`Mobile App → Backend → ESP32 → Mega → Actuator`) is s
 *   **Authentication:** Handled entirely by the backend/mobile app; the serial protocol assumes incoming ESP32 commands are pre-authorized.
 *(Note: DO NOT implement these commands in firmware yet).*
 
+> **Superseded.** Remote commands were implemented in Checkpoints 5B.7–5B.9 with the syntax `CMD|ID:<id>|ACTION:<command>|…`, replied to with `CMD_ACK|ID:<id>|STATUS:ACCEPTED|REJECTED|REASON:<reason>` and `CMD_DONE|ID:<id>|STATUS:SUCCESS|FAILED|REASON:<reason>`. The design constraints above (Mega-side validation, safety overrides) still apply. Rewriting this section to match the firmware is Phase 4 item ESP-5.
+
+## 12a. Schedule Persistence and Restore (Phase 3)
+
+*   **Line length limit:** The Mega's `Serial1` receive buffer is **64 bytes**. Any ESP32 → Mega line should be 63 bytes or less plus `\n`. App-originated command lines can be longer (about 81 bytes for `SCHEDULE_SET`). The Mega reads the UART continuously while idle to absorb them, but they are not guaranteed to survive a moment when the Mega is busy elsewhere.
+*   **`EVENT|SYSTEM_START`** (Mega → ESP32): sent once after every Mega boot. The ESP32 does not forward it to RTDB; it triggers a schedule restore.
+*   **Mega EEPROM:** every accepted `SCHEDULE_SET` is saved to EEPROM (25-byte record with magic, version and checksum) and reloaded at boot. A blank or corrupt record falls back to the firmware defaults.
+*   **Restore** (ESP32 → Mega): after ESP32 boot, after `SYSTEM_START`, or after a failed `SCHEDULE_SET`, the ESP32 reads `/schedules/{deviceId}` and sends, **one at a time, waiting for each `CMD_ACK`**:
+    `CMD|ID:R<i>|ACTION:SCHEDULE_SET|IDX:<i>|HR:<h>|MIN:<m>|TGT:<whole grams>|EN:<0|1>` for `i` = 0, 1, 2.
+    A slot missing from RTDB is sent with `EN:0`. If the RTDB read fails, nothing is sent and the Mega keeps its EEPROM copy. If a line is rejected (for example `SYSTEM_BUSY` during a feed) or gets no ACK within 3 s, the restore is retried after 30 s.
+*   `R0`–`R2` are local IDs. They are never written to `/commands`, and the Mega handles them like any other command ID.
+
 ## 13. Data Flow Examples
 
 **A. Normal Startup:**

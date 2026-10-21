@@ -127,6 +127,13 @@ For both the Pump and Dispenser motor:
 **SD**: Verify card detection. Trigger a system event, pull SD card, read on PC to confirm log integrity.
 **Nextion**: Verify boot and baud rate. Verify feed/water data mirrors Mega state. Disconnect UART, verify screen handles timeout gracefully.
 
+**Schedule persistence (Phase 3)**:
+1. Set a schedule from the app (ESP32 connected), then disconnect the ESP32 UART wires, power-cycle the Mega, and verify the serial log shows `Schedules loaded from EEPROM.` and that the schedule still fires at its set local time.
+2. On a Mega with blank EEPROM, verify `No valid schedules in EEPROM; using defaults.`
+3. With the ESP32 connected and online, change a schedule in the app, power-cycle only the Mega, and verify the ESP32 log shows `Schedule restore complete.` and that the Mega slots match the app (including deleted slots staying disabled).
+4. Delete all schedules in the app, power-cycle the Mega, and verify that no feed happens at 07:00, 12:00 or 18:00.
+5. **UART line integrity (F26):** send 20 schedule edits from the app while the Mega is idle and 10 while feeding. Record how many `SCHEDULE_SET` commands end in `UART_TIMEOUT`, and confirm each one is followed by `Schedule restore complete.`
+
 ## 10. Software/Hardware Discrepancy Procedure
 
 If the physical hardware behaves differently than the software assumes, DO NOT blindly modify firmware to bypass the test.

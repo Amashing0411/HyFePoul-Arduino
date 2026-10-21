@@ -284,6 +284,22 @@ Where the truth lives today: **RTDB** `/schedules/{deviceId}/sched_0..2` holds w
 - **Reducing F26 on the Mega.** The main-loop `delay()` becomes a wait that keeps reading the ESP32 UART, and the Nextion refresh writes one field per update, so it no longer blocks on the transmit buffer. **Remaining risk:** the 61–81-byte app command lines can still be cut off if they arrive during an SD write, a missing-sensor `pulseIn`, or the HX711 read while feeding. A cut-off `SCHEDULE_SET` now triggers a restore, which repairs it. Other commands fail visibly with `UART_TIMEOUT`. Shorter app command IDs on the UART are a possible Phase 4 item, and the bench test in Phase 7 should measure this.
 - **Not done (deferred by D4):** a device-confirmed marker in RTDB, which needs a rules change.
 
+#### 3.3 Phase 3 results (2026-10-21, branch `phase3-schedule-persistence`)
+
+| Commit | Content |
+|--------|---------|
+| `f6f6bae` | Trace and design (3.1, 3.2) |
+| `270c597` | Mega: `ScheduleStorage.ino` EEPROM store, `SYSTEM_START` to the ESP32, UART servicing during the idle wait, one Nextion field per update |
+| `27834d9` | ESP32: RTDB → Mega restore, paced by ACK, with `R0`–`R2` IDs and retries |
+
+Tests:
+- Mega simulator 33/33 (new tests 28–32: blank/corrupt EEPROM, power-cycle persistence including deleted defaults staying deleted, restore lines of 64 bytes or less, no EEPROM rewrites on a repeated restore, restore rejected while busy).
+- ESP32 simulator restore tests R1–R4 pass against the emulator rules. Test 5 now asserts the stale-command write.
+- Rules 61/61, Jest 25/25, mobile commands and E2E pass.
+- Both firmware builds compile: Mega RAM 2,427 B (29%), ESP32 flash 1,056,004 B (80%).
+
+**Exit criterion met in simulation only.** The JS simulators mirror the C++; they do not run it. The 64-byte UART limit, the real EEPROM, and restore timing need the bench checks added to `hardware-commissioning-procedure.md` §9 "Schedule persistence".
+
 ### Phase 4 — ESP32 robustness
 
 | ID | Task |
