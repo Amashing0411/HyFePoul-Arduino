@@ -58,7 +58,7 @@ export default function ClaimDeviceScreen() {
       style={[styles.container, { backgroundColor: colors.background }]} 
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.formContainer}>
           <Text style={[typography.h1, { color: colors.text, textAlign: 'center', marginBottom: 8 }]}>Claim Device</Text>
           <Text style={[typography.bodySecondary, { color: colors.neutral, textAlign: 'center', marginBottom: 32 }]}>

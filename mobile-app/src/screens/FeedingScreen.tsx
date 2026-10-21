@@ -209,8 +209,11 @@ export default function FeedingScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={100}
     >
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.content}
+        // Let a tap on Start Feed / Save act while the keyboard is open
+        // (the default swallows the first tap to dismiss the keyboard).
+        keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
       >
         <Card title={t('feedSystem')}>
