@@ -60,7 +60,7 @@ Arduino Mega 2560 ──UART 115200 (≤63 chars/line)── ESP32 ──HTTPS (
 | Device claiming with setup PIN (wrong PIN denied, no transfer) | App, RTDB rules | Verified (emulator, rules tests) |
 | Device online status from heartbeat age (90 s) | App | Verified (emulator), 5 unit tests |
 | History (latest 50 records), alert feed, settings (language, dark mode, text size) | App | Emulator (partial; see the matrix) |
-| Local display of feed, hopper, water, status, time and network | Mega `Nextion.ino` | Compile-checked; **component names are placeholders** |
+| Local display on the Nextion Home page (`t2` feed, `t3` water, `t4` status, `t5` time); Stop/Start buttons | Mega `Nextion.ino` | Compile-checked; touch parser simulated (tests 34–35); **button IDs disabled until read on the bench** |
 | SD CSV log | Mega `SDLogging.ino` | Compile-checked |
 | Network time to RTC (ESP32 NTP, every 30 s) | ESP32, Mega | Compile-checked |
 | HTTPS with certificate verification | ESP32 | Compile-checked |
@@ -69,10 +69,10 @@ Arduino Mega 2560 ──UART 115200 (≤63 chars/line)── ESP32 ──HTTPS (
 
 | Item | Limitation |
 |------|------------|
-| Nextion HMI (F14) | Uses placeholder component names (`tFeed`…), while the real IDs are `t0`–`t7` and `b0`–`b4` (`Nextion/Nextion_IDs.txt`). No touch-button handling, so no local E-stop reset button yet. |
+| Nextion HMI (F14) | Mapped to the real Home page fields (R-20). Stop (`b3`) and Start (`b4`, local E-stop reset) are coded but **disabled until their numeric IDs are read on the bench**; every touch is logged to make that a one-press job. The Home page has no field for hopper level % or network status. `b0`–`b2` (schedule and weight entry on the HMI) are not handled. |
 | Notifications | Delivered only while the app is running (Spark plan, no server push). Alerts raised while it is closed appear in the Notifications tab later. |
 | Alert resolution (F24) | Nothing sets `resolved: true`; the app labels records "Last reported". |
-| Water screen | Pull-to-refresh does nothing. Its "stale" label is computed only on redraw and doesn't use the heartbeat rule. |
+| Load cell meaning | The HMI labels the value "Hopper Load", while the feeding logic treats it as feed dispensed. Needs a mechanical decision (R-16). |
 | `SYSTEM_RESTART` | Always rejected by the Mega (`NOT_IMPLEMENTED_SAFELY`), by design. |
 | ESP32 → Mega link health | The Mega tracks the link (15 s); the ESP32 does not track the Mega. |
 | Feeding accuracy | `scale.get_units(3)` blocks for roughly 2–3 HX711 samples per loop while feeding, which can let feed overshoot. Not measured. |
@@ -104,12 +104,12 @@ Arduino Mega 2560 ──UART 115200 (≤63 chars/line)── ESP32 ──HTTPS (
 | 2 | Real-token ESP32 sign-in untested (F27 fix) | High | Watch the first boot on the serial monitor. |
 | 3 | Load-cell calibration factor `-7050.0f` is a placeholder | High | Feeding weights are meaningless until calibrated. |
 | 4 | Relay active level and NO/NC wiring unverified | High | Code assumes HIGH = ON. |
-| 5 | Nextion component mapping (F14) | Medium | Display will not update correctly on the real HMI. |
+| 5 | Load cell weighs the hopper or the dispensed feed? (R-16) | High | If it weighs the hopper, the current feeding logic never reaches its target and every feed times out. |
 | 6 | `systemData` unbounded growth | Medium | Retention decision needed. |
 | 7 | HX711 blocking read while feeding | Medium | Possible overshoot; residual UART-blocking window. |
 | 8 | Firebase web API key not restricted (SEC-2) | Medium | The key is public in `eas.json` (by design for web keys); restrict it in Google Cloud Console. |
 | 9 | Old `Config.h` values in git history | Low–Medium | Probably the emulator test password; rotate it if it was used for the production device account. |
-| 10 | Water screen refresh and stale label | Low | See §4. |
+| 10 | Nextion button IDs not yet confirmed | Low | Stop/Start on the HMI do nothing until set (procedure §9). |
 | 11 | Stale design docs (`architecture.md`, `api-contract.md`, `firebase-backend-architecture.md`) | Low | Still describe Firestore and Cloud Functions. |
 
 ## 7. Hardware-dependent assumptions

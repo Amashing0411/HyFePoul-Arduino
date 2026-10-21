@@ -1,5 +1,9 @@
 firebase-debug.log
 firebase-debug.*.log
+# Emulator logs, rewritten on every emulator run
+database-debug.log
+firestore-debug.log
+ui-debug.log
 .firebase/
 backend/functions/node_modules/
 backend/functions/lib/

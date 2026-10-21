@@ -21,7 +21,7 @@
 | Claim Device | ✅ | ✅ RTDB | ✅ | ✅ | ✅ | ✅ | ❌ |
 | Dashboard (Status) | ✅ | ✅ RTDB | ✅ | ✅ | ⚠️ | ✅ | ❌ |
 | Feeding | ✅ | ✅ RTDB | ✅ | ✅ | ⚠️ | ✅ | ❌ |
-| Water | ⚠️ | ✅ RTDB | ⚠️ | ✅ | ❌ | ❌ | ❌ |
+| Water | ✅ | ✅ RTDB | ✅ | ✅ | ❌ | ❌ | ❌ |
 | History | ✅ | ✅ RTDB | ✅ | ✅ | ✅ (service) | ❌ | ❌ |
 | Notifications | ✅ | ✅ RTDB + local notifications | ✅ | ✅ | ✅ (service) | ✅ | ❌ |
 | Settings | ✅ | ✅ Auth | — | — | ❌ | ❌ | ❌ |
@@ -94,14 +94,12 @@
   - physical phone.
 
 ### Water
-- **UI:** tank status (low/high float), pump running/idle, updated time with "(Stale)".
-- **Backend:** shares the device listener.
-- **Issues (R-30):**
-  - pull-to-refresh is a no-op (`refreshData = () => {}`);
-  - the stale label is computed only on redraw;
-  - it does not show the heartbeat-based offline state.
+- **UI:** tank status (low/high float), pump running/idle, updated time with "(Stale)"; "No contact from the device since …" when offline.
+- **Backend:** shares the device listener and the context's heartbeat-based `deviceOnline` / `nowMs`.
+- **Error / loading:** skeletons while loading; error card on a listener error (before R-30 this left the skeleton up forever).
+- **R-30 done (`be9d714`):** the stale label is live; offline is shown; the no-op pull-to-refresh is removed (data is live).
 - **Emulator:** ❌ not opened in the test sessions.
-- **Remaining:** R-30; emulator and phone check.
+- **Remaining:** emulator and phone check.
 
 ### History
 - **UI:** list of the latest 50 `systemData` records, newest first, with feed, hopper and water/pump; local date and time (`toLocaleString`, which shows PHT on a phone set to the Philippines).
@@ -140,7 +138,7 @@
 |------|--------|
 | Production configuration (RTDB URL in `.env.local` and all EAS profiles; fails loudly if missing) | ✅ |
 | No mock data in the production path (`MockDataContext` not mounted) | ✅ |
-| Unused Firestore/Functions initialisation in `services/firebase.ts` | ⚠️ R-32 |
+| Only Auth and RTDB initialised (Firestore/Functions removed, R-32) | ✅ |
 | Listener clean-up on sign-out (access denied afterwards) | ✅ automated |
 | Expo Go | ❌ not supported (expo-notifications on SDK 57); use a development build |
 | Lint | ❌ no mobile ESLint (R-33) |

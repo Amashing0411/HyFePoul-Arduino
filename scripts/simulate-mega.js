@@ -134,6 +134,46 @@ const updateLinkStatus = () => {
   esp32Online = esp32ReportsOnline && linkAlive;
 };
 
+// --- Nextion touch input (Nextion.ino) ---
+const NEXTION_ID_UNSET = 255;
+let nextionIds = { page: NEXTION_ID_UNSET, stop: NEXTION_ID_UNSET, start: NEXTION_ID_UNSET };
+let nextionFrame = [];
+let nextionFfCount = 0;
+let nextionLastButton = NEXTION_ID_UNSET;
+let nextionLastButtonMs = -Infinity;
+const NEXTION_BUTTON_DEBOUNCE_MS = 500;
+
+const processNextionFrame = (frame) => {
+  if (frame.length !== 4 || frame[0] !== 0x65) return;
+  const [, page, id] = frame;
+  outputLog.push(`NEXTION_TOUCH:${page}:${id}`);
+  if (nextionIds.page === NEXTION_ID_UNSET || page !== nextionIds.page) return;
+  if (id === nextionLastButton && simMillis - nextionLastButtonMs < NEXTION_BUTTON_DEBOUNCE_MS) return;
+  if (id === nextionIds.stop) {
+    nextionLastButton = id; nextionLastButtonMs = simMillis;
+    if (!emergencyStopActive) tripEmergencyStop();
+  } else if (id === nextionIds.start) {
+    nextionLastButton = id; nextionLastButtonMs = simMillis;
+    const reason = resetEmergencyStop();
+    if (reason) outputLog.push(`NEXTION_START_REJECTED:${reason}`);
+  }
+};
+
+// Mirrors handleNextionInput(): frames end with FF FF FF.
+const feedNextionBytes = (bytes) => {
+  for (const b of bytes) {
+    if (b === 0xFF) {
+      nextionFfCount++;
+      if (nextionFfCount === 3) { processNextionFrame(nextionFrame); nextionFrame = []; nextionFfCount = 0; }
+      continue;
+    }
+    while (nextionFfCount > 0 && nextionFrame.length < 32) { nextionFrame.push(0xFF); nextionFfCount--; }
+    nextionFfCount = 0;
+    if (nextionFrame.length < 32) nextionFrame.push(b); else nextionFrame = [];
+  }
+};
+const touch = (page, id, event = 0x00) => [0x65, page, id, event, 0xFF, 0xFF, 0xFF];
+
 // Mirrors finishRemoteCommand() in ESP32Communication.ino.
 const finishRemoteCommand = (status, reason = "") => {
   if (activeRemoteCommandId === "") return;
@@ -845,6 +885,55 @@ runTest("33. Phase 4: online status follows ESP32 STATUS reports plus a 15 s lin
   simMillis += 16000;
   updateLinkStatus();
   if (esp32Online) throw new Error("Silent link should time out to offline");
+});
+
+runTest("34. R-20: Nextion buttons do nothing until their IDs are configured", () => {
+  emergencyStopActive = false;
+  emergencyButtonPressed = false;
+  pinStates.EMERGENCY_STOP_PIN = 1;
+  nextionIds = { page: NEXTION_ID_UNSET, stop: NEXTION_ID_UNSET, start: NEXTION_ID_UNSET };
+  feedNextionBytes(touch(1, 12));
+  assertLogContains("NEXTION_TOUCH:1:12"); // logged so the IDs can be discovered
+  if (emergencyStopActive) throw new Error("Unconfigured button must not act");
+});
+
+runTest("35. R-20: b3 latches the stop; b4 resets only with the E-stop button released", () => {
+  nextionIds = { page: 1, stop: 12, start: 13 };
+  emergencyStopActive = false;
+  emergencyButtonPressed = false;
+  pinStates.EMERGENCY_STOP_PIN = 1;
+  simMillis = 100000;
+  alertQueue = [];
+
+  // Noise the HMI also sends: startup bytes, an invalid-variable error, page text.
+  feedNextionBytes([0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x88, 0xFF, 0xFF, 0xFF, 0x1A, 0xFF, 0xFF, 0xFF]);
+  feedNextionBytes([...Buffer.from('Sched.t4.txt+=":"'), 0xFF, 0xFF, 0xFF]);
+  if (emergencyStopActive) throw new Error("Noise frames must be ignored");
+
+  // b3 press + release within the debounce window: one stop.
+  feedNextionBytes(touch(1, 12, 0x01));
+  feedNextionBytes(touch(1, 12, 0x00));
+  if (!emergencyStopActive) throw new Error("b3 should latch the stop");
+  if (alertQueue.filter(a => a === "EMERGENCY_STOP").length !== 1) throw new Error("Stop should trigger once");
+
+  // b4 while the physical E-stop is pressed: rejected.
+  pinStates.EMERGENCY_STOP_PIN = 0;
+  simMillis += 1000;
+  feedNextionBytes(touch(1, 13));
+  assertLogContains("NEXTION_START_REJECTED:PHYSICAL_ESTOP_ENGAGED");
+  if (!emergencyStopActive) throw new Error("Reset must be refused while the button is pressed");
+
+  // Button released: b4 resets.
+  pinStates.EMERGENCY_STOP_PIN = 1;
+  simMillis += 1000;
+  feedNextionBytes(touch(1, 13));
+  if (emergencyStopActive) throw new Error("b4 should reset the latch");
+
+  // Same IDs on another page do nothing.
+  simMillis += 1000;
+  feedNextionBytes(touch(4, 12));
+  if (emergencyStopActive) throw new Error("Touches on other pages must be ignored");
+  alertQueue = [];
 });
 
 console.log("ALL SIMULATION TESTS PASSED.");

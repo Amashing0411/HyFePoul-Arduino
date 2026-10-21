@@ -133,6 +133,13 @@ For both the Pump and Dispenser motor:
 **SD**: Verify card detection. Trigger a system event, pull SD card, read on PC to confirm log integrity.
 **Nextion**: Verify boot and baud rate. Verify feed/water data mirrors Mega state. Disconnect UART, verify screen handles timeout gracefully.
 
+**Nextion buttons (R-20)**: the Stop (`b3`) and Start (`b4`) buttons are disabled in firmware until their IDs are confirmed.
+1. In the Nextion Editor, tick **Send Component ID** on the Touch Release Event of `b3` and `b4`, and upload the HMI.
+2. With the Mega USB serial monitor open (115200), press `b3` and then `b4`. Note the `Nextion touch: page P id C` lines.
+3. Set `NEXTION_HOME_PAGE_ID`, `NEXTION_STOP_BUTTON_ID` and `NEXTION_START_BUTTON_ID` at the top of `Nextion.ino` to those numbers, then re-flash.
+4. Verify that `b3` latches the stop (actuators off, `STOPPED` shown, `EMERGENCY_STOP` alert) and that `b4` shows `Status: RELEASE E-STOP` while the physical button is pressed and resets the latch once it is released.
+5. Confirm that other buttons (`b0`–`b2`) and other pages do not stop or reset anything.
+
 **Schedule persistence (Phase 3)**:
 1. Set a schedule from the app (ESP32 connected), then disconnect the ESP32 UART wires, power-cycle the Mega, and verify the serial log shows `Schedules loaded from EEPROM.` and that the schedule still fires at its set local time.
 2. On a Mega with blank EEPROM, verify `No valid schedules in EEPROM; using defaults.`

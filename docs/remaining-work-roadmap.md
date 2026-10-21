@@ -24,13 +24,14 @@ Tasks are ordered by priority: **P1** safety and security, **P2** blockers for a
 | R-12 | Hardware | Ultrasonic empty/full distances; float switch polarity; relay polarity and NO/NC | Placeholders in `Config.ino` / `Hydration.ino` | R-10 | `Config.ino`, `Hydration.ino`, `Feeding.ino` | HIT-09, HIT-10, HIT-11 | Readings and actuator states match the physical state | BLOCKED | Yes |
 | R-13 | App / backend | Install a build on a **physical Android phone** against production: owner sign-in, owned-device discovery (deployed APP-0 rule), live state, a command round trip, notifications | Never done against production | Production device provisioned (R-14) | `mobile-app` only if defects appear | HIT-15, plus the app matrix manual checks | All matrix rows marked "Phone: PASS" | NOT STARTED | Partly (the round trip needs the device) |
 | R-14 | Firebase | Confirm production provisioning of `device-001`: device Auth account, `devices/device-001/deviceAuthUid`, `deviceSecrets/device-001/setupPin` | Required for the ESP32 and for claiming | none | none (console) | Read-only checks in the console | All three present and consistent | NOT STARTED (confirm) | No |
+| R-16 | Hardware / firmware | **Decide what the load cell weighs.** The HMI labels its value "Hopper Load", but `Feeding.ino` tares the scale at the start of each feed and stops when the reading **rises** to the target (feed dispensed into a weighed tray). If the cell is under the hopper, the feeding logic must instead stop when the reading **drops** by the target | Wrong assumption means feeds never stop (they time out) or stop at once | Mechanical design | `Feeding.ino`, `Nextion` HMI label, README | HIT-08 | Physical arrangement documented and the feeding logic matches it | NOT STARTED (decision) | Yes |
 | R-15 | Integration | Mega ↔ ESP32 UART on hardware: `DATA`/`EVENT`/`TIME`/`STATUS`/commands, plus the F26 line-integrity measurement | All protocol work is simulated | R-10 | firmware only if defects appear | HIT-04, HIT-05 | No `UART_TIMEOUT` over 30 app commands; restore completes after a Mega reset | BLOCKED | Yes |
 
 ## P3: Integration quality
 
 | ID | Subsystem | Description | Why | Depends on | Files likely to change | Test procedure | Acceptance criteria | Status | HW |
 |----|-----------|-------------|-----|-----------|------------------------|----------------|---------------------|--------|----|
-| R-20 | Firmware | Nextion: map the real component IDs (`t0`–`t7`), handle `b3 Stop` and `b4 Start` (local E-stop reset, D1), keep the one-field-per-update pacing (F14) | Display shows nothing correct today; no local reset | none (code); R-10 to verify | `Nextion.ino`, `Safety.ino`, `Nextion/Nextion_IDs.txt` | Mega simulator test for the reset path; HIT-12 | Fields update; `b4` resets the latch only when the button is released | NOT STARTED | Verify: Yes |
+| R-20 | Firmware | Nextion: map the real component IDs (`t0`–`t7`), handle `b3 Stop` and `b4 Start` (local E-stop reset, D1), keep the one-field-per-update pacing (F14) | Display shows nothing correct today; no local reset | none (code); R-10 to verify | `Nextion.ino`, `Safety.ino`, `Nextion/Nextion_IDs.txt` | Mega simulator test for the reset path; HIT-12 | Fields update; `b4` resets the latch only when the button is released | IN PROGRESS: code done (`85053de`, sim tests 34–35); button IDs disabled until read on the bench (procedure §9 "Nextion buttons") | Verify: Yes |
 | R-21 | Firmware | Non-blocking HX711 read while feeding (e.g. a single sample when ready, plus a moving average) | `get_units(3)` blocks; possible overshoot; residual UART window | R-11 for tuning | `Feeding.ino` | Simulator; HIT-08 overshoot measurement | Overshoot within tolerance; loop time measured | NOT STARTED | Verify: Yes |
 | R-22 | Data | Decide `systemData` retention (sampling interval for history and/or periodic cleanup) | About 2 MB/day, unbounded (estimate) | Usage data from commissioning | `HyFePoul_ESP32.ino` and/or an admin script | Measure usage in the console over 24 h | Documented policy; growth within the chosen budget | NOT STARTED (decision) | No |
 | R-23 | App + firmware | Alert resolution (F24): either forward clear events (e.g. `EMERGENCY_STOP_RELEASED`, low feed cleared) or derive "resolved" in the app from device state | Alerts never resolve | none | ESP32 whitelist and/or `useDeviceAlerts.ts` | Emulator plus simulator | Alerts show resolved when the condition clears | NOT STARTED | No |
@@ -41,15 +42,15 @@ Tasks are ordered by priority: **P1** safety and security, **P2** blockers for a
 
 | ID | Subsystem | Description | Why | Depends on | Files likely to change | Test procedure | Acceptance criteria | Status | HW |
 |----|-----------|-------------|-----|-----------|------------------------|----------------|---------------------|--------|----|
-| R-30 | App | Water screen: use `deviceOnline`/`nowMs` for stale status; make refresh real or remove it | Inconsistent with the Dashboard | none | `WaterScreen.tsx` | Emulator | Stale/offline status matches the Dashboard | NOT STARTED | No |
+| R-30 | App | Water screen: use `deviceOnline`/`nowMs` for stale status; make refresh real or remove it | Inconsistent with the Dashboard | none | `WaterScreen.tsx` | Emulator | Stale/offline status matches the Dashboard | DONE (`be9d714`; also fixes an endless skeleton on listener error). Not yet opened on the emulator | No |
 | R-31 | App | Scroll the schedule editor into view when it opens | It opens under the tab bar | none | `FeedingScreen.tsx` | Emulator | Save visible without scrolling | NOT STARTED | No |
-| R-32 | App | Remove the unused Firestore/Functions initialisation and imports (F21) | Dead code; extra bundle | none | `services/firebase.ts`, `AuthContext.tsx` | `tsc`, Jest, emulator smoke test | No Firestore/Functions imports in `src` | NOT STARTED | No |
+| R-32 | App | Remove the unused Firestore/Functions initialisation and imports (F21) | Dead code; extra bundle | none | `services/firebase.ts`, `AuthContext.tsx` | `tsc`, Jest, emulator smoke test | No Firestore/Functions imports in `src` | DONE (`47e8006`; tsc + Jest 30/30) | No |
 | R-33 | App | Mobile ESLint config and `lint` script (F16) | No linting today | none | `mobile-app/package.json`, eslint config | `npm run lint` | Runs clean or with a documented baseline | NOT STARTED | No |
 | R-34 | App | Tagalog strings reviewed by a native speaker | Strings written without review | none | `i18n/translations.ts` | Review | Approved | NOT STARTED | No |
 | R-35 | App | Confirmation before sign-out | Destructive-ish action without a prompt | none | `SettingsScreen.tsx` | Emulator | Prompt shown | NOT STARTED | No |
 | R-36 | Docs | Rewrite or retire `architecture.md`, `api-contract.md`, `firebase-backend-architecture.md` (they describe Firestore/Cloud Functions) | Misleading for thesis readers | none | those files | Review | Match the RTDB architecture, or marked historical | NOT STARTED | No |
 | R-37 | Repo | Choose a project license | None exists | Group decision | `LICENSE`, `README.md` | none | License file present | NOT STARTED (owner) | No |
-| R-38 | Repo | Stop tracking `database-debug.log` and `firestore-debug.log` | Emulator runs keep modifying them | none | `.gitignore` | `git status` after an emulator run | Clean | NOT STARTED | No |
+| R-38 | Repo | Stop tracking `database-debug.log` and `firestore-debug.log` | Emulator runs keep modifying them | none | `.gitignore` | `git status` after an emulator run | Clean | DONE (`bdad629`; tree clean after a full emulator run) | No |
 
 ## P5: Optional
 
@@ -75,6 +76,6 @@ Tasks are ordered by priority: **P1** safety and security, **P2** blockers for a
 
 ## Suggested order
 
-1. **Now, no hardware needed:** R-04, R-05, R-14 (owner actions); R-20, R-30, R-32, R-35, R-38 (small code changes); R-36 (docs).
+1. **Now, no hardware needed:** R-04, R-05, R-14, R-16 (owner and team decisions); R-31, R-33, R-35 (small code changes); R-36 (docs). R-30, R-32 and R-38 are done; R-20 is done in code and only needs its button IDs read on the bench.
 2. **When the prototype arrives:** R-10 → R-03 → R-15 → R-01/R-02 → R-11/R-12 → R-21 → R-13 (phone against production) → R-25.
 3. **After the first 24 h of real data:** R-22, then R-23 and R-24.
