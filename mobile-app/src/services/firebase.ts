@@ -2,8 +2,6 @@ import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getAuth, connectAuthEmulator, initializeAuth } from 'firebase/auth';
 // @ts-ignore - TS resolves the browser types by default, missing the RN export
 import { getReactNativePersistence } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
-import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import { getDatabase, connectDatabaseEmulator } from 'firebase/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -48,13 +46,8 @@ const auth = initializeAuth(app, {
   persistence: typeof window !== 'undefined' ? getReactNativePersistence(AsyncStorage) : undefined
 });
 
-// Initialize Firestore (default in-memory cache)
-const db = getFirestore(app);
-
-// Initialize Cloud Functions (default region us-central1)
-const functions = getFunctions(app);
-
-// Initialize Realtime Database
+// Initialize Realtime Database (the only data store the app uses; the earlier
+// Firestore / Cloud Functions pipeline is not deployed, see docs/notifications.md)
 const rtdb = getDatabase(app);
 
 // Use local emulators in development if explicit environment variable is set
@@ -73,4 +66,4 @@ if (useFirebaseEmulator) {
 }
 
 // Re-export getAuth for isolated imports if needed, though we export our single instance
-export { app, auth, db, functions, rtdb, getAuth };
+export { app, auth, rtdb, getAuth };
