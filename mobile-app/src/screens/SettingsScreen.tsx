@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Switch, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Switch, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -13,6 +13,14 @@ export default function SettingsScreen() {
 
   const handleFontChange = (size: 'small' | 'medium' | 'large') => {
     setFontSize(size);
+  };
+
+  // Signing out stops live updates and phone notifications, so confirm first.
+  const confirmLogOut = () => {
+    Alert.alert(t('logOut'), t('logOutConfirm'), [
+      { text: t('cancel'), style: 'cancel' },
+      { text: t('logOut'), style: 'destructive', onPress: () => signOut() },
+    ]);
   };
 
   return (
@@ -146,13 +154,13 @@ export default function SettingsScreen() {
         {/* Logout */}
         <TouchableOpacity
           style={styles.logoutButton}
-          onPress={() => signOut()}
+          onPress={confirmLogOut}
           accessible={true}
           accessibilityRole="button"
-          accessibilityLabel="Log Out"
+          accessibilityLabel={t('logOut')}
         >
           <Ionicons name="log-out-outline" size={24} color="#e74c3c" />
-          <Text style={[typography.body, styles.logoutText]}>Log Out</Text>
+          <Text style={[typography.body, styles.logoutText]}>{t('logOut')}</Text>
         </TouchableOpacity>
       </View>
     </View>

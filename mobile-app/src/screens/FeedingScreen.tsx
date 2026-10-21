@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { ScrollView, View, Text, StyleSheet, Switch, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Card from '../components/Card';
 import ProgressBar from '../components/ProgressBar';
 import StatusBadge from '../components/StatusBadge';
 import Skeleton from '../components/Skeleton';
-import EmptyState from '../components/EmptyState';
 import Button from '../components/Button';
 import { useFirebaseData } from '../context/FirebaseDataContext';
 import { useTheme } from '../context/ThemeContext';
@@ -39,6 +38,9 @@ export default function FeedingScreen() {
   // null = manual feed form hidden. Alert.prompt is iOS-only, so the target
   // is entered inline to work on Android.
   const [manualTarget, setManualTarget] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollViewHeight = useRef(0);
+  const scrollOffset = useRef(0);
 
   const formatTime = (h: number, m: number) => {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
@@ -95,7 +97,7 @@ export default function FeedingScreen() {
     try {
       await updateSchedule(payload);
       setEditingIndex(null);
-    } catch (e) {
+    } catch {
       Alert.alert("Error", "Failed to save schedule.");
     }
   };
@@ -120,7 +122,7 @@ export default function FeedingScreen() {
                 scheduleId: `sched_${index}`,
                 hour: 0, minute: 0, targetGrams: 250, enabled: false, daysOfWeek: [1,2,3,4,5,6,7]
               });
-            } catch (e) {
+            } catch {
               Alert.alert("Error", "Failed to delete schedule.");
             }
           }
@@ -138,7 +140,7 @@ export default function FeedingScreen() {
         ...existing,
         enabled: !currentEnabled
       });
-    } catch (e) {
+    } catch {
       Alert.alert("Error", "Failed to toggle schedule.");
     }
   };
@@ -182,6 +184,19 @@ export default function FeedingScreen() {
     );
   };
 
+  // Without this, a listener error left the loading skeleton up forever.
+  if (error && !systemData) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.content}>
+          <Card title="Data Error">
+            <Text style={[typography.body, { color: colors.error }]}>{error}</Text>
+          </Card>
+        </View>
+      </View>
+    );
+  }
+
   if (loading || !deviceData || !systemData) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -213,6 +228,10 @@ export default function FeedingScreen() {
       keyboardVerticalOffset={100}
     >
       <ScrollView
+        ref={scrollRef}
+        onLayout={(e) => { scrollViewHeight.current = e.nativeEvent.layout.height; }}
+        onScroll={(e) => { scrollOffset.current = e.nativeEvent.contentOffset.y; }}
+        scrollEventThrottle={100}
         contentContainerStyle={styles.content}
         // Let a tap on Start Feed / Save act while the keyboard is open
         // (the default swallows the first tap to dismiss the keyboard).
@@ -325,7 +344,20 @@ export default function FeedingScreen() {
           
           if (isEditing) {
             return (
-              <Card key={`edit_${index}`} title={`Edit Schedule ${index + 1}`}>
+              // The editor opens at the bottom of the list, partly under the
+              // tab bar; scroll it fully into view once it has been laid out.
+              <View
+                key={`edit_${index}`}
+                onLayout={(e) => {
+                  const { y, height } = e.nativeEvent.layout;
+                  // Scroll down only if the editor's bottom is out of view.
+                  const target = y + height + spacing.md - scrollViewHeight.current;
+                  if (target > scrollOffset.current) {
+                    scrollRef.current?.scrollTo({ y: target, animated: true });
+                  }
+                }}
+              >
+              <Card title={`Edit Schedule ${index + 1}`}>
                 <View style={styles.formRow}>
                   <View style={styles.inputGroup}>
                     <Text style={typography.caption}>Time</Text>
@@ -372,6 +404,7 @@ export default function FeedingScreen() {
                   </View>
                 </View>
               </Card>
+              </View>
             );
           }
 

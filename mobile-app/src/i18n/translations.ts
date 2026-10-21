@@ -112,6 +112,8 @@ export const translations = {
     awaitingScaleReading: 'Waiting for the next scale reading from the device.',
     schedulesRunDaily: 'Up to 3 schedules. Each runs every day at the set local time. Changes are sent to the device automatically.',
     lastHeardFrom: 'No contact from the device since {time}.',
+    logOut: 'Log Out',
+    logOutConfirm: 'Log out of HyFePoul? You will stop receiving device updates and notifications on this phone until you log in again.',
     deviceOfflineHint: 'The device is offline. Manual feeding is unavailable until it reconnects; scheduled feeding continues on the device.',
 
     // History
@@ -243,6 +245,8 @@ export const translations = {
     awaitingScaleReading: 'Hinihintay ang susunod na basa ng timbangan mula sa device.',
     schedulesRunDaily: 'Hanggang 3 iskedyul. Bawat isa ay tumatakbo araw-araw sa itinakdang oras. Awtomatikong ipinapadala ang mga pagbabago sa device.',
     lastHeardFrom: 'Walang balita mula sa device mula noong {time}.',
+    logOut: 'Mag-log Out',
+    logOutConfirm: 'Mag-log out sa HyFePoul? Hindi ka na makakatanggap ng balita at abiso mula sa device sa teleponong ito hanggang mag-log in ka muli.',
     deviceOfflineHint: 'Offline ang device. Hindi magagamit ang manwal na pakain hanggang makakonekta ito muli; tuloy pa rin ang nakaiskedyul na pakain sa device.',
 
     // History
