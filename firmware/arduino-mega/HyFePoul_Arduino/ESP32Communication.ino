@@ -36,10 +36,11 @@ void handleESP32Communication() {
     lastDataSendMillis = millis();
   }
 
-  // If an alert was queued, send it once.
-  if (pendingAlertEvent.length() > 0) {
-    sendEventToESP32(pendingAlertEvent);
-    pendingAlertEvent = "";
+  // Send at most one queued alert per loop to keep UART bursts short.
+  if (alertQueueCount > 0) {
+    sendEventToESP32(alertQueue[alertQueueHead]);
+    alertQueueHead = (alertQueueHead + 1) % ALERT_QUEUE_SIZE;
+    alertQueueCount--;
   }
 }
 
@@ -143,8 +144,19 @@ void sendEventToESP32(const String& eventName) {
   Serial.println(eventName);
 }
 
-void queueAlertEvent(const String& eventName) {
-  pendingAlertEvent = eventName;
+// eventName must be a string literal (the queue stores the pointer).
+void queueAlertEvent(const char* eventName) {
+  if (alertQueueCount == ALERT_QUEUE_SIZE) {
+    // Queue full: drop the oldest alert so the newest state is reported.
+    Serial.print(F("WARNING: alert queue full, dropped: "));
+    Serial.println(alertQueue[alertQueueHead]);
+    alertQueueHead = (alertQueueHead + 1) % ALERT_QUEUE_SIZE;
+    alertQueueCount--;
+  }
+
+  uint8_t tail = (alertQueueHead + alertQueueCount) % ALERT_QUEUE_SIZE;
+  alertQueue[tail] = eventName;
+  alertQueueCount++;
 }
 
 String extractMegaValue(String line, String key) {

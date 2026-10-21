@@ -155,8 +155,15 @@ bool sdAvailable = false;
 unsigned long lastSDLogMillis = 0;
 
 // Alerts
-String pendingAlertEvent = "";
+// Small FIFO so alerts raised in the same loop are not overwritten.
+// Entries point to string literals, so no copies are kept in RAM.
+const uint8_t ALERT_QUEUE_SIZE = 4;
+const char* alertQueue[ALERT_QUEUE_SIZE];
+uint8_t alertQueueHead = 0;
+uint8_t alertQueueCount = 0;
+
 bool lowFeedAlertSent = false;
+bool lowWaterAlertSent = false;
 // Set when the pump hits its max runtime; blocks restarts until the high
 // float switch is reached or the E-stop is reset.
 bool waterPumpFaultLatched = false;

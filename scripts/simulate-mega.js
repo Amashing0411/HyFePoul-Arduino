@@ -47,8 +47,34 @@ let waterPumpActive = false;
 let waterPumpStartMillis = 0;
 let waterPumpFaultLatched = false;
 
+// --- Alert queue (Config.ino / ESP32Communication.ino) ---
+const ALERT_QUEUE_SIZE = 4;
+let alertQueue = [];
+let lowWaterAlertSent = false;
+
 const queueAlertEvent = (eventName) => {
   outputLog.push(`QUEUED:${eventName}`);
+  if (alertQueue.length === ALERT_QUEUE_SIZE) {
+    outputLog.push(`DROPPED:${alertQueue.shift()}`);
+  }
+  alertQueue.push(eventName);
+};
+
+// One alert per loop, as in handleESP32Communication().
+const sendNextAlert = () => {
+  if (alertQueue.length > 0) outputLog.push(`EVENT|${alertQueue.shift()}`);
+};
+
+const checkLowWaterAlert = () => {
+  const cannotRefill = emergencyStopActive || waterPumpFaultLatched;
+  if (waterLow && cannotRefill) {
+    if (!lowWaterAlertSent) {
+      lowWaterAlertSent = true;
+      queueAlertEvent("LOW_WATER");
+    }
+  } else if (!waterLow) {
+    lowWaterAlertSent = false;
+  }
 };
 
 const startWaterPump = () => {
@@ -85,9 +111,10 @@ const controlWaterPump = () => {
 const updateHydration = () => {
   if (emergencyStopActive) {
     stopWaterPump();
-    return;
+  } else {
+    controlWaterPump();
   }
-  controlWaterPump();
+  checkLowWaterAlert();
 };
 
 // Mirrors finishRemoteCommand() in ESP32Communication.ino.
@@ -492,6 +519,55 @@ runTest("21. FW-2: pump timeout latches and does not restart while water stays l
   waterHigh = true;
   updateHydration();
   if (waterPumpFaultLatched) throw new Error("High level should clear the fault latch");
+});
+
+runTest("22. FW-3: alerts raised in the same loop are all delivered in order", () => {
+  alertQueue = [];
+  queueAlertEvent("FEEDING_COMPLETED");
+  queueAlertEvent("LOW_FEED");
+  sendNextAlert();
+  sendNextAlert();
+  const events = outputLog.filter(l => l.startsWith("EVENT|"));
+  if (events.join(",") !== "EVENT|FEEDING_COMPLETED,EVENT|LOW_FEED") {
+    throw new Error("Unexpected event order: " + events.join(","));
+  }
+});
+
+runTest("23. FW-3: full alert queue drops the oldest entry", () => {
+  alertQueue = [];
+  ["A", "B", "C", "D", "E"].forEach(queueAlertEvent);
+  assertLogContains("DROPPED:A");
+  if (alertQueue.join(",") !== "B,C,D,E") throw new Error("Queue contents: " + alertQueue.join(","));
+  alertQueue = [];
+});
+
+runTest("24. FW-3: LOW_WATER only when pump cannot refill, once per low episode", () => {
+  alertQueue = [];
+  emergencyStopActive = false;
+  waterPumpFaultLatched = false;
+  waterPumpActive = false;
+  lowWaterAlertSent = false;
+  simMillis = 0;
+  waterHigh = false;
+  waterLow = true;
+
+  // Normal refill: no LOW_WATER.
+  updateHydration();
+  assertLogNotContains("QUEUED:LOW_WATER");
+
+  // Pump times out while still low: LOW_WATER raised exactly once.
+  simMillis = WATER_PUMP_MAX_RUNTIME_MS;
+  updateHydration();
+  updateHydration();
+  const count = outputLog.filter(l => l === "QUEUED:LOW_WATER").length;
+  if (count !== 1) throw new Error(`Expected 1 LOW_WATER, got ${count}`);
+
+  // Clean up hydration state.
+  waterLow = false;
+  waterHigh = true;
+  updateHydration();
+  waterHigh = false;
+  alertQueue = [];
 });
 
 console.log("ALL SIMULATION TESTS PASSED.");

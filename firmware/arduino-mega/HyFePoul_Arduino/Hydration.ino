@@ -16,10 +16,27 @@ void updateHydration() {
 
   if (emergencyStopActive) {
     stopWaterPump("EMERGENCY_STOP");
-    return;
+  } else {
+    controlWaterPump();
   }
 
-  controlWaterPump();
+  checkLowWaterAlert();
+}
+
+// LOW_WATER is only actionable when the pump cannot refill the drinker
+// (E-stop active or pump fault latched). Normal refill cycles stay silent.
+void checkLowWaterAlert() {
+  bool cannotRefill = emergencyStopActive || waterPumpFaultLatched;
+
+  if (waterLow && cannotRefill) {
+    if (!lowWaterAlertSent) {
+      lowWaterAlertSent = true;
+      queueAlertEvent("LOW_WATER");
+      logEventToSD("LOW_WATER");
+    }
+  } else if (!waterLow) {
+    lowWaterAlertSent = false;
+  }
 }
 
 bool isWaterLow() {
