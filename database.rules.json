@@ -13,6 +13,7 @@
       }
     },
     "devices": {
+      ".read": "auth != null && query.orderByChild === 'ownerId' && query.equalTo === auth.uid",
       ".indexOn": ["ownerId"],
       "$deviceId": {
         ".read": "auth != null && (data.child('ownerId').val() === auth.uid || data.child('deviceAuthUid').val() === auth.uid)",
@@ -75,7 +76,7 @@
             ".validate": "
               (!data.exists() && newData.val() === 'queued') ||
               (data.exists() && (
-                (data.val() === 'queued' && newData.val() === 'acknowledged') ||
+                (data.val() === 'queued' && (newData.val() === 'acknowledged' || newData.val() === 'failed')) ||
                 (data.val() === 'acknowledged' && (newData.val() === 'executing' || newData.val() === 'failed')) ||
                 (data.val() === 'executing' && (newData.val() === 'completed' || newData.val() === 'failed'))
               ))

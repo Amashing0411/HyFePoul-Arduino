@@ -402,6 +402,61 @@ async function runTests() {
     await assertSucceeds(esp32_3Db.ref("schedules/dev3").once("value"));
   });
 
+  // ==========================================
+  // OWNER DEVICE DISCOVERY (Phase 2, APP-0)
+  // The app finds owned devices with
+  // query(ref('devices'), orderByChild('ownerId'), equalTo(uid)).
+  // ==========================================
+
+  await test("Device discovery: owner can query own devices by ownerId", async () => {
+    const snap = await user2Db.ref("devices").orderByChild("ownerId").equalTo("owner2").once("value");
+    if (!snap.child("dev2").exists()) throw new Error("Owner query did not return dev2");
+    if (snap.child("dev3").exists()) throw new Error("Owner query returned another owner's device");
+  });
+
+  await test("Device discovery: owner cannot query another user's devices", async () => {
+    await assertFails(user2Db.ref("devices").orderByChild("ownerId").equalTo("owner3").once("value"));
+  });
+
+  await test("Device discovery: owner cannot read the whole devices list", async () => {
+    await assertFails(user2Db.ref("devices").once("value"));
+  });
+
+  await test("Device discovery: unauthenticated query denied", async () => {
+    await assertFails(unauthDb.ref("devices").orderByChild("ownerId").equalTo("owner2").once("value"));
+  });
+
+  // ==========================================
+  // STALE COMMAND FAILURE (Phase 2, RULES-1)
+  // The ESP32 marks commands older than 5 min as failed straight from queued.
+  // ==========================================
+
+  const staleCommand = (id) => ({
+    commandId: id,
+    command: "MANUAL_FEED",
+    issuedBy: "owner3",
+    createdAt: 1790000000000,
+    status: "queued"
+  });
+
+  await test("Stale command: device can move queued -> failed", async () => {
+    await assertSucceeds(owner3Db.ref("commands/dev3/cmdStale1").set(staleCommand("cmdStale1")));
+    await assertSucceeds(esp32_3Db.ref("commands/dev3/cmdStale1").update({ status: "failed", error: "STALE_COMMAND" }));
+  });
+
+  await test("Stale command: owner cannot move queued -> failed", async () => {
+    await assertSucceeds(owner3Db.ref("commands/dev3/cmdStale2").set(staleCommand("cmdStale2")));
+    await assertFails(owner3Db.ref("commands/dev3/cmdStale2/status").set("failed"));
+  });
+
+  await test("Stale command: another device cannot fail this device's command", async () => {
+    await assertFails(esp32Db.ref("commands/dev3/cmdStale2/status").set("failed"));
+  });
+
+  await test("Stale command: queued cannot jump to completed", async () => {
+    await assertFails(esp32_3Db.ref("commands/dev3/cmdStale2/status").set("completed"));
+  });
+
   console.log(`\nTests finished: ${passed} passed, ${failed} failed.`);
 
   process.exit(failed > 0 ? 1 : 0);
