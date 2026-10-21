@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-21
 **Repository:** https://github.com/Amashing0411/HyFePoul-Arduino (branch `main`, last commit `2ac6bc7`)
-**Status of this document:** Phase 0 (baseline) complete; see §1.1. Phase 1 (firmware fixes FW-1 to FW-5) complete in software on branch `phase1-firmware-fixes`; see §2 Phase 1 results. Physical verification is pending.
+**Status of this document:** Phase 0 (baseline) complete; see §1.1. Phase 1 (firmware fixes FW-1 to FW-5) complete in software on branch `phase1-firmware-fixes`; see §2 Phase 1 results. Phase 2 core items (APP-0, RULES-1, APP-1, TEST-1, SEC-1, HYG-1) complete on branch `phase2-rules-app-config`; the rules are not deployed. Physical verification is pending.
 
 This plan merges two inputs:
 
@@ -155,6 +155,38 @@ Each fix gets one commit, updates `scripts/simulate-mega.js` so it mirrors the C
 | SEC-2 (F17) | Recommend restricting the web API key in Google Cloud Console (owner action; no code). | — | Approval needed, since it is an account change. |
 | HYG-1 (F12) | Untrack the root `node_modules/` (`git rm -r --cached`) and add it to `.gitignore`. | `.gitignore` | Only removes it from the index; local files stay. |
 
+**Phase 2 results (2026-10-21, branch `phase2-rules-app-config`, stacked on `phase1-firmware-fixes`):**
+
+| ID | Commit | Status |
+|----|--------|--------|
+| APP-0 (F18) | `257d811` | DONE in the repo. **Not deployed to production.** |
+| RULES-1 (F19) | `257d811` | DONE in the repo. **Not deployed to production.** |
+| APP-1 (F6) | `4d2800c` | DONE. The production URL was confirmed read-only: the regional host answers `Permission denied` to unauthenticated requests, while the legacy `firebaseio.com` host returns 404. `.env.local` was updated locally (gitignored). Not yet run on a device. |
+| TEST-1 (F20) | `07ea2a8` | DONE |
+| SEC-1 (F11) | `644ebb2` | DONE. The old values remain in git history. |
+| HYG-1 (F12) | `91a681a` | DONE. Index-only removal; restore with `npm install` at the repo root. |
+| APP-2, APP-3, APP-4, SEC-2 | — | NOT STARTED |
+
+New rules tests: owner device query (own uid allowed; other uid, unfiltered read and unauthenticated access denied) and stale commands (device `queued → failed` allowed; owner, other device, and `queued → completed` denied). Against the previous rules, the two positive cases fail, so the tests do detect the change.
+
+The new rules take effect for the real app only after a production deploy:
+```bash
+firebase deploy --only database --project hyfepoul-dev
+```
+Run it only with explicit approval.
+
+Regression after Phase 2:
+
+| Suite | Result |
+|-------|--------|
+| RTDB rules | 61/61 PASS (53 + 8 new) |
+| Mobile Jest (`npm test` under emulators) | 25/25 PASS (was 18 pass / 8 fail) |
+| ESP32 simulator, mobile commands, E2E journey | PASS |
+| Mega simulator | 28/28 PASS |
+| Mobile `tsc --noEmit` | PASS |
+| Backend lint | PASS (0 errors, 3 warnings) |
+| Mega and ESP32 compile | PASS. `Config.example.h` also compiles when copied to `Config.h`. |
+
 ### Phase 3 — Schedule persistence and recovery
 
 **Trace first. Do not implement until the trace is written down.**
@@ -235,8 +267,8 @@ Every bench check for the Phase 1 fixes (E-stop during a remote feed, holding th
 | D2 | Push notifications without Blaze? | **DECIDED:** in-app alert feed plus local notifications while the app is running. Delivery while the app is closed is documented as not available on Spark. |
 | D3 | Days of week: honour on the Mega, or hide in the app? | **DECIDED:** hide in the app; schedules run daily. No protocol change. |
 | D4 | Schedule persistence: EEPROM, RTDB restore, and device confirmation path (rules change)? | **DECIDED:** EEPROM plus RTDB restore. The device confirmation path is deferred until a rules review. |
-| D5 | Untrack `node_modules/` and `Config.h` (index-only removals)? | **OPEN.** Recommended: yes. To be confirmed before Phase 2. |
-| D6 | RTDB rules changes APP-0 (owner device query) and RULES-1 (`queued → failed`)? Repo and tests first, production deploy as a separate step. | **OPEN.** Recommended: yes to both in the repo. Deploy after tests pass and with explicit approval. |
+| D5 | Untrack `node_modules/` and `Config.h` (index-only removals)? | **DECIDED and DONE** (Phase 2). |
+| D6 | RTDB rules changes APP-0 (owner device query) and RULES-1 (`queued → failed`)? Repo and tests first, production deploy as a separate step. | **DECIDED:** done in the repo with tests (Phase 2). **Production deploy still needs explicit approval.** |
 
 ## 4. Order of execution
 
