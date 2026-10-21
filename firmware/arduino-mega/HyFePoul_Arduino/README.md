@@ -51,18 +51,19 @@ Install the required libraries through Arduino IDE's Library Manager where neces
 15. Whether the application will be native mobile or web fallback.
 16. Physical emergency-stop circuit.
 
-## ESP32 protocol currently proposed
+## ESP32 protocol
 
-ESP32 → Mega:
-- `TIME|YYYY-MM-DD|HH:MM:SS`
-- `STATUS|ONLINE`
-- `STATUS|OFFLINE`
+The full, current specification is [`docs/mega-esp32-protocol.md`](../../../docs/mega-esp32-protocol.md). In short:
+
+ESP32 → Mega (each line at most 63 characters + `\n`, because `Serial1` has a 64-byte receive buffer):
+- `TIME|YYYY-MM-DD|HH:MM:SS` (UTC)
+- `STATUS|ONLINE` / `STATUS|OFFLINE` (every 10 s; also the link heartbeat)
+- `CMD|ID:<C0-C9 or R0-R2>|ACTION:<action>|…`
 
 Mega → ESP32:
-- `DATA|feedWeight|hopperLevel|waterLow|waterHigh|pump|feeding|emergency|timeSource`
-- `EVENT|eventName`
-
-This is a working placeholder, not the final protocol. Coordinate it with the ESP32/backend developer before integration.
+- `DATA|feedWeight|targetFeed|hopperLevel|waterLow|waterHigh|pump|feeding|emergency|timeSource` (every 10 s)
+- `EVENT|<name>` (including `SYSTEM_START` at boot)
+- `CMD_ACK|ID:<id>|STATUS:ACCEPTED|REJECTED[|REASON:…]` and `CMD_DONE|ID:<id>|STATUS:SUCCESS|FAILED[|REASON:…]`
 
 ## CSV log
 

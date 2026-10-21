@@ -86,6 +86,12 @@ DO NOT assume voltages based on component markings without measuring.
 13. `CMD` transmitted to Mega successfully.
 14. `CMD_ACK` received from Mega.
 15. `CMD_DONE` received from Mega.
+16. **Auth with real Firebase (F27):** the serial log shows `Auth successful. UID: <uid>` and the UID matches `devices/device-001/deviceAuthUid`, followed by successful state writes (no `Failed to write state, code: 401`).
+17. **TLS verification:** with the production config, auth and RTDB requests succeed (certificate accepted by the built-in CA bundle). Optional negative test: point the ESP32 at a network with an HTTPS-intercepting proxy, and confirm requests **fail** rather than succeed.
+18. **Wi-Fi loss:** switch the access point off for at least 60 s. The ESP32 must keep running (no reboot loop), the Mega shows `OFFLINE` within about 15 s, and local feeding and hydration continue. Switch it back on: the ESP32 logs `WiFi connected`, signs in again if needed, sends `STATUS|ONLINE`, and logs `Schedule restore complete.`
+19. **Boot without Wi-Fi:** power the ESP32 with the access point off. It must start, send `STATUS|OFFLINE` to the Mega, and connect later when the access point comes back.
+20. **UART line length:** confirm no `UART line too long` or `LINE_TOO_LONG` appears during normal app use.
+21. **Core Debug Level:** confirm the build uses **None** (no `#warning … ID token` during compile), so request URLs containing the token are never logged.
 
 ## 6. Physical E-Stop Verification
 

@@ -1,221 +1,246 @@
-# HyFePoul Mega ↔ ESP32 Serial Protocol Specification
+# HyFePoul Mega ↔ ESP32 Serial Protocol
 
-## 1. Purpose
-This document specifies the finalized software-level communication protocol between the Arduino Mega 2560 (Primary Controller) and the ESP32 (Wi-Fi/Communication Module). It builds upon the high-level data contracts established in `docs/data-communication-contract.md` by defining exact message formatting, parsing rules, and error handling for the physical serial connection.
+This document describes the serial protocol **as implemented** in `firmware/arduino-mega/HyFePoul_Arduino/` and `firmware/esp32/HyFePoul_ESP32/HyFePoul_ESP32.ino` (rewritten in Phase 4, October 2026). The earlier version of this document described a design that was never built; §11 lists the differences.
 
-*(Note: All hardware configurations mentioned herein are provisional and require physical validation on the actual hardware.)*
+The behaviour here has been checked with the JavaScript simulators (`scripts/simulate-mega.js`, `scripts/simulate-esp32.js`), which mirror the firmware logic. **It has not yet been verified on the physical serial link.**
 
-## 2. Serial Configuration
-The communication relies on a hardware UART serial connection. 
+## 1. Roles
 
-*   **Interface:** Hardware Serial (e.g., Serial1 on Arduino Mega, UART2 on ESP32)
-*   **Baud Rate:** 115200 bps *(Provisional — requires hardware validation)*
-*   **Data Bits:** 8
-*   **Parity:** None
-*   **Stop Bits:** 1
-*   **Line Termination:** `\n` (LF) for end-of-message
-*   **Character Encoding:** ASCII / UTF-8
+- **Arduino Mega 2560** is the primary controller. It owns all sensors, actuators, schedules and safety decisions. Commands from the ESP32 are requests, and the Mega validates them before acting.
+- **ESP32** is the communication bridge. It translates between this serial protocol and Firebase (Auth + Realtime Database). It never drives actuators.
 
-## 3. Message Framing
-To ensure robustness while remaining lightweight for the Arduino Mega, the protocol uses a **pipe-delimited text format with key:value pairs**. This allows for easy string tokenization without the overhead of parsing complex JSON.
+## 2. Physical link and framing
 
-**Format Structure:**
-`TYPE|KEY1:VALUE1|KEY2:VALUE2\n`
+| Setting | Value |
+|---------|-------|
+| Mega port | `Serial1` (`ESP32_SERIAL`) |
+| ESP32 port | `Serial2` (`MEGA_SERIAL`), RX 16 / TX 17 |
+| Baud | 115200, 8N1 *(provisional; confirm on hardware)* |
+| Logic levels | Mega TX is 5 V and ESP32 RX is 3.3 V, so a **level shifter or divider is required** |
+| Encoding | ASCII text |
+| Terminator | `\n`. `\r` is ignored by both sides. |
+| Field separator | `|`. Commands and replies use `KEY:value` fields; `DATA`, `EVENT`, `TIME` and `STATUS` are positional. |
 
-*   `TYPE`: The message category (e.g., `DATA`, `EVENT`, `TIME`, `CMD_RESERVED`).
-*   `|` (Pipe): Delimiter separating message segments.
-*   `:` (Colon): Delimiter separating a field key from its value.
-*   `\n` (Newline): End of message terminator.
+**Line length limit (ESP32 → Mega).** The Mega's `Serial1` receive buffer is **64 bytes** (AVR core default). Every line the ESP32 sends must therefore be **at most 63 characters plus `\n`**. The ESP32 enforces this in `sendToMega()`: longer lines are not sent, and a command that would be too long fails in RTDB as `LINE_TOO_LONG`. Consecutive ESP32 → Mega lines are spaced at least **50 ms** apart. The Mega reads the UART continuously while idle (`waitServicingESP32()`).
 
-## 4. Message Types
+**Oversized input.** The Mega discards a partial line longer than 200 characters; the ESP32 discards one longer than 512 characters.
 
-### 4.1 Mega ↔ ESP32 Shared Message Types
-*   **`HEARTBEAT`**: Periodic ping sent by both devices to verify serial link health.
+## 3. Messages: Mega → ESP32
 
-### 4.2 Mega → ESP32 Message Types
-*   **`DATA`**: Periodic transmission of complete system status (sensor readings and actuator states). Fire-and-forget.
-*   **`EVENT`**: Asynchronous notification of a state change or alert trigger.
-*   **`ACK_CMD`**: Reserved format for future Mega acknowledgment of backend commands. (Not implemented).
+### 3.1 `DATA` (system data, every 10 s)
 
-### 4.3 ESP32 → Mega Message Types
-*   **`TIME`**: Network time synchronization payload derived from NTP.
-*   **`NET_STATUS`**: Updates regarding Wi-Fi or backend connectivity.
-*   **`ACK`**: Acknowledgment of a received actionable `EVENT` message.
-*   **`CMD_RESERVED`**: Reserved format for future commands from the backend.
-
-## 5. Exact Message Format
-
-### 5.1 System Data (`DATA`)
-*   **Sender:** Mega
-*   **Receiver:** ESP32
-*   **Purpose:** Transmit the current state of all sensors and actuators.
-*   **Required Fields:** `feedWeightGrams`, `targetFeedGrams`, `hopperLevelPercent`, `waterLow`, `waterHigh`, `pumpActive`, `feedingActive`, `emergencyStopActive`, `timestamp`.
-*   **Syntax:** `DATA|feedWeightGrams:<int>|targetFeedGrams:<int>|hopperLevelPercent:<int>|waterLow:<0/1>|waterHigh:<0/1>|pumpActive:<0/1>|feedingActive:<0/1>|emergencyStopActive:<0/1>|timestamp:<ISO8601>\n`
-*   **Example:** `DATA|feedWeightGrams:450|targetFeedGrams:500|hopperLevelPercent:85|waterLow:0|waterHigh:0|pumpActive:0|feedingActive:1|emergencyStopActive:0|timestamp:2026-09-24T14:00:00Z\n`
-*   **Expected Response:** None (Fire-and-forget).
-
-### 5.2 Event Notification (`EVENT`)
-*   **Sender:** Mega
-*   **Receiver:** ESP32
-*   **Purpose:** Notify the backend of a distinct occurrence.
-*   **Fields:** `name` (required), `eventId` (required for actionable events only).
-*   **Syntax (Actionable):** `EVENT|eventId:<id>|name:<event_name>\n`
-*   **Syntax (Informational):** `EVENT|name:<event_name>\n`
-*   **Example (Actionable):** `EVENT|eventId:42-1045|name:LOW_WATER\n`
-*   **Example (Informational):** `EVENT|name:FEEDING_STARTED\n`
-*   **Expected Response:** `ACK` for actionable events; None for informational events.
-
-### 5.3 Heartbeat (`HEARTBEAT`)
-*   **Sender:** Mega & ESP32 (Bi-directional)
-*   **Receiver:** ESP32 & Mega
-*   **Purpose:** Keep-alive ping to monitor the serial link.
-*   **Syntax:** `HEARTBEAT\n`
-*   **Expected Response:** None (Each device sends its own ping independently).
-
-### 5.4 Time Synchronization (`TIME`)
-*   **Sender:** ESP32
-*   **Receiver:** Mega
-*   **Purpose:** Sync the Mega's local RTC with NTP network time.
-*   **Required Fields:** `timestamp` (ISO 8601 string in UTC)
-*   **Syntax:** `TIME|timestamp:<ISO8601>\n`
-*   **Example:** `TIME|timestamp:2026-09-24T14:00:00Z\n`
-*   **Expected Response:** None.
-
-### 5.5 Network Status (`NET_STATUS`)
-*   **Sender:** ESP32
-*   **Receiver:** Mega
-*   **Purpose:** Inform the Mega of the ESP32's network/backend connectivity (online/offline). This is completely separate from Mega↔ESP32 serial-link health, which is monitored by `HEARTBEAT`.
-*   **Syntax:** `NET_STATUS|state:<ONLINE/OFFLINE>\n`
-*   **Example:** `NET_STATUS|state:ONLINE\n`
-*   **Expected Response:** None.
-
-### 5.6 Acknowledgment (`ACK`)
-*   **Sender:** ESP32
-*   **Receiver:** Mega
-*   **Purpose:** Confirm receipt of an actionable `EVENT` message.
-*   **Syntax:** `ACK|type:EVENT|eventId:<id>\n`
-*   **Example:** `ACK|type:EVENT|eventId:42-1045\n`
-
-## 6. Event Definitions and ACK Behavior
-The Mega generates the following authorized events:
-
-| Event Name | Type | Requires ACK | Event ID Needed |
-| :--- | :--- | :--- | :--- |
-| `LOW_FEED` | Actionable | Yes | Yes |
-| `LOW_WATER` | Actionable | Yes | Yes |
-| `PUMP_TIMEOUT` | Actionable | Yes | Yes |
-| `EMERGENCY_STOP` | Actionable | Yes | Yes |
-| `DEVICE_ERROR` | Actionable | Yes | Yes |
-| `FEEDING_STARTED` | Informational | No | No |
-| `FEEDING_COMPLETED` | Informational | No | No |
-
-*(Note: `DEVICE_ONLINE` and `DEVICE_OFFLINE` are generated by the backend based on ESP32 Wi-Fi connectivity, not by the Mega).*
-
-## 7. Event ID and Duplicate Handling
-To prevent duplicate alerts when the Mega retries an unacknowledged event across restarts or network drops:
-*   **Generation:** The Mega generates a lightweight, composite event identifier consisting of a `sessionId` and a sequential `counter`. The `sessionId` distinguishes reboots (e.g., a 32-bit persistent boot counter stored in EEPROM, incremented on every startup). The `counter` is a 32-bit integer that increments per event, providing a virtually infinite unique sequence without intentional wrapping during a single session. Example: `eventId:42-1045`.
-*   **Retry:** If the Mega does not receive an `ACK`, it re-sends the exact same `EVENT` payload (reusing the exact same `eventId:42-1045`).
-*   **ESP32 Duplicate Detection:** The ESP32 caches the last few received `eventId`s (e.g., last 5). If it receives an `EVENT` with an ID already in the cache, it sends an `ACK` back to the Mega (in case the previous ACK was lost on the wire) but **does not** forward the duplicate event to the backend.
-*   **Backend Deduplication:** The backend can deduplicate events by verifying the unique `sessionId-counter` combination alongside the event name.
-*   **Restart Behavior:** Upon Mega reboot, the `sessionId` increments, and the event `counter` resets to 0. This ensures post-reboot event IDs (`43-1`) never collide with pre-reboot IDs (`42-1`), preserving reliable duplicate detection.
-
-## 8. Heartbeat / Serial Link Health
-*   **Syntax:** Both devices use the simple payload `HEARTBEAT\n` (no additional fields). No `ACK` is required for a heartbeat.
-*   **Mega → ESP32 HEARTBEAT:** ESP32 updates its last-received Mega heartbeat timestamp.
-*   **ESP32 → Mega HEARTBEAT:** Mega updates its last-received ESP32 heartbeat timestamp.
-*   **Interval:** Each endpoint independently sends a heartbeat every 30 seconds *(Provisional - requires physical validation)*.
-*   **Timeout (ESP32 Side):** If the expected heartbeat has not been received for 3 consecutive intervals (90 seconds), the ESP32 marks the Mega as unreachable internally. The backend may receive/derive a communication status later based on this internal state. (The ESP32 does *not* generate a new system-wide `DEVICE_ERROR` event just for a serial timeout, preserving existing event definitions).
-*   **Timeout (Mega Side):** If the expected heartbeat has not been received for 3 consecutive intervals (90 seconds), the Mega marks the serial link as unhealthy. 
-*   **Core Safety:** Core Mega feeding, hydration, and safety logic must continue regardless of serial-link health. Both devices continue their local responsibilities if the link fails.
-
-## 9. Malformed / Invalid Message Handling
-To protect the Mega from serial buffer overflows and parsing crashes, the following rules apply:
-*   **Missing Terminator:** If a message exceeds the maximum expected length (e.g., 256 bytes) before a `\n` is encountered, the serial buffer is flushed and the truncated message is discarded.
-*   **DATA Message Validation:** If ANY required `DATA` field is missing, malformed, contains an invalid type (e.g., non-numeric where a number is expected), contains an invalid boolean (not 0/1), or has an invalid timestamp, the ENTIRE `DATA` message must be rejected/discarded. Partially applying a `DATA` payload is strictly prohibited to prevent mixed states containing current and stale values.
-*   **EVENT Message Validation:** For `EVENT` messages, required fields must be valid; otherwise, the entire `EVENT` message is rejected.
-*   **Unknown Message Type:** Messages lacking a valid `TYPE` prefix are silently discarded.
-
-## 10. Timezone and Time Synchronization Design
-To prevent timezone logic overhead on the 8-bit Mega, **the entire hardware stack operates in UTC**.
-*   **ESP32:** Fetches NTP time in UTC.
-*   **Mega RTC:** Stores and maintains time in UTC.
-*   **Payloads:** All `timestamp` fields in `DATA` and SD logs are recorded in UTC (ISO 8601 `Z` format).
-*   **Local Time Conversion:** The conversion to Philippine Standard Time (UTC+8) for history and alert display is handled by the Mobile App.
-*   **Feed Schedules (exception):** `SCHEDULE_SET` hours and minutes are local wall-clock time, exactly as the user enters them in the app and as stored under `/schedules`. The Mega applies a fixed offset (`LOCAL_UTC_OFFSET_MINUTES = 480` in `Config.ino`) to the UTC RTC time only when matching schedules and when drawing the Nextion clock (`getLocalDateTime()`). The protocol itself is unchanged; the RTC, `DATA` and SD log remain UTC. The Philippines has no daylight saving time, so a fixed offset is sufficient.
-
-## 11. Safety / Offline Behavior
-*   **ESP32 Loses Wi-Fi/Internet:** The Mega continues local poultry-management functions using its own logic and RTC. Feeding and hydration do NOT depend on the Internet. 
-*   **Serial Communication Fails:** If the Mega ↔ ESP32 serial link breaks, the Mega continues running local safety logic. No remote command can bypass the Mega's hardcoded safety overrides.
-
-## 12. Remote Commands (RESERVED / FUTURE)
-The control path (`Mobile App → Backend → ESP32 → Mega → Actuator`) is strictly **RESERVED** for future implementation. 
-
-**Future Command Design Constraints:**
-*   **Syntax:** `CMD_RESERVED|action:<action_name>|cmd_id:<uuid>\n`
-*   **Validation:** Mega must validate all commands against local safety constraints (e.g., rejecting a remote "Pump On" if `waterHigh` is true).
-*   **Acknowledgment:** Mega must reply with `ACK_CMD|cmd_id:<uuid>|status:<SUCCESS/REJECTED>\n`.
-*   **Authentication:** Handled entirely by the backend/mobile app; the serial protocol assumes incoming ESP32 commands are pre-authorized.
-*(Note: DO NOT implement these commands in firmware yet).*
-
-> **Superseded.** Remote commands were implemented in Checkpoints 5B.7–5B.9 with the syntax `CMD|ID:<id>|ACTION:<command>|…`, replied to with `CMD_ACK|ID:<id>|STATUS:ACCEPTED|REJECTED|REASON:<reason>` and `CMD_DONE|ID:<id>|STATUS:SUCCESS|FAILED|REASON:<reason>`. The design constraints above (Mega-side validation, safety overrides) still apply. Rewriting this section to match the firmware is Phase 4 item ESP-5.
-
-## 12a. Schedule Persistence and Restore (Phase 3)
-
-*   **Line length limit:** The Mega's `Serial1` receive buffer is **64 bytes**. Any ESP32 → Mega line should be 63 bytes or less plus `\n`. App-originated command lines can be longer (about 81 bytes for `SCHEDULE_SET`). The Mega reads the UART continuously while idle to absorb them, but they are not guaranteed to survive a moment when the Mega is busy elsewhere.
-*   **`EVENT|SYSTEM_START`** (Mega → ESP32): sent once after every Mega boot. The ESP32 does not forward it to RTDB; it triggers a schedule restore.
-*   **Mega EEPROM:** every accepted `SCHEDULE_SET` is saved to EEPROM (25-byte record with magic, version and checksum) and reloaded at boot. A blank or corrupt record falls back to the firmware defaults.
-*   **Restore** (ESP32 → Mega): after ESP32 boot, after `SYSTEM_START`, or after a failed `SCHEDULE_SET`, the ESP32 reads `/schedules/{deviceId}` and sends, **one at a time, waiting for each `CMD_ACK`**:
-    `CMD|ID:R<i>|ACTION:SCHEDULE_SET|IDX:<i>|HR:<h>|MIN:<m>|TGT:<whole grams>|EN:<0|1>` for `i` = 0, 1, 2.
-    A slot missing from RTDB is sent with `EN:0`. If the RTDB read fails, nothing is sent and the Mega keeps its EEPROM copy. If a line is rejected (for example `SYSTEM_BUSY` during a feed) or gets no ACK within 3 s, the restore is retried after 30 s.
-*   `R0`–`R2` are local IDs. They are never written to `/commands`, and the Mega handles them like any other command ID.
-
-## 13. Data Flow Examples
-
-**A. Normal Startup:**
-```text
-ESP32 -> Mega: NET_STATUS|state:OFFLINE\n
-(ESP32 connects to Wi-Fi/NTP)
-ESP32 -> Mega: NET_STATUS|state:ONLINE\n
-ESP32 -> Mega: TIME|timestamp:2026-09-24T14:00:00Z\n
-Mega -> ESP32: DATA|feedWeightGrams:450|...|timestamp:2026-09-24T14:00:05Z\n
+```
+DATA|<feedWeightGrams>|<targetFeedGrams>|<hopperLevelPercent>|<waterLow>|<waterHigh>|<pumpActive>|<feedingActive>|<emergencyStopActive>|<timeSource>
 ```
 
-**B. Normal Status Transmission:**
-```text
-Mega -> ESP32: DATA|feedWeightGrams:450|targetFeedGrams:500|hopperLevelPercent:85|waterLow:0|waterHigh:0|pumpActive:0|feedingActive:0|emergencyStopActive:0|timestamp:2026-09-24T14:05:00Z\n
+- The three numbers are sent with one decimal place. The booleans are `0` or `1`. `timeSource` is `NETWORK`, `RTC` or `INVALID`.
+- It is also sent immediately in response to `STATUS_REQ`.
+- The ESP32 needs at least 9 separators. It adds a UTC timestamp from NTP and writes the result to `devices/{id}/state`, then appends it to `systemData/{id}`. It skips the write if NTP time is not yet valid.
+
+Example: `DATA|123.0|120.0|64.0|0|1|0|0|0|NETWORK`
+
+### 3.2 `EVENT`
+
+```
+EVENT|<NAME>
 ```
 
-**C. Informational Event (No ACK):**
-```text
-Mega -> ESP32: EVENT|name:FEEDING_STARTED\n
-Mega -> ESP32: DATA|feedWeightGrams:0|...|feedingActive:1|...|timestamp:2026-09-24T14:10:00Z\n
+Events are queued on the Mega (4 slots; the oldest is dropped when full) and sent one per loop. They are not acknowledged and not retried.
+
+| Event | Raised when | Forwarded to RTDB `/alerts`? |
+|-------|-------------|------------------------------|
+| `SYSTEM_START` | Every Mega boot | No. It makes the ESP32 restore schedules and resend the link status (§7). |
+| `EMERGENCY_STOP` | E-stop pressed (latches) | Yes |
+| `EMERGENCY_STOP_RELEASED` | E-stop reset (remote or serial `RESET`) | No |
+| `LOW_FEED` | Hopper at or below 20% (clears at 25% or more) | Yes |
+| `LOW_WATER` | Water low **and** the pump cannot refill it (E-stop or pump fault) | Yes |
+| `WATER_PUMP_TIMEOUT` | Pump hit its 120 s runtime limit (fault latches) | Yes |
+| `FEEDING_STARTED` / `FEEDING_COMPLETED` / `FEEDING_TIMEOUT` | Scheduled or manual feed state changes | No (logged on the Mega SD card) |
+
+`DEVICE_ERROR` is on the ESP32 whitelist but is not raised by the current Mega firmware.
+
+The ESP32 writes forwarded events with `PUT` to `/alerts/{deviceId}/{NAME}`. That gives **one record per event type**, overwritten with the latest timestamp, so a repeated event is idempotent.
+
+### 3.3 `CMD_ACK` and `CMD_DONE` (command replies)
+
+```
+CMD_ACK|ID:<id>|STATUS:ACCEPTED
+CMD_ACK|ID:<id>|STATUS:REJECTED|REASON:<reason>
+CMD_DONE|ID:<id>|STATUS:SUCCESS
+CMD_DONE|ID:<id>|STATUS:FAILED|REASON:<reason>
 ```
 
-**D. Actionable Event (Requires ACK):**
-```text
-Mega -> ESP32: EVENT|eventId:42-1045|name:LOW_WATER\n
-ESP32 -> Mega: ACK|type:EVENT|eventId:42-1045\n
+`<id>` echoes the UART ID from the `CMD` line (§4.3).
+
+## 4. Messages: ESP32 → Mega
+
+### 4.1 `TIME` (every 30 s once NTP is synced)
+
+```
+TIME|YYYY-MM-DD|HH:MM:SS
 ```
 
-**E. Event Retry (Lost ACK):**
-```text
-Mega -> ESP32: EVENT|eventId:42-1046|name:EMERGENCY_STOP\n
-(No ACK received after 2 seconds)
-Mega -> ESP32: EVENT|eventId:42-1046|name:EMERGENCY_STOP\n
-ESP32 -> Mega: ACK|type:EVENT|eventId:42-1046\n
-(ESP32 detects duplicate 42-1046, sends ACK but drops duplicate forwarding)
+The time is in UTC. The Mega rejects values with a year before 2024 or out-of-range fields. Otherwise it writes the RTC and marks the time source `NETWORK` for 5 minutes.
+
+### 4.2 `STATUS` (on change and every 10 s)
+
+```
+STATUS|ONLINE      (Wi-Fi connected and a valid Firebase session)
+STATUS|OFFLINE
 ```
 
-**F. Serial Link Health Check:**
-```text
-Mega -> ESP32: HEARTBEAT\n
-ESP32 -> Mega: HEARTBEAT\n
+On the Mega, `esp32Online` is true only if the last `STATUS` was `ONLINE` **and** some line arrived within the last **15 s**. Any line refreshes the link timer, but only `STATUS` lines change the online flag. The value feeds the Nextion network field and the SD log column.
+
+### 4.3 `CMD` (remote command)
+
+```
+CMD|ID:<id>|ACTION:<ACTION>[|<KEY>:<value>...]
 ```
 
-**G. Future Command Flow (Documentation Only):**
+**IDs.** Firebase command IDs (about 23 characters) never reach the UART. The ESP32 gives each forwarded command a short UART ID, **`C0`–`C9`** (cycling), and keeps the mapping to the Firebase ID itself. Schedule restores use **`R0`–`R2`** (§7). The Mega treats IDs as opaque strings.
+
+| `ACTION` | Parameters | Mega validation → `CMD_ACK` `REJECTED` reasons | Completion |
+|----------|------------|-----------------------------------------------|------------|
+| `MANUAL_FEED` | `TARGET:<grams>` | `MISSING_TARGET`; `INVALID_TARGET` (≤ 0 or > 5000); `ESTOP_ACTIVE`; `FEEDING_ACTIVE` | `CMD_DONE SUCCESS` when the scale reaches the target. `FAILED` with `FEEDING_TIMEOUT` (30 s) or `ESTOP_ACTIVE` (E-stop during the feed). |
+| `SCHEDULE_SET` | `IDX:<0-2>|HR:<0-23>|MIN:<0-59>|TGT:<whole grams>|EN:<0/1>` | `MALFORMED_SCHEDULE`; `INVALID_INDEX`; `INVALID_TIME`; `INVALID_TARGET` | Applied, saved to EEPROM, then `CMD_DONE SUCCESS` immediately. Hours and minutes are **local time** (§6). |
+| `ESTOP_RELEASE` | none | `PHYSICAL_ESTOP_ENGAGED` (button still pressed); `ESTOP_NOT_ACTIVE` | Clears the latch (and any pump fault), then `CMD_DONE SUCCESS`. |
+| `STATUS_REQ` | none | none | Sends `DATA`, then `CMD_DONE SUCCESS`. |
+| `SYSTEM_RESTART` | none | Always `NOT_IMPLEMENTED_SAFELY` | none |
+| anything else | | `UNKNOWN_COMMAND` | |
+
+Rejections that apply to every command:
+- `MALFORMED`: there is an `ID` but no `ACTION`. A line with no `ID` is ignored silently.
+- `DUPLICATE_ID`: the same ID as the command still in progress.
+- `SYSTEM_BUSY`: another command is still in progress. Only `MANUAL_FEED` stays in progress across loops.
+
+Longest app-originated line: `CMD|ID:C9|ACTION:SCHEDULE_SET|IDX:2|HR:23|MIN:59|TGT:2000|EN:1`, which is 62 characters.
+
+## 5. Command lifecycle (RTDB ↔ UART)
+
+The app writes `/commands/{deviceId}/{commandId}` with `status: queued`. The ESP32 polls every 5 s and handles **one command at a time**:
+
+| Step | RTDB `status` | Trigger |
+|------|---------------|---------|
+| ESP32 picks up a queued command | `acknowledged` | The UART line is built first. Then the RTDB status is updated and the `CMD` is sent. |
+| Mega accepts | `executing` | `CMD_ACK … ACCEPTED` |
+| Mega finishes | `completed` | `CMD_DONE … SUCCESS` |
+| Failure | `failed` + `error` | See below |
+
+`error` values written by the ESP32:
+- the Mega's `REASON`, or `REJECTED_BY_MEGA` / `FAILED_DURING_EXECUTION` if it gave none;
+- `STALE_COMMAND`: the command was older than 5 minutes when picked up (rules allow `queued → failed` for the device);
+- `UART_TIMEOUT`: no `CMD_ACK` within 3 s;
+- `EXECUTION_TIMEOUT`: no `CMD_DONE` within 120 s;
+- `LINE_TOO_LONG`: the UART line would exceed 63 characters.
+
+A `SCHEDULE_SET` that fails for any of these reasons also triggers a schedule restore (§7).
+
+## 6. Time and time zone
+
+- The ESP32 gets NTP time in **UTC** and the Mega RTC stores **UTC**. `DATA` timestamps (added by the ESP32), RTDB records and the SD log are all UTC.
+- **Exception, feed schedules:** `SCHEDULE_SET` hours and minutes are local wall-clock time, as the user enters them in the app and as stored under `/schedules`. The Mega applies a fixed offset (`LOCAL_UTC_OFFSET_MINUTES = 480`, Philippine Standard Time, no daylight saving) only when matching schedules and when drawing the Nextion clock (`getLocalDateTime()`).
+- The app converts UTC to local time for display.
+
+## 7. Schedule persistence and restore
+
+- **Mega EEPROM:** every accepted `SCHEDULE_SET` is saved to EEPROM, as a 25-byte record with magic, version and checksum, and reloaded at boot. A blank or corrupt record falls back to the firmware defaults.
+- **Restore (ESP32 → Mega).** It is triggered by:
+  - ESP32 boot;
+  - Wi-Fi coming back;
+  - `EVENT|SYSTEM_START`;
+  - a `SCHEDULE_SET` that went stale, was rejected, timed out or was too long.
+
+  The ESP32 reads `/schedules/{deviceId}` and sends, **one at a time, waiting for each `CMD_ACK`**:
+
+  ```
+  CMD|ID:R<i>|ACTION:SCHEDULE_SET|IDX:<i>|HR:<h>|MIN:<m>|TGT:<whole grams>|EN:<0|1>     (i = 0, 1, 2)
+  ```
+
+  - A slot missing or invalid in RTDB is sent with `EN:0`, because RTDB is the source of truth when online.
+  - If the RTDB read fails, nothing is sent and the Mega keeps its EEPROM copy.
+  - If a line is rejected (for example `SYSTEM_BUSY` during a feed) or gets no ACK within 3 s, the restore is retried after 30 s.
+  - Command polling pauses during a restore.
+  - Restore IDs are never written to `/commands`.
+
+## 8. Timing summary
+
+| What | Interval / timeout |
+|------|--------------------|
+| Mega `DATA` | 10 s |
+| ESP32 `STATUS` | 10 s and on change |
+| Mega link timeout (`esp32Online`) | 15 s without any line |
+| ESP32 `TIME` and RTDB heartbeat | 30 s |
+| ESP32 command poll | 5 s |
+| `CMD_ACK` timeout | 3 s |
+| `CMD_DONE` timeout | 120 s |
+| Stale command | older than 5 min |
+| Schedule restore retry | 30 s |
+| Wi-Fi reconnect attempt | every 15 s while disconnected |
+| Firebase sign-in retry | 30 s; token refreshed 5 min before expiry or after a 401 |
+| Gap between ESP32 → Mega lines | ≥ 50 ms |
+
+## 9. Safety and offline behaviour
+
+- **No network:** the Mega keeps running feeding, hydration, E-stop and SD logging from its RTC and EEPROM schedules. The ESP32 keeps the UART link and `STATUS|OFFLINE` going, and reconnects in the background.
+- **UART link down:** the Mega's local logic is unaffected; `esp32Online` goes false after 15 s.
+- No remote command can bypass the Mega's safety checks: the E-stop latch, the physical button check, feed limits and timeouts.
+
+## 10. Security notes (ESP32 side)
+
+- Production HTTPS requests verify Firebase's certificate against the esp32 core's built-in CA bundle (`NetworkClientSecure::useBuiltinCACertBundle()`). The emulator uses plain HTTP on the LAN.
+- The Firebase ID token is sent as the RTDB `?auth=` query parameter, which is the standard REST method, so it stays encrypted on the wire. At **Core Debug Level** Debug/Verbose, `HTTPClient` logs request URLs including the token, and the sketch emits a compile-time warning in that case. Keep the level at **None** for deployments.
+- Wi-Fi and device-account credentials live in `Config.h`, which is gitignored (template: `Config.example.h`).
+
+## 11. Differences from the original design
+
+| Original design (pre-implementation) | Implemented |
+|--------------------------------------|-------------|
+| `KEY:value` fields in `DATA` with an ISO 8601 timestamp | Positional `DATA` fields. The ESP32 adds the timestamp. |
+| Actionable `EVENT`s carry `eventId` (session-counter); the ESP32 `ACK`s; the Mega retries; the ESP32 deduplicates | No event IDs, ACKs or retries. Duplicates are harmless because RTDB alerts are `PUT` per event type. A Mega-side 4-slot queue prevents loss within a loop. |
+| `HEARTBEAT` both ways every 30 s, 90 s timeout | ESP32 `STATUS` every 10 s doubles as the heartbeat, with a 15 s timeout on the Mega. The ESP32 does **not** currently track Mega link health (the Mega sends `DATA` every 10 s, but no timeout acts on it). |
+| `NET_STATUS|state:ONLINE` | `STATUS|ONLINE` / `STATUS|OFFLINE` |
+| `TIME|timestamp:<ISO8601>` | `TIME|YYYY-MM-DD|HH:MM:SS` |
+| `CMD_RESERVED` / `ACK_CMD` (reserved, not to be implemented) | `CMD` / `CMD_ACK` / `CMD_DONE` with the full lifecycle (Checkpoints 5B.7–5B.9, short UART IDs in Phase 4) |
+| `PUMP_TIMEOUT` | `WATER_PUMP_TIMEOUT` |
+| Maximum line 256 bytes | Maximum 63 characters + `\n` toward the Mega (64-byte receive buffer) |
+
+## 12. Example exchanges
+
+**Startup (Mega boots while the ESP32 is online):**
 ```text
-ESP32 -> Mega: CMD_RESERVED|action:EMERGENCY_STOP|cmd_id:12345\n
-Mega -> ESP32: ACK_CMD|cmd_id:12345|status:SUCCESS\n
-Mega -> ESP32: EVENT|eventId:42-1047|name:EMERGENCY_STOP\n
-Mega -> ESP32: DATA|...|emergencyStopActive:1|...|timestamp:2026-09-24T14:15:00Z\n
+Mega  -> ESP32: EVENT|SYSTEM_START
+ESP32 -> Mega:  STATUS|ONLINE
+ESP32 -> Mega:  CMD|ID:R0|ACTION:SCHEDULE_SET|IDX:0|HR:7|MIN:0|TGT:250|EN:1
+Mega  -> ESP32: CMD_ACK|ID:R0|STATUS:ACCEPTED
+Mega  -> ESP32: CMD_DONE|ID:R0|STATUS:SUCCESS
+ESP32 -> Mega:  CMD|ID:R1|ACTION:SCHEDULE_SET|IDX:1|HR:0|MIN:0|TGT:250|EN:0
+...                                                     (R2, then "Schedule restore complete.")
+ESP32 -> Mega:  TIME|2026-10-21|06:00:00
+Mega  -> ESP32: DATA|0.0|0.0|64.0|0|1|0|0|0|NETWORK
+```
+
+**Manual feed from the app:**
+```text
+(RTDB /commands/device-001/cmd_1792564656742_a7djh: queued -> acknowledged)
+ESP32 -> Mega:  CMD|ID:C3|ACTION:MANUAL_FEED|TARGET:120
+Mega  -> ESP32: CMD_ACK|ID:C3|STATUS:ACCEPTED            (RTDB: executing)
+Mega  -> ESP32: DATA|40.0|120.0|64.0|0|1|0|1|0|NETWORK
+Mega  -> ESP32: EVENT|FEEDING_COMPLETED                   (not forwarded)
+Mega  -> ESP32: CMD_DONE|ID:C3|STATUS:SUCCESS            (RTDB: completed)
+```
+
+**E-stop during a feed:**
+```text
+Mega  -> ESP32: CMD_DONE|ID:C4|STATUS:FAILED|REASON:ESTOP_ACTIVE   (RTDB: failed / ESTOP_ACTIVE)
+Mega  -> ESP32: EVENT|EMERGENCY_STOP                                (RTDB /alerts/device-001/EMERGENCY_STOP)
+ESP32 -> Mega:  CMD|ID:C5|ACTION:ESTOP_RELEASE                      (button still pressed)
+Mega  -> ESP32: CMD_ACK|ID:C5|STATUS:REJECTED|REASON:PHYSICAL_ESTOP_ENGAGED
+```
+
+**Wi-Fi drops and returns:**
+```text
+ESP32 -> Mega:  STATUS|OFFLINE        (Nextion shows OFFLINE; local control continues)
+...                                   (ESP32 retries Wi-Fi every 15 s)
+ESP32 -> Mega:  STATUS|ONLINE
+ESP32 -> Mega:  CMD|ID:R0|ACTION:SCHEDULE_SET|...   (restore after reconnect)
 ```
