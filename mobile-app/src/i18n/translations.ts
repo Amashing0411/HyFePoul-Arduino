@@ -89,9 +89,28 @@ export const translations = {
     // Notifications
     resolved: 'RESOLVED',
     actionRequired: 'ACTIVE',
+    lastReported: 'LAST REPORTED',
     allCaughtUp: "You're all caught up. No alerts.",
-    alertActiveA11y: 'Active alert: {title}. Occurred at {time}',
+    alertActiveA11y: 'Alert: {title}. Last reported at {time}',
     alertResolvedA11y: 'Resolved alert: {title}. Occurred at {time}',
+    alertsExplainer: 'Shows the latest report of each alert type. Phone notifications appear only while the app is running.',
+    alertNotificationBody: 'Reported by the device at {time}.',
+
+    // Manual feed and command status
+    manualFeed: 'Manual Feed',
+    manualFeedPrompt: 'Target weight (1–2000 g)',
+    startFeed: 'Start Feed',
+    invalidFeedTarget: 'Enter a target between 1 and 2000 g.',
+    commandStatus: 'Command Status',
+    cmdQueued: 'Waiting for device',
+    cmdAcknowledged: 'Received by device',
+    cmdExecuting: 'Running on device',
+    cmdCompleted: 'Device reported done',
+    cmdFailed: 'Failed',
+    feedCompletedEvidence: 'The device stopped because its scale reached the {target} g target.',
+    lastScaleReading: 'Last scale reading: {weight} g at {time}.',
+    awaitingScaleReading: 'Waiting for the next scale reading from the device.',
+    schedulesRunDaily: 'Up to 3 schedules. Each runs every day at the set local time. Changes are sent to the device automatically.',
 
     // History
     dispenser: 'Dispenser',
@@ -199,9 +218,28 @@ export const translations = {
     // Notifications
     resolved: 'NAAYOS NA',
     actionRequired: 'AKTIBO',
+    lastReported: 'HULING NAIULAT',
     allCaughtUp: 'Wala nang bagong abiso.',
-    alertActiveA11y: 'Aktibong abiso: {title}. Nangyari noong {time}',
+    alertActiveA11y: 'Abiso: {title}. Huling naiulat noong {time}',
     alertResolvedA11y: 'Naayos na abiso: {title}. Nangyari noong {time}',
+    alertsExplainer: 'Ipinapakita ang pinakahuling ulat ng bawat uri ng abiso. Lalabas lang ang abiso sa telepono habang bukas ang app.',
+    alertNotificationBody: 'Iniulat ng device noong {time}.',
+
+    // Manual feed and command status
+    manualFeed: 'Manwal na Pakain',
+    manualFeedPrompt: 'Target na timbang (1–2000 g)',
+    startFeed: 'Simulan ang Pakain',
+    invalidFeedTarget: 'Maglagay ng target mula 1 hanggang 2000 g.',
+    commandStatus: 'Katayuan ng Utos',
+    cmdQueued: 'Naghihintay sa device',
+    cmdAcknowledged: 'Natanggap ng device',
+    cmdExecuting: 'Tumatakbo sa device',
+    cmdCompleted: 'Iniulat ng device na tapos na',
+    cmdFailed: 'Nabigo',
+    feedCompletedEvidence: 'Huminto ang device dahil umabot ang timbangan sa target na {target} g.',
+    lastScaleReading: 'Huling basa ng timbangan: {weight} g noong {time}.',
+    awaitingScaleReading: 'Hinihintay ang susunod na basa ng timbangan mula sa device.',
+    schedulesRunDaily: 'Hanggang 3 iskedyul. Bawat isa ay tumatakbo araw-araw sa itinakdang oras. Awtomatikong ipinapadala ang mga pagbabago sa device.',
 
     // History
     dispenser: 'Makina ng Pakain',

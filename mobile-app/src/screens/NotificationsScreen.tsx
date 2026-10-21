@@ -53,8 +53,10 @@ export default function NotificationsScreen() {
             {title}
           </Text>
           <Text style={[typography.caption, { marginTop: spacing.xs }]}>{new Date(item.timestamp).toLocaleString()}</Text>
-          <Text style={[typography.caption, { fontWeight: 'bold', marginTop: spacing.sm, color: item.resolved ? colors.success : colors.error }]}>
-            {item.resolved ? t('resolved') : t('actionRequired')}
+          {/* The device keeps one record per alert type and nothing marks it
+              resolved yet, so "last reported" is the honest label. */}
+          <Text style={[typography.caption, { fontWeight: 'bold', marginTop: spacing.sm, color: item.resolved ? colors.success : alertColor }]}>
+            {item.resolved ? t('resolved') : t('lastReported')}
           </Text>
         </View>
       </View>
@@ -91,6 +93,13 @@ export default function NotificationsScreen() {
         renderItem={renderItem}
         contentContainerStyle={alerts.length === 0 ? styles.emptyList : styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshData} tintColor={colors.primary} />}
+        ListHeaderComponent={
+          alerts.length > 0 ? (
+            <Text style={[typography.caption, { color: colors.textSecondary, marginBottom: spacing.sm }]}>
+              {t('alertsExplainer')}
+            </Text>
+          ) : null
+        }
         ListEmptyComponent={<EmptyState iconName="checkmark-circle-outline" message={t('allCaughtUp')} />}
       />
     </View>
