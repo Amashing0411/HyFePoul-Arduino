@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-21
 **Repository:** https://github.com/Amashing0411/HyFePoul-Arduino (branch `main`, last commit `2ac6bc7`)
-**Status of this document:** Phase 0 (baseline) complete; see §1.1. Phase 1 (firmware fixes FW-1 to FW-5) complete in software on branch `phase1-firmware-fixes`; see §2 Phase 1 results. Phase 2 core items (APP-0, RULES-1, APP-1, TEST-1, SEC-1, HYG-1) complete on branch `phase2-rules-app-config`; the rules were deployed to production on 2026-10-21. Phases 0–2 merged to `main` via PR #1. Remaining Phase 2 app items (APP-2, APP-3, APP-4) done on branch `phase2b-app-honesty`, not yet run on a device. Physical verification is pending.
+**Status of this document:** Phase 0 (baseline) complete; see §1.1. Phase 1 (firmware fixes FW-1 to FW-5) complete in software on branch `phase1-firmware-fixes`; see §2 Phase 1 results. Phase 2 core items (APP-0, RULES-1, APP-1, TEST-1, SEC-1, HYG-1) complete on branch `phase2-rules-app-config`; the rules were deployed to production on 2026-10-21. Phases 0–2 merged to `main` via PR #1. Remaining Phase 2 app items (APP-2, APP-3, APP-4) done on branch `phase2b-app-honesty` and checked on the Android emulator against local Firebase emulators (not yet on a phone or against production). Physical verification is pending.
 
 This plan merges two inputs:
 
@@ -178,11 +178,42 @@ New findings during APP-2 to APP-4:
 | F24 | Nothing ever sets an alert to `resolved: true`, and the ESP32 does not forward `EMERGENCY_STOP_RELEASED`. Every alert showed "Action required" indefinitely. | MITIGATED. The label is now "Last reported". Real resolution tracking is still open; it needs either the ESP32 to forward clear events or the app to derive resolution from device state. |
 | F25 | `DEVICE_OFFLINE` is listed in the app but nothing produces it. | OPEN (Phase 5). Derive it in the app from `lastHeartbeat` age. |
 
-**Not verified:** none of APP-2 to APP-4 has been run on an Android device or emulator. The checks so far are `tsc --noEmit` (pass) and mobile Jest under the emulators (25/25; these suites do not render screens). On-device checks for Phase 5:
-- the notification permission prompt;
-- a notification appears when an alert timestamp changes while the app is open;
-- the inline manual feed works and is blocked while a feed is in flight;
-- the completion evidence text appears.
+**Android emulator test (2026-10-21):**
+
+Setup:
+- Local development build (`npx expo run:android`; the generated `android/` folder is gitignored) on AVD `Medium_Phone_API_36.0` (Android 16).
+- The app pointed at the **local** Firebase emulators (`EXPO_PUBLIC_USE_FIREBASE_EMULATOR=true`, host `10.0.2.2`), not production.
+- A throwaway test owner was created on the Auth emulator, and `device-001` was seeded for it.
+- Device replies were simulated with admin writes to the RTDB emulator.
+- Expo Go could not be used: SDK 57 Expo Go throws on load when `expo-notifications` is imported on Android, so this app needs a development build.
+
+| Check | Result |
+|-------|--------|
+| Log in; owned device discovered (APP-0 query path in the real app) | PASS |
+| Notification permission prompt on first login (Android 13+) | PASS |
+| Schedules caption "runs every day" (APP-3) | PASS |
+| Manual Feed opens the inline form (F23; previously did nothing on Android) | PASS |
+| Out-of-range target (9000 g) rejected, no command written | PASS |
+| Valid target (120 g) writes `MANUAL_FEED` `queued` with `targetGrams: 120`; card shows "Waiting for device"; Manual Feed disabled while in flight | PASS |
+| `executing` shows "Running on device" | PASS |
+| `completed` with an older state shows the target-reached evidence and "Waiting for the next scale reading" | PASS |
+| Newer state shows "Last scale reading: 123 g at …"; Manual Feed re-enabled | PASS |
+| Dashboard Manual Feed button opens the Feeding tab | PASS |
+| App open: new `LOW_WATER` and repeated `LOW_FEED` (newer timestamp) each raise a notification on channel `alerts` | PASS |
+| Existing alert present at login is **not** re-notified (baseline) | PASS |
+| App in background: `WATER_PUMP_TIMEOUT` notification delivered | PASS |
+| App force-stopped: `EMERGENCY_STOP` raises **no** notification (documented limit); after reopening, no notification, but the alert is listed in the Notifications tab | PASS (as designed) |
+| Session restored after force-stop (no re-login) | PASS |
+| Notifications tab: "Last reported" labels and explainer line | PASS |
+| **Found:** with the keyboard open, the first tap on Start Feed only dismissed the keyboard | FIXED in `902685e` (`keyboardShouldPersistTaps="handled"` on Feeding and Claim Device) and re-verified: one tap now acts |
+
+Still not verified on a device:
+- the Claim Device screen (the keyboard fix there was applied but not exercised);
+- the schedule editor's Save;
+- the production backend from a phone (owner login against `hyfepoul-dev`);
+- an installed preview/production build.
+
+Cosmetic: Android shows the app name as **"mobile-app"** (from `app.json` `name`) in the permission prompt and notifications. That's worth renaming to "HyFePoul" in Phase 5.
 
 Tagalog strings were written without a native-speaker review.
 
