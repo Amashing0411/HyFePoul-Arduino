@@ -166,6 +166,7 @@ firebase emulators:exec --only auth,database --project hyfepoul-dev "node backen
 | Mobile unit/integration (Jest) | `cd mobile-app && npm test` |
 | Mega logic simulator (no emulators) | `node scripts/simulate-mega.js` |
 | Mobile type-check (no emulators) | `cd mobile-app && npm run typecheck` |
+| Mobile lint (no emulators) | `cd mobile-app && npm run lint` |
 
 The simulators are JavaScript copies of the firmware logic. They don't run the C++, so hardware behaviour still has to be confirmed on the bench.
 

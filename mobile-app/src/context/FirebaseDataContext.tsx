@@ -34,7 +34,7 @@ export const FirebaseDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [schedules, setSchedules] = useState<RTDBSchedule[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [nowMs, setNowMs] = useState<number>(Date.now());
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
 
   // Heartbeats stop arriving when the device goes offline, so no data event
   // would ever flip the status; re-evaluate on a timer instead.

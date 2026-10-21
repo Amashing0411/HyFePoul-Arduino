@@ -9,7 +9,7 @@ import Button from '../components/Button';
 import { useFirebaseData } from '../context/FirebaseDataContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
-import { spacing, layout } from '../theme';
+import { spacing } from '../theme';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { MainTabParamList } from '../navigation/AppNavigator';

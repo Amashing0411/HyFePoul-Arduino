@@ -90,7 +90,7 @@ export default function LoginScreen({ navigation }: Props) {
           onPress={() => navigation.navigate('Register')}
           disabled={isSubmitting}
         >
-          <Text style={[styles.linkText, { color: colors.primary }]}>Don't have an account? Sign up</Text>
+          <Text style={[styles.linkText, { color: colors.primary }]}>Don&apos;t have an account? Sign up</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>

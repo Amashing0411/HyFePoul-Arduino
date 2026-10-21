@@ -1,15 +1,15 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Animated, Image, AccessibilityInfo } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/AppNavigator';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 
 export default function SplashScreen() {
   const { colors, typography } = useTheme();
   const { t } = useLanguage();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  // Lazy state keeps one Animated.Value per mount without reading a ref during render.
+  const [fadeAnim] = useState(() => new Animated.Value(0));
+  // Lazy state keeps one Animated.Value per mount without reading a ref during render.
+  const [scaleAnim] = useState(() => new Animated.Value(0.9));
 
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled().then((reducedMotion) => {

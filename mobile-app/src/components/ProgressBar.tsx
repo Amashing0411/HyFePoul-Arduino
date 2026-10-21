@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Animated, AccessibilityInfo } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { layout } from '../theme';
@@ -10,7 +10,8 @@ interface ProgressBarProps {
 
 export default function ProgressBar({ progress, color }: ProgressBarProps) {
   const { colors } = useTheme();
-  const animatedWidth = useRef(new Animated.Value(0)).current;
+  // Lazy state keeps one Animated.Value per mount without reading a ref during render.
+  const [animatedWidth] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled().then((reducedMotion) => {

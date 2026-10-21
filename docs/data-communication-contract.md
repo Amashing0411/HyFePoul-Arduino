@@ -1,5 +1,12 @@
 # HyFePoul Data and Communication Contract (Provisional)
 
+> **Status note (October 2026):** this early contract set the data fields and intentions. Where it differs from the implementation, the current specifications win:
+> - [`mega-esp32-protocol.md`](mega-esp32-protocol.md): exact serial messages, events, commands and timing
+> - [`database-schema.md`](database-schema.md): RTDB structure
+> - [`architecture.md`](architecture.md): system overview
+>
+> In particular, the app → device control path described as "future" below is implemented: remote commands with a validated lifecycle.
+
 ## 1. Purpose
 This document establishes the provisional data and communication contract for the HyFePoul system. It serves as a shared reference for Arduino, ESP32, backend, and mobile-app developers prior to backend implementation and physical hardware integration. It clearly distinguishes defined requirements from provisional decisions, hardware-dependent validation, and pending backend platform choices.
 

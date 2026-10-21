@@ -19,7 +19,7 @@ process.env.FIREBASE_DATABASE_EMULATOR_HOST = '127.0.0.1:9000';
 process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATOR = 'true';
 process.env.EXPO_PUBLIC_EMULATOR_HOST = '127.0.0.1';
 
-import { app, auth, rtdb } from '../firebase';
+import { auth, rtdb } from '../firebase';
 import { rtdbService } from '../rtdbService';
 import { RTDBDeviceState } from '../../types/rtdb';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';

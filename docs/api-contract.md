@@ -1,5 +1,12 @@
 # API & Communication Contract
 
+> **Historical: superseded, not deployed.** This describes the original Cloud Functions HTTP API (header-authenticated ESP32 endpoints writing to Firestore). It was never deployed (it needs the Blaze plan). The ESP32 now signs in to Firebase Auth and writes the **Realtime Database** directly over HTTPS, protected by security rules. For the current design see:
+> - [`architecture.md`](architecture.md): system overview
+> - [`database-schema.md`](database-schema.md): RTDB paths, access rules, command lifecycle
+> - [`mega-esp32-protocol.md`](mega-esp32-protocol.md): serial protocol and the ESP32's RTDB behaviour
+>
+> The content below is kept as a record of the earlier design.
+
 This document outlines the API endpoints and communication protocols between the ESP32 and the Firebase Backend.
 
 For the Arduino Mega ↔ ESP32 physical serial protocol, see `docs/mega-esp32-protocol.md`.

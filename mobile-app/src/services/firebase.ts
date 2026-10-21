@@ -1,7 +1,8 @@
 import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getAuth, connectAuthEmulator, initializeAuth } from 'firebase/auth';
+import { getAuth, connectAuthEmulator, initializeAuth } from 'firebase/auth'; // eslint-disable-line import/no-duplicates
+// A separate import keeps the @ts-ignore scoped to this one export.
 // @ts-ignore - TS resolves the browser types by default, missing the RN export
-import { getReactNativePersistence } from 'firebase/auth';
+import { getReactNativePersistence } from 'firebase/auth'; // eslint-disable-line import/no-duplicates
 import { getDatabase, connectDatabaseEmulator } from 'firebase/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
