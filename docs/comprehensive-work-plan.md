@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-21
 **Repository:** https://github.com/Amashing0411/HyFePoul-Arduino (branch `main`, last commit `2ac6bc7`)
-**Status of this document:** Phase 0 (baseline) complete; see §1.1. Phase 1 (firmware fixes FW-1 to FW-5) complete in software on branch `phase1-firmware-fixes`; see §2 Phase 1 results. Phase 2 core items (APP-0, RULES-1, APP-1, TEST-1, SEC-1, HYG-1) complete on branch `phase2-rules-app-config`; the rules were deployed to production on 2026-10-21. Physical verification is pending.
+**Status of this document:** Phase 0 (baseline) complete; see §1.1. Phase 1 (firmware fixes FW-1 to FW-5) complete in software on branch `phase1-firmware-fixes`; see §2 Phase 1 results. Phase 2 core items (APP-0, RULES-1, APP-1, TEST-1, SEC-1, HYG-1) complete on branch `phase2-rules-app-config`; the rules were deployed to production on 2026-10-21. Phases 0–2 merged to `main` via PR #1. Remaining Phase 2 app items (APP-2, APP-3, APP-4) done on branch `phase2b-app-honesty`, not yet run on a device. Physical verification is pending.
 
 This plan merges two inputs:
 
@@ -165,7 +165,26 @@ Each fix gets one commit, updates `scripts/simulate-mega.js` so it mirrors the C
 | TEST-1 (F20) | `07ea2a8` | DONE |
 | SEC-1 (F11) | `644ebb2` | DONE. The old values remain in git history. |
 | HYG-1 (F12) | `91a681a` | DONE. Index-only removal; restore with `npm install` at the repo root. |
-| APP-2, APP-3, APP-4, SEC-2 | — | NOT STARTED |
+| APP-2 (F7) | `83bf74d` | DONE (branch `phase2b-app-honesty`). FCM token registration removed. Local notifications are raised from the RTDB alert listener while the app runs. The Notifications tab says "Last reported", and `docs/notifications.md` was rewritten. |
+| APP-3 (F8) | `7b591d3` | DONE. The app already had no day picker; the caption now says schedules run daily. Also removed a duplicate `SCHEDULE_SET` sent on delete. |
+| APP-4 | `b763f62` | DONE. Command states use plain language. A completed manual feed shows what the device reported (target reached) and the last scale reading only when that reading is newer than the completion. Manual feed is blocked while one is already running. Also fixes F23. |
+| SEC-2 (F17) | — | OWNER ACTION. Restrict the web API key in Google Cloud Console (APIs & Services → Credentials): Android app restriction for `com.hyfepoul.mobile` plus its SHA-1, and limit it to the Identity Toolkit and Firebase Realtime Database APIs. |
+
+New findings during APP-2 to APP-4:
+
+| # | Finding | Status |
+|---|---------|--------|
+| F23 | Manual feed used `Alert.prompt` (iOS-only) on both the Feeding and Dashboard screens, so on Android the button did nothing. The Dashboard version also had no 2000 g limit and no E-stop check. | FIXED in `b763f62`. Inline entry on Feeding; the Dashboard button opens the Feeding tab. |
+| F24 | Nothing ever sets an alert to `resolved: true`, and the ESP32 does not forward `EMERGENCY_STOP_RELEASED`. Every alert showed "Action required" indefinitely. | MITIGATED. The label is now "Last reported". Real resolution tracking is still open; it needs either the ESP32 to forward clear events or the app to derive resolution from device state. |
+| F25 | `DEVICE_OFFLINE` is listed in the app but nothing produces it. | OPEN (Phase 5). Derive it in the app from `lastHeartbeat` age. |
+
+**Not verified:** none of APP-2 to APP-4 has been run on an Android device or emulator. The checks so far are `tsc --noEmit` (pass) and mobile Jest under the emulators (25/25; these suites do not render screens). On-device checks for Phase 5:
+- the notification permission prompt;
+- a notification appears when an alert timestamp changes while the app is open;
+- the inline manual feed works and is blocked while a feed is in flight;
+- the completion evidence text appears.
+
+Tagalog strings were written without a native-speaker review.
 
 New rules tests: owner device query (own uid allowed; other uid, unfiltered read and unauthenticated access denied) and stale commands (device `queued → failed` allowed; owner, other device, and `queued → completed` denied). Against the previous rules, the two positive cases fail, so the tests do detect the change.
 
