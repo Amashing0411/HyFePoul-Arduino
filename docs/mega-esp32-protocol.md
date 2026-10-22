@@ -30,14 +30,17 @@ The behaviour here has been checked with the JavaScript simulators (`scripts/sim
 ### 3.1 `DATA` (system data, every 10 s)
 
 ```
-DATA|<feedWeightGrams>|<targetFeedGrams>|<hopperLevelPercent>|<waterLow>|<waterHigh>|<pumpActive>|<feedingActive>|<emergencyStopActive>|<timeSource>
+DATA|<tray1>|<tray2>|<tray3>|<tray4>|<tray5>|<targetPerTray>|<hopperLevelPercent>|<waterLow>|<feedingActive>|<cycleStep>|<currentTray>|<emergencyStopActive>|<timeSource>
 ```
 
-- The three numbers are sent with one decimal place. The booleans are `0` or `1`. `timeSource` is `NETWORK`, `RTC` or `INVALID`.
+- `tray1`..`tray5` are the grams on each tray's load cell; `targetPerTray` is the per-tray target of the running/last cycle. Numbers have one decimal place. Booleans are `0` or `1`.
+- `cycleStep` is `IDLE`, `HOMING`, `TO_TRAY`, `TARING`, `DISPENSING`, `TO_END` or `RETURNING`; `currentTray` is 1–5 while the hopper is at or heading to a tray, otherwise 0. `waterLow` is the reservoir float switch (debounced 2 s). `timeSource` is `NETWORK`, `RTC` or `INVALID`.
 - It is also sent immediately in response to `STATUS_REQ`.
-- The ESP32 needs at least 9 separators. It adds a UTC timestamp from NTP and writes the result to `devices/{id}/state`, then appends it to `systemData/{id}`. It skips the write if NTP time is not yet valid.
+- The ESP32 requires exactly 13 separators (14 fields) and ignores other lines. It writes `trayWeightsGrams`, their sum as `feedWeightGrams`, and a UTC timestamp from NTP to `devices/{id}/state`, then appends the record to `systemData/{id}`. It skips the write if NTP time is not yet valid.
 
-Example: `DATA|123.0|120.0|64.0|0|1|0|0|0|NETWORK`
+Example: `DATA|50.2|51.0|12.4|0.0|0.0|50.0|64.0|0|1|DISPENSING|3|0|NETWORK`
+
+This line replaced the pump-era format (`…|waterLow|waterHigh|pump|feeding|…`) in the moving-hopper revision. Both boards must run matching firmware.
 
 ### 3.2 `EVENT`
 
@@ -53,9 +56,11 @@ Events are queued on the Mega (4 slots; the oldest is dropped when full) and sen
 | `EMERGENCY_STOP` | E-stop pressed (latches) | Yes |
 | `EMERGENCY_STOP_RELEASED` | E-stop reset (remote or serial `RESET`) | No |
 | `LOW_FEED` | Hopper at or below 20% (clears at 25% or more) | Yes |
-| `LOW_WATER` | Water low **and** the pump cannot refill it (E-stop or pump fault) | Yes |
-| `WATER_PUMP_TIMEOUT` | Pump hit its 120 s runtime limit (fault latches) | Yes |
-| `FEEDING_STARTED` / `FEEDING_COMPLETED` / `FEEDING_TIMEOUT` | Scheduled or manual feed state changes | No (logged on the Mega SD card) |
+| `LOW_WATER` | Reservoir float switch low for 2 s (refill needed); once per low episode, with a buzzer beep | Yes |
+| `CHAIN_TIMEOUT` | A chain move did not reach its limit switch in time (homing/return 30 s, to end 15 s). Motors stop; buzzer | Yes |
+| `TRAY_TIMEOUT` | A tray was not filled: its dispense ran 30 s without reaching the target, or its load cell did not respond. The cycle continues with the next tray. Once per cycle; buzzer | Yes |
+| `LOW_FEED` (mid-cycle) | Also raised again when the hopper drops to 5% during a cycle; the cycle stops dispensing and returns home | Yes |
+| `FEEDING_STARTED` / `FEEDING_COMPLETED` | Scheduled cycle started / any cycle finished with every tray filled | No (logged on the Mega SD card) |
 
 `DEVICE_ERROR` is on the ESP32 whitelist but is not raised by the current Mega firmware.
 
@@ -101,9 +106,9 @@ CMD|ID:<id>|ACTION:<ACTION>[|<KEY>:<value>...]
 
 | `ACTION` | Parameters | Mega validation → `CMD_ACK` `REJECTED` reasons | Completion |
 |----------|------------|-----------------------------------------------|------------|
-| `MANUAL_FEED` | `TARGET:<grams>` | `MISSING_TARGET`; `INVALID_TARGET` (≤ 0 or > 5000); `ESTOP_ACTIVE`; `FEEDING_ACTIVE` | `CMD_DONE SUCCESS` when the scale reaches the target. `FAILED` with `FEEDING_TIMEOUT` (30 s) or `ESTOP_ACTIVE` (E-stop during the feed). |
-| `SCHEDULE_SET` | `IDX:<0-2>|HR:<0-23>|MIN:<0-59>|TGT:<whole grams>|EN:<0/1>` | `MALFORMED_SCHEDULE`; `INVALID_INDEX`; `INVALID_TIME`; `INVALID_TARGET` | Applied, saved to EEPROM, then `CMD_DONE SUCCESS` immediately. Hours and minutes are **local time** (§6). |
-| `ESTOP_RELEASE` | none | `PHYSICAL_ESTOP_ENGAGED` (button still pressed); `ESTOP_NOT_ACTIVE` | Clears the latch (and any pump fault), then `CMD_DONE SUCCESS`. |
+| `MANUAL_FEED` | `TARGET:<grams per tray>` | `MISSING_TARGET`; `INVALID_TARGET` (≤ 0 or > 1000); `ESTOP_ACTIVE`; `FEEDING_ACTIVE`; `HOPPER_LOW` (hopper ≤ 5%) | Runs one full 5-tray cycle. `CMD_DONE SUCCESS` when every tray reached the target and the hopper is back home. `FAILED` with the first problem: `TRAY_TIMEOUT`, `HOPPER_EMPTY`, `END_LIMIT_EARLY` (tray timings too long), `CHAIN_TIMEOUT` or `ESTOP_ACTIVE`. A cycle takes about a minute; the ESP32 allows 300 s. |
+| `SCHEDULE_SET` | `IDX:<0-2>|HR:<0-23>|MIN:<0-59>|TGT:<whole grams per tray, ≤ 1000>|EN:<0/1>` | `MALFORMED_SCHEDULE`; `INVALID_INDEX`; `INVALID_TIME`; `INVALID_TARGET` | Applied, saved to EEPROM, then `CMD_DONE SUCCESS` immediately. Hours and minutes are **local time** (§6). |
+| `ESTOP_RELEASE` | none | `PHYSICAL_ESTOP_ENGAGED` (button still pressed); `ESTOP_NOT_ACTIVE` | Clears the latch, then `CMD_DONE SUCCESS`. The hopper stays where it stopped; the next cycle homes first. |
 | `STATUS_REQ` | none | none | Sends `DATA`, then `CMD_DONE SUCCESS`. |
 | `SYSTEM_RESTART` | none | Always `NOT_IMPLEMENTED_SAFELY` | none |
 | anything else | | `UNKNOWN_COMMAND` | |
@@ -201,7 +206,7 @@ A `SCHEDULE_SET` that fails for any of these reasons also triggers a schedule re
 | `NET_STATUS|state:ONLINE` | `STATUS|ONLINE` / `STATUS|OFFLINE` |
 | `TIME|timestamp:<ISO8601>` | `TIME|YYYY-MM-DD|HH:MM:SS` |
 | `CMD_RESERVED` / `ACK_CMD` (reserved, not to be implemented) | `CMD` / `CMD_ACK` / `CMD_DONE` with the full lifecycle (Checkpoints 5B.7–5B.9, short UART IDs in Phase 4) |
-| `PUMP_TIMEOUT` | `WATER_PUMP_TIMEOUT` |
+| `PUMP_TIMEOUT` | Removed with the pump (moving-hopper revision); `CHAIN_TIMEOUT` and `TRAY_TIMEOUT` added |
 | Maximum line 256 bytes | Maximum 63 characters + `\n` toward the Mega (64-byte receive buffer) |
 
 ## 12. Example exchanges

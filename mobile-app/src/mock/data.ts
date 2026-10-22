@@ -8,21 +8,22 @@ export const mockDeviceData: DeviceData = {
 };
 
 export const mockSystemData: SystemData = {
-  feedWeightGrams: 450,
-  targetFeedGrams: 0,
+  feedWeightGrams: 250,
+  targetFeedGrams: 50,
+  trayWeightsGrams: [50, 50, 50, 50, 50],
   hopperLevelPercent: 65,
   waterLow: false,
-  waterHigh: true,
-  pumpActive: false,
   feedingActive: false,
+  cycleStep: 'IDLE',
+  currentTray: 0,
   emergencyStopActive: false,
   timestamp: new Date().toISOString(),
 };
 
 export const mockSchedules: FeedSchedule[] = [
-  { id: '1', hour: 7, minute: 0, targetGrams: 500, enabled: true },
-  { id: '2', hour: 12, minute: 0, targetGrams: 500, enabled: true },
-  { id: '3', hour: 18, minute: 0, targetGrams: 500, enabled: false },
+  { id: '1', hour: 7, minute: 0, targetGrams: 50, enabled: true },
+  { id: '2', hour: 12, minute: 0, targetGrams: 50, enabled: true },
+  { id: '3', hour: 18, minute: 0, targetGrams: 50, enabled: false },
 ];
 
 export const mockAlerts: Alert[] = [
@@ -34,7 +35,7 @@ export const mockAlerts: Alert[] = [
 // Generate some history mock data
 export const mockHistory: SystemData[] = Array.from({ length: 10 }).map((_, i) => ({
   ...mockSystemData,
-  feedWeightGrams: 400 + Math.random() * 100,
+  feedWeightGrams: 200 + Math.random() * 50,
   hopperLevelPercent: 80 - i * 5,
   timestamp: new Date(Date.now() - i * 3600000).toISOString(),
 }));

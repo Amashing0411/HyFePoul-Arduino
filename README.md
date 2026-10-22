@@ -2,7 +2,7 @@
 
 **HyFePoul: An Arduino-Based Precision Poultry Management System with Weight-Sensing Feeders and Automated Hydration Monitoring Device.** This is an undergraduate Computer Engineering thesis project.
 
-HyFePoul automates feeding and watering for a small poultry setup. An Arduino Mega dispenses feed by weight on a schedule, keeps the drinker topped up with a pump and float switches, and enforces a physical emergency stop. An ESP32 links the device to Firebase, so the owner can monitor it and send commands from an Android app.
+HyFePoul automates feeding and watering for a small poultry setup. An Arduino Mega moves a feed hopper along a chain past 5 trays and fills each tray to a target weight measured by that tray's load cell, warns when the gravity-fed water reservoir needs refilling, and enforces a physical emergency stop. An ESP32 links the device to Firebase, so the owner can monitor it and send commands from an Android app.
 
 > **Project status (October 2026):** the firmware, backend rules and mobile app are complete in software and tested with simulators, the Firebase emulators and an Android emulator. **The physical prototype has not been commissioned yet**, so sensor calibration, relay polarity, E-stop wiring and the Mega–ESP32 serial link are still unverified on hardware. See [`docs/comprehensive-work-plan.md`](docs/comprehensive-work-plan.md) for the detailed status.
 
@@ -17,7 +17,7 @@ HyFePoul automates feeding and watering for a small poultry setup. An Arduino Me
  └──────────────────────┘
 ```
 
-- **The Mega is in charge.** It reads every sensor, runs the feeding schedules and pump logic, writes the SD log, drives the Nextion display, and has the final say on safety. Remote commands are only requests, and the Mega validates them before acting.
+- **The Mega is in charge.** It reads every sensor, runs the feeding schedules and the feed cycle, writes the SD log, drives the Nextion display, and has the final say on safety. Remote commands are only requests, and the Mega validates them before acting.
 - **The ESP32 only communicates.** It signs in to Firebase as the device and forwards Mega data and alerts to the Realtime Database. It also passes owner commands to the Mega and syncs network time.
 - **The app only talks to Firebase**, never directly to the device.
 - **The device works offline.** Schedules are stored in the Mega's EEPROM and run from its RTC without the network.
@@ -28,10 +28,11 @@ HyFePoul automates feeding and watering for a small poultry setup. An Arduino Me
 |------|------|
 | Arduino Mega 2560 | Main controller |
 | ESP32 | Wi-Fi bridge to Firebase |
-| Load cell + HX711 | Weighs dispensed feed |
+| 5 load cells + 5 HX711 (one under each tray) | Weigh the feed dispensed into each tray |
 | Ultrasonic sensor | Hopper feed level |
-| Float switches (low/high) | Drinker water level |
-| Relay module, dispenser motor, water pump | Actuators |
+| Chain motor (reversed by two relays) + home/end limit switches | Moves the hopper past the trays and back |
+| Dispenser motor + relay | Releases feed from the hopper |
+| Float switch (reservoir) | Water reservoir low. Water reaches the drinker by gravity; there is no pump |
 | DS3231 RTC | Timekeeping, synced from network time |
 | SD card module | Local CSV activity log |
 | Nextion 7" touchscreen | Local display |
@@ -41,11 +42,12 @@ Pin assignments are in [`firmware/arduino-mega/HyFePoul_Arduino/Config.ino`](fir
 
 ## Features
 
-- **Scheduled feeding:** up to 3 daily schedules in local time (UTC+8), each with a target weight. The dispenser stops when the scale reaches the target, or after a timeout.
-- **Manual feed:** start a feed from the app (1–2000 g). The app shows each step: waiting for device, received, running, and done or failed.
-- **Hydration:** the pump runs when the low float switch is active and stops at the high float. A 120 s runtime limit latches a fault if it is reached.
+- **Feed cycle:** the hopper homes, then for trays 1→5 it moves to the tray (timed travel), tares the tray's load cell and dispenses until the tray reaches the target (default **50 g per tray**, 30 s limit per tray). It then runs to the end limit switch and returns to the home switch. Chain moves have timeouts, the two direction relays are interlocked, and an empty hopper ends the cycle early and returns home.
+- **Scheduled feeding:** up to 3 daily schedules in local time (UTC+8), each with a per-tray target.
+- **Manual feed:** start a cycle from the app (1–1000 g per tray). The app shows the tray weights, the cycle step and each command step: waiting for device, received, running, and done or failed.
+- **Water:** the reservoir float switch raises a refill alert with a buzzer beep. Nothing is switched for water.
 - **Emergency stop:** latches until it is explicitly reset (from the app, or `RESET` on the serial monitor). Actuators are held off while it is latched.
-- **Alerts:** low feed, low water (only when the pump cannot refill), pump timeout and E-stop. They appear in the app's Notifications tab, and as phone notifications while the app is running.
+- **Alerts:** low feed, low water (refill), chain timeout, tray not filled, and E-stop. They appear in the app's Notifications tab, and as phone notifications while the app is running.
 - **Schedules survive restarts:** they are saved in EEPROM and re-synced from Firebase after either board restarts.
 - **Owner accounts:** email sign-in, and device claiming with a setup PIN. Security rules limit each owner to their own devices.
 

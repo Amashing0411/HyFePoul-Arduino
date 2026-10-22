@@ -68,31 +68,35 @@ There are two kinds of identity, and each is a separate Firebase Auth account:
 
 Both use the same record. `state` holds the latest copy, and `systemData` gets one append per update.
 
-| Field | Type | Validated |
-|-------|------|-----------|
-| `feedWeightGrams` | number | yes (in `state`) |
-| `targetFeedGrams` | number | yes |
+| Field | Type | Validated (in `state`) |
+|-------|------|------------------------|
+| `feedWeightGrams` | number | yes. Sum of the 5 trays |
+| `targetFeedGrams` | number | yes. Grams **per tray** for the running/last cycle |
+| `trayWeightsGrams` | array of 5 numbers (keys `0`–`4`) | yes. Grams on each tray's load cell |
 | `hopperLevelPercent` | number | yes |
-| `waterLow` | boolean | yes |
-| `waterHigh` | boolean | yes |
-| `pumpActive` | boolean | yes |
+| `waterLow` | boolean | yes. Reservoir float switch (gravity water, no pump) |
 | `feedingActive` | boolean | yes |
+| `cycleStep` | string | yes. `IDLE`, `HOMING`, `TO_TRAY`, `TARING`, `DISPENSING`, `TO_END`, `RETURNING` |
+| `currentTray` | number | yes. 0–5 (0 = none) |
 | `emergencyStopActive` | boolean | yes |
 | `timestamp` | number | yes |
+| any other child | | rejected |
+
+The pump-era fields `waterHigh` and `pumpActive` were removed in the moving-hopper revision; the rules now reject them, so the old firmware can no longer write `state`. Old `systemData` records without tray fields are skipped by the app.
 
 - **Write:** only the device (`deviceAuthUid`).
 - **Read:** `state` by the owner or the device; `systemData` by the owner only.
 - `systemData` is indexed on `timestamp`. The app reads the latest 50 records with `orderByChild("timestamp").limitToLast(50)` and skips malformed ones.
 - **Cadence:** the Mega sends `DATA` every 10 s, and the ESP32 writes `state` (`PUT`) and then appends to `systemData` (`POST`).
 
-**Growth estimate, from the transmission design and not from measurement:** one `systemData` record is roughly 250 bytes, so 8,640 records a day is about **2 MB/day, or around 65 MB/month**, with nothing deleting old records. On the Spark plan's database storage this lasts many months, but it **grows without bound**. A retention policy (for example, the ESP32 appending only every N-th sample, or periodic cleanup by an admin script) should be decided before long-term deployment. These figures should be checked against real usage in the Firebase console.
+**Growth estimate, from the transmission design and not from measurement:** one `systemData` record is roughly 350 bytes with the tray fields, so 8,640 records a day is about **3 MB/day, or around 90 MB/month**, with nothing deleting old records. On the Spark plan's database storage this lasts many months, but it **grows without bound**. A retention policy (for example, the ESP32 appending only every N-th sample, or periodic cleanup by an admin script) should be decided before long-term deployment. These figures should be checked against real usage in the Firebase console.
 
 ## 6. `alerts/{deviceId}/{EVENT_NAME}`
 
 | Field | Type | Notes |
 |-------|------|-------|
 | `eventId` | string | Equals the event name |
-| `name` | string | `LOW_FEED`, `LOW_WATER`, `WATER_PUMP_TIMEOUT`, `EMERGENCY_STOP` (`DEVICE_ERROR` is allowed but not produced) |
+| `name` | string | `LOW_FEED`, `LOW_WATER`, `CHAIN_TIMEOUT`, `TRAY_TIMEOUT`, `EMERGENCY_STOP` (`DEVICE_ERROR` is allowed but not produced) |
 | `timestamp` | number | Latest occurrence |
 | `resolved` | boolean | Currently always `false` (nothing marks alerts resolved) |
 
@@ -135,7 +139,7 @@ Both use the same record. `state` holds the latest copy, and `systemData` gets o
 | `scheduleId` | string | must equal the key | `sched_0`, `sched_1`, `sched_2` (slot index = Mega `feedSchedules[i]`) |
 | `hour` | number | 0–23 | **Local time** (PHT), as entered |
 | `minute` | number | 0–59 | |
-| `targetGrams` | number | > 0 and ≤ 2000 | The app saves whole grams |
+| `targetGrams` | number | > 0 and ≤ 1000 | Grams **per tray**; the app saves whole grams (default 50) |
 | `enabled` | boolean | yes | "Delete" in the app writes `enabled: false` at 00:00 |
 | `daysOfWeek` | number[] | required | Always `[1..7]`; the Mega runs every schedule daily (decision D3) |
 

@@ -124,14 +124,15 @@ async function runE2E() {
       lastHeartbeat: Date.now(),
       state: {
         timestamp: Date.now(),
-        feedWeightGrams: 300,
+        feedWeightGrams: 250,
         hopperLevelPercent: 50,
         waterLow: false,
-        waterHigh: true,
-        pumpActive: false,
+        trayWeightsGrams: [50, 50, 50, 50, 50],
+        cycleStep: "IDLE",
+        currentTray: 0,
         feedingActive: false,
         emergencyStopActive: false,
-        targetFeedGrams: 500
+        targetFeedGrams: 50
       }
     };
     await update(ref(dbDevice, `devices/${DEVICE_ID}`), stateUpdate);
@@ -219,14 +220,15 @@ async function runE2E() {
     const pushId = `push_${Date.now()}`;
     await set(ref(dbDevice, `systemData/${DEVICE_ID}/${pushId}`), {
       timestamp: Date.now(),
-      feedWeightGrams: 300,
+      feedWeightGrams: 250,
       hopperLevelPercent: 50,
       waterLow: true,
-      waterHigh: false,
-      pumpActive: true,
+      trayWeightsGrams: [50, 50, 50, 50, 50],
+      cycleStep: "IDLE",
+      currentTray: 0,
       feedingActive: false,
       emergencyStopActive: false,
-      targetFeedGrams: 500
+      targetFeedGrams: 50
     });
     console.log("[Device] History written.");
 

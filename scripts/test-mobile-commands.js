@@ -81,11 +81,12 @@ async function runTests() {
       lastHeartbeat: Date.now(),
       state: {
         feedWeightGrams: 250,
-        targetFeedGrams: 500,
+        targetFeedGrams: 50,
         hopperLevelPercent: 80,
         waterLow: false,
-        waterHigh: true,
-        pumpActive: false,
+        trayWeightsGrams: [50, 50, 50, 50, 50],
+        cycleStep: "IDLE",
+        currentTray: 0,
         feedingActive: false,
         emergencyStopActive: false,
         timestamp: Date.now()

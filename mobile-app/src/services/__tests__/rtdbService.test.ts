@@ -59,13 +59,20 @@ const getFirstCallback = <T>(subscribe: (cb: (data: T, error?: Error) => void) =
 describe('rtdbService - validation functions', () => {
   it('isValidDeviceState handles good and bad input', () => {
     const validState: RTDBDeviceState = {
-      feedWeightGrams: 500, targetFeedGrams: 1000, hopperLevelPercent: 50,
-      waterLow: false, waterHigh: true, pumpActive: false,
+      feedWeightGrams: 500, targetFeedGrams: 50, hopperLevelPercent: 50,
+      trayWeightsGrams: [50, 50, 50, 50, 50], waterLow: false, cycleStep: 'DISPENSING', currentTray: 3,
       feedingActive: true, emergencyStopActive: false, timestamp: 1690000000,
     };
     expect(isValidDeviceState(validState)).toBe(true);
     expect(isValidDeviceState(null)).toBe(false);
     expect(isValidDeviceState({ feedWeightGrams: '500' })).toBe(false);
+    // Moving-hopper state: exactly 5 numeric tray weights and a known cycle step.
+    expect(isValidDeviceState({ ...validState, trayWeightsGrams: [1, 2, 3, 4] })).toBe(false);
+    expect(isValidDeviceState({ ...validState, trayWeightsGrams: [1, 2, 'x', 4, 5] })).toBe(false);
+    expect(isValidDeviceState({ ...validState, cycleStep: 'PUMPING' })).toBe(false);
+    // Old pump-era records (no tray fields) are not shown.
+    const { trayWeightsGrams: _t, cycleStep: _c, currentTray: _n, ...oldShape } = validState;
+    expect(isValidDeviceState({ ...oldShape, waterHigh: true, pumpActive: false })).toBe(false);
   });
 
   it('isValidDevice handles good and bad input', () => {
@@ -99,8 +106,7 @@ describe('rtdbService - owner data access (emulator)', () => {
     await adminPut(`devices/${deviceIds.listener}`, { ...device(ownerUid), status: 'weird', lastHeartbeat: 'not_a_number' });
 
     const snapshot = (feedWeightGrams: number, timestamp: number): RTDBDeviceState => ({
-      feedWeightGrams, targetFeedGrams: 1000, hopperLevelPercent: 50, waterLow: false, waterHigh: true,
-      pumpActive: false, feedingActive: true, emergencyStopActive: false, timestamp,
+      feedWeightGrams, targetFeedGrams: 50, hopperLevelPercent: 50, trayWeightsGrams: [50, 50, 50, 50, 50], waterLow: false, cycleStep: 'DISPENSING', currentTray: 3, feedingActive: true, emergencyStopActive: false, timestamp,
     });
     await adminPut(`systemData/${deviceIds.owned}`, {
       push1: snapshot(500, 1000),

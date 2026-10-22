@@ -24,7 +24,7 @@ DO NOT assume voltages based on component markings without measuring.
 - [ ] 5. ESP32 supply voltage measured (Expected: 3.3V or 5V on VIN).
 - [ ] 6. Sensor supplies measured.
 - [ ] 7. Relay board supply measured (Expected: 5V or 12V).
-- [ ] 8. Pump supply measured (Expected: 12V).
+- [ ] 8. Chain motor supply measured (Expected: 12V) at both polarity relays.
 - [ ] 9. Dispenser motor supply measured (Expected: 12V).
 - [ ] 10. Common ground integrity verified.
 - [ ] 11. Fuses / overcurrent protection inspected.
@@ -34,7 +34,7 @@ DO NOT assume voltages based on component markings without measuring.
 
 1. **Visual Inspection**: Look for exposed conductors, loose strands, or obvious shorts.
 2. **Cold Continuity Test**: With POWER OFF, check for shorts between VCC rails and GND.
-3. **Disconnect High-Power Loads**: Disconnect the pump and dispenser motor completely.
+3. **Disconnect High-Power Loads**: Disconnect the chain motor and dispenser motor completely.
 4. **Logic First**: Power only the logic electronics (Mega, ESP32, sensors).
 5. **Verify Boot**: Observe status LEDs on the Mega and ESP32.
 6. **Observe Relays**: Ensure relays do NOT click (energize) during boot. 
@@ -61,11 +61,11 @@ DO NOT assume voltages based on component markings without measuring.
 | 5 | E-Stop active | Observe Buzzer | Buzzer activates | Buzzer sounds continuously | Buzzer silent | Video/Audio |
 | 6 | RTC connected | Boot Mega | RTC initializes with valid time | "RTC initialized" in log | "Couldn't find RTC" | Serial log |
 | 7 | SD connected | Boot Mega | SD initializes | "SD Card initialized" | "SD initialization failed" | Serial log |
-| 8 | HX711 connected | Check Serial | Weight outputs | Stable non-zero raw value | Value is constant 0 or NaN | Serial log |
+| 8 | 5 HX711 connected | Boot Mega | `HX711 tray N ready.` for N = 1–5 | All 5 ready; tray weights stable in `DATA` | `WARNING not detected` for any tray | Serial log |
 | 9 | Ultrasonic | Move hand | Distance changes | Distance correlates with hand | Distance frozen | Serial log |
-| 10 | Water LOW Float | Move float | Value toggles | State changes 1 -> 0 | No change | Serial log |
-| 11 | Water HIGH Float| Move float | Value toggles | State changes 1 -> 0 | No change | Serial log |
-| 12 | NO LOADS ATTACHED | Send Manual Feed via ESP (sim) | Dispenser Relay clicks | Relay LED ON, clicks | No relay action | Visual/Auditory |
+| 10 | Reservoir Float | Move float, hold ≥ 2 s | `waterLow` toggles | `LOW WATER: refill the reservoir.` + beep once | No change / repeated beeps | Serial log |
+| 11 | Limit switches | Press home, then end switch by hand | Pin reads LOW while pressed | Chain refuses to drive into a pressed switch | No change | Serial log |
+| 12 | NO LOADS ATTACHED | Send Manual Feed via ESP (sim) | `FEED STEP:` lines; chain relays then dispenser relay click in order | Forward and reverse relay LEDs never lit together | Both relay LEDs lit / no relay action | Visual/Serial |
 | 13 | Nextion connected | Boot Mega | Screen shows UI | UI matches Mega state | Screen blank / timeout | Photo |
 | 14 | Schedule Set | Wait for schedule | Auto feed triggers | Relay clicks at exact time | Missed schedule | Serial log |
 
@@ -98,7 +98,7 @@ DO NOT assume voltages based on component markings without measuring.
 **Goal:** Distinguish software detection from actual electrical cutoff.
 1. Put system in safe idle state.
 2. Verify physical E-Stop mechanism (latching vs momentary).
-3. Start a controlled actuator test (e.g., pump running without water).
+3. Start a controlled actuator test (e.g., a feed cycle with the chain unloaded).
 4. Activate the physical E-Stop.
 5. **Verify actuator de-energizes instantly** (physical cutoff confirmation).
 6. Verify Mega detects the E-Stop state via GPIO.
@@ -106,26 +106,33 @@ DO NOT assume voltages based on component markings without measuring.
 8. Verify attempting a remote `MANUAL_FEED` returns `failed` (`ESTOP_ACTIVE`).
 9. Verify sending `ESTOP_RELEASE` via software does NOT re-energize the actuator (physical unlatching required).
 10. Verify system recovers safely only after physical unlatch and software release.
-11. Release the physical E-Stop **without** sending a reset. Verify the Mega stays stopped (Nextion shows `STOPPED`, pump does not start even with the low float active, `MANUAL_FEED` still returns `ESTOP_ACTIVE`).
+11. Release the physical E-Stop **without** sending a reset. Verify the Mega stays stopped (Nextion shows `STOPPED`, the chain and dispenser stay off, `MANUAL_FEED` still returns `ESTOP_ACTIVE`).
 12. With the button released, type `RESET` in the Mega USB serial monitor (115200 baud). Verify `Emergency stop reset.` is printed and automation resumes. Repeat with the button pressed and verify `RESET rejected: PHYSICAL_ESTOP_ENGAGED`.
 13. Start a remote `MANUAL_FEED`, then press the E-Stop mid-feed. Verify the command ends as `failed` with `ESTOP_ACTIVE`, and that a following `STATUS_REQ` completes (not rejected as `SYSTEM_BUSY`).
-14. Hold the low float switch active with the pump outlet disconnected for more than 120 s. Verify the pump stops at the timeout, does **not** restart, `WATER_PUMP_TIMEOUT` and `LOW_WATER` alerts appear once, and the fault clears only when the high float is reached or the E-Stop is reset.
+14. Press the E-Stop while the chain is moving between trays. Verify the chain and dispenser stop at once, and that after reset the next cycle starts by homing (`FEED STEP: HOMING`).
 
 ## 7. Relay / Actuator Commissioning
 
-For both the Pump and Dispenser motor:
+For the chain forward relay, chain reverse relay and dispenser relay:
 1. Determine Relay active state: Does `digitalWrite(HIGH)` close the circuit?
 2. Determine NO/NC behavior: Are loads wired to Normally Open (NO)?
 3. Verify startup behavior: Disconnect load, boot Mega, ensure NO contacts do not close.
-4. Test Load: Connect pump/motor. Send command for short 3-second burst.
+4. Test Load: Connect the motor. Run a short supervised move or dispense.
 5. Observe: Expected state vs actual state, actuator response, abnormal noise/heat.
-6. Verify Safety Timeout: Trigger pump, wait for 120s timeout, ensure it cuts off automatically.
+
+Chain motor (two relays swapping polarity):
+6. Confirm the wiring cannot short the supply if both relays close (typical 2× SPDT H-bridge: both on = motor braked, not shorted). The firmware never turns both on, but the wiring should be safe anyway.
+7. With the hopper unloaded, verify forward moves toward the end switch and reverse toward home. Swap the motor leads if not.
+8. Run toward each limit switch and confirm the switch stops the motor. Request a reversal while moving and confirm both relays are off for ≥ 300 ms before the other closes.
+9. Disconnect the end switch and run a cycle: after the last tray the chain must stop within 15 s with `CHAIN_TIMEOUT` and a beep.
+10. Tune `TRAY_TRAVEL_MS` (open item O-1) so the hopper outlet stops over each tray; record the values in the commissioning log.
 
 ## 8. Sensor Commissioning
 
-**Load Cell / HX711**: Verify wiring (E+/E-/A+/A-). Ensure zero reading is stable. Place a known weight (e.g., 500g). Calculate actual calibration factor. DO NOT use the source code placeholder (`-7050.0f`).
+**Tray Load Cells / 5 HX711**: For each tray verify wiring (E+/E-/A+/A-). Ensure zero reading is stable. Place a known weight (e.g., 50 g and 500 g). Calculate that tray's calibration factor (`LOAD_CELL_CALIBRATION_FACTORS[i]`). DO NOT use the source code placeholder (`-7050.0f`). Confirm the 5 boards on the shared SCK each read correctly.
 **Ultrasonic**: Verify trigger/echo. Measure physical distances for Hopper Empty / Hopper Full. Update source code limits to match reality.
-**Water Floats**: Verify physical installation orientation. Determine if floating UP is logically HIGH or LOW. Update code to match actual physics.
+**Reservoir Float**: Verify physical installation orientation. Determine whether a low reservoir reads LOW (assumed) or HIGH. Update `isWaterLow()` to match.
+**Limit Switches**: Decide NO or NC (NC is fail-safe: a broken wire reads as pressed). Update `isHomeSwitchPressed()` / `isEndSwitchPressed()` to match.
 
 ## 9. RTC / SD / Nextion
 

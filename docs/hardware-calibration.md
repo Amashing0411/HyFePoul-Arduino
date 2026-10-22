@@ -6,6 +6,8 @@
 
 ## 1. Load Cell (HX711) Calibration
 
+There are 5 load cells, one under each tray. Repeat this procedure for every tray and enter each factor in `LOAD_CELL_CALIBRATION_FACTORS[i]` (`Config.ino`).
+
 | Test | Reference Weight (g) | Measured Raw (ADC) | Measured Scaled (g) | Error (g) | Result |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | Zero/Tare | 0 g | NOT TESTED | NOT TESTED | NOT TESTED | NOT TESTED |
@@ -42,10 +44,10 @@
 ## 5. Actuators & Relays (Safe States)
 
 - **Feed Dispenser Relay Default State**: NOT TESTED (Expected: OFF during boot)
-- **Water Pump Relay Default State**: NOT TESTED (Expected: OFF during boot)
+- **Chain Forward/Reverse Relay Default State**: NOT TESTED (Expected: both OFF during boot)
 - **Buzzer Default State**: NOT TESTED (Expected: OFF during boot)
 
 ## 6. Emergency Stop (E-Stop)
 
-- **Physical Switch Pressed**: NOT TESTED (Expected: Firmware immediately halts feeding/pump, logs EVENT, safely isolates)
+- **Physical Switch Pressed**: NOT TESTED (Expected: Firmware immediately halts the chain and dispenser, logs EVENT, safely isolates)
 - **Physical Switch Released**: NOT TESTED (Expected: Firmware recovers and permits commands)

@@ -19,7 +19,8 @@ export default function NotificationsScreen() {
     switch (type) {
       case 'LOW_FEED': return 'restaurant';
       case 'LOW_WATER': return 'water';
-      case 'WATER_PUMP_TIMEOUT': return 'warning';
+      case 'CHAIN_TIMEOUT': return 'warning';
+      case 'TRAY_TIMEOUT': return 'timer-outline';
       case 'EMERGENCY_STOP': return 'alert-circle';
       case 'DEVICE_OFFLINE': return 'cloud-offline';
       default: return 'notifications';
@@ -37,9 +38,9 @@ export default function NotificationsScreen() {
     const alertColor = getAlertColor(item.type, item.resolved);
     const title = item.type.replace(/_/g, ' ');
     const timeStr = new Date(item.timestamp).toLocaleTimeString();
-    
+
     return (
-      <View 
+      <View
         style={[styles.alertCard, { backgroundColor: colors.card, borderLeftColor: alertColor }, item.resolved && { opacity: 0.6 }]}
         accessible={true}
         accessibilityRole="text"

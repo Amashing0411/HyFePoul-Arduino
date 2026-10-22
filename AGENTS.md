@@ -8,7 +8,7 @@ These rules apply to all AI agents acting as developers on the HyFePoul reposito
 - **Backend Routing**: The ESP32 communicates with the internet (Backend). The Mobile app communicates with the Database/Backend. The Mobile app never directly communicates with the Arduino.
 
 ## 2. Hardware Constraints
-- **Do not invent hardware**: Stick to the designated components (Mega, ESP32, HX711, Load Cell, Ultrasonic, Float Switches, RTC, Nextion, SD Card, Pump, Motor, Relay, E-Stop, Buzzer).
+- **Do not invent hardware**: Stick to the designated components (Mega, ESP32, 5 HX711 + 5 Load Cells (one under each tray), Ultrasonic (hopper level), 1 Float Switch (water reservoir), Home/End Limit Switches, RTC, Nextion, SD Card, Chain Motor (reversed by two relays), Dispenser Motor, Relays, E-Stop, Buzzer). There is **no water pump**: water is gravity-fed from a reservoir (see `docs/design-revision-moving-hopper.md`).
 - **Prohibited Components**: Absolutely NO GSM, SIM800L, SMS, temperature, humidity, air-quality, or lighting sensors unless explicitly directed by the user.
 
 ## 3. Technology Stack

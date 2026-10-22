@@ -14,10 +14,10 @@
   static captions set in the HMI and are not written. The Home page has no
   field for hopper level % or network status.
 
-  NOTE (hardware question): the HMI labels the load-cell value "Hopper
-  Load", but the firmware tares the scale at the start of every feed and
-  treats the reading as feed dispensed (Feeding.ino). Confirm what the load
-  cell physically weighs before relying on either meaning.
+  NOTE: t2 shows the total grams in the 5 trays (the tray load cells weigh
+  dispensed feed). The HMI caption t0 still reads "Hopper Load:" and should
+  be renamed in the HMI project (e.g. "Feed in Trays:").
+  t4 shows the feed cycle step, e.g. "Status: FEEDING TRAY 3/5".
 
   Home page buttons handled by the Mega (touch events, see below):
     b3  Stop   -> latches the stop (same as pressing the E-stop button)
@@ -187,19 +187,7 @@ void handleNextionStart() {
 }
 
 String getWaterStatusText() {
-  if (emergencyStopActive) {
-    return "EMERGENCY STOP";
-  }
-
-  if (waterHigh) {
-    return "FULL";
-  }
-
-  if (waterLow) {
-    return "LOW";
-  }
-
-  return "NORMAL";
+  return waterLow ? "LOW - REFILL" : "OK";
 }
 
 String getSystemStatusText() {
@@ -207,15 +195,19 @@ String getSystemStatusText() {
     return "STOPPED";
   }
 
-  if (feedingActive) {
-    return "FEEDING";
+  if (!feedingActive) {
+    return "NORMAL";
   }
 
-  if (waterPumpActive) {
-    return "WATER PUMP";
+  switch (cycleStep) {
+    case CYCLE_HOMING:
+      return "HOMING";
+    case CYCLE_TO_END:
+    case CYCLE_RETURNING:
+      return "RETURNING";
+    default:
+      return String("FEEDING TRAY ") + currentTray + "/" + TRAY_COUNT;
   }
-
-  return "NORMAL";
 }
 
 // Same states as getSystemStatusText(), worded like the HMI ("IDLE").

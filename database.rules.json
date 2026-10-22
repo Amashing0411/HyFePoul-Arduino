@@ -33,13 +33,17 @@
           ".write": "auth != null && root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid",
           "feedWeightGrams": { ".validate": "newData.isNumber()" },
           "targetFeedGrams": { ".validate": "newData.isNumber()" },
+          "trayWeightsGrams": {
+            "$tray": { ".validate": "$tray.matches(/^[0-4]$/) && newData.isNumber()" }
+          },
           "hopperLevelPercent": { ".validate": "newData.isNumber()" },
           "waterLow": { ".validate": "newData.isBoolean()" },
-          "waterHigh": { ".validate": "newData.isBoolean()" },
-          "pumpActive": { ".validate": "newData.isBoolean()" },
           "feedingActive": { ".validate": "newData.isBoolean()" },
+          "cycleStep": { ".validate": "newData.isString() && newData.val().matches(/^(IDLE|HOMING|TO_TRAY|TARING|DISPENSING|TO_END|RETURNING)$/)" },
+          "currentTray": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5" },
           "emergencyStopActive": { ".validate": "newData.isBoolean()" },
-          "timestamp": { ".validate": "newData.isNumber()" }
+          "timestamp": { ".validate": "newData.isNumber()" },
+          "$other": { ".validate": false }
         }
       }
     },
@@ -113,7 +117,7 @@
             ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 59"
           },
           "targetGrams": {
-            ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 2000"
+            ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 1000"
           },
           "enabled": {
             ".validate": "newData.isBoolean()"

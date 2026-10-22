@@ -6,6 +6,8 @@ import ProgressBar from '../components/ProgressBar';
 import StatusBadge from '../components/StatusBadge';
 import Skeleton from '../components/Skeleton';
 import Button from '../components/Button';
+import TrayWeights from '../components/TrayWeights';
+import { describeCycleStep } from '../utils/feedCycle';
 import { useFirebaseData } from '../context/FirebaseDataContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -24,14 +26,18 @@ const COMMAND_STATUS_LABELS: Partial<Record<RTDBCommandStatus, 'cmdQueued' | 'cm
 
 const IN_FLIGHT_STATUSES: RTDBCommandStatus[] = ['queued', 'acknowledged', 'executing'];
 
+// Targets are grams per tray (the hopper fills all 5 trays each cycle).
+const DEFAULT_TRAY_TARGET_GRAMS = 50;
+const MAX_TRAY_TARGET_GRAMS = 1000;
+
 export default function FeedingScreen() {
   const { deviceData, systemData, deviceOnline, schedules, commands, loading, error, issueCommand, updateSchedule } = useFirebaseData();
   const { colors, typography } = useTheme();
   const { t } = useLanguage();
-  
+
   const [refreshing, setRefreshing] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  
+
   const [newHour, setNewHour] = useState('');
   const [newMin, setNewMin] = useState('');
   const [newTarget, setNewTarget] = useState('');
@@ -61,14 +67,14 @@ export default function FeedingScreen() {
     } else {
       setNewHour('07');
       setNewMin('00');
-      setNewTarget('250');
+      setNewTarget(String(DEFAULT_TRAY_TARGET_GRAMS));
     }
     setEditingIndex(index);
   };
 
   const saveEdit = async () => {
     if (editingIndex === null) return;
-    
+
     const h = parseInt(newHour, 10);
     const m = parseInt(newMin, 10);
     const tg = parseInt(newTarget, 10);
@@ -78,8 +84,8 @@ export default function FeedingScreen() {
       return;
     }
 
-    if (isNaN(tg) || tg <= 0 || tg > 2000) {
-      Alert.alert("Error", "Please enter a valid target weight (1-2000g).");
+    if (isNaN(tg) || tg <= 0 || tg > MAX_TRAY_TARGET_GRAMS) {
+      Alert.alert(t('invalidTarget'), t('invalidFeedTarget'));
       return;
     }
 
@@ -105,14 +111,14 @@ export default function FeedingScreen() {
   const deleteSchedule = async (index: number) => {
     const existing = schedules.find(s => s.scheduleId === `sched_${index}`);
     if (!existing) return;
-    
+
     Alert.alert(
       t('delete') || "Delete",
       "Are you sure you want to delete this schedule?",
       [
         { text: t('cancel') || "Cancel", style: "cancel" },
-        { 
-          text: t('delete') || "Delete", 
+        {
+          text: t('delete') || "Delete",
           style: "destructive",
           onPress: async () => {
             try {
@@ -120,7 +126,7 @@ export default function FeedingScreen() {
               // also queues the matching SCHEDULE_SET for the Mega.
               await updateSchedule({
                 scheduleId: `sched_${index}`,
-                hour: 0, minute: 0, targetGrams: 250, enabled: false, daysOfWeek: [1,2,3,4,5,6,7]
+                hour: 0, minute: 0, targetGrams: DEFAULT_TRAY_TARGET_GRAMS, enabled: false, daysOfWeek: [1,2,3,4,5,6,7]
               });
             } catch {
               Alert.alert("Error", "Failed to delete schedule.");
@@ -134,7 +140,7 @@ export default function FeedingScreen() {
   const toggleSchedule = async (index: number, currentEnabled: boolean) => {
     const existing = schedules.find(s => s.scheduleId === `sched_${index}`);
     if (!existing) return;
-    
+
     try {
       await updateSchedule({
         ...existing,
@@ -147,7 +153,7 @@ export default function FeedingScreen() {
 
   const startManualFeed = async () => {
     const grams = parseFloat(manualTarget || '');
-    if (isNaN(grams) || grams <= 0 || grams > 2000) {
+    if (isNaN(grams) || grams <= 0 || grams > MAX_TRAY_TARGET_GRAMS) {
       Alert.alert(t('manualFeed'), t('invalidFeedTarget'));
       return;
     }
@@ -156,8 +162,9 @@ export default function FeedingScreen() {
   };
 
   // What the app can actually show as evidence for a finished manual feed:
-  // the Mega only reports SUCCESS when its scale reading reached the target,
-  // and the dispensed weight arrives separately in the next state update.
+  // the Mega only reports SUCCESS when every tray's load cell reached the
+  // target and the hopper is back home; the tray weights arrive separately
+  // in the next state update.
   const renderFeedEvidence = (command: RTDBCommand) => {
     if (command.command !== 'MANUAL_FEED' || command.status !== 'completed' || !systemData) {
       return null;
@@ -211,7 +218,7 @@ export default function FeedingScreen() {
   }
 
   const feedColor = systemData.hopperLevelPercent < 20 ? colors.error : colors.warning;
-  
+
   const activeCommand = commands.length > 0 ? commands[0] : null;
   // Block a second manual feed until the first one has finished.
   const manualFeedInFlight = commands.some(c => c.command === 'MANUAL_FEED' && IN_FLIGHT_STATUSES.includes(c.status));
@@ -222,7 +229,7 @@ export default function FeedingScreen() {
   const pendingSyncCmd = commands.find(c => c.command === 'SCHEDULE_SET' && (c.status === 'queued' || c.status === 'acknowledged' || c.status === 'executing'));
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={100}
@@ -242,7 +249,7 @@ export default function FeedingScreen() {
           <View style={styles.grid}>
             <View style={styles.gridItem}>
               <Ionicons name="scale-outline" size={24} color={colors.neutral} />
-              <Text style={[typography.caption, styles.gridLabel]}>{t('weight')}</Text>
+              <Text style={[typography.caption, styles.gridLabel]}>{t('feedInTrays')}</Text>
               <Text style={[typography.body, { fontWeight: 'bold' }]}>{systemData.feedWeightGrams.toFixed(0)} g</Text>
             </View>
             <View style={styles.gridItem}>
@@ -254,18 +261,33 @@ export default function FeedingScreen() {
             </View>
           </View>
           <View style={[styles.progressContainer, { borderTopColor: colors.border }]}>
+            <Text style={[typography.caption, { marginBottom: spacing.xs }]}>{t('trays')}</Text>
+            <TrayWeights weights={systemData.trayWeightsGrams} currentTray={systemData.feedingActive ? systemData.currentTray : 0} />
+            <View style={[styles.row, { marginTop: spacing.sm }]}>
+              <Text style={typography.caption}>{t('feedCycle')}</Text>
+              <Text style={[typography.caption, { flexShrink: 1, textAlign: 'right', marginLeft: spacing.sm }]}>
+                {describeCycleStep(t, systemData.cycleStep, systemData.currentTray)}
+              </Text>
+            </View>
+            {systemData.feedingActive && (
+              <Text style={[typography.caption, { color: colors.textSecondary }]}>
+                {t('cycleTargetPerTray', { target: systemData.targetFeedGrams.toFixed(0) })}
+              </Text>
+            )}
+          </View>
+          <View style={[styles.progressContainer, { borderTopColor: colors.border }]}>
             <View style={styles.row}>
               <Text style={typography.caption}>{t('hopperLevel')}</Text>
               <Text style={[typography.body, { fontWeight: 'bold' }]}>{systemData.hopperLevelPercent.toFixed(0)}%</Text>
             </View>
             <ProgressBar progress={systemData.hopperLevelPercent} color={feedColor} />
           </View>
-          
+
           <View style={{ marginTop: spacing.md }}>
             {manualTarget === null ? (
               <Button
                 title={t('manualFeed')}
-                onPress={() => setManualTarget('500')}
+                onPress={() => setManualTarget(String(DEFAULT_TRAY_TARGET_GRAMS))}
                 variant="outline"
                 disabled={manualFeedBlocked}
                 accessibilityLabel={t('manualFeed')}
@@ -341,7 +363,7 @@ export default function FeedingScreen() {
         {[0, 1, 2].map(index => {
           const schedule = schedules.find(s => s.scheduleId === `sched_${index}`);
           const isEditing = editingIndex === index;
-          
+
           if (isEditing) {
             return (
               // The editor opens at the bottom of the list, partly under the
@@ -362,7 +384,7 @@ export default function FeedingScreen() {
                   <View style={styles.inputGroup}>
                     <Text style={typography.caption}>Time</Text>
                     <View style={styles.timeInputContainer}>
-                      <TextInput 
+                      <TextInput
                         style={[styles.input, typography.body, { borderColor: colors.border, color: colors.text }]}
                         value={newHour}
                         onChangeText={setNewHour}
@@ -372,7 +394,7 @@ export default function FeedingScreen() {
                         maxLength={2}
                       />
                       <Text style={[typography.h2, { marginHorizontal: 4 }]}>:</Text>
-                      <TextInput 
+                      <TextInput
                         style={[styles.input, typography.body, { borderColor: colors.border, color: colors.text }]}
                         value={newMin}
                         onChangeText={setNewMin}
@@ -384,12 +406,12 @@ export default function FeedingScreen() {
                     </View>
                   </View>
                   <View style={styles.inputGroup}>
-                    <Text style={typography.caption}>Amount</Text>
-                    <TextInput 
+                    <Text style={typography.caption}>{t('amountPerTray')}</Text>
+                    <TextInput
                       style={[styles.input, typography.body, { borderColor: colors.border, color: colors.text }]}
                       value={newTarget}
                       onChangeText={setNewTarget}
-                      placeholder="Grams (e.g. 250)"
+                      placeholder="e.g. 50"
                       placeholderTextColor={colors.textSecondary}
                       keyboardType="number-pad"
                     />
@@ -419,7 +441,7 @@ export default function FeedingScreen() {
                     <View style={[styles.row, { justifyContent: 'flex-start', marginTop: 4 }]}>
                       <Ionicons name="restaurant" size={14} color={schedule.enabled ? colors.primary : colors.textSecondary} />
                       <Text style={[typography.body, { marginLeft: 4 }, !schedule.enabled && { color: colors.textSecondary }]}>
-                        {schedule.targetGrams} g
+                        {schedule.targetGrams} g {t('perTray')}
                       </Text>
                     </View>
                   </View>
