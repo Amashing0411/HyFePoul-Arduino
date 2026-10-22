@@ -9,13 +9,14 @@
 
   Log columns:
     Timestamp,
-    FeedWeight_g,
+    FeedTotal_g,
+    Tray1_g .. Tray5_g,
     HopperLevel_Percent,
     WaterLow,
-    WaterHigh,
-    PumpStatus,
     FeedingStatus,
-    TargetFeed_g,
+    CycleStep,
+    CurrentTray,
+    TargetPerTray_g,
     EmergencyStop,
     DeviceStatus,
     ESP32Status,
@@ -48,9 +49,10 @@ void createCSVHeader() {
 
     if (file) {
       file.println(
-        F("Timestamp,FeedWeight_g,HopperLevel_Percent,WaterLow,"
-          "WaterHigh,PumpStatus,FeedingStatus,TargetFeed_g,"
-          "EmergencyStop,DeviceStatus,ESP32Status,TimeSource,AlertEvent")
+        F("Timestamp,FeedTotal_g,Tray1_g,Tray2_g,Tray3_g,Tray4_g,Tray5_g,"
+          "HopperLevel_Percent,WaterLow,FeedingStatus,CycleStep,"
+          "CurrentTray,TargetPerTray_g,EmergencyStop,DeviceStatus,"
+          "ESP32Status,TimeSource,AlertEvent")
       );
       file.close();
     }
@@ -86,15 +88,19 @@ void logCurrentSystemData(const String& alertEvent) {
   file.print(',');
   file.print(currentFeedWeightGrams, 1);
   file.print(',');
+  for (uint8_t i = 0; i < TRAY_COUNT; i++) {
+    file.print(trayWeightsGrams[i], 1);
+    file.print(',');
+  }
   file.print(currentHopperLevelPercent, 1);
   file.print(',');
   file.print(waterLow ? 1 : 0);
   file.print(',');
-  file.print(waterHigh ? 1 : 0);
-  file.print(',');
-  file.print(waterPumpActive ? 1 : 0);
-  file.print(',');
   file.print(feedingActive ? 1 : 0);
+  file.print(',');
+  file.print(getCycleStepName(cycleStep));
+  file.print(',');
+  file.print(currentTray);
   file.print(',');
   file.print(activeFeedTargetGrams, 1);
   file.print(',');

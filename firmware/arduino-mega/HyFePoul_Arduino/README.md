@@ -12,9 +12,9 @@ Arduino Mega 2560 (primary controller)
 
 - `HyFePoul_Arduino.ino` — main setup and loop
 - `Config.ino` — pins, thresholds, shared variables, initialization
-- `Feeding.ino` — scheduled feeding, load cell, dispenser motor
+- `Feeding.ino` — moving-hopper feed cycle: chain motor (two polarity relays, interlocked), home/end limit switches, 5 tray load cells, dispenser motor
 - `FeedLevel.ino` — ultrasonic hopper feed-level measurement
-- `Hydration.ino` — float switches and one water pump
+- `Hydration.ino` — reservoir float switch: `LOW_WATER` alert + buzzer (gravity-fed drinker, no pump)
 - `TimeManager.ino` — RTC + ESP32 network-time synchronization/fallback
 - `ESP32Communication.ino` — Mega↔ESP32 placeholder protocol
 - `Nextion.ino` — Nextion display interface placeholder
@@ -34,14 +34,14 @@ Install the required libraries through Arduino IDE's Library Manager where neces
 
 ## Important placeholders to confirm before hardware testing
 
-1. HX711 calibration factor.
-2. Actual load-cell mechanical arrangement and what the load cell is measuring.
+1. HX711 calibration factor for each of the 5 tray load cells.
+2. Tray travel times (`TRAY_TRAVEL_MS`), dispense and chain timeouts (bench values, open items O-1/O-4).
 3. Ultrasonic empty/full hopper distances.
 4. Ultrasonic sensor mounting and measurement area.
-5. Water float-switch electrical logic and physical mounting.
+5. Water float-switch and limit-switch electrical logic (NO vs NC) and mounting.
 6. Relay module active-HIGH or active-LOW behavior.
 7. Final dispenser motor driver/relay wiring.
-8. Final water pump electrical rating and switching circuit.
+8. Chain motor rating and the two-relay polarity-reversal wiring.
 9. Nextion baud rate.
 10. Nextion component names and event IDs.
 11. DS3231/RTC module actually used.
@@ -61,7 +61,7 @@ ESP32 → Mega (each line at most 63 characters + `\n`, because `Serial1` has a 
 - `CMD|ID:<C0-C9 or R0-R2>|ACTION:<action>|…`
 
 Mega → ESP32:
-- `DATA|feedWeight|targetFeed|hopperLevel|waterLow|waterHigh|pump|feeding|emergency|timeSource` (every 10 s)
+- `DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|estop|timeSource` (every 10 s; tray grams, target per tray, cycle step and tray)
 - `EVENT|<name>` (including `SYSTEM_START` at boot)
 - `CMD_ACK|ID:<id>|STATUS:ACCEPTED|REJECTED[|REASON:…]` and `CMD_DONE|ID:<id>|STATUS:SUCCESS|FAILED[|REASON:…]`
 

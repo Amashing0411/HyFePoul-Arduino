@@ -16,7 +16,9 @@
 #include <EEPROM.h>
 
 const uint16_t SCHEDULE_STORE_MAGIC = 0x4846; // "HF"
-const uint8_t SCHEDULE_STORE_VERSION = 1;
+// Version 2: targetGrams is per tray (moving-hopper design). Version 1
+// records held a total per feed and are ignored, so the defaults apply.
+const uint8_t SCHEDULE_STORE_VERSION = 2;
 const int SCHEDULE_STORE_ADDRESS = 0;
 
 struct ScheduleStore {
@@ -46,7 +48,7 @@ bool isValidScheduleSlot(uint8_t hour, uint8_t minute, float targetGrams) {
          minute <= 59 &&
          !isnan(targetGrams) &&
          targetGrams > 0.0f &&
-         targetGrams <= 5000.0f;
+         targetGrams <= MAX_TRAY_TARGET_GRAMS;
 }
 
 // Returns true when a valid record was found and copied into feedSchedules.

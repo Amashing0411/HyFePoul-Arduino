@@ -40,22 +40,22 @@ void handleSafety() {
     logEventToSD("EMERGENCY_STOP_BUTTON_RELEASED");
   }
 
-  // While latched, keep both actuators commanded OFF every loop.
+  // While latched, keep every actuator commanded OFF every loop.
   if (emergencyStopActive) {
     digitalWrite(DISPENSER_RELAY_PIN, LOW);
-    digitalWrite(WATER_PUMP_RELAY_PIN, LOW);
+    stopChain();
   }
+
+  // Limit switches stop the chain whatever the feed cycle is doing.
+  enforceChainLimits();
 }
 
 void tripEmergencyStop() {
   emergencyStopActive = true;
 
-  // Immediately command actuators OFF.
-  digitalWrite(DISPENSER_RELAY_PIN, LOW);
-  digitalWrite(WATER_PUMP_RELAY_PIN, LOW);
-
-  feedingActive = false;
-  waterPumpActive = false;
+  // Immediately command actuators OFF and abandon any feed cycle. The
+  // hopper stays where it is; the next cycle homes first.
+  stopFeedCycle("FEEDING_STOPPED_ESTOP");
 
   // A remote feed interrupted here would otherwise never report back.
   finishRemoteCommand("FAILED", "ESTOP_ACTIVE");
@@ -79,9 +79,6 @@ const char* resetEmergencyStop(const char* logEvent) {
   }
 
   emergencyStopActive = false;
-
-  // The reset doubles as the operator acknowledging a pump fault.
-  waterPumpFaultLatched = false;
 
   Serial.println(F("Emergency stop reset."));
   logEventToSD(logEvent);

@@ -19,7 +19,7 @@
     TIME|2026-09-18|19:30:00
     STATUS|ONLINE
     STATUS|OFFLINE
-    DATA|feedWeight|hopperLevel|waterLow|waterHigh|pump|feeding
+    DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|estop|timeSource
     EVENT|LOW_FEED
 */
 
@@ -126,21 +126,26 @@ void processESP32Line(String line) {
   // DISABLE_FEED|1
 }
 
+// DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|estop|timeSource
+// t1..t5 = grams in each tray, target = grams per tray, step = cycle step
+// name, tray = tray the hopper is at/heading to (0 = none).
 void sendCurrentDataToESP32() {
   ESP32_SERIAL.print(F("DATA|"));
-  ESP32_SERIAL.print(currentFeedWeightGrams, 1);
-  ESP32_SERIAL.print('|');
+  for (uint8_t i = 0; i < TRAY_COUNT; i++) {
+    ESP32_SERIAL.print(trayWeightsGrams[i], 1);
+    ESP32_SERIAL.print('|');
+  }
   ESP32_SERIAL.print(activeFeedTargetGrams, 1);
   ESP32_SERIAL.print('|');
   ESP32_SERIAL.print(currentHopperLevelPercent, 1);
   ESP32_SERIAL.print('|');
   ESP32_SERIAL.print(waterLow ? 1 : 0);
   ESP32_SERIAL.print('|');
-  ESP32_SERIAL.print(waterHigh ? 1 : 0);
-  ESP32_SERIAL.print('|');
-  ESP32_SERIAL.print(waterPumpActive ? 1 : 0);
-  ESP32_SERIAL.print('|');
   ESP32_SERIAL.print(feedingActive ? 1 : 0);
+  ESP32_SERIAL.print('|');
+  ESP32_SERIAL.print(getCycleStepName(cycleStep));
+  ESP32_SERIAL.print('|');
+  ESP32_SERIAL.print(currentTray);
   ESP32_SERIAL.print('|');
   ESP32_SERIAL.print(emergencyStopActive ? 1 : 0);
   ESP32_SERIAL.print('|');
@@ -184,7 +189,7 @@ void processRemoteCommand(String line) {
   // CMD|ID:<id>|ACTION:<command>|TARGET:<grams>
   String cmdId = extractMegaValue(line, "ID:");
   String action = extractMegaValue(line, "ACTION:");
-  
+
   if (cmdId == "" || action == "") {
     if (cmdId != "") {
       sendCmdAck(cmdId, "REJECTED", "MALFORMED");
@@ -197,39 +202,36 @@ void processRemoteCommand(String line) {
     sendCmdAck(cmdId, "REJECTED", "DUPLICATE_ID");
     return;
   }
-  
+
   // Busy check
   if (activeRemoteCommandId != "") {
     sendCmdAck(cmdId, "REJECTED", "SYSTEM_BUSY");
     return;
   }
-  
+
   if (action == "MANUAL_FEED") {
+    // TARGET is grams per tray; the Mega runs one full 5-tray cycle.
     String targetStr = extractMegaValue(line, "TARGET:");
     if (targetStr == "") {
       sendCmdAck(cmdId, "REJECTED", "MISSING_TARGET");
       return;
     }
     float targetGrams = targetStr.toFloat();
-    if (targetGrams <= 0 || targetGrams > 5000.0) { 
+    if (targetGrams <= 0 || targetGrams > MAX_TRAY_TARGET_GRAMS) {
       sendCmdAck(cmdId, "REJECTED", "INVALID_TARGET");
       return;
     }
-    
-    if (emergencyStopActive) {
-      sendCmdAck(cmdId, "REJECTED", "ESTOP_ACTIVE");
+
+    const char* rejectReason = startFeedCycle(targetGrams);
+    if (rejectReason != NULL) {
+      sendCmdAck(cmdId, "REJECTED", rejectReason);
       return;
     }
-    
-    if (feedingActive) {
-      sendCmdAck(cmdId, "REJECTED", "FEEDING_ACTIVE");
-      return;
-    }
-    
+
+    // CMD_DONE follows when the cycle ends (finishRemoteCommand).
     activeRemoteCommandId = cmdId;
     sendCmdAck(cmdId, "ACCEPTED", "");
-    
-    startRemoteFeeding(targetGrams);
+    logEventToSD("REMOTE_FEEDING_STARTED");
   }
   else if (action == "ESTOP_RELEASE") {
     const char* rejectReason =
@@ -249,9 +251,9 @@ void processRemoteCommand(String line) {
   else if (action == "STATUS_REQ") {
     activeRemoteCommandId = cmdId;
     sendCmdAck(cmdId, "ACCEPTED", "");
-    
+
     sendCurrentDataToESP32();
-    
+
     sendCmdDone(cmdId, "SUCCESS", "");
     activeRemoteCommandId = "";
   }
@@ -261,18 +263,18 @@ void processRemoteCommand(String line) {
     String minStr = extractMegaValue(line, "MIN:");
     String tgtStr = extractMegaValue(line, "TGT:");
     String enStr = extractMegaValue(line, "EN:");
-    
+
     if (idxStr == "" || hrStr == "" || minStr == "" || tgtStr == "" || enStr == "") {
       sendCmdAck(cmdId, "REJECTED", "MALFORMED_SCHEDULE");
       return;
     }
-    
+
     int idx = idxStr.toInt();
     int hr = hrStr.toInt();
     int mn = minStr.toInt();
     float tgt = tgtStr.toFloat();
     bool en = (enStr == "1" || enStr == "true");
-    
+
     if (idx < 0 || idx >= FEED_SCHEDULE_COUNT) {
       sendCmdAck(cmdId, "REJECTED", "INVALID_INDEX");
       return;
@@ -281,11 +283,11 @@ void processRemoteCommand(String line) {
       sendCmdAck(cmdId, "REJECTED", "INVALID_TIME");
       return;
     }
-    if (tgt <= 0 || tgt > 5000.0) {
+    if (tgt <= 0 || tgt > MAX_TRAY_TARGET_GRAMS) {
       sendCmdAck(cmdId, "REJECTED", "INVALID_TARGET");
       return;
     }
-    
+
     feedSchedules[idx].hour = hr;
     feedSchedules[idx].minute = mn;
     feedSchedules[idx].targetGrams = tgt;
@@ -294,7 +296,7 @@ void processRemoteCommand(String line) {
 
     activeRemoteCommandId = cmdId;
     sendCmdAck(cmdId, "ACCEPTED", "");
-    
+
     Serial.print(F("Remote schedule set: ["));
     Serial.print(idx);
     Serial.print(F("] "));
@@ -305,7 +307,7 @@ void processRemoteCommand(String line) {
     Serial.print(tgt);
     Serial.print(F(" Enabled: "));
     Serial.println(en);
-    
+
     sendCmdDone(cmdId, "SUCCESS", "");
     activeRemoteCommandId = "";
   }
