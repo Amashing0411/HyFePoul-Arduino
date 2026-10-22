@@ -39,6 +39,19 @@ unsigned long lastMegaLineMillis = 0;
 
 String megaReceiveBuffer = "";
 
+// One parsed DATA line from the Mega (moving-hopper design: 5 trays).
+const int TRAY_COUNT = 5;
+struct DeviceStateData {
+  float trayGrams[TRAY_COUNT];
+  float targetPerTray;
+  float hopperPercent;
+  bool waterLow;
+  bool feeding;
+  String cycleStep;
+  int currentTray;
+  bool estop;
+};
+
 // Time management
 const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = 0;
@@ -53,7 +66,9 @@ String activeCommandStatus = "";
 unsigned long activeCommandStartMillis = 0;
 uint8_t uartIdCounter = 0;
 const unsigned long UART_ACK_TIMEOUT = 3000;
-const unsigned long UART_EXEC_TIMEOUT = 120000;
+// A MANUAL_FEED runs a full 5-tray cycle on the Mega: about a minute
+// normally, up to ~4.5 min if every tray and move hits its timeout.
+const unsigned long UART_EXEC_TIMEOUT = 300000;
 
 // Schedule restore: re-send /schedules/{deviceId} to the Mega after either
 // board restarts, after Wi-Fi comes back, or after a schedule command failed.
@@ -348,27 +363,35 @@ void processMegaLine(String line) {
   Serial.print("Mega TX: ");
   Serial.println(line);
 
-  // DATA|feedWeight|targetFeed|hopperLevel|waterLow|waterHigh|pump|feeding|emergencyStop|timeSource
+  // DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|estop|timeSource
   if (line.startsWith("DATA|")) {
-    int indices[10];
+    // 14 fields -> 13 separators; fields[i] is the text after separator i.
+    const int SEPARATORS = 13;
+    int indices[SEPARATORS + 1];
     int count = 0;
     int pos = line.indexOf('|');
-    while (pos != -1 && count < 10) {
+    while (pos != -1 && count < SEPARATORS) {
       indices[count++] = pos;
       pos = line.indexOf('|', pos + 1);
     }
 
-    if (count >= 9) { // We need at least 9 separators for 9 data fields
-      float feedWeight = line.substring(indices[0] + 1, indices[1]).toFloat();
-      float targetFeedGrams = line.substring(indices[1] + 1, indices[2]).toFloat();
-      float hopperLevel = line.substring(indices[2] + 1, indices[3]).toFloat();
-      bool waterLow = line.substring(indices[3] + 1, indices[4]).toInt() == 1;
-      bool waterHigh = line.substring(indices[4] + 1, indices[5]).toInt() == 1;
-      bool pumpActive = line.substring(indices[5] + 1, indices[6]).toInt() == 1;
-      bool feedingActive = line.substring(indices[6] + 1, indices[7]).toInt() == 1;
-      bool estop = line.substring(indices[7] + 1, indices[8]).toInt() == 1;
+    if (count == SEPARATORS && pos == -1) {
+      indices[SEPARATORS] = line.length();
+      DeviceStateData data;
+      for (int i = 0; i < TRAY_COUNT; i++) {
+        data.trayGrams[i] = line.substring(indices[i] + 1, indices[i + 1]).toFloat();
+      }
+      data.targetPerTray = line.substring(indices[5] + 1, indices[6]).toFloat();
+      data.hopperPercent = line.substring(indices[6] + 1, indices[7]).toFloat();
+      data.waterLow = line.substring(indices[7] + 1, indices[8]).toInt() == 1;
+      data.feeding = line.substring(indices[8] + 1, indices[9]).toInt() == 1;
+      data.cycleStep = line.substring(indices[9] + 1, indices[10]);
+      data.currentTray = line.substring(indices[10] + 1, indices[11]).toInt();
+      data.estop = line.substring(indices[11] + 1, indices[12]).toInt() == 1;
 
-      sendStateToFirebase(feedWeight, targetFeedGrams, hopperLevel, waterLow, waterHigh, pumpActive, feedingActive, estop);
+      sendStateToFirebase(data);
+    } else {
+      Serial.println("DATA line ignored: wrong field count");
     }
   }
   else if (line.startsWith("EVENT|")) {
@@ -455,21 +478,27 @@ void sendHeartbeat() {
   http.end();
 }
 
-void sendStateToFirebase(float feedWt, float targetFeed, float hopper, bool wLow, bool wHigh, bool pump, bool feeding, bool estop) {
+void sendStateToFirebase(const DeviceStateData& data) {
   if (idToken == "" || WiFi.status() != WL_CONNECTED) return;
 
   unsigned long currentTimestamp = getTimestampMillis();
   if (currentTimestamp < 1000000000000ULL) return; // Wait for valid time
 
-  StaticJsonDocument<512> doc;
-  doc["feedWeightGrams"] = feedWt;
-  doc["targetFeedGrams"] = targetFeed;
-  doc["hopperLevelPercent"] = hopper;
-  doc["waterLow"] = wLow;
-  doc["waterHigh"] = wHigh;
-  doc["pumpActive"] = pump;
-  doc["feedingActive"] = feeding;
-  doc["emergencyStopActive"] = estop;
+  StaticJsonDocument<768> doc;
+  float total = 0.0f;
+  JsonArray trays = doc.createNestedArray("trayWeightsGrams");
+  for (int i = 0; i < TRAY_COUNT; i++) {
+    trays.add(data.trayGrams[i]);
+    total += data.trayGrams[i];
+  }
+  doc["feedWeightGrams"] = total; // sum of the 5 trays
+  doc["targetFeedGrams"] = data.targetPerTray; // per tray
+  doc["hopperLevelPercent"] = data.hopperPercent;
+  doc["waterLow"] = data.waterLow;
+  doc["feedingActive"] = data.feeding;
+  doc["cycleStep"] = data.cycleStep;
+  doc["currentTray"] = data.currentTray;
+  doc["emergencyStopActive"] = data.estop;
   doc["timestamp"] = currentTimestamp;
 
   String payload;
@@ -502,8 +531,8 @@ void sendEventToFirebase(String eventName) {
   // Only actionable events become RTDB alerts. Informational events (like FEEDING_STARTED)
   // are logged locally on the Mega SD card per existing architecture.
   if (eventName != "LOW_FEED" && eventName != "LOW_WATER" &&
-      eventName != "WATER_PUMP_TIMEOUT" && eventName != "EMERGENCY_STOP" &&
-      eventName != "DEVICE_ERROR") {
+      eventName != "CHAIN_TIMEOUT" && eventName != "TRAY_TIMEOUT" &&
+      eventName != "EMERGENCY_STOP" && eventName != "DEVICE_ERROR") {
     return;
   }
 

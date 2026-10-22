@@ -86,11 +86,12 @@ async function simulate() {
 
   const statePayload = {
     feedWeightGrams: 250,
-    targetFeedGrams: 0,
+    targetFeedGrams: 50,
     hopperLevelPercent: 75,
     waterLow: false,
-    waterHigh: true,
-    pumpActive: false,
+    trayWeightsGrams: [50, 50, 50, 50, 50],
+    cycleStep: "IDLE",
+    currentTray: 0,
     feedingActive: false,
     emergencyStopActive: false,
     timestamp: timestamp

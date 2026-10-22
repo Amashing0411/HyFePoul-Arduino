@@ -138,7 +138,7 @@ async function runTests() {
   });
 
   await test("Device identity: ESP32 cannot modify another device's state", async () => {
-    await assertFails(esp32Db.ref("devices/dev1/state/pumpActive").set(true));
+    await assertFails(esp32Db.ref("devices/dev1/state/feedingActive").set(true));
   });
 
   await test("Device-generated data: ESP32 can write own history", async () => {
@@ -154,32 +154,44 @@ async function runTests() {
     await assertFails(esp32Db.ref("systemData/dev1/push1").set({ temp: 10 }));
   });
 
+  // Moving-hopper state: 5 tray weights, per-tray target, cycle step/tray.
+  const validState = () => ({
+    feedWeightGrams: 250,
+    targetFeedGrams: 50,
+    trayWeightsGrams: [50, 50, 50, 50, 50],
+    hopperLevelPercent: 50,
+    waterLow: false,
+    feedingActive: true,
+    cycleStep: "DISPENSING",
+    currentTray: 3,
+    emergencyStopActive: false,
+    timestamp: 1690000000
+  });
+
   await test("Data Validation: ESP32 can write state with correct types", async () => {
-    await assertSucceeds(esp32Db.ref("devices/dev2/state").set({
-      feedWeightGrams: 500,
-      targetFeedGrams: 1000,
-      hopperLevelPercent: 50,
-      waterLow: false,
-      waterHigh: true,
-      pumpActive: false,
-      feedingActive: true,
-      emergencyStopActive: false,
-      timestamp: 1690000000
-    }));
+    await assertSucceeds(esp32Db.ref("devices/dev2/state").set(validState()));
   });
 
   await test("Data Validation: ESP32 cannot write state with wrong types", async () => {
     await assertFails(esp32Db.ref("devices/dev2/state").set({
-      feedWeightGrams: "five hundred", // String instead of number
-      targetFeedGrams: 1000,
-      hopperLevelPercent: 50,
-      waterLow: false,
-      waterHigh: true,
-      pumpActive: false,
-      feedingActive: true,
-      emergencyStopActive: false,
-      timestamp: 1690000000
+      ...validState(),
+      feedWeightGrams: "five hundred" // String instead of number
     }));
+  });
+
+  await test("Data Validation: state rejects a sixth tray or a non-numeric tray weight", async () => {
+    await assertFails(esp32Db.ref("devices/dev2/state").set({ ...validState(), trayWeightsGrams: [1, 2, 3, 4, 5, 6] }));
+    await assertFails(esp32Db.ref("devices/dev2/state").set({ ...validState(), trayWeightsGrams: [1, "x", 3, 4, 5] }));
+  });
+
+  await test("Data Validation: state rejects an unknown cycle step or tray out of range", async () => {
+    await assertFails(esp32Db.ref("devices/dev2/state").set({ ...validState(), cycleStep: "PUMPING" }));
+    await assertFails(esp32Db.ref("devices/dev2/state").set({ ...validState(), currentTray: 6 }));
+  });
+
+  await test("Data Validation: removed pump fields are rejected (old firmware format)", async () => {
+    await assertFails(esp32Db.ref("devices/dev2/state").set({ ...validState(), waterHigh: true }));
+    await assertFails(esp32Db.ref("devices/dev2/state").set({ ...validState(), pumpActive: false }));
   });
 
   // --- 5B.8 Remote Command Security Tests ---
@@ -372,12 +384,12 @@ async function runTests() {
     }));
   });
 
-  await test("Schedules: owner cannot create invalid schedule (target > 2000)", async () => {
+  await test("Schedules: owner cannot create invalid schedule (target > 1000 g per tray)", async () => {
     await assertFails(owner3Db.ref("schedules/dev3/sched_2").set({
       scheduleId: "sched_2",
       hour: 12,
       minute: 0,
-      targetGrams: 5000,
+      targetGrams: 1001,
       enabled: true,
       daysOfWeek: [1]
     }));
