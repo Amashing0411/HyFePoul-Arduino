@@ -1,5 +1,5 @@
 {
-  "name": "mobile-app",
+  "name": "hyfepoul",
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {
@@ -13,6 +13,7 @@
     "expo-device": "~57.0.2",
     "expo-font": "~57.0.4",
     "expo-notifications": "~57.0.21",
+    "expo-splash-screen": "~57.0.10",
     "expo-status-bar": "~57.0.1",
     "firebase": "^12.19.0",
     "react": "19.2.3",
