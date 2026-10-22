@@ -31,8 +31,10 @@ export default function TrayWeights({ weights, currentTray }: TrayWeightsProps) 
             accessibilityLabel={t('trayWeightA11y', { n: i + 1, weight: grams.toFixed(0) })}
           >
             <Text style={typography.caption}>{t('trayN', { n: i + 1 })}</Text>
-            <Text style={[typography.body, { fontWeight: 'bold' }]}>{grams.toFixed(0)}</Text>
-            <Text style={typography.caption}>g</Text>
+            <Text style={[typography.body, { fontWeight: 'bold' }]} numberOfLines={1} adjustsFontSizeToFit>
+              {grams.toFixed(0)}
+              <Text style={typography.caption}> g</Text>
+            </Text>
           </View>
         );
       })}

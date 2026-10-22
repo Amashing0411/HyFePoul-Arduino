@@ -1,5 +1,7 @@
 # HyFePoul
 
+<p align="center"><img src="mobile-app/assets/hyfepoul-logo.png" alt="HyFePoul logo" width="180"></p>
+
 **HyFePoul: An Arduino-Based Precision Poultry Management System with Weight-Sensing Feeders and Automated Hydration Monitoring Device.** This is an undergraduate Computer Engineering thesis project.
 
 HyFePoul automates feeding and watering for a small poultry setup. An Arduino Mega moves a feed hopper along a chain past 5 trays and fills each tray to a target weight measured by that tray's load cell, warns when the gravity-fed water reservoir needs refilling, and enforces a physical emergency stop. An ESP32 links the device to Firebase, so the owner can monitor it and send commands from an Android app.

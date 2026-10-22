@@ -32,7 +32,6 @@ export const translations = {
 
     // Splash
     managementSystem: 'Management System',
-    placeholderLogo: '(Placeholder Logo)',
 
     // Dashboard
     deviceStatus: 'Status',
@@ -177,7 +176,6 @@ export const translations = {
 
     // Splash
     managementSystem: 'Management System',
-    placeholderLogo: '(Placeholder Logo)',
 
     // Dashboard
     deviceStatus: 'Status ng Makina',

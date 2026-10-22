@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "HyFePoul",
-    "slug": "mobile-app",
+    "slug": "hyfepoul",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,7 +13,7 @@
       "package": "com.hyfepoul.mobile",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0B52B0",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -25,7 +25,16 @@
     },
     "plugins": [
       "expo-font",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#052D77"
+        }
+      ]
     ],
     "extra": {
       "eas": {
