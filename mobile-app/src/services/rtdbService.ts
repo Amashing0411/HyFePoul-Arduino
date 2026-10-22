@@ -1,6 +1,9 @@
 import { ref, set, onValue, query, orderByChild, limitToLast, get, equalTo } from 'firebase/database';
 import { rtdb } from './firebase';
-import { RTDBDevice, RTDBSystemDataSnapshot, RTDBAlert, RTDBCommand, RTDBCommandAction, RTDBSchedule } from '../types/rtdb';
+import { RTDBDevice, RTDBDeviceState, RTDBSystemDataSnapshot, RTDBAlert, RTDBCommand, RTDBCommandAction, RTDBSchedule } from '../types/rtdb';
+import { SystemData, TRAY_COUNT } from '../types';
+
+const CYCLE_STEPS = ['IDLE', 'HOMING', 'TO_TRAY', 'TARING', 'DISPENSING', 'TO_END', 'RETURNING'];
 
 /**
  * Lightweight runtime validation
@@ -10,14 +13,30 @@ export const isValidDeviceState = (data: any): boolean => {
   if (typeof data.feedWeightGrams !== 'number') return false;
   if (typeof data.targetFeedGrams !== 'number') return false;
   if (typeof data.hopperLevelPercent !== 'number') return false;
+  if (!Array.isArray(data.trayWeightsGrams) || data.trayWeightsGrams.length !== TRAY_COUNT) return false;
+  if (!data.trayWeightsGrams.every((g: unknown) => typeof g === 'number')) return false;
   if (typeof data.waterLow !== 'boolean') return false;
-  if (typeof data.waterHigh !== 'boolean') return false;
-  if (typeof data.pumpActive !== 'boolean') return false;
   if (typeof data.feedingActive !== 'boolean') return false;
+  if (typeof data.cycleStep !== 'string' || !CYCLE_STEPS.includes(data.cycleStep)) return false;
+  if (typeof data.currentTray !== 'number') return false;
   if (typeof data.emergencyStopActive !== 'boolean') return false;
   if (typeof data.timestamp !== 'number') return false;
   return true;
 };
+
+// RTDB state (numeric timestamp) -> the app's SystemData.
+export const toSystemData = (state: RTDBDeviceState): SystemData => ({
+  feedWeightGrams: state.feedWeightGrams,
+  targetFeedGrams: state.targetFeedGrams,
+  trayWeightsGrams: state.trayWeightsGrams,
+  hopperLevelPercent: state.hopperLevelPercent,
+  waterLow: state.waterLow,
+  feedingActive: state.feedingActive,
+  cycleStep: state.cycleStep,
+  currentTray: state.currentTray,
+  emergencyStopActive: state.emergencyStopActive,
+  timestamp: new Date(state.timestamp).toISOString(),
+});
 
 export const isValidDevice = (data: any): boolean => {
   if (!data || typeof data !== 'object') return false;
@@ -84,7 +103,7 @@ export const rtdbService = {
           callback([]);
           return;
         }
-        
+
         const records: RTDBSystemDataSnapshot[] = [];
         // snapshot.forEach respects the order requested by orderByChild
         snapshot.forEach((childSnap) => {
@@ -93,7 +112,7 @@ export const rtdbService = {
             records.push(val as RTDBSystemDataSnapshot);
           }
         });
-        
+
         callback(records);
       },
       (error) => {
@@ -112,7 +131,7 @@ export const rtdbService = {
           callback([]);
           return;
         }
-        
+
         const records: RTDBAlert[] = [];
         snapshot.forEach((childSnap) => {
           const val = childSnap.val();
@@ -120,7 +139,7 @@ export const rtdbService = {
             records.push(val as RTDBAlert);
           }
         });
-        
+
         // Return latest alerts
         callback(records);
       },
@@ -147,7 +166,7 @@ export const rtdbService = {
   async createCommand(deviceId: string, command: RTDBCommandAction, issuedBy: string, parameters?: Record<string, any>): Promise<string> {
     const commandId = `cmd_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
     const cmdRef = ref(rtdb, `commands/${deviceId}/${commandId}`);
-    
+
     const payload: RTDBCommand = {
       commandId,
       command,
@@ -158,7 +177,7 @@ export const rtdbService = {
     if (parameters) {
       payload.parameters = parameters;
     }
-    
+
     await set(cmdRef, payload);
     return commandId;
   },
@@ -172,7 +191,7 @@ export const rtdbService = {
           callback([]);
           return;
         }
-        
+
         const records: RTDBCommand[] = [];
         snapshot.forEach((childSnap) => {
           const val = childSnap.val();
@@ -180,7 +199,7 @@ export const rtdbService = {
             records.push(val as RTDBCommand);
           }
         });
-        
+
         // Sort newest first by createdAt
         records.sort((a, b) => b.createdAt - a.createdAt);
         callback(records);
@@ -206,12 +225,12 @@ export const rtdbService = {
           callback([]);
           return;
         }
-        
+
         const records: RTDBSchedule[] = [];
         snapshot.forEach((childSnap) => {
           records.push(childSnap.val() as RTDBSchedule);
         });
-        
+
         callback(records);
       },
       (error) => {

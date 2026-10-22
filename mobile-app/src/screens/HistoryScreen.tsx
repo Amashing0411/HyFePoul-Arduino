@@ -22,7 +22,7 @@ export default function HistoryScreen() {
         <Text style={[typography.body, { fontWeight: 'bold', marginLeft: spacing.sm }]}>{new Date(item.timestamp).toLocaleString()}</Text>
       </View>
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
-      
+
       <View style={styles.dataGrid}>
         <View style={styles.dataItem}>
           <Text style={typography.caption}>{t('feedSystem')}</Text>
@@ -35,13 +35,7 @@ export default function HistoryScreen() {
         <View style={styles.dataItem}>
           <Text style={typography.caption}>{t('waterSystem')}</Text>
           <Text style={[typography.bodySecondary, { fontWeight: 'bold', color: item.waterLow ? colors.error : colors.success }]}>
-            {item.waterLow ? t('low') : (item.waterHigh ? t('high') : t('ok'))}
-          </Text>
-        </View>
-        <View style={styles.dataItem}>
-          <Text style={typography.caption}>{t('pump')}</Text>
-          <Text style={[typography.bodySecondary, { fontWeight: 'bold', color: item.pumpActive ? colors.warning : colors.neutral }]}>
-            {item.pumpActive ? t('on') : t('off')}
+            {item.waterLow ? t('low') : t('ok')}
           </Text>
         </View>
         <View style={styles.dataItem}>

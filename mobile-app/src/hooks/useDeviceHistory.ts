@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { SystemData } from '../types';
-import { rtdbService } from '../services/rtdbService';
+import { rtdbService, toSystemData } from '../services/rtdbService';
 
 export function useDeviceHistory() {
   const { ownedDevices } = useAuth();
@@ -21,7 +21,7 @@ export function useDeviceHistory() {
     setError(null);
 
     const activeDeviceId = ownedDevices[0].id;
-    
+
     const unsubscribe = rtdbService.subscribeToHistory(activeDeviceId, 50, (records, err) => {
       if (err) {
         console.error('Error fetching history from RTDB:', err);
@@ -31,17 +31,7 @@ export function useDeviceHistory() {
         return;
       }
 
-      const mappedData = records.map(d => ({
-        feedWeightGrams: d.feedWeightGrams,
-        targetFeedGrams: d.targetFeedGrams,
-        hopperLevelPercent: d.hopperLevelPercent,
-        waterLow: d.waterLow,
-        waterHigh: d.waterHigh,
-        pumpActive: d.pumpActive,
-        feedingActive: d.feedingActive,
-        emergencyStopActive: d.emergencyStopActive,
-        timestamp: new Date(d.timestamp).toISOString()
-      }));
+      const mappedData = records.map(toSystemData);
 
       // RTDB limitToLast with orderByChild('timestamp') returns oldest first (ascending).
       // The UI usually expects newest first, so we reverse it.

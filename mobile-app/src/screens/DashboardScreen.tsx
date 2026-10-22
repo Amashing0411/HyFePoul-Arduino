@@ -6,6 +6,7 @@ import StatusBadge from '../components/StatusBadge';
 import ProgressBar from '../components/ProgressBar';
 import Skeleton from '../components/Skeleton';
 import Button from '../components/Button';
+import { describeCycleStep } from '../utils/feedCycle';
 import { useFirebaseData } from '../context/FirebaseDataContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -36,9 +37,9 @@ export default function DashboardScreen() {
         t('estopReleaseMsg') || "Are you sure you want to release the emergency stop? Only do this if the physical switch is cleared.",
         [
           { text: t('cancel') || "Cancel", style: "cancel" },
-          { 
-            text: t('releaseEmergencyStop') || "Release", 
-            style: "destructive", 
+          {
+            text: t('releaseEmergencyStop') || "Release",
+            style: "destructive",
             onPress: () => issueCommand('ESTOP_RELEASE')
           }
         ]
@@ -94,7 +95,7 @@ export default function DashboardScreen() {
   const activeCommand = commands.length > 0 ? commands[0] : null;
 
   return (
-    <ScrollView 
+    <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
     >
@@ -125,7 +126,7 @@ export default function DashboardScreen() {
         <View style={styles.grid}>
           <View style={styles.gridItem}>
             <Ionicons name="scale-outline" size={24} color={colors.neutral} />
-            <Text style={[typography.caption, styles.gridLabel]}>{t('weight')}</Text>
+            <Text style={[typography.caption, styles.gridLabel]}>{t('feedInTrays')}</Text>
             <Text style={[typography.body, { fontWeight: 'bold' }]}>{systemData.feedWeightGrams.toFixed(0)} g</Text>
           </View>
           <View style={styles.gridItem}>
@@ -136,6 +137,11 @@ export default function DashboardScreen() {
             </View>
           </View>
         </View>
+        {systemData.feedingActive && (
+          <Text style={[typography.caption, { textAlign: 'center', marginBottom: spacing.sm }]}>
+            {describeCycleStep(t, systemData.cycleStep, systemData.currentTray)}
+          </Text>
+        )}
         <View style={[styles.progressContainer, { borderTopColor: colors.border }]}>
           <View style={styles.row}>
             <Text style={typography.caption}>{t('hopperLevel')}</Text>
@@ -143,7 +149,7 @@ export default function DashboardScreen() {
           </View>
           <ProgressBar progress={systemData.hopperLevelPercent} color={feedColor} />
         </View>
-        
+
         <View style={{ marginTop: spacing.md }}>
           <Button
             title={t('manualFeed')}
@@ -155,40 +161,28 @@ export default function DashboardScreen() {
       </Card>
 
       <Card title={t('waterSystem')}>
-        <View style={styles.grid}>
-          <View style={styles.gridItem}>
+        <View style={styles.row}>
+          <View style={styles.deviceInfo}>
             <Ionicons name="water-outline" size={24} color={colors.neutral} />
-            <Text style={[typography.caption, styles.gridLabel]}>{t('tank')}</Text>
-            <View style={styles.badgeWrapper}>
-              <StatusBadge 
-                status={systemData.waterLow ? 'error' : (systemData.waterHigh ? 'success' : 'online')} 
-                text={systemData.waterLow ? t('low') : (systemData.waterHigh ? t('high') : t('ok'))} 
-              />
-            </View>
+            <Text style={[typography.body, { marginLeft: spacing.sm }]}>{t('tank')}</Text>
           </View>
-          <View style={styles.gridItem}>
-            <Ionicons name="color-filter-outline" size={24} color={colors.neutral} />
-            <Text style={[typography.caption, styles.gridLabel]}>{t('pump')}</Text>
-            <View style={styles.badgeWrapper}>
-              <StatusBadge 
-                status={systemData.pumpActive ? 'warning' : 'success'} 
-                text={systemData.pumpActive ? t('running') : t('off')} 
-              />
-            </View>
-          </View>
+          <StatusBadge
+            status={systemData.waterLow ? 'error' : 'success'}
+            text={systemData.waterLow ? t('refillNeeded') : t('ok')}
+          />
         </View>
       </Card>
 
       <Card title={t('safety')}>
         <View style={styles.row}>
           <Text style={typography.body}>{t('systemState')}:</Text>
-          <StatusBadge 
-            status={systemData.emergencyStopActive ? 'error' : 'success'} 
-            text={systemData.emergencyStopActive ? t('halted') : t('running')} 
+          <StatusBadge
+            status={systemData.emergencyStopActive ? 'error' : 'success'}
+            text={systemData.emergencyStopActive ? t('halted') : t('running')}
           />
         </View>
         <View style={{ marginTop: spacing.md }}>
-          <Button 
+          <Button
             title={systemData.emergencyStopActive ? t('releaseEmergencyStop') || "Release E-Stop" : t('emergencyStop') || "E-Stop Engaged"}
             onPress={handleEmergencyStop}
             variant={systemData.emergencyStopActive ? "outline" : "danger"}
@@ -201,12 +195,12 @@ export default function DashboardScreen() {
         <Card title="Last Remote Command">
           <View style={styles.row}>
             <Text style={typography.body}>{activeCommand.command}</Text>
-            <StatusBadge 
+            <StatusBadge
               status={
                 activeCommand.status === 'completed' ? 'success' :
                 activeCommand.status === 'failed' || activeCommand.status === 'rejected' ? 'error' : 'warning'
-              } 
-              text={activeCommand.status.toUpperCase()} 
+              }
+              text={activeCommand.status.toUpperCase()}
             />
           </View>
           {activeCommand.error && (

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { rtdbService } from '../services/rtdbService';
+import { rtdbService, toSystemData } from '../services/rtdbService';
 import { useAuth } from './AuthContext';
 import { DeviceData, SystemData } from '../types';
 import { RTDBCommand, RTDBCommandAction, RTDBSchedule } from '../types/rtdb';
@@ -27,7 +27,7 @@ const FirebaseDataContext = createContext<FirebaseDataContextType | undefined>(u
 
 export const FirebaseDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, ownedDevices } = useAuth();
-  
+
   const [deviceData, setDeviceData] = useState<DeviceData | null>(null);
   const [systemData, setSystemData] = useState<SystemData | null>(null);
   const [commands, setCommands] = useState<RTDBCommand[]>([]);
@@ -59,7 +59,7 @@ export const FirebaseDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     // Temporarily use the first device for Checkpoint 4D
     const activeDeviceId = ownedDevices[0].id;
-    
+
     setLoading(true);
     setError(null);
 
@@ -97,18 +97,8 @@ export const FirebaseDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
           setError(null);
           return;
         }
-        
-        const mappedSystemData: SystemData = {
-          feedWeightGrams: currentState.feedWeightGrams,
-          targetFeedGrams: currentState.targetFeedGrams,
-          hopperLevelPercent: currentState.hopperLevelPercent,
-          waterLow: currentState.waterLow,
-          waterHigh: currentState.waterHigh,
-          pumpActive: currentState.pumpActive,
-          feedingActive: currentState.feedingActive,
-          emergencyStopActive: currentState.emergencyStopActive,
-          timestamp: new Date(currentState.timestamp).toISOString()
-        };
+
+        const mappedSystemData: SystemData = toSystemData(currentState);
 
         setDeviceData(mappedDeviceData);
         setSystemData(mappedSystemData);
@@ -163,7 +153,7 @@ export const FirebaseDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
     try {
       const activeDeviceId = ownedDevices[0].id;
       await rtdbService.updateSchedule(activeDeviceId, schedule);
-      
+
       // Also send the sync command to the ESP32
       const match = schedule.scheduleId.match(/sched_(\d+)/);
       const index = match ? parseInt(match[1], 10) : 0;
