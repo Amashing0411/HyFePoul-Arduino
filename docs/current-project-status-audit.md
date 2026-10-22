@@ -1,7 +1,7 @@
 # HyFePoul: Current Project Status Audit
 
 **Audit date:** 2026-10-21
-**Repository state:** `main` at `c0dc92b` (after PRs #1–#6)
+**Repository state:** `main` at `c0dc92b` (after PRs #1–#6). **Updated 2026-10-23** for the moving-hopper design revision (branch `design-moving-hopper`).
 **Scope:** firmware (Mega, ESP32), Firebase (Auth + RTDB), mobile app, documentation, build and deployment.
 
 The work history, decisions and per-phase evidence are in [`comprehensive-work-plan.md`](comprehensive-work-plan.md). This document is a snapshot of where things stand now.
@@ -28,7 +28,8 @@ Arduino Mega 2560 ──UART 115200 (≤63 chars/line)── ESP32 ──HTTPS (
 - **Mega:**
   - all sensors and actuators;
   - schedules (EEPROM, local time UTC+8);
-  - latching E-stop, pump fault latch, feed timeout;
+  - 5-tray feed cycle: chain motor (two interlocked relays), home/end limit switches, timed travel, per-tray load cell and target, chain and tray timeouts;
+  - latching E-stop; reservoir float alert (no pump);
   - 4-slot alert queue, SD CSV log, Nextion display.
 - **ESP32:**
   - Wi-Fi with background reconnect;
@@ -48,13 +49,13 @@ Arduino Mega 2560 ──UART 115200 (≤63 chars/line)── ESP32 ──HTTPS (
 
 | Feature | Where | Evidence |
 |---------|-------|----------|
-| Scheduled feeding (3 daily slots, local time, target by weight, 30 s timeout) | Mega `Feeding.ino`, `TimeManager.ino` | Simulated (tests 18, 19, 25) |
+| Scheduled feeding (3 daily slots, local time, per-tray target) running the 5-tray cycle | Mega `Feeding.ino`, `TimeManager.ino` | Simulated (tests 10–24) |
 | Schedules survive reset or power loss (EEPROM) and re-sync from RTDB | Mega `ScheduleStorage.ino`, ESP32 restore | Simulated (28–32, R1–R4) |
-| Manual feed from the app (1–2000 g) with plain-language lifecycle and completion evidence | App Feeding, Mega, ESP32 | Verified (emulator), simulated |
-| Hydration: float switches + pump, 120 s limit with latched fault | Mega `Hydration.ino` | Simulated (21, 24) |
+| Manual feed from the app (1–1000 g per tray) with plain-language lifecycle, tray weights and cycle step | App Feeding, Mega, ESP32 | Simulated; tsc/Jest. Pre-revision version verified on the emulator |
+| Water: reservoir float switch, debounced `LOW_WATER` + beep once per episode (gravity-fed, no pump) | Mega `Hydration.ino` | Simulated (25, 26) |
 | Latching E-stop; reset via app `ESTOP_RELEASE` or serial `RESET`; refused while the button is pressed | Mega `Safety.ino` | Simulated (26, 27) |
 | A remote command interrupted by the E-stop reports failure and frees the command slot | Mega | Simulated (20) |
-| Alerts: LOW_FEED, LOW_WATER (only when the pump can't refill), WATER_PUMP_TIMEOUT, EMERGENCY_STOP | Mega → ESP32 → RTDB | Simulated (22–24); app display verified on emulator |
+| Alerts: LOW_FEED, LOW_WATER, CHAIN_TIMEOUT, TRAY_TIMEOUT, EMERGENCY_STOP | Mega → ESP32 → RTDB | Simulated; ESP32 compile-checked |
 | Phone notifications for new alerts while the app is running | App `useAlertNotifications` | Verified (emulator): foreground and background |
 | Owner sign-up and sign-in, session restore | App | Verified (emulator) |
 | Device claiming with setup PIN (wrong PIN denied, no transfer) | App, RTDB rules | Verified (emulator, rules tests) |
@@ -72,7 +73,7 @@ Arduino Mega 2560 ──UART 115200 (≤63 chars/line)── ESP32 ──HTTPS (
 | Nextion HMI (F14) | Mapped to the real Home page fields (R-20). Stop (`b3`) and Start (`b4`, local E-stop reset) are coded but **disabled until their numeric IDs are read on the bench**; every touch is logged to make that a one-press job. The Home page has no field for hopper level % or network status. `b0`–`b2` (schedule and weight entry on the HMI) are not handled. |
 | Notifications | Delivered only while the app is running (Spark plan, no server push). Alerts raised while it is closed appear in the Notifications tab later. |
 | Alert resolution (F24) | Nothing sets `resolved: true`; the app labels records "Last reported". |
-| Load cell meaning | The HMI labels the value "Hopper Load", while the feeding logic treats it as feed dispensed. Needs a mechanical decision (R-16). |
+| Load cell meaning | Resolved (R-16): one load cell under each tray weighs dispensed feed. The HMI caption `t0` still says "Hopper Load" (R-48). |
 | `SYSTEM_RESTART` | Always rejected by the Mega (`NOT_IMPLEMENTED_SAFELY`), by design. |
 | ESP32 → Mega link health | The Mega tracks the link (15 s); the ESP32 does not track the Mega. |
 | Feeding accuracy | `scale.get_units(3)` blocks for roughly 2–3 HX711 samples per loop while feeding, which can let feed overshoot. Not measured. |
@@ -104,9 +105,9 @@ Arduino Mega 2560 ──UART 115200 (≤63 chars/line)── ESP32 ──HTTPS (
 | 2 | Real-token ESP32 sign-in untested (F27 fix) | High | Watch the first boot on the serial monitor. |
 | 3 | Load-cell calibration factor `-7050.0f` is a placeholder | High | Feeding weights are meaningless until calibrated. |
 | 4 | Relay active level and NO/NC wiring unverified | High | Code assumes HIGH = ON. |
-| 5 | Load cell weighs the hopper or the dispensed feed? (R-16) | High | If it weighs the hopper, the current feeding logic never reaches its target and every feed times out. |
+| 5 | Timed travel to each tray is uncalibrated (R-46) | High | Placeholder 3 s per tray; wrong values spill feed between trays or hit the end switch early (`END_LIMIT_EARLY`). |
 | 6 | `systemData` unbounded growth | Medium | Retention decision needed. |
-| 7 | HX711 blocking read while feeding | Medium | Possible overshoot; residual UART-blocking window. |
+| 7 | Revised RTDB rules not deployed; old schedules hold totals (R-45, R-50) | High | Deploy with the new firmware on both boards and re-save schedules, or a 500 g total becomes 500 g per tray. |
 | 8 | Firebase web API key not restricted (SEC-2) | Medium | The key is public in `eas.json` (by design for web keys); restrict it in Google Cloud Console. |
 | 9 | Old `Config.h` values in git history | Low–Medium | Probably the emulator test password; rotate it if it was used for the production device account. |
 | 10 | Nextion button IDs not yet confirmed | Low | Stop/Start on the HMI do nothing until set (procedure §9). |

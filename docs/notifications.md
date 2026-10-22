@@ -5,7 +5,7 @@ This document describes how HyFePoul alerts reach the user **as currently implem
 ## Current path (RTDB alert feed + local notifications)
 
 1. **Mega** raises an alert event (for example `LOW_FEED`) and sends `EVENT|LOW_FEED` to the ESP32 over UART.
-2. **ESP32** forwards only actionable events (`LOW_FEED`, `LOW_WATER`, `WATER_PUMP_TIMEOUT`, `EMERGENCY_STOP`, `DEVICE_ERROR`). It writes each one with `PUT` to `/alerts/{deviceId}/{eventName}`, so there is **one record per alert type**, overwritten with the latest timestamp. Informational events (for example `FEEDING_STARTED`) are logged only on the Mega SD card.
+2. **ESP32** forwards only actionable events (`LOW_FEED`, `LOW_WATER`, `CHAIN_TIMEOUT`, `TRAY_TIMEOUT`, `EMERGENCY_STOP`, `DEVICE_ERROR`). It writes each one with `PUT` to `/alerts/{deviceId}/{eventName}`, so there is **one record per alert type**, overwritten with the latest timestamp. Informational events (for example `FEEDING_STARTED`) are logged only on the Mega SD card.
 3. **Mobile app, Notifications tab** (`useDeviceAlerts`): subscribes to `/alerts/{deviceId}` and lists the latest report of each alert type, newest first.
 4. **Mobile app, local notifications** (`useAlertNotifications`): while the app is running, the same subscription compares each alert's timestamp with the last one seen. A newer timestamp raises an on-device notification on the Android channel `alerts`. The first snapshot after the app opens is treated as a baseline, so existing alerts are not re-notified on every launch.
 
@@ -22,8 +22,9 @@ This document describes how HyFePoul alerts reach the user **as currently implem
 |-------|-----------|---------|
 | `EMERGENCY_STOP` | Mega, `Safety.ino` | Physical E-stop pressed. The stop is latched until it is reset. |
 | `LOW_FEED` | Mega, `FeedLevel.ino` | Hopper level at or below 20% (clears above 25%). |
-| `WATER_PUMP_TIMEOUT` | Mega, `Hydration.ino` | Pump hit its maximum runtime. The fault is latched until the high float is reached or the E-stop is reset. |
-| `LOW_WATER` | Mega, `Hydration.ino` | Water is low **and** the pump cannot refill it (E-stop active or pump fault latched). Normal refills do not raise it. |
+| `CHAIN_TIMEOUT` | Mega, `Feeding.ino` | A chain move did not reach its limit switch in time. Chain and dispenser stop; buzzer. |
+| `TRAY_TIMEOUT` | Mega, `Feeding.ino` | A tray was not filled (30 s dispense limit or load cell not responding). Raised once per cycle; buzzer. |
+| `LOW_WATER` | Mega, `Hydration.ino` | The reservoir float switch reads low (2 s debounce): refill the reservoir. Once per low episode, with a buzzer beep. |
 | `DEVICE_ERROR` | Whitelisted on the ESP32 | Not raised by the current Mega firmware. |
 
 `DEVICE_OFFLINE` appears in the app's icon map but is not produced by anything in the current architecture. Offline detection needs either a backend or app-side logic based on `devices/{id}/lastHeartbeat`.

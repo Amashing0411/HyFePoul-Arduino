@@ -6,7 +6,7 @@ Use this template to document any discrepancies found during physical commission
 
 **Date:** YYYY-MM-DD
 **Investigator:** [Name]
-**Subsystem:** [e.g., Power, ESP32 UART, Pump Relay]
+**Subsystem:** [e.g., Power, ESP32 UART, Chain Relays]
 
 ### Description
 **Expected Behavior:**

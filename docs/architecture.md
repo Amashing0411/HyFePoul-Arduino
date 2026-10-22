@@ -15,13 +15,14 @@ The Mega and the app never talk directly; everything goes through Firebase. The 
 
 ### 1. Arduino Mega 2560 (primary controller and safety authority)
 `firmware/arduino-mega/HyFePoul_Arduino/`
-- Reads the load cell (HX711), the ultrasonic hopper sensor, the two water float switches and the E-stop input.
-- Drives the dispenser motor and the water pump through relays.
+- Reads the 5 tray load cells (HX711, shared SCK), the ultrasonic hopper sensor, the home/end limit switches, the reservoir float switch and the E-stop input.
+- Drives the chain motor (two interlocked polarity relays) that moves the hopper past the 5 trays, and the dispenser motor. Water is gravity-fed; there is no pump.
 - Runs up to 3 daily feeding schedules in **local time** (UTC+8). The schedules are stored in **EEPROM**, so they survive power loss.
 - Applies the safety logic:
   - latching E-stop (reset only while the button is released);
-  - 30 s feed timeout;
-  - 120 s pump limit with a latched fault.
+  - chain relays never on together, with a dead time before reversing; limit switches stop the chain in any state;
+  - chain move timeouts (`CHAIN_TIMEOUT`) and a 30 s per-tray dispense limit (`TRAY_TIMEOUT`);
+  - hopper empty mid-cycle: stop dispensing and return home.
 - Validates every remote command before acting on it.
 - Writes a CSV log to the SD card.
 - Drives the Nextion display: Home page fields, plus Stop/Start buttons.

@@ -1,6 +1,6 @@
 # HyFePoul: Remaining Work Roadmap
 
-**As of:** 2026-10-21, `main` at `c0dc92b`. See [`current-project-status-audit.md`](current-project-status-audit.md) for the current state and [`comprehensive-work-plan.md`](comprehensive-work-plan.md) for history.
+**As of:** 2026-10-23. Updated for the moving-hopper design revision ([`design-revision-moving-hopper.md`](design-revision-moving-hopper.md); branch `design-moving-hopper`): chain motor, 5 tray load cells, gravity water, no pump. Earlier baseline: `main` at `c0dc92b`. See [`current-project-status-audit.md`](current-project-status-audit.md) for the current state and [`comprehensive-work-plan.md`](comprehensive-work-plan.md) for history.
 
 Tasks are ordered by priority: **P1** safety and security, **P2** blockers for a working system, **P3** integration quality, **P4** usability and docs, **P5** optional. Status is one of `DONE`, `IN PROGRESS`, `BLOCKED` or `NOT STARTED`. **HW** = needs the physical prototype.
 
@@ -8,8 +8,8 @@ Tasks are ordered by priority: **P1** safety and security, **P2** blockers for a
 
 | ID | Subsystem | Description | Why | Depends on | Files likely to change | Test procedure | Acceptance criteria | Status | HW |
 |----|-----------|-------------|-----|-----------|------------------------|----------------|---------------------|--------|----|
-| R-01 | Hardware / safety | Verify whether the E-stop **electrically** cuts actuator power, separately from software detection | Software latching cannot stop a welded relay or a firmware fault | R-10 | `hardware-commissioning-log.md` (evidence); wiring docs | `hardware-integration-test-plan.md` HIT-06 | Pressing the E-stop de-energises the pump and motor with the Mega's relay outputs forced HIGH (bench check), or the limitation is documented | BLOCKED | Yes |
-| R-02 | Firmware / safety | Bench-verify the latching E-stop, the E-stop during a remote feed, and the pump-timeout latch | Phase 1 fixes are simulated only | R-10 | none expected | HIT-06, HIT-07 (commissioning procedure §6 steps 11–14) | All four behaviours match the procedure | BLOCKED | Yes |
+| R-01 | Hardware / safety | Verify whether the E-stop **electrically** cuts actuator power, separately from software detection | Software latching cannot stop a welded relay or a firmware fault | R-10 | `hardware-commissioning-log.md` (evidence); wiring docs | `hardware-integration-test-plan.md` HIT-06 | Pressing the E-stop de-energises the chain and dispenser motors with the Mega's relay outputs forced HIGH (bench check), or the limitation is documented | BLOCKED | Yes |
+| R-02 | Firmware / safety | Bench-verify the latching E-stop, the E-stop during a feed cycle, the limit switches, the chain relay interlock and the chain/tray timeouts | Phase 1 fixes are simulated only | R-10 | none expected | HIT-06, HIT-07 (commissioning procedure §6 steps 11–14, §7) | All behaviours match the procedure | BLOCKED | Yes |
 | R-03 | ESP32 / security | First real Firebase sign-in (F27 fix) and TLS certificate verification | F27 would have broken every write; TLS was off before Phase 4 | R-10, production device account | `HyFePoul_ESP32.ino` only if it fails | HIT-03 (procedure §5 steps 16–17) | `Auth successful. UID: …` matching `deviceAuthUid`, state writes return 200, and an intercepted HTTPS connection fails | BLOCKED | Yes |
 | R-04 | Firebase / security | Restrict the web API key (SEC-2): Android app restriction (`com.hyfepoul.mobile` + SHA-1), APIs limited to Identity Toolkit and Realtime Database | The key is public in `eas.json` | none | none (Google Cloud Console) | Sign in from the app, then try the key from an unrelated origin | App works; other uses are rejected | NOT STARTED (owner action) | No |
 | R-05 | Firebase / security | Rotate the device-account password if the value once committed in `Config.h` was used in production | It remains in git history | none | local `Config.h` only | Sign in with the new password from the ESP32 | Old password rejected | NOT STARTED (owner action) | No |
@@ -24,7 +24,7 @@ Tasks are ordered by priority: **P1** safety and security, **P2** blockers for a
 | R-12 | Hardware | Ultrasonic empty/full distances; float switch polarity; relay polarity and NO/NC | Placeholders in `Config.ino` / `Hydration.ino` | R-10 | `Config.ino`, `Hydration.ino`, `Feeding.ino` | HIT-09, HIT-10, HIT-11 | Readings and actuator states match the physical state | BLOCKED | Yes |
 | R-13 | App / backend | Install a build on a **physical Android phone** against production: owner sign-in, owned-device discovery (deployed APP-0 rule), live state, a command round trip, notifications | Never done against production | Production device provisioned (R-14) | `mobile-app` only if defects appear | HIT-15, plus the app matrix manual checks | All matrix rows marked "Phone: PASS" | NOT STARTED | Partly (the round trip needs the device) |
 | R-14 | Firebase | Confirm production provisioning of `device-001`: device Auth account, `devices/device-001/deviceAuthUid`, `deviceSecrets/device-001/setupPin` | Required for the ESP32 and for claiming | none | none (console) | Read-only checks in the console | All three present and consistent | NOT STARTED (confirm) | No |
-| R-16 | Hardware / firmware | **Decide what the load cell weighs.** The HMI labels its value "Hopper Load", but `Feeding.ino` tares the scale at the start of each feed and stops when the reading **rises** to the target (feed dispensed into a weighed tray). If the cell is under the hopper, the feeding logic must instead stop when the reading **drops** by the target | Wrong assumption means feeds never stop (they time out) or stop at once | Mechanical design | `Feeding.ino`, `Nextion` HMI label, README | HIT-08 | Physical arrangement documented and the feeding logic matches it | NOT STARTED (decision) | Yes |
+| R-16 | Hardware / firmware | Decide what the load cell weighs | Resolved by the moving-hopper revision: one load cell under each tray weighs the feed dispensed into it | Design decision | `Feeding.ino` | HIT-08, HIT-16 | Feeding logic matches the arrangement | DONE (design revision 2026-10-23) | Verify: Yes |
 | R-15 | Integration | Mega ↔ ESP32 UART on hardware: `DATA`/`EVENT`/`TIME`/`STATUS`/commands, plus the F26 line-integrity measurement | All protocol work is simulated | R-10 | firmware only if defects appear | HIT-04, HIT-05 | No `UART_TIMEOUT` over 30 app commands; restore completes after a Mega reset | BLOCKED | Yes |
 
 ## P3: Integration quality
@@ -32,7 +32,7 @@ Tasks are ordered by priority: **P1** safety and security, **P2** blockers for a
 | ID | Subsystem | Description | Why | Depends on | Files likely to change | Test procedure | Acceptance criteria | Status | HW |
 |----|-----------|-------------|-----|-----------|------------------------|----------------|---------------------|--------|----|
 | R-20 | Firmware | Nextion: map the real component IDs (`t0`–`t7`), handle `b3 Stop` and `b4 Start` (local E-stop reset, D1), keep the one-field-per-update pacing (F14) | Display shows nothing correct today; no local reset | none (code); R-10 to verify | `Nextion.ino`, `Safety.ino`, `Nextion/Nextion_IDs.txt` | Mega simulator test for the reset path; HIT-12 | Fields update; `b4` resets the latch only when the button is released | IN PROGRESS: code done (`85053de`, sim tests 34–35); button IDs disabled until read on the bench (procedure §9 "Nextion buttons") | Verify: Yes |
-| R-21 | Firmware | Non-blocking HX711 read while feeding (e.g. a single sample when ready, plus a moving average) | `get_units(3)` blocks; possible overshoot; residual UART window | R-11 for tuning | `Feeding.ino` | Simulator; HIT-08 overshoot measurement | Overshoot within tolerance; loop time measured | NOT STARTED | Verify: Yes |
+| R-21 | Firmware | Non-blocking HX711 read while feeding | Blocking reads risked overshoot and UART loss | R-11 for tuning | `Feeding.ino` | Simulator; HIT-08/HIT-16 overshoot measurement | Overshoot within tolerance; loop time measured | DONE in code (single sample per loop when ready, non-blocking per-tray tare); overshoot to be measured | Verify: Yes |
 | R-22 | Data | Decide `systemData` retention (sampling interval for history and/or periodic cleanup) | About 2 MB/day, unbounded (estimate) | Usage data from commissioning | `HyFePoul_ESP32.ino` and/or an admin script | Measure usage in the console over 24 h | Documented policy; growth within the chosen budget | NOT STARTED (decision) | No |
 | R-23 | App + firmware | Alert resolution (F24): either forward clear events (e.g. `EMERGENCY_STOP_RELEASED`, low feed cleared) or derive "resolved" in the app from device state | Alerts never resolve | none | ESP32 whitelist and/or `useDeviceAlerts.ts` | Emulator plus simulator | Alerts show resolved when the condition clears | NOT STARTED | No |
 | R-24 | ESP32 | Track Mega link health on the ESP32 (no `DATA` for N s → report to RTDB) | The ESP32 can't tell the app that the Mega is silent | none | `HyFePoul_ESP32.ino`, maybe rules | ESP32 simulator; HIT-05 | The app can show "controller not responding" | NOT STARTED | Verify: Yes |
@@ -51,6 +51,17 @@ Tasks are ordered by priority: **P1** safety and security, **P2** blockers for a
 | R-36 | Docs | Rewrite or retire `architecture.md`, `api-contract.md`, `firebase-backend-architecture.md` (they describe Firestore/Cloud Functions) | Misleading for thesis readers | none | those files | Review | Match the RTDB architecture, or marked historical | DONE (`add265d`: architecture.md rewritten; the other two marked historical) | No |
 | R-37 | Repo | Choose a project license | None exists | Group decision | `LICENSE`, `README.md` | none | License file present | NOT STARTED (owner) | No |
 | R-38 | Repo | Stop tracking `database-debug.log` and `firestore-debug.log` | Emulator runs keep modifying them | none | `.gitignore` | `git status` after an emulator run | Clean | DONE (`bdad629`; tree clean after a full emulator run) | No |
+
+## Moving-hopper revision follow-ups
+
+| ID | Subsystem | Description | Why | Status | HW |
+|----|-----------|-------------|-----|--------|----|
+| R-45 | Firebase | Deploy the revised RTDB rules (`state` now requires the tray fields and rejects `waterHigh`/`pumpActive`; schedule target ≤ 1000 g per tray) | **Breaking:** the deployed rules still accept the old state shape, and old firmware cannot write the new rules' shape. Deploy together with flashing both boards | NOT STARTED (needs owner approval) | No |
+| R-46 | Firmware | Tune `TRAY_TRAVEL_MS`, `TRAY_DISPENSE_TIMEOUT_MS`, `CHAIN_END/HOME_TIMEOUT_MS` on the bench (open items O-1, O-4) | Placeholders; timed travel must stop the outlet over each tray | BLOCKED | Yes |
+| R-47 | Docs | Update the block diagram: 5 load cells / 5 HX711, 2 limit switches, chain motor with 2 relays, no pump (open item O-2) | Thesis figures must match the design | NOT STARTED | No |
+| R-48 | HMI | Rename the Home page caption `t0` "Hopper Load:" (t2 now shows feed in the 5 trays) | Label no longer matches | NOT STARTED | No |
+| R-49 | App | Open the revised Feeding (tray weights, cycle step), Water (reservoir) and Dashboard screens on the Android emulator | Changed screens are covered by tsc, lint and Jest only | NOT STARTED | No |
+| R-50 | Firebase data | Existing `/schedules` hold totals (e.g. 500 g) that the Mega now reads as grams **per tray**; the rules reject > 1000 g. Re-save each schedule in the app (default 50 g) after deploying R-45 | Otherwise one feed could dispense 5× the intended amount | NOT STARTED | No |
 
 ## P5: Optional
 
@@ -73,9 +84,10 @@ Tasks are ordered by priority: **P1** safety and security, **P2** blockers for a
 | Docs | Root README | PR #4 |
 | ESP32 robustness | Wi-Fi reconnect, CA-verified TLS, auth parsing fix (F27), short UART IDs (F26), STATUS-based online status, protocol doc | PR #5 |
 | App finish | Heartbeat-based online status (F25), "HyFePoul" name, RTDB schema doc, Claim/Save emulator tests | PR #6 |
+| Moving-hopper revision | 5-tray feed cycle with chain motor, limit switches, interlock and timeouts; 5 load cells; gravity water alert; new `DATA`/state/rules; app tray and cycle display | branch `design-moving-hopper` |
 
 ## Suggested order
 
-1. **Now, no hardware needed:** R-04, R-05, R-14, R-16 (owner and team decisions); R-31, R-33, R-35 (small code changes); R-36 (docs). R-30, R-32 and R-38 are done; R-20 is done in code and only needs its button IDs read on the bench.
-2. **When the prototype arrives:** R-10 → R-03 → R-15 → R-01/R-02 → R-11/R-12 → R-21 → R-13 (phone against production) → R-25.
+1. **Now, no hardware needed:** R-04, R-05, R-14 (owner and team decisions); R-45 (rules deploy, together with flashing), R-47, R-48, R-49, R-50; R-16 is resolved by the design revision; R-31, R-33, R-35 (small code changes); R-36 (docs). R-30, R-32 and R-38 are done; R-20 is done in code and only needs its button IDs read on the bench.
+2. **When the prototype arrives:** R-10 → R-03 → R-15 → R-01/R-02 → R-11/R-12 → R-46 (tray travel times and timeouts) → R-21 → R-13 (phone against production) → R-25.
 3. **After the first 24 h of real data:** R-22, then R-23 and R-24.

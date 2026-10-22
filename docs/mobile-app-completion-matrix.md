@@ -74,13 +74,13 @@
 
 ### Feeding
 - **UI:**
-  - feed card with an inline manual-feed form (1–2000 g);
+  - feed card with the 5 tray weights (current tray highlighted), the cycle step in plain language, and an inline manual-feed form (1–1000 g per tray, default 50 g);
   - command status card in plain language, with completion evidence;
   - 3 schedule slots: add, edit, enable/disable, delete with confirmation;
   - "runs every day" note.
 - **Backend:** `commands` (create), `schedules` (write) plus a queued `SCHEDULE_SET`; listeners on commands and schedules.
 - **Guards:** manual feed is blocked while the E-stop is active, while feeding, while a feed command is in progress, or while the device is offline (with a note).
-- **Validation:** time 00–23 / 00–59; target 1–2000 g; matching RTDB rules (hour, minute, target ≤ 2000).
+- **Validation:** time 00–23 / 00–59; target 1–1000 g per tray; matching RTDB rules (hour, minute, target ≤ 1000).
 - **Emulator:**
   - ✅ invalid target rejected with no command written;
   - ✅ a valid feed is queued; waiting → running → done;
@@ -95,15 +95,15 @@
   - physical phone.
 
 ### Water
-- **UI:** tank status (low/high float), pump running/idle, updated time with "(Stale)"; "No contact from the device since …" when offline.
+- **UI (revised 2026-10-23):** reservoir status from the single float switch (Water OK / Refill Needed, with a refill hint), updated time with "(Stale)", a note that water is gravity-fed; "No contact from the device since …" when offline. The pump card was removed.
 - **Backend:** shares the device listener and the context's heartbeat-based `deviceOnline` / `nowMs`.
 - **Error / loading:** skeletons while loading; error card on a listener error (before R-30 this left the skeleton up forever).
 - **R-30 done (`be9d714`):** the stale label is live; offline is shown; the no-op pull-to-refresh is removed (data is live).
-- **Emulator:** ✅ with an offline device: "No contact from the device since …" shown above the last-known float and pump states (tank full, low float clear, high float triggered, pump idle).
+- **Emulator:** ✅ for the pre-revision screen. The revised screen is not yet opened on the emulator (R-49).
 - **Remaining:** physical phone.
 
 ### History
-- **UI:** list of the latest 50 `systemData` records, newest first, with feed, hopper and water/pump; local date and time (`toLocaleString`, which shows PHT on a phone set to the Philippines).
+- **UI:** list of the latest 50 `systemData` records, newest first, with feed in trays, hopper and water; local date and time (`toLocaleString`, which shows PHT on a phone set to the Philippines).
 - **Backend:** `systemData/{id}` ordered by `timestamp`, `limitToLast(50)` (bounded); malformed records skipped.
 - **Loading / empty / error:** skeletons, "No history available.", error card.
 - **Automated:** ordering and malformed filtering (service tests).
