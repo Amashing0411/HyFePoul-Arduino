@@ -107,7 +107,7 @@ Arduino Mega 2560 ──UART 115200 (≤63 chars/line)── ESP32 ──HTTPS (
 | 4 | Relay active level and NO/NC wiring unverified | High | Code assumes HIGH = ON. |
 | 5 | Timed travel to each tray is uncalibrated (R-46) | High | Placeholder 3 s per tray; wrong values spill feed between trays or hit the end switch early (`END_LIMIT_EARLY`). |
 | 6 | `systemData` unbounded growth | Medium | Retention decision needed. |
-| 7 | Revised RTDB rules not deployed; old schedules hold totals (R-45, R-50) | High | Deploy with the new firmware on both boards and re-save schedules, or a 500 g total becomes 500 g per tray. |
+| 7 | Revised RTDB rules not deployed (R-45) | High | Deploy with the new firmware on both boards. No saved schedules exist in production (checked 2026-10-23), so none need converting (R-50). |
 | 8 | Firebase web API key not restricted (SEC-2) | Medium | The key is public in `eas.json` (by design for web keys); restrict it in Google Cloud Console. |
 | 9 | Old `Config.h` values in git history | Low–Medium | Probably the emulator test password; rotate it if it was used for the production device account. |
 | 10 | Nextion button IDs not yet confirmed | Low | Stop/Start on the HMI do nothing until set (procedure §9). |

@@ -61,7 +61,7 @@ Tasks are ordered by priority: **P1** safety and security, **P2** blockers for a
 | R-47 | Docs | Update the block diagram: 5 load cells / 5 HX711, 2 limit switches, chain motor with 2 relays, no pump (open item O-2) | Thesis figures must match the design | NOT STARTED | No |
 | R-48 | HMI | Rename the Home page caption `t0` "Hopper Load:" (t2 now shows feed in the 5 trays) | Label no longer matches | NOT STARTED | No |
 | R-49 | App | Open the revised Feeding (tray weights, cycle step), Water (reservoir) and Dashboard screens on the Android emulator | Changed screens are covered by tsc, lint and Jest only | NOT STARTED | No |
-| R-50 | Firebase data | Existing `/schedules` hold totals (e.g. 500 g) that the Mega now reads as grams **per tray**; the rules reject > 1000 g. Re-save each schedule in the app (default 50 g) after deploying R-45 | Otherwise one feed could dispense 5× the intended amount | NOT STARTED | No |
+| R-50 | Firebase data | Existing `/schedules` hold totals (e.g. 500 g) that the Mega now reads as grams **per tray**; the rules reject > 1000 g. Re-save each schedule in the app (default 50 g) after deploying R-45 | Otherwise one feed could dispense 5× the intended amount | DONE: checked 2026-10-23, production `/schedules` is empty, so nothing to convert. New schedules are entered per tray by the owner | No |
 
 ## P5: Optional
 
