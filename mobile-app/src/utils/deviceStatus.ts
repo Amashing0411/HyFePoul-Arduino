@@ -22,3 +22,10 @@ export function isDeviceOnline(
   const age = heartbeatAgeMs(lastHeartbeatIso, nowMs);
   return status === 'online' && age !== null && age <= OFFLINE_AFTER_MS;
 }
+
+// The ESP32 can be online while the Mega (the controller that feeds and
+// reads the sensors) has stopped. Only an explicit false from the ESP32
+// counts; a missing report (older firmware) is not treated as a fault.
+export function isControllerResponding(deviceOnline: boolean, megaLinkOk: boolean | null): boolean {
+  return deviceOnline && megaLinkOk !== false;
+}

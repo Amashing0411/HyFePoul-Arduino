@@ -21,6 +21,9 @@ export interface DeviceData {
   name: string;
   status: 'online' | 'offline' | null;
   lastHeartbeat: string | null;
+  // The ESP32's report on whether the Mega is still sending data; null when
+  // not reported yet (older firmware).
+  megaLinkOk: boolean | null;
 }
 
 export interface FeedSchedule {
@@ -31,7 +34,7 @@ export interface FeedSchedule {
   enabled: boolean;
 }
 
-export type AlertType = 'LOW_FEED' | 'LOW_WATER' | 'CHAIN_TIMEOUT' | 'TRAY_TIMEOUT' | 'EMERGENCY_STOP' | 'DEVICE_OFFLINE';
+export type AlertType = 'LOW_FEED' | 'LOW_WATER' | 'CHAIN_TIMEOUT' | 'TRAY_TIMEOUT' | 'EMERGENCY_STOP' | 'CONTROLLER_OFFLINE' | 'DEVICE_OFFLINE';
 
 export interface Alert {
   id: string;

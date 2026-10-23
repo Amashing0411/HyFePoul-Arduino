@@ -21,6 +21,7 @@ export default function NotificationsScreen() {
       case 'LOW_WATER': return 'water';
       case 'CHAIN_TIMEOUT': return 'warning';
       case 'TRAY_TIMEOUT': return 'timer-outline';
+      case 'CONTROLLER_OFFLINE': return 'hardware-chip-outline';
       case 'EMERGENCY_STOP': return 'alert-circle';
       case 'DEVICE_OFFLINE': return 'cloud-offline';
       default: return 'notifications';
@@ -29,7 +30,7 @@ export default function NotificationsScreen() {
 
   const getAlertColor = (type: string, resolved: boolean) => {
     if (resolved) return colors.neutral;
-    if (type === 'EMERGENCY_STOP') return colors.error;
+    if (type === 'EMERGENCY_STOP' || type === 'CONTROLLER_OFFLINE') return colors.error;
     if (type === 'DEVICE_OFFLINE') return colors.warning;
     return colors.primary;
   };

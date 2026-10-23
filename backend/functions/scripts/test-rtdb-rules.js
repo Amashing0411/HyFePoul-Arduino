@@ -516,6 +516,28 @@ async function runTests() {
     await assertFails(esp32Db.ref("alerts/dev3/LOW_FEED").update({ resolved: true }));
   });
 
+  // ==========================================
+  // MEGA LINK HEALTH (R-24)
+  // ==========================================
+  await test("Mega link: device can report megaLinkOk", async () => {
+    await assertSucceeds(esp32_3Db.ref("devices/dev3/megaLinkOk").set(false));
+    await assertSucceeds(esp32_3Db.ref("devices/dev3/megaLinkOk").set(true));
+  });
+
+  await test("Mega link: megaLinkOk must be a boolean", async () => {
+    await assertFails(esp32_3Db.ref("devices/dev3/megaLinkOk").set("down"));
+  });
+
+  await test("Mega link: owner and other devices cannot set megaLinkOk", async () => {
+    await assertFails(owner3Db.ref("devices/dev3/megaLinkOk").set(true));
+    await assertFails(esp32Db.ref("devices/dev3/megaLinkOk").set(true));
+  });
+
+  await test("Mega link: CONTROLLER_OFFLINE alert can be raised and resolved", async () => {
+    await assertSucceeds(esp32_3Db.ref("alerts/dev3/CONTROLLER_OFFLINE").set({ eventId: "CONTROLLER_OFFLINE", name: "CONTROLLER_OFFLINE", timestamp: 1790000000000, resolved: false }));
+    await assertSucceeds(esp32_3Db.ref("alerts/dev3/CONTROLLER_OFFLINE").update({ resolved: true, resolvedAt: 1790000030000 }));
+  });
+
   console.log(`\nTests finished: ${passed} passed, ${failed} failed.`);
 
   process.exit(failed > 0 ? 1 : 0);

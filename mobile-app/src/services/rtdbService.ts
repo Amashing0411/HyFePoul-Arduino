@@ -42,6 +42,7 @@ export const isValidDevice = (data: any): boolean => {
   if (!data || typeof data !== 'object') return false;
   if (typeof data.status !== 'string' || !['online', 'offline'].includes(data.status)) return false;
   if (typeof data.lastHeartbeat !== 'number') return false;
+  if (data.megaLinkOk !== undefined && typeof data.megaLinkOk !== 'boolean') return false;
   if (data.state !== undefined && !isValidDeviceState(data.state)) return false;
   return true;
 };

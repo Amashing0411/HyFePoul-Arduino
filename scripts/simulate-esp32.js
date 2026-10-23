@@ -149,6 +149,7 @@ async function simulate() {
   await testCommands();
   await testScheduleRestore();
   await testAlertResolution();
+  await testMegaLink();
   testUartCommandLines();
 
   console.log("======================================");
@@ -160,7 +161,7 @@ async function simulate() {
 // Alert resolution (R-23), mirroring noteAlertResolution() and
 // processPendingResolves() in HyFePoul_ESP32.ino
 // ---------------------------------------------------------
-const RESOLVABLE_ALERTS = ["LOW_FEED", "LOW_WATER", "EMERGENCY_STOP", "CHAIN_TIMEOUT", "TRAY_TIMEOUT"];
+const RESOLVABLE_ALERTS = ["LOW_FEED", "LOW_WATER", "EMERGENCY_STOP", "CHAIN_TIMEOUT", "TRAY_TIMEOUT", "CONTROLLER_OFFLINE"];
 const CLEAR_EVENTS = {
   LOW_FEED_CLEARED: ["LOW_FEED"],
   LOW_WATER_CLEARED: ["LOW_WATER"],
@@ -254,6 +255,74 @@ async function testAlertResolution() {
   await putAlert("LOW_WATER", t0 + 2000);
   if (!(await resolveOne("LOW_WATER")) || !(await resolveOne("LOW_WATER"))) throw new Error("Repeat resolve failed");
   console.log("[R-23] Alert resolution OK");
+}
+
+// ---------------------------------------------------------
+// Mega link health (R-24), mirroring checkMegaLink() / reportMegaLink()
+// ---------------------------------------------------------
+const MEGA_LINK_TIMEOUT_MS = 30000;
+
+function makeLinkWatch(bootMs) {
+  return { lastRx: bootMs, ok: true, reportPending: true };
+}
+
+// Returns "lost", "restored" or null, like the transitions in checkMegaLink().
+function checkLink(w, nowMs) {
+  const ok = nowMs - w.lastRx < MEGA_LINK_TIMEOUT_MS;
+  if (ok === w.ok) return null;
+  w.ok = ok;
+  w.reportPending = true;
+  return ok ? "restored" : "lost";
+}
+
+async function reportLink(w) {
+  if (!w.reportPending) return;
+  const res = await fetch(getDbUrl(`devices/${DEVICE_ID}/megaLinkOk.json`), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(w.ok),
+  });
+  if (res.status !== 200) throw new Error(`megaLinkOk write failed: ${await res.text()}`);
+  w.reportPending = false;
+}
+
+async function readDeviceField(field) {
+  const res = await fetch(`http://${EMULATOR_HOST}:${EMULATOR_RTDB_PORT}/devices/${DEVICE_ID}/${field}.json?ns=${NAMESPACE}`, {
+    headers: { 'Authorization': 'Bearer owner' },
+  });
+  return res.json();
+}
+
+async function testMegaLink() {
+  console.log("[R-24] Mega link health...");
+  const w = makeLinkWatch(0);
+  const pending = new Set();
+
+  // Boot grace: no Mega line yet, but within the timeout -> still ok.
+  if (checkLink(w, 29000) !== null || !w.ok) throw new Error("Flagged before the timeout");
+
+  // DATA every 10 s keeps it ok.
+  for (let t = 10000; t <= 60000; t += 10000) { w.lastRx = t; if (checkLink(w, t + 500) !== null) throw new Error("Flapped with regular DATA"); }
+
+  // Mega goes silent after its last line at 60 s.
+  if (checkLink(w, 89000) !== null) throw new Error("Lost too early");
+  if (checkLink(w, 90000) !== "lost" || w.ok) throw new Error("Silence of 30 s not detected");
+  await reportLink(w);
+  if (await readDeviceField("megaLinkOk") !== false) throw new Error("megaLinkOk=false not written");
+  noteAlertResolution(pending, "CONTROLLER_OFFLINE");
+  await putAlert("CONTROLLER_OFFLINE", Date.now());
+  if (checkLink(w, 120000) !== null) throw new Error("Repeated loss transition");
+
+  // The Mega is heard again.
+  w.lastRx = 125000;
+  if (checkLink(w, 125100) !== "restored" || !w.ok) throw new Error("Recovery not detected");
+  await reportLink(w);
+  if (await readDeviceField("megaLinkOk") !== true) throw new Error("megaLinkOk=true not written");
+  pending.add("CONTROLLER_OFFLINE");
+  for (const name of [...pending]) { if (await resolveOne(name)) pending.delete(name); }
+  const alert = await readAlert("CONTROLLER_OFFLINE");
+  if (alert.resolved !== true) throw new Error("CONTROLLER_OFFLINE not resolved on recovery");
+  console.log("[R-24] Mega link health OK");
 }
 
 // ---------------------------------------------------------

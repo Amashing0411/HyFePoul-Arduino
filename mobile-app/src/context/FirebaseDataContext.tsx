@@ -3,7 +3,7 @@ import { rtdbService, toSystemData } from '../services/rtdbService';
 import { useAuth } from './AuthContext';
 import { DeviceData, SystemData } from '../types';
 import { RTDBCommand, RTDBCommandAction, RTDBSchedule } from '../types/rtdb';
-import { isDeviceOnline } from '../utils/deviceStatus';
+import { isDeviceOnline, isControllerResponding } from '../utils/deviceStatus';
 
 // How often heartbeat-based online status is re-evaluated without new data.
 const STATUS_RECHECK_MS = 15_000;
@@ -13,6 +13,8 @@ interface FirebaseDataContextType {
   systemData: SystemData | null;
   /** Online = status "online" and a heartbeat within the last 90 s. */
   deviceOnline: boolean;
+  /** Device online and its ESP32 still hears the Mega controller (R-24). */
+  controllerResponding: boolean;
   /** Current time, refreshed every 15 s, for age/staleness displays. */
   nowMs: number;
   commands: RTDBCommand[];
@@ -46,6 +48,7 @@ export const FirebaseDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const deviceOnline = deviceData
     ? isDeviceOnline(deviceData.status, deviceData.lastHeartbeat, nowMs)
     : false;
+  const controllerResponding = isControllerResponding(deviceOnline, deviceData?.megaLinkOk ?? null);
 
   useEffect(() => {
     // If no devices or ownedDevices not loaded yet, reset state and do not subscribe
@@ -84,7 +87,8 @@ export const FirebaseDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
           deviceId: activeDeviceId,
           name: 'Smart Coop Device', // RTDB does not currently store a name, default it
           status: deviceSnap.status,
-          lastHeartbeat: new Date(deviceSnap.lastHeartbeat).toISOString()
+          lastHeartbeat: new Date(deviceSnap.lastHeartbeat).toISOString(),
+          megaLinkOk: typeof deviceSnap.megaLinkOk === 'boolean' ? deviceSnap.megaLinkOk : null,
         };
 
         // Map systemData (from device state)
@@ -171,7 +175,7 @@ export const FirebaseDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   return (
-    <FirebaseDataContext.Provider value={{ deviceData, systemData, deviceOnline, nowMs, commands, schedules, loading, error, issueCommand, updateSchedule }}>
+    <FirebaseDataContext.Provider value={{ deviceData, systemData, deviceOnline, controllerResponding, nowMs, commands, schedules, loading, error, issueCommand, updateSchedule }}>
       {children}
     </FirebaseDataContext.Provider>
   );

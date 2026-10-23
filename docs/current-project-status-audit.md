@@ -75,7 +75,7 @@ Arduino Mega 2560 ──UART 115200 (≤63 chars/line)── ESP32 ──HTTPS (
 | Alert resolution (F24) | Done in software (R-23): the Mega sends clear events, the ESP32 marks the alert resolved, and the app lists active alerts first. An alert raised while the ESP32 is offline is still not written. |
 | Load cell meaning | Resolved (R-16): one load cell under each tray weighs dispensed feed. The HMI caption `t0` still says "Hopper Load" (R-48). |
 | `SYSTEM_RESTART` | Always rejected by the Mega (`NOT_IMPLEMENTED_SAFELY`), by design. |
-| ESP32 → Mega link health | The Mega tracks the link (15 s); the ESP32 does not track the Mega. |
+| ESP32 → Mega link health | Both directions are tracked. The Mega times out the ESP32 after 15 s; the ESP32 times out the Mega after 30 s and reports `megaLinkOk` plus a `CONTROLLER_OFFLINE` alert (R-24). |
 | Feeding accuracy | `scale.get_units(3)` blocks for roughly 2–3 HX711 samples per loop while feeding, which can let feed overshoot. Not measured. |
 | History retention | `systemData` grows about 8,640 records/day (~2 MB/day estimated), with no cleanup. |
 | iOS | Not built or tested (Android is the target). |

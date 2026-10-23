@@ -44,12 +44,24 @@ String megaReceiveBuffer = "";
 // Requests are kept here until the ESP32 is online (the Mega's boot clears
 // usually arrive before Wi-Fi is up) and retried until they succeed.
 const char* const RESOLVABLE_ALERTS[] = {
-  "LOW_FEED", "LOW_WATER", "EMERGENCY_STOP", "CHAIN_TIMEOUT", "TRAY_TIMEOUT"
+  "LOW_FEED", "LOW_WATER", "EMERGENCY_STOP", "CHAIN_TIMEOUT", "TRAY_TIMEOUT",
+  "CONTROLLER_OFFLINE"
 };
-const uint8_t RESOLVABLE_ALERT_COUNT = 5;
+const uint8_t RESOLVABLE_ALERT_COUNT = 6;
 const unsigned long RESOLVE_RETRY_MS = 5000;
 uint8_t pendingResolveMask = 0; // bit i = RESOLVABLE_ALERTS[i]
 unsigned long lastResolveAttemptMillis = 0;
+
+// Mega link health (R-24). The Mega sends DATA every 10 s, so no line for
+// MEGA_LINK_TIMEOUT_MS (three missed DATA) means it has stopped, crashed or
+// its UART is disconnected. Reported as devices/{id}/megaLinkOk plus a
+// CONTROLLER_OFFLINE alert (resolved when the Mega is heard again). The
+// boot time counts as "last heard", so a just-started ESP32 reports a
+// problem only if the Mega stays silent for the whole timeout.
+const unsigned long MEGA_LINK_TIMEOUT_MS = 30000;
+unsigned long lastMegaRxMillis = 0;
+bool megaLinkOk = true;
+bool megaLinkReportPending = true;
 
 // One parsed DATA line from the Mega (moving-hopper design: 5 trays).
 const int TRAY_COUNT = 5;
@@ -99,6 +111,7 @@ void setup() {
   MEGA_SERIAL.begin(MEGA_BAUD_RATE, SERIAL_8N1, MEGA_RX_PIN, MEGA_TX_PIN);
 
   Serial.println("HyFePoul ESP32 Bridge Starting...");
+  lastMegaRxMillis = millis();
 
   if (!FIREBASE_USE_EMULATOR) {
     secureClient.useBuiltinCACertBundle();
@@ -141,6 +154,7 @@ void loop() {
   static unsigned long lastHeartbeat = 0;
   if (millis() - lastHeartbeat >= 30000UL) {
     sendHeartbeat();
+    megaLinkReportPending = true; // re-assert with every heartbeat
     sendNetworkTimeToMega();
     lastHeartbeat = millis();
   }
@@ -159,6 +173,10 @@ void loop() {
 
   // 7. Mark recovered alerts resolved
   processPendingResolves();
+
+  // 8. Watch the Mega link and report changes
+  checkMegaLink();
+  reportMegaLink();
 }
 
 // ---------------------------------------------------------
@@ -375,6 +393,8 @@ void processMegaLine(String line) {
   line.trim();
   if (line.length() == 0) return;
 
+  lastMegaRxMillis = millis();
+
   Serial.print("Mega TX: ");
   Serial.println(line);
 
@@ -548,7 +568,8 @@ void sendEventToFirebase(String eventName) {
   // are logged locally on the Mega SD card per existing architecture.
   if (eventName != "LOW_FEED" && eventName != "LOW_WATER" &&
       eventName != "CHAIN_TIMEOUT" && eventName != "TRAY_TIMEOUT" &&
-      eventName != "EMERGENCY_STOP" && eventName != "DEVICE_ERROR") {
+      eventName != "EMERGENCY_STOP" && eventName != "DEVICE_ERROR" &&
+      eventName != "CONTROLLER_OFFLINE") {
     return;
   }
 
@@ -569,6 +590,44 @@ void sendEventToFirebase(String eventName) {
   http.addHeader("Content-Type", "application/json");
   noteHttpResult(http.PUT(payload)); // PUT (not POST) for idempotency
   http.end();
+}
+
+// ---------------------------------------------------------
+// Mega link health
+// ---------------------------------------------------------
+void checkMegaLink() {
+  bool ok = millis() - lastMegaRxMillis < MEGA_LINK_TIMEOUT_MS;
+  if (ok == megaLinkOk) return;
+
+  megaLinkOk = ok;
+  megaLinkReportPending = true;
+
+  if (ok) {
+    Serial.println("Mega link restored.");
+    requestResolve("CONTROLLER_OFFLINE");
+  } else {
+    Serial.println("Mega link lost: no data from the Mega.");
+    noteAlertResolution("CONTROLLER_OFFLINE"); // cancels a pending resolve
+    sendEventToFirebase("CONTROLLER_OFFLINE");
+  }
+}
+
+// Written on its own (not in the heartbeat request), so if the deployed
+// rules do not know the field yet, only this write fails.
+void reportMegaLink() {
+  if (!megaLinkReportPending) return;
+  if (!hasValidToken() || WiFi.status() != WL_CONNECTED) return;
+
+  HTTPClient http;
+  if (!beginRequest(http, getDatabaseUrl((String("devices/") + DEVICE_ID + "/megaLinkOk.json").c_str()))) return;
+  http.addHeader("Content-Type", "application/json");
+  int code = http.PUT(megaLinkOk ? "true" : "false");
+  http.end();
+  noteHttpResult(code);
+
+  if (code == 200) {
+    megaLinkReportPending = false;
+  }
 }
 
 // ---------------------------------------------------------
