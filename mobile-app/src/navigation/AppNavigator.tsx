@@ -19,6 +19,7 @@ import RegisterScreen from '../screens/RegisterScreen';
 import ClaimDeviceScreen from '../screens/ClaimDeviceScreen';
 import { useAuth } from '../context/AuthContext';
 import { useAlertNotifications } from '../hooks/useAlertNotifications';
+import { useOfflineNotification } from '../hooks/useOfflineNotification';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -71,6 +72,7 @@ function MainTabs() {
   const { colors } = useTheme();
   const { t } = useLanguage();
   useAlertNotifications();
+  useOfflineNotification();
 
   return (
     <Tab.Navigator

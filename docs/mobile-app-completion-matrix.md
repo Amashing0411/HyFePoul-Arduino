@@ -119,7 +119,8 @@
   - ✅ notifications in the foreground and background;
   - ✅ no re-notification at launch;
   - ✅ none while force-stopped (documented limit);
-  - ✅ alert still listed after reopening.
+  - ✅ alert still listed after reopening;
+  - ✅ R-40: "Device offline" notification about 90 s after the last heartbeat, removed 2 s after heartbeats resumed; a second outage notified again.
 - **Remaining:**
   - resolved alerts (R-23) shown on the emulator with seeded records only; device-driven resolution is covered by the simulators;
   - no delivery while the app is closed (Spark plan; [`notifications.md`](notifications.md));
