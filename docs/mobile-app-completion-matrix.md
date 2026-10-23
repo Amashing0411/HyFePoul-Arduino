@@ -73,6 +73,7 @@
   - physical phone.
 
 ### Feeding
+- **R-43:** each schedule card shows ON DEVICE when the device's last accepted values (`scheduleStatus`) match the saved schedule, otherwise WAITING FOR DEVICE.
 - **UI:**
   - feed card with the 5 tray weights (current tray highlighted), the cycle step in plain language, and an inline manual-feed form (1–1000 g per tray, default 50 g);
   - command status card in plain language, with completion evidence;

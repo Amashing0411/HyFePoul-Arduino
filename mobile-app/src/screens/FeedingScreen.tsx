@@ -8,6 +8,7 @@ import Skeleton from '../components/Skeleton';
 import Button from '../components/Button';
 import TrayWeights from '../components/TrayWeights';
 import { describeCycleStep } from '../utils/feedCycle';
+import { scheduleSyncState } from '../utils/scheduleSync';
 import { useFirebaseData } from '../context/FirebaseDataContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -31,7 +32,7 @@ const DEFAULT_TRAY_TARGET_GRAMS = 50;
 const MAX_TRAY_TARGET_GRAMS = 1000;
 
 export default function FeedingScreen() {
-  const { deviceData, systemData, deviceOnline, controllerResponding, schedules, commands, loading, error, issueCommand, updateSchedule } = useFirebaseData();
+  const { deviceData, systemData, deviceOnline, controllerResponding, schedules, scheduleStatus, commands, loading, error, issueCommand, updateSchedule } = useFirebaseData();
   const { colors, typography } = useTheme();
   const { t } = useLanguage();
 
@@ -449,6 +450,14 @@ export default function FeedingScreen() {
                       <Text style={[typography.body, { marginLeft: 4 }, !schedule.enabled && { color: colors.textSecondary }]}>
                         {schedule.targetGrams} g {t('perTray')}
                       </Text>
+                    </View>
+                    {/* R-43: does the Mega have exactly this schedule? */}
+                    <View style={{ alignSelf: 'flex-start', marginTop: spacing.xs }}>
+                      {scheduleSyncState(schedule, scheduleStatus[schedule.scheduleId]) === 'onDevice' ? (
+                        <StatusBadge status="success" text={t('scheduleOnDevice')} />
+                      ) : (
+                        <StatusBadge status="warning" text={t('scheduleWaiting')} />
+                      )}
                     </View>
                   </View>
                   <View style={styles.scheduleActions}>
