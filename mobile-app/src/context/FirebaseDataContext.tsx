@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { rtdbService, toSystemData } from '../services/rtdbService';
 import { useAuth } from './AuthContext';
 import { DeviceData, SystemData } from '../types';
-import { RTDBCommand, RTDBCommandAction, RTDBSchedule } from '../types/rtdb';
+import { RTDBCommand, RTDBCommandAction, RTDBSchedule, RTDBScheduleStatus } from '../types/rtdb';
 import { isDeviceOnline, isControllerResponding } from '../utils/deviceStatus';
 
 // How often heartbeat-based online status is re-evaluated without new data.
@@ -19,6 +19,8 @@ interface FirebaseDataContextType {
   nowMs: number;
   commands: RTDBCommand[];
   schedules: RTDBSchedule[];
+  /** What the device accepted per schedule slot (R-43). */
+  scheduleStatus: Record<string, RTDBScheduleStatus>;
   loading: boolean;
   error: string | null;
   issueCommand: (command: RTDBCommandAction, parameters?: Record<string, any>) => Promise<string | null>;
@@ -34,6 +36,7 @@ export const FirebaseDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [systemData, setSystemData] = useState<SystemData | null>(null);
   const [commands, setCommands] = useState<RTDBCommand[]>([]);
   const [schedules, setSchedules] = useState<RTDBSchedule[]>([]);
+  const [scheduleStatus, setScheduleStatus] = useState<Record<string, RTDBScheduleStatus>>({});
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
@@ -134,10 +137,24 @@ export const FirebaseDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
     );
 
+    const unsubscribeScheduleStatus = rtdbService.subscribeToScheduleStatus(
+      activeDeviceId,
+      (status, err) => {
+        if (err) {
+          // Deployed rules older than R-43 deny this path; the badges then
+          // simply show "waiting".
+          console.log("RTDB schedule status listener error:", err.message);
+          return;
+        }
+        setScheduleStatus(status);
+      }
+    );
+
     return () => {
       unsubscribeDevice();
       unsubscribeCommands();
       unsubscribeSchedules();
+      unsubscribeScheduleStatus();
     };
   }, [ownedDevices]);
 
@@ -175,7 +192,7 @@ export const FirebaseDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   return (
-    <FirebaseDataContext.Provider value={{ deviceData, systemData, deviceOnline, controllerResponding, nowMs, commands, schedules, loading, error, issueCommand, updateSchedule }}>
+    <FirebaseDataContext.Provider value={{ deviceData, systemData, deviceOnline, controllerResponding, nowMs, commands, schedules, scheduleStatus, loading, error, issueCommand, updateSchedule }}>
       {children}
     </FirebaseDataContext.Provider>
   );

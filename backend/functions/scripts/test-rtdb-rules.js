@@ -552,6 +552,32 @@ async function runTests() {
     await assertFails(esp32Db.ref("devices/dev2/state").set({ ...validState(), timeSource: 1 }));
   });
 
+  // ==========================================
+  // DEVICE-CONFIRMED SCHEDULES (R-43)
+  // ==========================================
+  const applied = (extra = {}) => ({ hour: 7, minute: 0, targetGrams: 50, enabled: true, appliedAt: 1790000000000, ...extra });
+
+  await test("Schedule status: device records what the Mega accepted", async () => {
+    await assertSucceeds(esp32_3Db.ref("scheduleStatus/dev3/sched_0").set(applied()));
+  });
+
+  await test("Schedule status: owner can read it but cannot write (no faked confirmations)", async () => {
+    await assertSucceeds(owner3Db.ref("scheduleStatus/dev3").once("value"));
+    await assertFails(owner3Db.ref("scheduleStatus/dev3/sched_1").set(applied()));
+  });
+
+  await test("Schedule status: other devices and strangers are denied", async () => {
+    await assertFails(esp32Db.ref("scheduleStatus/dev3/sched_0").set(applied()));
+    await assertFails(user2Db.ref("scheduleStatus/dev3").once("value"));
+  });
+
+  await test("Schedule status: slot id, ranges and completeness are validated", async () => {
+    await assertFails(esp32_3Db.ref("scheduleStatus/dev3/sched_3").set(applied()));
+    await assertFails(esp32_3Db.ref("scheduleStatus/dev3/sched_0").set(applied({ targetGrams: 1500 })));
+    await assertFails(esp32_3Db.ref("scheduleStatus/dev3/sched_0").set({ hour: 7, minute: 0 }));
+    await assertFails(esp32_3Db.ref("scheduleStatus/dev3/sched_0").set(applied({ note: "x" })));
+  });
+
   console.log(`\nTests finished: ${passed} passed, ${failed} failed.`);
 
   process.exit(failed > 0 ? 1 : 0);

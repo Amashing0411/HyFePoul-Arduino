@@ -87,6 +87,7 @@ const int   daylightOffset_sec = 0;
 String activeCommandId = "";
 String activeUartId = "";
 String activeCommandName = "";
+String activeCommandLine = ""; // UART line sent for the active command
 String activeCommandStatus = "";
 unsigned long activeCommandStartMillis = 0;
 uint8_t uartIdCounter = 0;
@@ -388,6 +389,7 @@ void clearActiveCommand() {
   activeCommandId = "";
   activeUartId = "";
   activeCommandName = "";
+  activeCommandLine = "";
 }
 
 void processMegaLine(String line) {
@@ -460,6 +462,7 @@ void processMegaLine(String line) {
       if (status == "ACCEPTED") {
         activeCommandStatus = "executing";
         updateCommandStatus(activeCommandId, "executing", "");
+        if (activeCommandName == "SCHEDULE_SET") reportScheduleApplied(activeCommandLine);
       } else if (status == "REJECTED") {
         updateCommandStatus(activeCommandId, "failed", reason.length() > 0 ? reason : "REJECTED_BY_MEGA");
         if (activeCommandName == "SCHEDULE_SET") requestScheduleRestore();
@@ -818,6 +821,7 @@ void pollCommands() {
       activeCommandId = cmdId;
       activeUartId = uartId;
       activeCommandName = commandName;
+      activeCommandLine = line;
       activeCommandStatus = "acknowledged";
       activeCommandStartMillis = millis();
       sendToMega(line);
@@ -915,10 +919,10 @@ bool fetchScheduleRestoreLines() {
     float target = slot["targetGrams"] | 0.0f;
     bool valid = slot["enabled"].is<bool>() &&
                  hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59 &&
-                 target > 0.0f && target <= 2000.0f;
+                 target > 0.0f && target <= 1000.0f; // grams per tray (Mega limit)
 
     // Whole grams keep the line within 63 bytes; the app only saves integers.
-    long grams = valid ? lround(target) : 250;
+    long grams = valid ? lround(target) : 50;
     if (grams < 1) grams = 1;
     bool enabled = valid && slot["enabled"].as<bool>();
 
@@ -953,6 +957,8 @@ void handleScheduleRestoreAck(const String& status, const String& reason) {
     return;
   }
 
+  reportScheduleApplied(scheduleRestoreLines[scheduleRestoreIndex]);
+
   scheduleRestoreIndex++;
 
   if (scheduleRestoreIndex >= SCHEDULE_SLOT_COUNT) {
@@ -963,6 +969,36 @@ void handleScheduleRestoreAck(const String& status, const String& reason) {
   }
 
   sendScheduleRestoreLine();
+}
+
+// R-43: record what the Mega accepted (it saves to EEPROM before its
+// CMD_ACK), so the app can show each schedule as on the device or still
+// waiting. Values come from the exact line that was sent. Not retried on
+// failure: the next restore (on reconnect or Mega boot) writes it again.
+void reportScheduleApplied(const String& line) {
+  if (!hasValidToken() || WiFi.status() != WL_CONNECTED) return;
+
+  unsigned long now = getTimestampMillis();
+  if (now < 1000000000000ULL) return;
+
+  String idx = extractValue(line, "IDX:");
+  if (idx.length() == 0) return;
+
+  StaticJsonDocument<160> doc;
+  doc["hour"] = extractValue(line, "HR:").toInt();
+  doc["minute"] = extractValue(line, "MIN:").toInt();
+  doc["targetGrams"] = extractValue(line, "TGT:").toInt();
+  doc["enabled"] = extractValue(line, "EN:") == "1";
+  doc["appliedAt"] = now;
+  String payload;
+  serializeJson(doc, payload);
+
+  HTTPClient http;
+  String path = String("scheduleStatus/") + DEVICE_ID + "/sched_" + idx + ".json";
+  if (!beginRequest(http, getDatabaseUrl(path.c_str()))) return;
+  http.addHeader("Content-Type", "application/json");
+  noteHttpResult(http.PUT(payload));
+  http.end();
 }
 
 void handleScheduleRestore() {

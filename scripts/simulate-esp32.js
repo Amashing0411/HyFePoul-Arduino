@@ -510,12 +510,27 @@ const buildScheduleRestoreLines = (schedules) => {
     const valid = typeof slot.enabled === 'boolean' &&
       Number.isInteger(slot.hour) && slot.hour >= 0 && slot.hour <= 23 &&
       Number.isInteger(slot.minute) && slot.minute >= 0 && slot.minute <= 59 &&
-      typeof slot.targetGrams === 'number' && slot.targetGrams > 0 && slot.targetGrams <= 2000;
-    const grams = Math.max(1, valid ? Math.round(slot.targetGrams) : 250);
+      typeof slot.targetGrams === 'number' && slot.targetGrams > 0 && slot.targetGrams <= 1000; // per tray
+    const grams = Math.max(1, valid ? Math.round(slot.targetGrams) : 50);
     lines.push(`CMD|ID:R${i}|ACTION:SCHEDULE_SET|IDX:${i}|HR:${valid ? slot.hour : 0}|MIN:${valid ? slot.minute : 0}|TGT:${grams}|EN:${valid && slot.enabled ? 1 : 0}`);
   }
   return lines;
 };
+
+// Mirrors reportScheduleApplied() in HyFePoul_ESP32.ino: values parsed from
+// the exact SCHEDULE_SET line the Mega accepted.
+function reportScheduleAppliedPayload(line) {
+  const v = (key) => {
+    const i = line.indexOf(key);
+    if (i < 0) return "";
+    const j = line.indexOf('|', i + key.length);
+    return line.substring(i + key.length, j < 0 ? line.length : j);
+  };
+  return {
+    hour: parseInt(v("HR:"), 10), minute: parseInt(v("MIN:"), 10),
+    targetGrams: parseInt(v("TGT:"), 10), enabled: v("EN:") === "1", appliedAt: Date.now(),
+  };
+}
 
 async function testScheduleRestore() {
   console.log("\n======================================");
@@ -537,14 +552,18 @@ async function testScheduleRestore() {
   console.log("Test R1: device reads /schedules with its own token; slots map to restore lines");
   await adminPut(`schedules/${DEVICE_ID}`, {
     sched_0: { scheduleId: "sched_0", hour: 9, minute: 30, targetGrams: 250, enabled: true, daysOfWeek: [1,2,3,4,5,6,7] },
-    sched_2: { scheduleId: "sched_2", hour: 18, minute: 0, targetGrams: 1999.6, enabled: false, daysOfWeek: [1,2,3,4,5,6,7] }
+    sched_2: { scheduleId: "sched_2", hour: 18, minute: 0, targetGrams: 999.6, enabled: false, daysOfWeek: [1,2,3,4,5,6,7] }
   });
   let read = await deviceReadSchedules();
   assert(read.status === 200, `Device could not read schedules (HTTP ${read.status})`);
   let lines = buildScheduleRestoreLines(read.body);
   assert(lines[0] === "CMD|ID:R0|ACTION:SCHEDULE_SET|IDX:0|HR:9|MIN:30|TGT:250|EN:1", `R0 wrong: ${lines[0]}`);
-  assert(lines[1] === "CMD|ID:R1|ACTION:SCHEDULE_SET|IDX:1|HR:0|MIN:0|TGT:250|EN:0", `Missing slot not disabled: ${lines[1]}`);
-  assert(lines[2] === "CMD|ID:R2|ACTION:SCHEDULE_SET|IDX:2|HR:18|MIN:0|TGT:2000|EN:0", `R2 wrong: ${lines[2]}`);
+  assert(lines[1] === "CMD|ID:R1|ACTION:SCHEDULE_SET|IDX:1|HR:0|MIN:0|TGT:50|EN:0", `Missing slot not disabled: ${lines[1]}`);
+  assert(lines[2] === "CMD|ID:R2|ACTION:SCHEDULE_SET|IDX:2|HR:18|MIN:0|TGT:1000|EN:0", `R2 wrong: ${lines[2]}`);
+
+  console.log("Test R1b: a pre-revision total above 1000 g is sent disabled (the Mega would reject it and the restore would loop)");
+  const old = buildScheduleRestoreLines({ sched_0: { hour: 7, minute: 0, targetGrams: 1500, enabled: true } })[0];
+  assert(old === "CMD|ID:R0|ACTION:SCHEDULE_SET|IDX:0|HR:0|MIN:0|TGT:50|EN:0", `Out-of-range slot not disabled: ${old}`);
 
   console.log("Test R2: no schedules in RTDB -> every slot sent disabled");
   await adminPut(`schedules/${DEVICE_ID}`, null);
@@ -554,12 +573,21 @@ async function testScheduleRestore() {
   assert(lines.every(l => l.endsWith("|EN:0")), "Empty RTDB must disable all slots");
 
   console.log("Test R3: worst-case line fits the Mega's 64-byte UART buffer");
-  const worst = buildScheduleRestoreLines({ sched_2: { hour: 23, minute: 59, targetGrams: 2000, enabled: true } })[2];
+  const worst = buildScheduleRestoreLines({ sched_2: { hour: 23, minute: 59, targetGrams: 1000, enabled: true } })[2];
   assert(worst.length + 1 <= 64, `Restore line is ${worst.length + 1} bytes`);
 
   console.log("Test R4: failed read (bad token) -> no restore lines, Mega keeps its EEPROM copy");
   read = await deviceReadSchedules("wrong_token");
   assert(read.status === 401 || read.status === 403, `Expected permission denied, got ${read.status}`);
+
+  console.log("Test R5 (R-43): an accepted line is recorded in scheduleStatus by the device; the owner can read it");
+  const applied = reportScheduleAppliedPayload("CMD|ID:R0|ACTION:SCHEDULE_SET|IDX:0|HR:9|MIN:30|TGT:250|EN:1");
+  const res = await fetch(getDbUrl(`scheduleStatus/${DEVICE_ID}/sched_0.json`), {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(applied),
+  });
+  assert(res.status === 200, `Device could not write scheduleStatus (HTTP ${res.status}): ${await res.text()}`);
+  const back = await (await fetch(`http://${EMULATOR_HOST}:${EMULATOR_RTDB_PORT}/scheduleStatus/${DEVICE_ID}/sched_0.json?ns=${NAMESPACE}`, { headers: { 'Authorization': 'Bearer owner' } })).json();
+  assert(back.hour === 9 && back.minute === 30 && back.targetGrams === 250 && back.enabled === true && typeof back.appliedAt === 'number', `Stored status wrong: ${JSON.stringify(back)}`);
 
   console.log("\nALL SCHEDULE RESTORE TESTS PASSED.");
 }
@@ -596,8 +624,8 @@ function testUartCommandLines() {
   assert(!line.includes("cmd_"), "Firebase command ID leaked onto the UART");
 
   console.log("Test U2: worst-case SCHEDULE_SET from the app fits 64 bytes (was ~82)");
-  const worst = buildCommandLine("C9", "SCHEDULE_SET", { parameters: { index: 2, hour: 23, minute: 59, targetGrams: 1999.6, enabled: true } });
-  assert(worst === "CMD|ID:C9|ACTION:SCHEDULE_SET|IDX:2|HR:23|MIN:59|TGT:2000|EN:1", `Unexpected line: ${worst}`);
+  const worst = buildCommandLine("C9", "SCHEDULE_SET", { parameters: { index: 2, hour: 23, minute: 59, targetGrams: 999.6, enabled: true } });
+  assert(worst === "CMD|ID:C9|ACTION:SCHEDULE_SET|IDX:2|HR:23|MIN:59|TGT:1000|EN:1", `Unexpected line: ${worst}`);
   assert(worst.length <= MEGA_MAX_LINE_LENGTH, `SCHEDULE_SET line is ${worst.length + 1} bytes`);
 
   console.log("Test U3: every whitelisted command fits at its longest");

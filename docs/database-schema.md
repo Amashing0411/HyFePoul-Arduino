@@ -151,6 +151,24 @@ The pump-era fields `waterHigh` and `pumpActive` were removed in the moving-hopp
 - **Read:** the owner or the device.
 - **Source of truth when online:** after a Mega or ESP32 restart, after Wi-Fi returns, or after a failed `SCHEDULE_SET`, the ESP32 reads this node and re-sends every slot to the Mega. A missing slot is sent as disabled. Offline, the Mega runs its EEPROM copy.
 
+## 8a. `scheduleStatus/{deviceId}/{scheduleId}` (R-43)
+
+What the Mega accepted for each slot, written by the device after the Mega's `CMD_ACK ACCEPTED` for a `SCHEDULE_SET` ([protocol §7](mega-esp32-protocol.md)).
+
+| Field | Type | Validated |
+|-------|------|-----------|
+| `hour` | number | 0–23 |
+| `minute` | number | 0–59 |
+| `targetGrams` | number | > 0 and ≤ 1000 (whole grams per tray) |
+| `enabled` | boolean | yes |
+| `appliedAt` | number | yes (device UTC ms) |
+| any other child | | rejected |
+
+- **Key:** `sched_0`, `sched_1` or `sched_2`.
+- **Write:** only the device. The owner cannot write here, so a confirmation cannot be faked from the app.
+- **Read:** the owner or the device.
+- The app shows a schedule as **On device** when these values equal the saved schedule, and **Waiting for device** otherwise (an edit not yet accepted, or the device offline).
+
 ## 9. Not used
 
 - **Cloud Firestore and Cloud Functions** (`firestore.rules`, `backend/functions`): this was the earlier backend design (alerts in Firestore, FCM token registration). It is not deployed and would require the Blaze plan. The app no longer calls it (see `docs/notifications.md`). The functions code is kept for reference.

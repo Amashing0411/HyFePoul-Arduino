@@ -65,6 +65,18 @@ export interface RTDBClaimRequest {
 export type RTDBCommandStatus = 'queued' | 'acknowledged' | 'executing' | 'completed' | 'failed' | 'rejected';
 export type RTDBCommandAction = 'MANUAL_FEED' | 'ESTOP_RELEASE' | 'SYSTEM_RESTART' | 'STATUS_REQ' | 'SCHEDULE_SET';
 
+/**
+ * What the Mega accepted for a schedule slot, written by the device (R-43).
+ * Stored in /scheduleStatus/{deviceId}/{scheduleId}.
+ */
+export interface RTDBScheduleStatus {
+  hour: number;
+  minute: number;
+  targetGrams: number;
+  enabled: boolean;
+  appliedAt: number;
+}
+
 export interface RTDBSchedule {
   scheduleId: string;
   hour: number;

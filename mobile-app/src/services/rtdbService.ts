@@ -1,6 +1,6 @@
 import { ref, set, onValue, query, orderByChild, limitToLast, get, equalTo } from 'firebase/database';
 import { rtdb } from './firebase';
-import { RTDBDevice, RTDBDeviceState, RTDBSystemDataSnapshot, RTDBAlert, RTDBCommand, RTDBCommandAction, RTDBSchedule } from '../types/rtdb';
+import { RTDBDevice, RTDBDeviceState, RTDBSystemDataSnapshot, RTDBAlert, RTDBCommand, RTDBCommandAction, RTDBSchedule, RTDBScheduleStatus } from '../types/rtdb';
 import { SystemData, TRAY_COUNT } from '../types';
 
 const CYCLE_STEPS = ['IDLE', 'HOMING', 'TO_TRAY', 'TARING', 'DISPENSING', 'TO_END', 'RETURNING'];
@@ -241,6 +241,30 @@ export const rtdbService = {
       (error) => {
         callback([], error);
       }
+    );
+    return () => unsubscribe();
+  },
+
+  // R-43: what the Mega accepted per slot, keyed by scheduleId.
+  subscribeToScheduleStatus(
+    deviceId: string,
+    callback: (status: Record<string, RTDBScheduleStatus>, error?: Error) => void
+  ): () => void {
+    const unsubscribe = onValue(
+      ref(rtdb, `scheduleStatus/${deviceId}`),
+      (snapshot) => {
+        const out: Record<string, RTDBScheduleStatus> = {};
+        snapshot.forEach((child) => {
+          const v = child.val();
+          if (v && typeof v.hour === 'number' && typeof v.minute === 'number' &&
+              typeof v.targetGrams === 'number' && typeof v.enabled === 'boolean' &&
+              typeof v.appliedAt === 'number' && child.key) {
+            out[child.key] = v as RTDBScheduleStatus;
+          }
+        });
+        callback(out);
+      },
+      (error) => callback({}, error)
     );
     return () => unsubscribe();
   }

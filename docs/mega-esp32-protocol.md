@@ -180,11 +180,12 @@ A `SCHEDULE_SET` that fails for any of these reasons also triggers a schedule re
   CMD|ID:R<i>|ACTION:SCHEDULE_SET|IDX:<i>|HR:<h>|MIN:<m>|TGT:<whole grams>|EN:<0|1>     (i = 0, 1, 2)
   ```
 
-  - A slot missing or invalid in RTDB is sent with `EN:0`, because RTDB is the source of truth when online.
+  - A slot missing or invalid in RTDB is sent with `EN:0` (and `TGT:50`), because RTDB is the source of truth when online. Valid means a target of more than 0 and at most 1000 g per tray, the Mega's own limit. A pre-revision total above that is sent disabled rather than rejected by the Mega on every retry.
   - If the RTDB read fails, nothing is sent and the Mega keeps its EEPROM copy.
   - If a line is rejected (for example `SYSTEM_BUSY` during a feed) or gets no ACK within 3 s, the restore is retried after 30 s.
   - Command polling pauses during a restore.
   - Restore IDs are never written to `/commands`.
+- **Device confirmation (R-43).** When the Mega answers a `SCHEDULE_SET` (from the app or a restore) with `CMD_ACK ACCEPTED`, it has already saved the slot to EEPROM. The ESP32 then writes the values from that exact line to `scheduleStatus/{deviceId}/sched_<i>` (`hour`, `minute`, `targetGrams`, `enabled`, `appliedAt`). The app compares these with `/schedules` and shows each schedule as "On device" or "Waiting for device". A failed write is not retried; the next restore (on reconnect or Mega boot) writes it again.
 
 ## 8. Timing summary
 

@@ -130,6 +130,21 @@
         }
       }
     },
+    "scheduleStatus": {
+      "$deviceId": {
+        ".read": "auth != null && (root.child('devices').child($deviceId).child('ownerId').val() === auth.uid || root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid)",
+        "$scheduleId": {
+          ".write": "auth != null && root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid",
+          ".validate": "$scheduleId.matches(/^sched_[0-2]$/) && newData.hasChildren(['hour', 'minute', 'targetGrams', 'enabled', 'appliedAt'])",
+          "hour": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 23" },
+          "minute": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 59" },
+          "targetGrams": { ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 1000" },
+          "enabled": { ".validate": "newData.isBoolean()" },
+          "appliedAt": { ".validate": "newData.isNumber()" },
+          "$other": { ".validate": false }
+        }
+      }
+    },
     "alerts": {
       "$deviceId": {
         ".indexOn": ["timestamp"],
