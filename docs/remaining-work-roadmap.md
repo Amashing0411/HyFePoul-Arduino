@@ -67,7 +67,7 @@ Tasks are ordered by priority: **P1** safety and security, **P2** blockers for a
 
 | ID | Subsystem | Description | Status | HW |
 |----|-----------|-------------|--------|----|
-| R-40 | App | Local notification when the device goes offline (heartbeat age) | NOT STARTED | No |
+| R-40 | App | Local notification when the device goes offline (heartbeat age) | DONE (branch `r40-offline-notification`; verified on the emulator: shown ~90 s after the last heartbeat, removed when heartbeats resume). Works only while the app is running | No |
 | R-41 | App | iOS build and test | NOT STARTED | No |
 | R-42 | Repo | Delete merged branches (local and GitHub) | NOT STARTED | No |
 | R-43 | Firebase | Device-confirmed schedule marker (deferred in D4; needs a rules change) | NOT STARTED | No |

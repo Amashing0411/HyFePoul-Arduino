@@ -13,7 +13,7 @@ import { rtdbService } from '../services/rtdbService';
 // Alerts that occur while the app is closed are not notified; they still
 // appear in the Notifications tab the next time the app opens.
 
-const ALERT_CHANNEL_ID = 'alerts';
+export const ALERT_CHANNEL_ID = 'alerts';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -24,7 +24,7 @@ Notifications.setNotificationHandler({
   }),
 });
 
-async function prepareNotificationsAsync(): Promise<boolean> {
+export async function prepareNotificationsAsync(): Promise<boolean> {
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync(ALERT_CHANNEL_ID, {
       name: 'Device alerts',

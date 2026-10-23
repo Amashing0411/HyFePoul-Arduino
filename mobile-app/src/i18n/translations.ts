@@ -107,6 +107,8 @@ export const translations = {
     alertResolvedA11y: 'Resolved alert: {title}. Occurred at {time}',
     alertsExplainer: 'Active alerts are listed first. An alert is marked resolved when the device reports the condition cleared (refilled, E-stop released, or a full feed cycle). Phone notifications appear only while the app is running.',
     alertNotificationBody: 'Reported by the device at {time}.',
+    deviceOfflineTitle: 'Device offline',
+    deviceOfflineBody: 'No contact from the device since {time}. It may have lost power or Wi-Fi.',
 
     // Manual feed and command status
     manualFeed: 'Manual Feed',
@@ -254,6 +256,8 @@ export const translations = {
     alertResolvedA11y: 'Naayos na abiso: {title}. Nangyari noong {time}',
     alertsExplainer: 'Nauuna ang mga aktibong abiso. Minamarkahang naayos ang abiso kapag iniulat ng device na nawala na ang problema (napuno na, na-release ang E-stop, o natapos ang buong pagpapakain). Lalabas lang ang abiso sa telepono habang bukas ang app.',
     alertNotificationBody: 'Iniulat ng device noong {time}.',
+    deviceOfflineTitle: 'Offline ang device',
+    deviceOfflineBody: 'Walang balita mula sa device mula noong {time}. Maaaring nawalan ito ng kuryente o Wi-Fi.',
 
     // Manual feed and command status
     manualFeed: 'Manwal na Pakain',
