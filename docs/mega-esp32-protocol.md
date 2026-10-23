@@ -209,6 +209,17 @@ A `SCHEDULE_SET` that fails for any of these reasons also triggers a schedule re
 - **UART link down:** the Mega's local logic is unaffected; `esp32Online` goes false after 15 s.
 - No remote command can bypass the Mega's safety checks: the E-stop latch, the physical button check, feed limits and timeouts.
 
+### 9.1 Mega link health on the ESP32 (R-24)
+
+- The ESP32 records the time of every line it receives from the Mega (`DATA` every 10 s, events, command replies).
+- No line for **30 s** (three missed `DATA`) means the Mega is silent, for example crashed, unpowered, or with a loose UART cable. The ESP32 then:
+  - writes `devices/{id}/megaLinkOk = false`;
+  - raises a `CONTROLLER_OFFLINE` alert. The ESP32 itself is still online, so the write goes through and the app shows a phone notification.
+- When a line arrives again, it writes `megaLinkOk = true` and resolves `CONTROLLER_OFFLINE` (the R-23 path, §3.2.1).
+- `megaLinkOk` is written on its own request whenever it changes, and re-asserted with every heartbeat (30 s), so a failed write heals itself. Because it is separate from the heartbeat writes, rules that do not know the field yet (before R-45 is deployed) reject only this write.
+- The boot time counts as "last heard". A freshly started ESP32 reports a problem only if the Mega stays silent for 30 s.
+- The app shows the controller as "NOT RESPONDING" and blocks manual feeding while `megaLinkOk` is `false` and the device is otherwise online. A missing field (older firmware) is not treated as a fault.
+
 ## 10. Security notes (ESP32 side)
 
 - Production HTTPS requests verify Firebase's certificate against the esp32 core's built-in CA bundle (`NetworkClientSecure::useBuiltinCACertBundle()`). The emulator uses plain HTTP on the LAN.
@@ -221,7 +232,7 @@ A `SCHEDULE_SET` that fails for any of these reasons also triggers a schedule re
 |--------------------------------------|-------------|
 | `KEY:value` fields in `DATA` with an ISO 8601 timestamp | Positional `DATA` fields. The ESP32 adds the timestamp. |
 | Actionable `EVENT`s carry `eventId` (session-counter); the ESP32 `ACK`s; the Mega retries; the ESP32 deduplicates | No event IDs, ACKs or retries. Duplicates are harmless because RTDB alerts are `PUT` per event type. A Mega-side 4-slot queue prevents loss within a loop. |
-| `HEARTBEAT` both ways every 30 s, 90 s timeout | ESP32 `STATUS` every 10 s doubles as the heartbeat, with a 15 s timeout on the Mega. The ESP32 does **not** currently track Mega link health (the Mega sends `DATA` every 10 s, but no timeout acts on it). |
+| `HEARTBEAT` both ways every 30 s, 90 s timeout | ESP32 `STATUS` every 10 s doubles as the heartbeat, with a 15 s timeout on the Mega. The ESP32 tracks the Mega too (R-24): no line for 30 s means the Mega is silent (§9.1). |
 | `NET_STATUS|state:ONLINE` | `STATUS|ONLINE` / `STATUS|OFFLINE` |
 | `TIME|timestamp:<ISO8601>` | `TIME|YYYY-MM-DD|HH:MM:SS` |
 | `CMD_RESERVED` / `ACK_CMD` (reserved, not to be implemented) | `CMD` / `CMD_ACK` / `CMD_DONE` with the full lifecycle (Checkpoints 5B.7–5B.9, short UART IDs in Phase 4) |

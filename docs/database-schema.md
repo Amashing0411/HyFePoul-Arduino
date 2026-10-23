@@ -57,12 +57,13 @@ There are two kinds of identity, and each is a separate Firebase Auth account:
 | `deviceAuthUid` | string | Admin only (`.write: false`) | Set during provisioning |
 | `status` | `"online"` | Device | Written on every heartbeat. Nothing writes `"offline"`; see the note below |
 | `lastHeartbeat` | number | Device | Every 30 s while the ESP32 has Wi-Fi and a session |
+| `megaLinkOk` | boolean | Device | `false` when the ESP32 has heard nothing from the Mega for 30 s, `true` again when it does (R-24). Validated as boolean |
 | `state` | object | Device | Latest system data (§5) |
 
 - **Read `devices/{id}`:** its owner or its device.
 - **Read `/devices` (owned-device query):** only the exact query `orderByChild("ownerId").equalTo(auth.uid)`. An unfiltered read, or a query for another uid, is denied. Indexed on `ownerId`.
 
-**Online status.** Because nothing sets `status` to `"offline"` when the device loses power or Wi-Fi, the app treats a device as online only if `status == "online"` **and** `lastHeartbeat` is within 90 s, which is three missed heartbeats (`mobile-app/src/utils/deviceStatus.ts`).
+**Online status.** Because nothing sets `status` to `"offline"` when the device loses power or Wi-Fi, the app treats a device as online only if `status == "online"` **and** `lastHeartbeat` is within 90 s, which is three missed heartbeats (`mobile-app/src/utils/deviceStatus.ts`). The controller counts as responding only if the device is online and `megaLinkOk` is not `false`.
 
 ## 5. `devices/{deviceId}/state` and `systemData/{deviceId}/{pushId}`
 

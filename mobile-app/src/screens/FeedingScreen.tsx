@@ -31,7 +31,7 @@ const DEFAULT_TRAY_TARGET_GRAMS = 50;
 const MAX_TRAY_TARGET_GRAMS = 1000;
 
 export default function FeedingScreen() {
-  const { deviceData, systemData, deviceOnline, schedules, commands, loading, error, issueCommand, updateSchedule } = useFirebaseData();
+  const { deviceData, systemData, deviceOnline, controllerResponding, schedules, commands, loading, error, issueCommand, updateSchedule } = useFirebaseData();
   const { colors, typography } = useTheme();
   const { t } = useLanguage();
 
@@ -224,7 +224,8 @@ export default function FeedingScreen() {
   const manualFeedInFlight = commands.some(c => c.command === 'MANUAL_FEED' && IN_FLIGHT_STATUSES.includes(c.status));
   // An offline device would only pick a feed up later (or let it go stale),
   // so manual feeding is blocked until heartbeats resume.
-  const manualFeedBlocked = systemData.emergencyStopActive || systemData.feedingActive || manualFeedInFlight || !deviceOnline;
+  // The same applies when the ESP32 is online but no longer hears the Mega.
+  const manualFeedBlocked = systemData.emergencyStopActive || systemData.feedingActive || manualFeedInFlight || !controllerResponding;
   // Find if there is a pending sync command for schedules
   const pendingSyncCmd = commands.find(c => c.command === 'SCHEDULE_SET' && (c.status === 'queued' || c.status === 'acknowledged' || c.status === 'executing'));
 
@@ -321,6 +322,11 @@ export default function FeedingScreen() {
             {!deviceOnline && (
               <Text style={[typography.caption, { color: colors.error, marginTop: spacing.xs }]}>
                 {t('deviceOfflineHint')}
+              </Text>
+            )}
+            {deviceOnline && !controllerResponding && (
+              <Text style={[typography.caption, { color: colors.error, marginTop: spacing.xs }]}>
+                {t('controllerNotRespondingHint')}
               </Text>
             )}
           </View>

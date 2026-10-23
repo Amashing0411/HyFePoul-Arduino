@@ -16,7 +16,7 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { MainTabParamList } from '../navigation/AppNavigator';
 
 export default function DashboardScreen() {
-  const { deviceData, systemData, deviceOnline, nowMs, commands, loading, error, issueCommand } = useFirebaseData();
+  const { deviceData, systemData, deviceOnline, controllerResponding, nowMs, commands, loading, error, issueCommand } = useFirebaseData();
   const { colors, typography } = useTheme();
   const { t } = useLanguage();
   const navigation = useNavigation<BottomTabNavigationProp<MainTabParamList>>();
@@ -106,8 +106,8 @@ export default function DashboardScreen() {
             <Text style={[typography.h2, { marginLeft: spacing.sm }]}>{deviceData.name}</Text>
           </View>
           <StatusBadge
-            status={deviceOnline ? 'success' : 'offline'}
-            text={deviceOnline ? t('online') : t('offline')}
+            status={!deviceOnline ? 'offline' : controllerResponding ? 'success' : 'error'}
+            text={!deviceOnline ? t('offline') : controllerResponding ? t('online') : t('notResponding')}
           />
         </View>
         <View style={styles.row}>
@@ -115,6 +115,11 @@ export default function DashboardScreen() {
             {t('updated')}: {new Date(systemData.timestamp).toLocaleTimeString()} {isStale && `(${t('stale')})`}
           </Text>
         </View>
+        {deviceOnline && !controllerResponding && (
+          <Text style={[typography.caption, { color: colors.error, marginTop: spacing.xs }]}>
+            {t('controllerNotRespondingHint')}
+          </Text>
+        )}
         {!deviceOnline && deviceData.lastHeartbeat && (
           <Text style={[typography.caption, { color: colors.error, marginTop: spacing.xs }]}>
             {t('lastHeardFrom', { time: new Date(deviceData.lastHeartbeat).toLocaleString() })}

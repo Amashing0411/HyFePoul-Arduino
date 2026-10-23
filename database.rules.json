@@ -29,6 +29,10 @@
         "lastHeartbeat": {
           ".write": "auth != null && root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid"
         },
+        "megaLinkOk": {
+          ".write": "auth != null && root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid",
+          ".validate": "newData.isBoolean()"
+        },
         "state": {
           ".write": "auth != null && root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid",
           "feedWeightGrams": { ".validate": "newData.isNumber()" },

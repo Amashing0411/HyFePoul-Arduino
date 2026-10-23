@@ -5,6 +5,7 @@ export const mockDeviceData: DeviceData = {
   name: 'Main Coop Feeder',
   status: 'online',
   lastHeartbeat: new Date().toISOString(),
+  megaLinkOk: true,
 };
 
 export const mockSystemData: SystemData = {

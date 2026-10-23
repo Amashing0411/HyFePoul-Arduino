@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import { heartbeatAgeMs, isDeviceOnline, OFFLINE_AFTER_MS } from '../deviceStatus';
+import { heartbeatAgeMs, isDeviceOnline, isControllerResponding, OFFLINE_AFTER_MS } from '../deviceStatus';
 
 const NOW = Date.UTC(2026, 9, 21, 6, 0, 0);
 const iso = (msAgo: number) => new Date(NOW - msAgo).toISOString();
@@ -28,5 +28,21 @@ describe('deviceStatus', () => {
   it('treats a small phone-clock lag (negative age) as just now', () => {
     expect(heartbeatAgeMs(iso(-5_000), NOW)).toBe(0);
     expect(isDeviceOnline('online', iso(-5_000), NOW)).toBe(true);
+  });
+});
+
+describe('isControllerResponding (R-24)', () => {
+  it('needs the device online', () => {
+    expect(isControllerResponding(false, true)).toBe(false);
+    expect(isControllerResponding(false, null)).toBe(false);
+  });
+
+  it('is false only when the ESP32 reports the Mega silent', () => {
+    expect(isControllerResponding(true, false)).toBe(false);
+    expect(isControllerResponding(true, true)).toBe(true);
+  });
+
+  it('treats a missing report (older firmware) as responding', () => {
+    expect(isControllerResponding(true, null)).toBe(true);
   });
 });
