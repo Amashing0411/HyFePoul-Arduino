@@ -16,12 +16,13 @@ Arduino Mega 2560 (primary controller)
 - `FeedLevel.ino` — ultrasonic hopper feed-level measurement
 - `Hydration.ino` — reservoir float switch: `LOW_WATER` alert + buzzer (gravity-fed drinker, no pump)
 - `TimeManager.ino` — RTC + ESP32 network-time synchronization/fallback
-- `ESP32Communication.ino` — Mega↔ESP32 placeholder protocol
-- `Nextion.ino` — Nextion display interface placeholder
+- `ESP32Communication.ino` — Mega side of the UART link: `DATA`, `EVENT` queue, `TIME`/`STATUS`/`CMD` from the ESP32 (see `docs/mega-esp32-protocol.md`)
+- `Nextion.ino` — Nextion Home page fields and the Stop/Start buttons (button IDs set on the bench, R-20)
 - `SDLogging.ino` — CSV data logging, one file per month, 24-month cleanup
 - `DailyStats.ino` — per-day totals (feed, cycles, problems) kept in EEPROM and sent as `SUMMARY` lines
 - `Safety.ino` — emergency stop (latched until reset) and buzzer
 - `ScheduleStorage.ino` — feeding schedules saved to and loaded from EEPROM (survive power loss)
+- `Watchdog.ino` — hardware watchdog: restarts the Mega within 2 s if the program stops; logs `WATCHDOG_RESET`; bench check with `WDTEST`
 - `SerialConsole.ino` — bench commissioning commands on the USB serial monitor (`HELP`): status, load-cell tare/calibration, chain jog/home, dispenser test, local feed. See `docs/hardware-commissioning-procedure.md` §7a
 
 ## Libraries required

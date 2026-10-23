@@ -17,6 +17,8 @@
     DISP <ms>            run the dispenser 100-5000 ms
     FEED <grams>         start a full 5-tray cycle at <grams> per tray
     STOP                 stop a bench move at once
+    WDTEST               stop the program to prove the watchdog restarts
+                         the Mega (only while nothing moves; Watchdog.ino)
     RESET                clear a latched E-stop (Safety.ino)
 
   Safety: motor commands are refused while the E-stop is latched, a feed
@@ -77,6 +79,8 @@ void handleBenchCommand(String line) {
     benchStartFeed(args);
   } else if (cmd == "STOP") {
     benchStop("stopped by STOP");
+  } else if (cmd == "WDTEST") {
+    benchWatchdogTest();
   } else {
     Serial.print(F("Unknown command: "));
     Serial.println(line);
@@ -86,7 +90,7 @@ void handleBenchCommand(String line) {
 
 void benchHelp() {
   Serial.println(F("Bench commands: STATUS, WEIGH, TARE <1-5|ALL>, CAL <1-5> <grams>,"));
-  Serial.println(F("FACTORS, JOG <F|R> <ms>, HOME, DISP <ms>, FEED <grams>, STOP, RESET"));
+  Serial.println(F("FACTORS, JOG <F|R> <ms>, HOME, DISP <ms>, FEED <grams>, STOP, WDTEST, RESET"));
 }
 
 // Returns NULL when a motor command may run, otherwise why not.

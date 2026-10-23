@@ -13,6 +13,11 @@
 */
 
 void initializeRTC() {
+  // A stuck I2C bus makes Wire wait forever; time out after 25 ms and
+  // reset the bus instead (the watchdog is the last resort).
+  Wire.begin();
+  Wire.setWireTimeout(25000, true);
+
   if (!rtc.begin()) {
     rtcValid = false;
     currentTimeSource = TIME_SOURCE_INVALID;
