@@ -469,6 +469,53 @@ async function runTests() {
     await assertFails(esp32_3Db.ref("commands/dev3/cmdStale2/status").set("completed"));
   });
 
+  // ==========================================
+  // ALERTS (R-23: resolution)
+  // ==========================================
+  const alertRecord = (name, extra = {}) => ({ eventId: name, name, timestamp: 1790000000000, resolved: false, ...extra });
+
+  await test("Alerts: device can write a complete alert", async () => {
+    await assertSucceeds(esp32_3Db.ref("alerts/dev3/LOW_FEED").set(alertRecord("LOW_FEED")));
+  });
+
+  await test("Alerts: device can mark its alert resolved with resolvedAt", async () => {
+    await assertSucceeds(esp32_3Db.ref("alerts/dev3/LOW_FEED").update({ resolved: true, resolvedAt: 1790000060000 }));
+  });
+
+  await test("Alerts: a new occurrence (PUT) makes it active again and drops resolvedAt", async () => {
+    await assertSucceeds(esp32_3Db.ref("alerts/dev3/LOW_FEED").set(alertRecord("LOW_FEED", { timestamp: 1790000120000 })));
+  });
+
+  await test("Alerts: device cannot create a partial alert (resolve of a missing alert)", async () => {
+    await assertFails(esp32_3Db.ref("alerts/dev3/LOW_WATER").update({ resolved: true, resolvedAt: 1790000060000 }));
+  });
+
+  await test("Alerts: record key must match the alert name", async () => {
+    await assertFails(esp32_3Db.ref("alerts/dev3/LOW_WATER").set(alertRecord("LOW_FEED")));
+  });
+
+  await test("Alerts: wrong types and unknown fields are rejected", async () => {
+    await assertFails(esp32_3Db.ref("alerts/dev3/LOW_FEED").update({ resolved: "yes" }));
+    await assertFails(esp32_3Db.ref("alerts/dev3/LOW_FEED").update({ note: "x" }));
+  });
+
+  await test("Alerts: owner can read but cannot resolve alerts", async () => {
+    await assertSucceeds(owner3Db.ref("alerts/dev3").once("value"));
+    await assertFails(owner3Db.ref("alerts/dev3/LOW_FEED").update({ resolved: true }));
+  });
+
+  await test("Alerts: device can read its own alert (resolve checks it is still active)", async () => {
+    await assertSucceeds(esp32_3Db.ref("alerts/dev3/LOW_FEED/resolved").once("value"));
+  });
+
+  await test("Alerts: another device cannot read this device's alerts", async () => {
+    await assertFails(esp32Db.ref("alerts/dev3/LOW_FEED").once("value"));
+  });
+
+  await test("Alerts: another device cannot write this device's alerts", async () => {
+    await assertFails(esp32Db.ref("alerts/dev3/LOW_FEED").update({ resolved: true }));
+  });
+
   console.log(`\nTests finished: ${passed} passed, ${failed} failed.`);
 
   process.exit(failed > 0 ? 1 : 0);

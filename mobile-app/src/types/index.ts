@@ -38,4 +38,5 @@ export interface Alert {
   type: AlertType;
   timestamp: string;
   resolved: boolean;
+  resolvedAt?: string; // when the device reported the condition cleared
 }

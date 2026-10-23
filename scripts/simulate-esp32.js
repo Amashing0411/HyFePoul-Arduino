@@ -148,11 +148,112 @@ async function simulate() {
 
   await testCommands();
   await testScheduleRestore();
+  await testAlertResolution();
   testUartCommandLines();
 
   console.log("======================================");
   console.log("ESP32 SIMULATION SUCCESSFUL!");
   console.log("======================================");
+}
+
+// ---------------------------------------------------------
+// Alert resolution (R-23), mirroring noteAlertResolution() and
+// processPendingResolves() in HyFePoul_ESP32.ino
+// ---------------------------------------------------------
+const RESOLVABLE_ALERTS = ["LOW_FEED", "LOW_WATER", "EMERGENCY_STOP", "CHAIN_TIMEOUT", "TRAY_TIMEOUT"];
+const CLEAR_EVENTS = {
+  LOW_FEED_CLEARED: ["LOW_FEED"],
+  LOW_WATER_CLEARED: ["LOW_WATER"],
+  EMERGENCY_STOP_RELEASED: ["EMERGENCY_STOP"],
+  FEEDING_COMPLETED: ["CHAIN_TIMEOUT", "TRAY_TIMEOUT"],
+};
+
+function noteAlertResolution(pending, eventName) {
+  if (CLEAR_EVENTS[eventName]) CLEAR_EVENTS[eventName].forEach(a => pending.add(a));
+  else if (RESOLVABLE_ALERTS.includes(eventName)) pending.delete(eventName);
+}
+
+// Returns true when the pending entry is finished (resolved or nothing to do).
+async function resolveOne(name) {
+  let res = await fetch(getDbUrl(`alerts/${DEVICE_ID}/${name}/resolved.json`));
+  if (res.status !== 200) return false;
+  const body = (await res.text()).trim();
+  if (body !== "false") return true; // missing ("null") or already resolved
+  res = await fetch(getDbUrl(`alerts/${DEVICE_ID}/${name}.json`), {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ resolved: true, resolvedAt: Date.now() }),
+  });
+  return res.status === 200;
+}
+
+async function putAlert(name, timestamp) {
+  const res = await fetch(getDbUrl(`alerts/${DEVICE_ID}/${name}.json`), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ eventId: name, name, timestamp, resolved: false }),
+  });
+  if (res.status !== 200) throw new Error(`Alert write failed: ${await res.text()}`);
+}
+
+async function readAlert(name) {
+  const res = await fetch(`http://${EMULATOR_HOST}:${EMULATOR_RTDB_PORT}/alerts/${DEVICE_ID}/${name}.json?ns=${NAMESPACE}`, {
+    headers: { 'Authorization': 'Bearer owner' },
+  });
+  return res.json();
+}
+
+async function testAlertResolution() {
+  console.log("[R-23] Alert resolution...");
+  const pending = new Set();
+  const t0 = Date.now();
+
+  await putAlert("LOW_WATER", t0);
+  await putAlert("TRAY_TIMEOUT", t0);
+
+  // Boot-style burst received while "offline": resolves are only queued.
+  ["LOW_WATER_CLEARED", "LOW_FEED_CLEARED", "EMERGENCY_STOP_RELEASED"].forEach(e => noteAlertResolution(pending, e));
+  if (!pending.has("LOW_WATER") || !pending.has("EMERGENCY_STOP")) throw new Error("Resolves not queued");
+
+  // A new occurrence after a clear cancels the pending resolve.
+  noteAlertResolution(pending, "EMERGENCY_STOP");
+  if (pending.has("EMERGENCY_STOP")) throw new Error("New occurrence should cancel the pending resolve");
+
+  // "Online": process every pending resolve.
+  for (const name of [...pending]) {
+    if (await resolveOne(name)) pending.delete(name);
+  }
+  if (pending.size !== 0) throw new Error(`Unfinished resolves: ${[...pending]}`);
+
+  const water = await readAlert("LOW_WATER");
+  if (water.resolved !== true || typeof water.resolvedAt !== "number" || water.timestamp !== t0) {
+    throw new Error(`LOW_WATER not resolved correctly: ${JSON.stringify(water)}`);
+  }
+  // LOW_FEED_CLEARED with no LOW_FEED record must not create one... unless an
+  // earlier part of this run wrote LOW_FEED; then it is resolved instead.
+  const feed = await readAlert("LOW_FEED");
+  if (feed !== null && feed.resolved !== true) throw new Error("Existing LOW_FEED should be resolved");
+  const estop = await readAlert("EMERGENCY_STOP");
+  if (estop !== null && estop.name !== "EMERGENCY_STOP") throw new Error("Partial EMERGENCY_STOP record created");
+
+  // Tray timeout clears only on a fully successful cycle.
+  noteAlertResolution(pending, "FEEDING_COMPLETED");
+  for (const name of [...pending]) {
+    if (await resolveOne(name)) pending.delete(name);
+  }
+  const tray = await readAlert("TRAY_TIMEOUT");
+  if (tray.resolved !== true) throw new Error("TRAY_TIMEOUT not resolved after FEEDING_COMPLETED");
+  if (await readAlert("CHAIN_TIMEOUT") !== null) throw new Error("Missing CHAIN_TIMEOUT must not be created");
+
+  // Re-raising makes it active again without the old resolvedAt.
+  await putAlert("LOW_WATER", t0 + 1000);
+  const again = await readAlert("LOW_WATER");
+  if (again.resolved !== false || again.resolvedAt !== undefined) throw new Error("Re-raised alert should be active");
+
+  // Resolving twice is a no-op.
+  await putAlert("LOW_WATER", t0 + 2000);
+  if (!(await resolveOne("LOW_WATER")) || !(await resolveOne("LOW_WATER"))) throw new Error("Repeat resolve failed");
+  console.log("[R-23] Alert resolution OK");
 }
 
 // ---------------------------------------------------------

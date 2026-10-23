@@ -23,6 +23,11 @@ void updateFeedLevel() {
     }
   } 
   else if (currentHopperLevelPercent >= LOW_FEED_CLEAR_PERCENT) {
+    if (lowFeedAlertSent) {
+      // Hopper refilled: lets the app mark the LOW_FEED alert resolved.
+      queueAlertEvent("LOW_FEED_CLEARED");
+      logEventToSD("LOW_FEED_CLEARED");
+    }
     lowFeedAlertSent = false;
   }
 }

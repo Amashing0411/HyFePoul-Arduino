@@ -199,10 +199,11 @@ async function runE2E() {
     // 7. GENERATE ALERT
     // --------------------------------------------------
     console.log("\n[Device] Generating LOW_WATER alert...");
-    const alertId = `alert_${Date.now()}`;
+    // The ESP32 keys each alert by its name (one record per alert type).
+    const alertId = 'LOW_WATER';
     await set(ref(dbDevice, `alerts/${DEVICE_ID}/${alertId}`), {
       eventId: "LOW_WATER",
-      name: "Water level is low",
+      name: "LOW_WATER",
       timestamp: Date.now(),
       resolved: false
     });
@@ -212,6 +213,12 @@ async function runE2E() {
     const alertRead = await get(ref(dbOwner, `alerts/${DEVICE_ID}/${alertId}`));
     if (!alertRead.exists()) throw new Error("Owner failed to read alert.");
     console.log("[Owner] Alert appears in Notifications.");
+
+    // R-23: reservoir refilled -> the device marks the alert resolved.
+    await update(ref(dbDevice, `alerts/${DEVICE_ID}/${alertId}`), { resolved: true, resolvedAt: Date.now() });
+    const resolvedRead = await get(ref(dbOwner, `alerts/${DEVICE_ID}/${alertId}`));
+    if (resolvedRead.val().resolved !== true) throw new Error("Owner did not see the alert resolved.");
+    console.log("[Owner] Alert shows as resolved.");
 
     // --------------------------------------------------
     // 8. GENERATE HISTORY (System Data)

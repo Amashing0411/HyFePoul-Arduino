@@ -39,6 +39,18 @@ unsigned long lastMegaLineMillis = 0;
 
 String megaReceiveBuffer = "";
 
+// Alert resolution (R-23). The Mega sends a "cleared" event when a
+// condition recovers; the matching /alerts record is then marked resolved.
+// Requests are kept here until the ESP32 is online (the Mega's boot clears
+// usually arrive before Wi-Fi is up) and retried until they succeed.
+const char* const RESOLVABLE_ALERTS[] = {
+  "LOW_FEED", "LOW_WATER", "EMERGENCY_STOP", "CHAIN_TIMEOUT", "TRAY_TIMEOUT"
+};
+const uint8_t RESOLVABLE_ALERT_COUNT = 5;
+const unsigned long RESOLVE_RETRY_MS = 5000;
+uint8_t pendingResolveMask = 0; // bit i = RESOLVABLE_ALERTS[i]
+unsigned long lastResolveAttemptMillis = 0;
+
 // One parsed DATA line from the Mega (moving-hopper design: 5 trays).
 const int TRAY_COUNT = 5;
 struct DeviceStateData {
@@ -144,6 +156,9 @@ void loop() {
 
   // 6. Re-send schedules to the Mega when needed
   handleScheduleRestore();
+
+  // 7. Mark recovered alerts resolved
+  processPendingResolves();
 }
 
 // ---------------------------------------------------------
@@ -404,6 +419,7 @@ void processMegaLine(String line) {
       sendLinkStatusToMega(true);
     }
 
+    noteAlertResolution(eventName);
     sendEventToFirebase(eventName);
   }
   else if (line.startsWith("CMD_ACK|")) {
@@ -553,6 +569,89 @@ void sendEventToFirebase(String eventName) {
   http.addHeader("Content-Type", "application/json");
   noteHttpResult(http.PUT(payload)); // PUT (not POST) for idempotency
   http.end();
+}
+
+// ---------------------------------------------------------
+// Alert resolution
+// ---------------------------------------------------------
+int resolvableIndex(const String& alertName) {
+  for (uint8_t i = 0; i < RESOLVABLE_ALERT_COUNT; i++) {
+    if (alertName == RESOLVABLE_ALERTS[i]) return i;
+  }
+  return -1;
+}
+
+void requestResolve(const char* alertName) {
+  int i = resolvableIndex(alertName);
+  if (i >= 0) pendingResolveMask |= (1 << i);
+}
+
+// Maps Mega events to alert resolutions. A new occurrence of an alert
+// cancels a pending resolve for it, so the order of events is kept.
+void noteAlertResolution(const String& eventName) {
+  if (eventName == "LOW_FEED_CLEARED") {
+    requestResolve("LOW_FEED");
+  } else if (eventName == "LOW_WATER_CLEARED") {
+    requestResolve("LOW_WATER");
+  } else if (eventName == "EMERGENCY_STOP_RELEASED") {
+    requestResolve("EMERGENCY_STOP");
+  } else if (eventName == "FEEDING_COMPLETED") {
+    // A cycle that filled every tray and returned home clears both.
+    requestResolve("CHAIN_TIMEOUT");
+    requestResolve("TRAY_TIMEOUT");
+  } else {
+    int i = resolvableIndex(eventName);
+    if (i >= 0) pendingResolveMask &= ~(1 << i);
+  }
+}
+
+// One pending resolve per call. Only an existing, still-active record is
+// patched, so a missing alert is never created as a partial record.
+void processPendingResolves() {
+  if (pendingResolveMask == 0) return;
+  if (!hasValidToken() || WiFi.status() != WL_CONNECTED) return;
+  if (millis() - lastResolveAttemptMillis < RESOLVE_RETRY_MS) return;
+
+  unsigned long now = getTimestampMillis();
+  if (now < 1000000000000ULL) return;
+  lastResolveAttemptMillis = millis();
+
+  uint8_t i = 0;
+  while (!(pendingResolveMask & (1 << i))) i++;
+  String path = String("alerts/") + DEVICE_ID + "/" + RESOLVABLE_ALERTS[i];
+
+  HTTPClient http;
+  if (!beginRequest(http, getDatabaseUrl((path + "/resolved.json").c_str()))) return;
+  int code = http.GET();
+  String body = code == 200 ? http.getString() : "";
+  http.end();
+  noteHttpResult(code);
+  if (code != 200) return; // retry later
+
+  body.trim();
+  if (body != "false") {
+    // No such alert ("null") or already resolved: nothing to do.
+    pendingResolveMask &= ~(1 << i);
+    return;
+  }
+
+  StaticJsonDocument<96> doc;
+  doc["resolved"] = true;
+  doc["resolvedAt"] = now;
+  String payload;
+  serializeJson(doc, payload);
+
+  if (!beginRequest(http, getDatabaseUrl((path + ".json").c_str()))) return;
+  http.addHeader("Content-Type", "application/json");
+  code = http.PATCH(payload);
+  http.end();
+  noteHttpResult(code);
+
+  if (code == 200) {
+    pendingResolveMask &= ~(1 << i);
+    Serial.print("Alert resolved: ");
+    Serial.println(RESOLVABLE_ALERTS[i]);
+  }
 }
 
 // ---------------------------------------------------------

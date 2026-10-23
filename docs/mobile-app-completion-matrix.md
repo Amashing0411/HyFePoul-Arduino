@@ -121,7 +121,7 @@
   - ✅ none while force-stopped (documented limit);
   - ✅ alert still listed after reopening.
 - **Remaining:**
-  - alerts never resolve (R-23);
+  - resolved alerts (R-23) shown on the emulator with seeded records only; device-driven resolution is covered by the simulators;
   - no delivery while the app is closed (Spark plan; [`notifications.md`](notifications.md));
   - physical phone.
 

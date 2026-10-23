@@ -223,7 +223,9 @@ unsigned long lastSDLogMillis = 0;
 // Alerts
 // Small FIFO so alerts raised in the same loop are not overwritten.
 // Entries point to string literals, so no copies are kept in RAM.
-const uint8_t ALERT_QUEUE_SIZE = 4;
+// Sized for the boot burst: SYSTEM_START, the boot clears and any alert
+// raised by the first sensor reads.
+const uint8_t ALERT_QUEUE_SIZE = 8;
 const char* alertQueue[ALERT_QUEUE_SIZE];
 uint8_t alertQueueHead = 0;
 uint8_t alertQueueCount = 0;
@@ -267,6 +269,26 @@ void initializeSystem() {
 
   // Tells the ESP32 to re-send the RTDB schedules after a Mega restart.
   queueAlertEvent("SYSTEM_START");
+
+  queueBootClears();
+}
+
+// Alerts raised before a restart stay "active" in the app until a clear
+// event arrives. After boot, report every condition that is fine now so
+// stale alerts get resolved. The ESP32 holds these until it is online and
+// only touches alerts that exist and are still active.
+void queueBootClears() {
+  if (!lowFeedAlertSent && currentHopperLevelPercent >= LOW_FEED_CLEAR_PERCENT) {
+    queueAlertEvent("LOW_FEED_CLEARED");
+  }
+
+  if (!waterLow) {
+    queueAlertEvent("LOW_WATER_CLEARED");
+  }
+
+  // A power cycle clears the E-stop latch. If the button is still pressed,
+  // the first loop latches it again and EMERGENCY_STOP follows this event.
+  queueAlertEvent("EMERGENCY_STOP_RELEASED");
 }
 
 void initializePins() {
