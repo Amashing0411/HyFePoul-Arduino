@@ -12,7 +12,7 @@ This document describes how HyFePoul alerts reach the user **as currently implem
 ## Limitations (do not describe this as push notifications)
 
 - **No delivery while the app is closed.** Local notifications come from the running app. Alerts raised while the app is closed or killed by the OS appear in the Notifications tab the next time the app opens, but no phone notification is shown for them.
-- **No resolution tracking yet.** Nothing currently sets `resolved: true` (the ESP32 does not forward `EMERGENCY_STOP_RELEASED`, and there is no backend). The app therefore labels unresolved records "Last reported" rather than "Active" or "Action required".
+- **Resolution (R-23).** When a condition clears, the Mega sends a clear event and the ESP32 marks the record `resolved: true` with `resolvedAt` (low feed: hopper back to 25%; low water: reservoir refilled; E-stop: released; chain/tray timeout: the next cycle that fills every tray). The Notifications tab lists active alerts first ("ACTIVE"), then resolved ones dimmed ("RESOLVED <time>"). Resolving never triggers a phone notification, because only a newer `timestamp` does.
 - **One record per type.** Two `LOW_FEED` occurrences produce a single record holding the later timestamp. The full sequence is in the Mega SD log.
 - **Permission.** Android 13+ asks for notification permission on first launch after login. If it is denied, the in-app alert feed still works.
 

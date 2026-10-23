@@ -47,7 +47,8 @@ export interface RTDBAlert {
   eventId: string;
   name: RTDBAlertType;
   timestamp: number;
-  resolved: boolean;
+  resolved: boolean;  // set by the device when the condition clears
+  resolvedAt?: number; // UTC ms, present while resolved
 }
 
 /**

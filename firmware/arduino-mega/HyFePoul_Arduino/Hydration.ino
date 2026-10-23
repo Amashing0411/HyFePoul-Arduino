@@ -51,6 +51,11 @@ void checkLowWaterAlert() {
       logEventToSD("LOW_WATER");
     }
   } else {
+    if (lowWaterAlertSent) {
+      // Reservoir refilled: lets the app mark the LOW_WATER alert resolved.
+      queueAlertEvent("LOW_WATER_CLEARED");
+      logEventToSD("LOW_WATER_CLEARED");
+    }
     lowWaterAlertSent = false;
   }
 }

@@ -101,10 +101,11 @@ export const translations = {
     resolved: 'RESOLVED',
     actionRequired: 'ACTIVE',
     lastReported: 'LAST REPORTED',
+    resolvedAt: 'RESOLVED {time}',
     allCaughtUp: "You're all caught up. No alerts.",
-    alertActiveA11y: 'Alert: {title}. Last reported at {time}',
+    alertActiveA11y: 'Active alert: {title}. Reported at {time}',
     alertResolvedA11y: 'Resolved alert: {title}. Occurred at {time}',
-    alertsExplainer: 'Shows the latest report of each alert type. Phone notifications appear only while the app is running.',
+    alertsExplainer: 'Active alerts are listed first. An alert is marked resolved when the device reports the condition cleared (refilled, E-stop released, or a full feed cycle). Phone notifications appear only while the app is running.',
     alertNotificationBody: 'Reported by the device at {time}.',
 
     // Manual feed and command status
@@ -245,10 +246,11 @@ export const translations = {
     resolved: 'NAAYOS NA',
     actionRequired: 'AKTIBO',
     lastReported: 'HULING NAIULAT',
+    resolvedAt: 'NAAYOS {time}',
     allCaughtUp: 'Wala nang bagong abiso.',
-    alertActiveA11y: 'Abiso: {title}. Huling naiulat noong {time}',
+    alertActiveA11y: 'Aktibong abiso: {title}. Naiulat noong {time}',
     alertResolvedA11y: 'Naayos na abiso: {title}. Nangyari noong {time}',
-    alertsExplainer: 'Ipinapakita ang pinakahuling ulat ng bawat uri ng abiso. Lalabas lang ang abiso sa telepono habang bukas ang app.',
+    alertsExplainer: 'Nauuna ang mga aktibong abiso. Minamarkahang naayos ang abiso kapag iniulat ng device na nawala na ang problema (napuno na, na-release ang E-stop, o natapos ang buong pagpapakain). Lalabas lang ang abiso sa telepono habang bukas ang app.',
     alertNotificationBody: 'Iniulat ng device noong {time}.',
 
     // Manual feed and command status

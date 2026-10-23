@@ -54,7 +54,9 @@ Events are queued on the Mega (4 slots; the oldest is dropped when full) and sen
 |-------|-------------|------------------------------|
 | `SYSTEM_START` | Every Mega boot | No. It makes the ESP32 restore schedules and resend the link status (§7). |
 | `EMERGENCY_STOP` | E-stop pressed (latches) | Yes |
-| `EMERGENCY_STOP_RELEASED` | E-stop reset (remote or serial `RESET`) | No |
+| `EMERGENCY_STOP_RELEASED` | E-stop reset (remote, serial `RESET` or Nextion), and once at boot | No. Resolves `EMERGENCY_STOP` (§3.2.1) |
+| `LOW_FEED_CLEARED` | Hopper back to 25% or more after a `LOW_FEED`, and at boot if the level is fine | No. Resolves `LOW_FEED` |
+| `LOW_WATER_CLEARED` | Reservoir float no longer low (2 s debounce) after a `LOW_WATER`, and at boot if it is fine | No. Resolves `LOW_WATER` |
 | `LOW_FEED` | Hopper at or below 20% (clears at 25% or more) | Yes |
 | `LOW_WATER` | Reservoir float switch low for 2 s (refill needed); once per low episode, with a buzzer beep | Yes |
 | `CHAIN_TIMEOUT` | A chain move did not reach its limit switch in time (homing/return 30 s, to end 15 s). Motors stop; buzzer | Yes |
@@ -65,6 +67,23 @@ Events are queued on the Mega (4 slots; the oldest is dropped when full) and sen
 `DEVICE_ERROR` is on the ESP32 whitelist but is not raised by the current Mega firmware.
 
 The ESP32 writes forwarded events with `PUT` to `/alerts/{deviceId}/{NAME}`. That gives **one record per event type**, overwritten with the latest timestamp, so a repeated event is idempotent.
+
+#### 3.2.1 Alert resolution (R-23)
+
+Clear events mark the matching alert record `resolved: true` with `resolvedAt`:
+
+| Event | Resolves |
+|-------|----------|
+| `LOW_FEED_CLEARED` | `LOW_FEED` |
+| `LOW_WATER_CLEARED` | `LOW_WATER` |
+| `EMERGENCY_STOP_RELEASED` | `EMERGENCY_STOP` |
+| `FEEDING_COMPLETED` (every tray filled, hopper back home) | `CHAIN_TIMEOUT`, `TRAY_TIMEOUT` |
+
+- **At boot** the Mega sends the clears for every condition that is fine (after `SYSTEM_START`), so alerts left from before a power loss are resolved. The alert queue holds 8 events for this burst.
+- **The ESP32 keeps pending resolves** (one bit per alert type) until it is online with a valid token, because the boot clears usually arrive before Wi-Fi is up. It retries every 5 s until the write succeeds.
+- **Only existing, still-active records change:** the ESP32 first reads `/alerts/{id}/{NAME}/resolved`, then `PATCH`es `{resolved: true, resolvedAt}` only if it is `false`. A missing alert is never created. The rules also reject partial records.
+- **Order is kept:** a new occurrence of an alert (its own event) cancels a pending resolve for it, and its `PUT` replaces the record (`resolved: false`, no `resolvedAt`).
+- **Limitation:** an alert raised while the ESP32 is offline is still not written (no event retry); its clear then finds nothing to resolve.
 
 ### 3.3 `CMD_ACK` and `CMD_DONE` (command replies)
 

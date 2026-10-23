@@ -54,10 +54,13 @@ export default function NotificationsScreen() {
             {title}
           </Text>
           <Text style={[typography.caption, { marginTop: spacing.xs }]}>{new Date(item.timestamp).toLocaleString()}</Text>
-          {/* The device keeps one record per alert type and nothing marks it
-              resolved yet, so "last reported" is the honest label. */}
+          {/* The device keeps one record per alert type and marks it resolved
+              when the condition clears (refilled, E-stop released, a full
+              feed cycle). */}
           <Text style={[typography.caption, { fontWeight: 'bold', marginTop: spacing.sm, color: item.resolved ? colors.success : alertColor }]}>
-            {item.resolved ? t('resolved') : t('lastReported')}
+            {item.resolved
+              ? (item.resolvedAt ? t('resolvedAt', { time: new Date(item.resolvedAt).toLocaleString() }) : t('resolved'))
+              : t('actionRequired')}
           </Text>
         </View>
       </View>

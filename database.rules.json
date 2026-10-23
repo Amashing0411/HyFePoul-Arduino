@@ -128,9 +128,16 @@
     "alerts": {
       "$deviceId": {
         ".indexOn": ["timestamp"],
-        ".read": "auth != null && root.child('devices').child($deviceId).child('ownerId').val() === auth.uid",
-        "$pushId": {
-           ".write": "auth != null && root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid"
+        ".read": "auth != null && (root.child('devices').child($deviceId).child('ownerId').val() === auth.uid || root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid)",
+        "$alertId": {
+          ".write": "auth != null && root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid",
+          ".validate": "newData.hasChildren(['eventId', 'name', 'timestamp', 'resolved'])",
+          "eventId": { ".validate": "newData.isString() && newData.val() === $alertId" },
+          "name": { ".validate": "newData.isString() && newData.val() === $alertId" },
+          "timestamp": { ".validate": "newData.isNumber()" },
+          "resolved": { ".validate": "newData.isBoolean()" },
+          "resolvedAt": { ".validate": "newData.isNumber()" },
+          "$other": { ".validate": false }
         }
       }
     }

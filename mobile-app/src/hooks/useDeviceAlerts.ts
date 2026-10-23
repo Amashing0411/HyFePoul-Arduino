@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Alert, AlertType } from '../types';
 import { rtdbService } from '../services/rtdbService';
+import { sortAlerts } from '../utils/alerts';
 
 export function useDeviceAlerts() {
   const { ownedDevices } = useAuth();
@@ -35,11 +36,11 @@ export function useDeviceAlerts() {
         id: d.eventId,
         type: d.name as AlertType,
         timestamp: new Date(d.timestamp).toISOString(),
-        resolved: d.resolved
+        resolved: d.resolved,
+        resolvedAt: d.resolvedAt !== undefined ? new Date(d.resolvedAt).toISOString() : undefined,
       }));
 
-      // Reverse to show newest first
-      setAlerts(mappedData.reverse());
+      setAlerts(sortAlerts(mappedData));
       setLoading(false);
       setRefreshing(false);
     });

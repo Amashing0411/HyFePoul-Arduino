@@ -52,6 +52,7 @@ export const isValidAlert = (data: any): boolean => {
   if (typeof data.name !== 'string') return false;
   if (typeof data.timestamp !== 'number') return false;
   if (typeof data.resolved !== 'boolean') return false;
+  if (data.resolvedAt !== undefined && typeof data.resolvedAt !== 'number') return false;
   return true;
 };
 

@@ -98,10 +98,12 @@ The pump-era fields `waterHigh` and `pumpActive` were removed in the moving-hopp
 | `eventId` | string | Equals the event name |
 | `name` | string | `LOW_FEED`, `LOW_WATER`, `CHAIN_TIMEOUT`, `TRAY_TIMEOUT`, `EMERGENCY_STOP` (`DEVICE_ERROR` is allowed but not produced) |
 | `timestamp` | number | Latest occurrence |
-| `resolved` | boolean | Currently always `false` (nothing marks alerts resolved) |
+| `resolved` | boolean | `false` when raised; `true` once the device reports the condition cleared (R-23) |
+| `resolvedAt` | number (optional) | When it was marked resolved. Removed when the alert is raised again (the `PUT` replaces the record) |
 
-- **Write:** only the device, with `PUT` keyed by event name. That gives **one record per alert type**, overwritten with the latest occurrence, so repeats are idempotent.
-- **Read:** the owner. Indexed on `timestamp`.
+- **Write:** only the device. A new occurrence is a `PUT` keyed by event name, so there is **one record per alert type**, overwritten with the latest occurrence, and repeats are idempotent. Resolution is a `PATCH` of `resolved` and `resolvedAt` ([protocol §3.2.1](mega-esp32-protocol.md)).
+- **Validation:** `eventId` and `name` must equal the key; `eventId`, `name`, `timestamp` and `resolved` are required, so a partial record cannot be created; no other fields.
+- **Read:** the owner, and the device (it checks an alert is still active before resolving it). Indexed on `timestamp`.
 - The app lists these in the Notifications tab and raises a local phone notification while it is running, when a timestamp is newer than the last one seen ([`docs/notifications.md`](notifications.md)).
 - The `RTDBAlertType` union in the app also lists `DEVICE_OFFLINE`, which nothing produces. Offline status comes from heartbeat age (§4).
 

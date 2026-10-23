@@ -85,6 +85,9 @@ describe('rtdbService - validation functions', () => {
     const alert: RTDBAlert = { eventId: 'evt1', name: 'LOW_FEED', timestamp: 12345, resolved: false };
     expect(isValidAlert(alert)).toBe(true);
     expect(isValidAlert({ name: 'LOW_FEED' })).toBe(false);
+    // R-23: resolvedAt is optional but must be a number when present.
+    expect(isValidAlert({ ...alert, resolved: true, resolvedAt: 12400 })).toBe(true);
+    expect(isValidAlert({ ...alert, resolved: true, resolvedAt: 'later' })).toBe(false);
   });
 });
 

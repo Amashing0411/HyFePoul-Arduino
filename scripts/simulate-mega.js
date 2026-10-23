@@ -165,7 +165,7 @@ const logEventToSD = (name) => outputLog.push(`SD:${name}`);
 const triggerAlarm = () => { buzzerCount++; outputLog.push("BUZZER"); };
 
 // --- Alert queue (Config.ino / ESP32Communication.ino) ---
-const ALERT_QUEUE_SIZE = 4;
+const ALERT_QUEUE_SIZE = 8;
 let alertQueue = [];
 
 const queueAlertEvent = (eventName) => {
@@ -197,6 +197,7 @@ const updateFeedLevel = () => {
       triggerAlarm();
     }
   } else if (currentHopperLevelPercent >= LOW_FEED_CLEAR_PERCENT) {
+    if (lowFeedAlertSent) queueAlertEvent("LOW_FEED_CLEARED");
     lowFeedAlertSent = false;
   }
 };
@@ -211,8 +212,16 @@ const checkLowWaterAlert = () => {
       triggerAlarm();
     }
   } else {
+    if (lowWaterAlertSent) queueAlertEvent("LOW_WATER_CLEARED");
     lowWaterAlertSent = false;
   }
+};
+
+// Mirrors queueBootClears() in Config.ino.
+const queueBootClears = () => {
+  if (!lowFeedAlertSent && currentHopperLevelPercent >= LOW_FEED_CLEAR_PERCENT) queueAlertEvent("LOW_FEED_CLEARED");
+  if (!waterLow) queueAlertEvent("LOW_WATER_CLEARED");
+  queueAlertEvent("EMERGENCY_STOP_RELEASED");
 };
 
 const updateHydration = () => {
@@ -1192,9 +1201,9 @@ runTest("27. alerts raised in the same loop are delivered in order", () => {
 
 runTest("28. full alert queue drops the oldest entry", () => {
   alertQueue = [];
-  ["A", "B", "C", "D", "E"].forEach(queueAlertEvent);
+  ["A", "B", "C", "D", "E", "F", "G", "H", "I"].forEach(queueAlertEvent);
   assertLogContains("DROPPED:A");
-  if (alertQueue.join(",") !== "B,C,D,E") throw new Error("Queue contents: " + alertQueue.join(","));
+  if (alertQueue.join(",") !== "B,C,D,E,F,G,H,I") throw new Error("Queue contents: " + alertQueue.join(","));
   alertQueue = [];
 });
 
@@ -1345,6 +1354,65 @@ runTest("37. Nextion b3 latches the stop (stopping a running cycle); b4 resets o
   feedNextionBytes(touch(4, 12));
   if (emergencyStopActive) throw new Error("Touches on other pages must be ignored");
   resetMachine();
+});
+
+// ---------- Alert resolution (R-23) ----------
+
+runTest("38. hopper refilled above 25%: LOW_FEED_CLEARED once; not sent if no alert was raised", () => {
+  resetMachine();
+  currentHopperLevelPercent = 15; tick();
+  assertLogContains("QUEUED:LOW_FEED");
+  currentHopperLevelPercent = 22; runFor(500);   // inside the hysteresis band
+  assertLogNotContains("QUEUED:LOW_FEED_CLEARED");
+  currentHopperLevelPercent = 80; runFor(1000);
+  if (outputLog.filter(l => l === "QUEUED:LOW_FEED_CLEARED").length !== 1) throw new Error("Expected one LOW_FEED_CLEARED");
+  outputLog = [];
+  currentHopperLevelPercent = 90; runFor(1000);
+  assertLogNotContains("QUEUED:LOW_FEED_CLEARED");
+});
+
+runTest("39. reservoir refilled: LOW_WATER_CLEARED once after the debounce", () => {
+  resetMachine();
+  waterLow = false; waterLowCandidate = false; lowWaterAlertSent = false;
+  floatSwitchLow = true; runFor(3000);
+  assertLogContains("QUEUED:LOW_WATER");
+  floatSwitchLow = false; runFor(1000);
+  assertLogNotContains("QUEUED:LOW_WATER_CLEARED"); // still debouncing
+  runFor(2000);
+  if (outputLog.filter(l => l === "QUEUED:LOW_WATER_CLEARED").length !== 1) throw new Error("Expected one LOW_WATER_CLEARED");
+});
+
+runTest("40. E-stop reset sends EMERGENCY_STOP_RELEASED; a full cycle sends FEEDING_COMPLETED", () => {
+  resetMachine();
+  pins.EMERGENCY_STOP = 0; tick();
+  pins.EMERGENCY_STOP = 1; tick();
+  processRemoteCommand("CMD|ID:r23a|ACTION:ESTOP_RELEASE");
+  assertLogContains("QUEUED:EMERGENCY_STOP_RELEASED");
+  processRemoteCommand("CMD|ID:r23b|ACTION:MANUAL_FEED|TARGET:10");
+  runUntil(() => !feedingActive);
+  assertLogContains("QUEUED:FEEDING_COMPLETED");
+});
+
+runTest("41. boot clears: report conditions that are fine; SYSTEM_START is never dropped", () => {
+  resetMachine();
+  alertQueue = [];
+  waterLow = false; lowWaterAlertSent = false; lowFeedAlertSent = false;
+  currentHopperLevelPercent = 70;
+  queueAlertEvent("SYSTEM_START");
+  queueBootClears();
+  if (alertQueue.join(",") !== "SYSTEM_START,LOW_FEED_CLEARED,LOW_WATER_CLEARED,EMERGENCY_STOP_RELEASED") {
+    throw new Error("Boot queue: " + alertQueue.join(","));
+  }
+  // Low hopper and low water at boot: their alerts instead of clears.
+  alertQueue = []; outputLog = [];
+  currentHopperLevelPercent = 10; lowFeedAlertSent = false; updateFeedLevel();
+  waterLow = true; lowWaterAlertSent = false; checkLowWaterAlert();
+  queueAlertEvent("SYSTEM_START");
+  queueBootClears();
+  assertLogNotContains("QUEUED:LOW_FEED_CLEARED");
+  assertLogNotContains("QUEUED:LOW_WATER_CLEARED");
+  if (!alertQueue.includes("SYSTEM_START")) throw new Error("SYSTEM_START dropped from the boot burst");
+  waterLow = false; lowWaterAlertSent = false; alertQueue = [];
 });
 
 console.log(`ALL ${passed} SIMULATION TESTS PASSED.`);
