@@ -145,6 +145,26 @@
         }
       }
     },
+    "dailySummary": {
+      "$deviceId": {
+        ".read": "auth != null && (root.child('devices').child($deviceId).child('ownerId').val() === auth.uid || root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid)",
+        "$date": {
+          ".write": "auth != null && root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid",
+          ".validate": "$date.matches(/^20[0-9][0-9]-[01][0-9]-[0-3][0-9]$/) && newData.hasChildren(['date', 'feedGrams', 'cyclesCompleted', 'cyclesIncomplete', 'trayTimeouts', 'chainFaults', 'lowWaterAlerts', 'lowFeedAlerts', 'emergencyStops', 'updatedAt'])",
+          "date": { ".validate": "newData.isString() && newData.val() === $date" },
+          "feedGrams": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "cyclesCompleted": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "cyclesIncomplete": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "trayTimeouts": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "chainFaults": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "lowWaterAlerts": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "lowFeedAlerts": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "emergencyStops": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "updatedAt": { ".validate": "newData.isNumber()" },
+          "$other": { ".validate": false }
+        }
+      }
+    },
     "alerts": {
       "$deviceId": {
         ".indexOn": ["timestamp"],

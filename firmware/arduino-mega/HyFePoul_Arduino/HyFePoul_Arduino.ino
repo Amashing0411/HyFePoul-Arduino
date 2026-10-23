@@ -47,6 +47,9 @@ void loop() {
   // Save periodic system data/events.
   handleSDLogging();
 
+  // Day totals: date change and the 30-minute SUMMARY resend.
+  handleDailyStats();
+
   // Non-blocking alarm handling.
   updateBuzzer();
 

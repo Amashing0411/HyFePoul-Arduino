@@ -17,6 +17,7 @@ void updateFeedLevel() {
   if (currentHopperLevelPercent <= LOW_FEED_THRESHOLD_PERCENT) {
     if (!lowFeedAlertSent) {
       lowFeedAlertSent = true;
+      statLowFeed();
       queueAlertEvent("LOW_FEED");
       triggerAlarm();
       logEventToSD("LOW_FEED");

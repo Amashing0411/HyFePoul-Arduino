@@ -25,6 +25,24 @@ enum ChainDirection {
   CHAIN_REVERSE
 };
 
+// One day of totals (DailyStats.ino).
+struct DailyStats {
+  uint16_t magic;
+  uint8_t version;
+  uint16_t year;  // 0 = date not known yet (clock not set)
+  uint8_t month;
+  uint8_t day;
+  float feedGrams;
+  uint16_t cyclesCompleted;
+  uint16_t cyclesIncomplete;
+  uint16_t trayTimeouts;
+  uint16_t chainFaults;
+  uint16_t lowWater;
+  uint16_t lowFeed;
+  uint16_t estops;
+  uint8_t checksum;
+};
+
 void enterCycleStep(CycleStep step);
 bool setChainDirection(ChainDirection direction);
 const char* getCycleStepName(CycleStep step);

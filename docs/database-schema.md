@@ -15,7 +15,8 @@ All timestamps are **UTC milliseconds since the epoch**. The ESP32 sets them fro
 ├── devices/{deviceId}                  identity, ownership, heartbeat, current state
 │   ├── ownerId, deviceAuthUid, status, lastHeartbeat
 │   └── state/                          latest system data
-├── systemData/{deviceId}/{pushId}      history of system data (append-only)
+├── systemData/{deviceId}/{pushId}      history of system data (append-only, every 5 min)
+├── dailySummary/{deviceId}/{date}      per-day totals counted by the Mega (R-22)
 ├── alerts/{deviceId}/{EVENT_NAME}      latest occurrence of each alert type
 ├── commands/{deviceId}/{commandId}     remote commands and their lifecycle
 └── schedules/{deviceId}/{scheduleId}   feeding schedules (source of truth when online)
@@ -89,9 +90,9 @@ The pump-era fields `waterHigh` and `pumpActive` were removed in the moving-hopp
 - **Write:** only the device (`deviceAuthUid`).
 - **Read:** `state` by the owner or the device; `systemData` by the owner only.
 - `systemData` is indexed on `timestamp`. The app reads the latest 50 records with `orderByChild("timestamp").limitToLast(50)` and skips malformed ones.
-- **Cadence:** the Mega sends `DATA` every 10 s, and the ESP32 writes `state` (`PUT`) and then appends to `systemData` (`POST`).
+- **Cadence:** the Mega sends `DATA` every 10 s and the ESP32 writes `state` (`PUT`) each time. It appends to `systemData` (`POST`) only every 5 minutes, plus whenever `feedingActive` changes, so the start and end of each feed cycle are kept (R-22).
 
-**Growth estimate, from the transmission design and not from measurement:** one `systemData` record is roughly 350 bytes with the tray fields, so 8,640 records a day is about **3 MB/day, or around 90 MB/month**, with nothing deleting old records. On the Spark plan's database storage this lasts many months, but it **grows without bound**. A retention policy (for example, the ESP32 appending only every N-th sample, or periodic cleanup by an admin script) should be decided before long-term deployment. These figures should be checked against real usage in the Firebase console.
+**Growth estimate, from the transmission design and not from measurement:** one `systemData` record is roughly 350 bytes with the tray fields. At one record per 5 minutes plus about 6 per day for feed cycles, that is about 294 records, roughly **0.1 MB/day or 3 MB/month** (it was about 3 MB/day at one record per 10 s). Nothing deletes old records, but at this rate the Spark plan's 1 GB database lasts decades. Every 30-second reading is still on the device's SD card, and the per-day totals are in `dailySummary`. These figures should be checked against real usage in the Firebase console.
 
 ## 6. `alerts/{deviceId}/{EVENT_NAME}`
 
@@ -169,6 +170,25 @@ What the Mega accepted for each slot, written by the device after the Mega's `CM
 - **Read:** the owner or the device.
 - The app shows a schedule as **On device** when these values equal the saved schedule, and **Waiting for device** otherwise (an edit not yet accepted, or the device offline).
 
+## 8b. `dailySummary/{deviceId}/{YYYY-MM-DD}` (R-22)
+
+One record per local day (UTC+8), counted on the Mega (`DailyStats.ino`) and sent as `SUMMARY` lines ([protocol §3.4](mega-esp32-protocol.md)). The ESP32 replaces the day with `PUT` after each feed cycle, at the day change and every 30 minutes, and re-sends yesterday, so the final numbers arrive even if it was offline at midnight.
+
+| Field | Type | Validated |
+|-------|------|-----------|
+| `date` | string | equals the key |
+| `feedGrams` | number | ≥ 0 (whole grams, sum of the trays' load cells) |
+| `cyclesCompleted`, `cyclesIncomplete` | number | ≥ 0 |
+| `trayTimeouts`, `chainFaults` | number | ≥ 0 |
+| `lowWaterAlerts`, `lowFeedAlerts`, `emergencyStops` | number | ≥ 0 (episodes) |
+| `updatedAt` | number | yes (device UTC ms) |
+| any other child | | rejected |
+
+- **Key:** `YYYY-MM-DD`, validated by the rules.
+- **Write:** only the device. **Read:** the owner or the device.
+- The app's History → Monthly view reads one month with `orderByKey().startAt("YYYY-MM-01").endAt("YYYY-MM-31")`.
+- **Size:** about 300 bytes a day, roughly 110 KB a year.
+
 ## 9. Not used
 
 - **Cloud Firestore and Cloud Functions** (`firestore.rules`, `backend/functions`): this was the earlier backend design (alerts in Firestore, FCM token registration). It is not deployed and would require the Blaze plan. The app no longer calls it (see `docs/notifications.md`). The functions code is kept for reference.
@@ -176,7 +196,7 @@ What the Mega accepted for each slot, written by the device after the Mega's `CM
 
 ## 10. Rules tests
 
-[`backend/functions/scripts/test-rtdb-rules.js`](../backend/functions/scripts/test-rtdb-rules.js) covers 61 cases against the emulator: ownership and claiming, device identity, data validation, command creation and lifecycle, schedules, the owned-device query, and stale-command failure. Run it with:
+[`backend/functions/scripts/test-rtdb-rules.js`](../backend/functions/scripts/test-rtdb-rules.js) covers 88 cases against the emulator: ownership and claiming, device identity, data validation, command creation and lifecycle, schedules and their device confirmation, alerts and their resolution, Mega link health, daily summaries, the owned-device query, and stale-command failure. Run it with:
 
 ```bash
 firebase emulators:exec --only auth,database --project hyfepoul-dev "node backend/functions/scripts/test-rtdb-rules.js"
