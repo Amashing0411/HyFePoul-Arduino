@@ -68,6 +68,6 @@ R-16 is resolved: the load cells weigh feed **in the trays**. This means dispens
 ## 6. Open items (need answers before or while building)
 
 - **O-1, stopping at each tray.** The hopper must stop *in front of* each tray before dispensing. Without a position sensor per tray, the plan is **timed travel**: calibrated forward run times in `Config.ino`, tuned on the bench. Tray sensors could replace this later.
-- **O-2:** the block diagram needs updating to 5 load cells / 5 HX711s and 2 limit switches.
+- **O-2 (done):** the block diagram is updated to 5 load cells / 5 HX711s, 2 limit switches, the chain motor on two relays and no pump: [`diagrams/hyfepoul-block-diagram.png`](diagrams/hyfepoul-block-diagram.png) (SVG next to it; regenerate with `python docs/diagrams/make_block_diagram.py`).
 - **O-3:** what happens if the hopper runs empty mid-cycle (ultrasonic)? Proposed: stop dispensing, finish the return home, and raise `LOW_FEED`.
 - **O-4:** the per-tray dispense timeout (30 s) and the chain travel timeouts need bench values.

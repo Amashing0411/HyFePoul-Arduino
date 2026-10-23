@@ -40,6 +40,8 @@ HyFePoul automates feeding and watering for a small poultry setup. An Arduino Me
 | Nextion 7" touchscreen | Local display |
 | Emergency stop button, buzzer | Safety and alarms |
 
+Block diagram: [`docs/diagrams/hyfepoul-block-diagram.png`](docs/diagrams/hyfepoul-block-diagram.png).
+
 Pin assignments are in [`firmware/arduino-mega/HyFePoul_Arduino/Config.ino`](firmware/arduino-mega/HyFePoul_Arduino/Config.ino). Confirm them against the real wiring before powering anything.
 
 ## Features

@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1330" height="1990" viewBox="0 0 1330 1990">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<g font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#111" text-anchor="middle">
+<rect x="40" y="20" width="188" height="188" fill="#fff" stroke="#111" stroke-width="3"/>
+<text x="134.0" y="120.0">220V AC Source</text>
+<rect x="300" y="20" width="188" height="188" fill="#fff" stroke="#111" stroke-width="3"/>
+<text x="394.0" y="109.0">Solar Charger</text>
+<text x="394.0" y="131.0">Controller</text>
+<rect x="560" y="20" width="188" height="188" fill="#fff" stroke="#111" stroke-width="3"/>
+<text x="654.0" y="120.0">12V 12Ah Battery</text>
+<rect x="560" y="280" width="188" height="188" fill="#fff" stroke="#111" stroke-width="3"/>
+<text x="654.0" y="380.0">Main Power Switch</text>
+<rect x="390" y="640" width="188" height="188" fill="#fff" stroke="#111" stroke-width="3"/>
+<text x="484.0" y="729.0">DC - DC Buck</text>
+<text x="484.0" y="751.0">Converter</text>
+<rect x="710" y="640" width="188" height="188" fill="#fff" stroke="#111" stroke-width="3"/>
+<text x="804.0" y="729.0">DC - DC Buck</text>
+<text x="804.0" y="751.0">Converter</text>
+<rect x="4" y="640" width="188" height="188" fill="#fff" stroke="#111" stroke-width="3"/>
+<text x="98.0" y="729.0">5 Load Cells</text>
+<text x="98.0" y="751.0">(one under each tray)</text>
+<rect x="4" y="905" width="188" height="188" fill="#fff" stroke="#111" stroke-width="3"/>
+<text x="98.0" y="994.0">5 × HX711</text>
+<text x="98.0" y="1016.0">(shared SCK)</text>
+<rect x="4" y="1115" width="188" height="160" fill="#fff" stroke="#111" stroke-width="3"/>
+<text x="98.0" y="1190.0">Float Switch</text>
+<text x="98.0" y="1212.0">(water reservoir)</text>
+<rect x="4" y="1295" width="188" height="145" fill="#fff" stroke="#111" stroke-width="3"/>
+<text x="98.0" y="1373.5">Home Limit Switch</text>
+<rect x="4" y="1460" width="188" height="145" fill="#fff" stroke="#111" stroke-width="3"/>
+<text x="98.0" y="1538.5">End Limit Switch</text>
+<rect x="4" y="1650" width="188" height="170" fill="#fff" stroke="#111" stroke-width="3"/>
+<text x="98.0" y="1741.0">Emergency Stop</text>
+<rect x="250" y="1790" width="188" height="175" fill="#fff" stroke="#111" stroke-width="3"/>
+<text x="344.0" y="1872.5">Ultrasonic Sensor</text>
+<text x="344.0" y="1894.5">(hopper level)</text>
+<rect x="262" y="915" width="188" height="820" fill="#fff" stroke="#111" stroke-width="3"/>
+<text x="356.0" y="1320.0">Arduino Mega 2560</text>
+<text x="356.0" y="1342.0">microcontroller</text>
+<rect x="500" y="915" width="188" height="190" fill="#fff" stroke="#111" stroke-width="3"/>
+<text x="594.0" y="1005.0">ESP32 WiFi Module</text>
+<text x="594.0" y="1027.0">(to Firebase)</text>
+<rect x="710" y="915" width="188" height="190" fill="#fff" stroke="#111" stroke-width="3"/>
+<text x="804.0" y="1016.0">Nextion 7" Display</text>
+<rect x="500" y="1275" width="188" height="160" fill="#fff" stroke="#111" stroke-width="3"/>
+<text x="594.0" y="1361.0">SD Card Module</text>
+<rect x="500" y="1455" width="188" height="150" fill="#fff" stroke="#111" stroke-width="3"/>
+<text x="594.0" y="1536.0">RTC Module</text>
+<rect x="500" y="1640" width="188" height="150" fill="#fff" stroke="#111" stroke-width="3"/>
+<text x="594.0" y="1721.0">Buzzer</text>
+<rect x="830" y="1140" width="188" height="188" fill="#fff" stroke="#111" stroke-width="3"/>
+<text x="924.0" y="1229.0">6 - Channel Relay</text>
+<text x="924.0" y="1251.0">Module</text>
+<rect x="1120" y="1000" width="205" height="188" fill="#fff" stroke="#111" stroke-width="3"/>
+<text x="1222.5" y="1078.0">Chain Motor</text>
+<text x="1222.5" y="1100.0">(moves the hopper)</text>
+<text x="1222.5" y="1122.0">relays CH1 fwd / CH2 rev</text>
+<rect x="1120" y="1290" width="205" height="188" fill="#fff" stroke="#111" stroke-width="3"/>
+<text x="1222.5" y="1379.0">Dispenser Motor</text>
+<text x="1222.5" y="1401.0">relay CH3</text>
+<polyline points="228,114 300,114" fill="none" stroke="#111" stroke-width="3"/>
+<polygon points="300.0,114.0 287.0,121.2 287.0,106.8" fill="#111"/>
+<polyline points="488,114 560,114" fill="none" stroke="#111" stroke-width="3"/>
+<polygon points="560.0,114.0 547.0,121.2 547.0,106.8" fill="#111"/>
+<polygon points="488.0,114.0 501.0,106.8 501.0,121.2" fill="#111"/>
+<polyline points="654,208 654,280" fill="none" stroke="#111" stroke-width="3"/>
+<polygon points="654.0,280.0 646.9,267.0 661.1,267.0" fill="#111"/>
+<polyline points="654,468 654,550 484,550 484,640" fill="none" stroke="#111" stroke-width="3"/>
+<polygon points="484.0,640.0 476.9,627.0 491.1,627.0" fill="#111"/>
+<polyline points="654,550 804,550 804,640" fill="none" stroke="#111" stroke-width="3"/>
+<polygon points="804.0,640.0 796.9,627.0 811.1,627.0" fill="#111"/>
+<polyline points="748,374 924,374 924,1140" fill="none" stroke="#111" stroke-width="3"/>
+<polygon points="924.0,1140.0 916.9,1127.0 931.1,1127.0" fill="#111"/>
+<polyline points="484,828 484,870 356,870 356,915" fill="none" stroke="#111" stroke-width="3"/>
+<polygon points="356.0,915.0 348.9,902.0 363.1,902.0" fill="#111"/>
+<polyline points="804,828 804,915" fill="none" stroke="#111" stroke-width="3"/>
+<polygon points="804.0,915.0 796.9,902.0 811.1,902.0" fill="#111"/>
+<polyline points="98,828 98,905" fill="none" stroke="#111" stroke-width="3"/>
+<polygon points="98.0,905.0 90.8,892.0 105.2,892.0" fill="#111"/>
+<polyline points="192,999 262,999" fill="none" stroke="#111" stroke-width="3"/>
+<polygon points="262.0,999.0 249.0,1006.1 249.0,991.9" fill="#111"/>
+<polyline points="192,1195 262,1195" fill="none" stroke="#111" stroke-width="3"/>
+<polygon points="262.0,1195.0 249.0,1202.2 249.0,1187.8" fill="#111"/>
+<polyline points="192,1367 262,1367" fill="none" stroke="#111" stroke-width="3"/>
+<polygon points="262.0,1367.0 249.0,1374.2 249.0,1359.8" fill="#111"/>
+<polyline points="192,1532 262,1532" fill="none" stroke="#111" stroke-width="3"/>
+<polygon points="262.0,1532.0 249.0,1539.2 249.0,1524.8" fill="#111"/>
+<polyline points="192,1700 262,1700" fill="none" stroke="#111" stroke-width="3"/>
+<polygon points="262.0,1700.0 249.0,1707.2 249.0,1692.8" fill="#111"/>
+<polyline points="344,1790 344,1735" fill="none" stroke="#111" stroke-width="3"/>
+<polygon points="344.0,1735.0 351.1,1748.0 336.9,1748.0" fill="#111"/>
+<polyline points="450,1010 500,1010" fill="none" stroke="#111" stroke-width="3"/>
+<polygon points="500.0,1010.0 487.0,1017.1 487.0,1002.9" fill="#111"/>
+<polygon points="450.0,1010.0 463.0,1002.9 463.0,1017.1" fill="#111"/>
+<polyline points="450,1170 804,1170 804,1105" fill="none" stroke="#111" stroke-width="3"/>
+<polygon points="804.0,1105.0 811.1,1118.0 796.9,1118.0" fill="#111"/>
+<polygon points="450.0,1170.0 463.0,1162.8 463.0,1177.2" fill="#111"/>
+<polyline points="450,1355 500,1355" fill="none" stroke="#111" stroke-width="3"/>
+<polygon points="500.0,1355.0 487.0,1362.2 487.0,1347.8" fill="#111"/>
+<polygon points="450.0,1355.0 463.0,1347.8 463.0,1362.2" fill="#111"/>
+<polyline points="450,1530 500,1530" fill="none" stroke="#111" stroke-width="3"/>
+<polygon points="500.0,1530.0 487.0,1537.2 487.0,1522.8" fill="#111"/>
+<polygon points="450.0,1530.0 463.0,1522.8 463.0,1537.2" fill="#111"/>
+<polyline points="450,1715 500,1715" fill="none" stroke="#111" stroke-width="3"/>
+<polygon points="500.0,1715.0 487.0,1722.2 487.0,1707.8" fill="#111"/>
+<polyline points="450,1234 830,1234" fill="none" stroke="#111" stroke-width="3"/>
+<polygon points="830.0,1234.0 817.0,1241.2 817.0,1226.8" fill="#111"/>
+<polyline points="1018,1234 1068,1234 1068,1094 1120,1094" fill="none" stroke="#111" stroke-width="3"/>
+<polygon points="1120.0,1094.0 1107.0,1101.2 1107.0,1086.8" fill="#111"/>
+<polyline points="1068,1234 1068,1384 1120,1384" fill="none" stroke="#111" stroke-width="3"/>
+<polygon points="1120.0,1384.0 1107.0,1391.2 1107.0,1376.8" fill="#111"/>
+<text x="720" y="1880" text-anchor="start" font-style="italic" font-size="16" fill="#333">Water: gravity-fed reservoir on top of the drinker (no pump);</text>
+<text x="720" y="1902" text-anchor="start" font-style="italic" font-size="16" fill="#333">the Mega only reads its float switch.</text>
+</g></svg>
