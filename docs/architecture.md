@@ -13,6 +13,8 @@ The Mega and the app never talk directly; everything goes through Firebase. The 
 
 ## Components
 
+Hardware block diagram (moving-hopper revision): [`diagrams/hyfepoul-block-diagram.png`](diagrams/hyfepoul-block-diagram.png) (editable SVG next to it).
+
 ### 1. Arduino Mega 2560 (primary controller and safety authority)
 `firmware/arduino-mega/HyFePoul_Arduino/`
 - Reads the 5 tray load cells (HX711, shared SCK), the ultrasonic hopper sensor, the home/end limit switches, the reservoir float switch and the E-stop input.
