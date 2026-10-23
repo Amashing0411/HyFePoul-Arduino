@@ -300,6 +300,7 @@ const enterCycleStep = (step) => {
 const startFeedCycle = (targetGrams) => {
   if (emergencyStopActive) return "ESTOP_ACTIVE";
   if (feedingActive) return "FEEDING_ACTIVE";
+  if (benchMove !== "IDLE") return "BENCH_ACTIVE";
   if (currentHopperLevelPercent <= HOPPER_EMPTY_PERCENT) return "HOPPER_LOW";
 
   activeFeedTargetGrams = targetGrams;
@@ -525,11 +526,84 @@ const resetEmergencyStop = () => {
 };
 
 // One main loop: same order as loop() in HyFePoul_Arduino.ino.
+// --- SerialConsole.ino (bench commissioning moves) ---
+let benchMove = "IDLE";
+let benchDir = "STOPPED";
+let benchMs = 0;
+let benchStart = 0;
+let benchStarted = false;
+const benchLog = (m) => outputLog.push(`BENCH:${m}`);
+
+const benchBlocked = () => {
+  if (emergencyStopActive) return "ESTOP";
+  if (feedingActive) return "FEEDING";
+  if (benchMove !== "IDLE") return "BUSY";
+  return null;
+};
+
+const benchStop = (why) => {
+  if (benchMove === "DISPENSE") pins.DISPENSER_RELAY = 0;
+  else if (benchMove !== "IDLE") stopChain();
+  if (benchMove !== "IDLE") benchLog(`ended:${why}`);
+  benchMove = "IDLE";
+};
+
+// Mirrors handleBenchCommand() for the motor commands; returns a refusal or null.
+const benchCommand = (line) => {
+  const [cmd, a, b] = line.trim().toUpperCase().split(/\s+/);
+  if (cmd === "STOP") { benchStop("STOP"); return null; }
+  if (cmd === "FEED") {
+    if (benchMove !== "IDLE") return "BUSY";
+    return startFeedCycle(parseFloat(a));
+  }
+  const blocked = benchBlocked();
+  if (blocked) { benchLog(`refused:${blocked}`); return blocked; }
+  if (cmd === "JOG") {
+    const ms = parseInt(b, 10);
+    if (!(a === "F" || a === "R") || !(ms >= 100 && ms <= 5000)) return "USAGE";
+    benchDir = a === "F" ? "FORWARD" : "REVERSE";
+    benchMs = ms; benchStarted = false; benchStart = simMillis; benchMove = "JOG";
+  } else if (cmd === "HOME") {
+    if (isHomeSwitchPressed()) return "ALREADY_HOME";
+    benchDir = "REVERSE"; benchStarted = false; benchStart = simMillis; benchMove = "HOME";
+  } else if (cmd === "DISP") {
+    const ms = parseInt(a, 10);
+    if (!(ms >= 100 && ms <= 5000)) return "USAGE";
+    benchMs = ms; benchStart = simMillis; benchMove = "DISPENSE"; pins.DISPENSER_RELAY = 1;
+  }
+  return null;
+};
+
+// Mirrors updateBench().
+const updateBench = () => {
+  if (benchMove === "IDLE") return;
+  if (emergencyStopActive) { benchStop("ESTOP"); return; }
+  if (benchMove === "DISPENSE") {
+    if (simMillis - benchStart >= benchMs) benchStop("time");
+    return;
+  }
+  if (!benchStarted) {
+    if (setChainDirection(benchDir)) benchStarted = true;
+    else if (simMillis - benchStart > 2000) benchStop("could_not_start");
+    return;
+  }
+  const ran = simMillis - chainRunStartMillis;
+  if (benchMove === "HOME") {
+    if (isHomeSwitchPressed()) { stopChain(); benchLog(`home:${ran}`); benchMove = "IDLE"; }
+    else if (chainDirection === "STOPPED") { benchLog("home:stopped"); benchMove = "IDLE"; }
+    else if (ran >= CHAIN_HOME_TIMEOUT_MS) benchStop("home_timeout");
+    return;
+  }
+  if (chainDirection === "STOPPED") { benchLog(`limit:${ran}`); benchMove = "IDLE"; return; }
+  if (ran >= benchMs) { stopChain(); benchLog(`jog:${ran}`); benchMove = "IDLE"; }
+};
+
 const tick = () => {
   handleSafety();
   updateFeedLevel();
   updateHydration();
   handleFeeding();
+  updateBench();
   stepHardware();
   simMillis += LOOP_MS;
 };
@@ -1413,6 +1487,71 @@ runTest("41. boot clears: report conditions that are fine; SYSTEM_START is never
   assertLogNotContains("QUEUED:LOW_WATER_CLEARED");
   if (!alertQueue.includes("SYSTEM_START")) throw new Error("SYSTEM_START dropped from the boot burst");
   waterLow = false; lowWaterAlertSent = false; alertQueue = [];
+});
+
+// ---------- Bench console (commissioning) ----------
+
+runTest("42. bench JOG F runs the chain for the requested time, then stops", () => {
+  resetMachine();
+  if (benchCommand("JOG F 3000") !== null) throw new Error("JOG refused");
+  runFor(4000);
+  assertLogContains("BENCH:jog:3000");
+  if (hw.chainPos !== trayPosition(1)) throw new Error(`Chain at ${hw.chainPos}, expected tray 1 at ${trayPosition(1)}`);
+  assertMotorsOff();
+  assertSafeRelays();
+});
+
+runTest("43. bench HOME reverses to the home switch and reports the time", () => {
+  resetMachine();
+  hw.chainPos = 7000;
+  if (benchCommand("HOME") !== null) throw new Error("HOME refused");
+  runFor(9000);
+  if (!isHomeSwitchPressed()) throw new Error("Not home");
+  assertLogContains("BENCH:home:");
+  assertMotorsOff();
+});
+
+runTest("44. bench JOG into the end switch is stopped by the limit, not the timer", () => {
+  resetMachine();
+  hw.chainPos = END_POSITION - 1000;
+  benchCommand("JOG F 5000");
+  runFor(6000);
+  assertLogContains("BENCH:limit:");
+  if (!isEndSwitchPressed()) throw new Error("Should rest on the end switch");
+  assertMotorsOff();
+});
+
+runTest("45. bench moves are refused while the E-stop is latched or a cycle runs, and stop on E-stop", () => {
+  resetMachine();
+  pins.EMERGENCY_STOP = 0; tick();
+  if (benchCommand("JOG F 1000") !== "ESTOP") throw new Error("JOG allowed with E-stop latched");
+  pins.EMERGENCY_STOP = 1; tick();
+  resetEmergencyStop();
+  processRemoteCommand("CMD|ID:b1|ACTION:MANUAL_FEED|TARGET:20");
+  if (benchCommand("DISP 1000") !== "FEEDING") throw new Error("DISP allowed during a cycle");
+  stopFeedCycle("TEST");
+  activeRemoteCommandId = "";
+  benchCommand("JOG F 5000");
+  runFor(1000);
+  pins.EMERGENCY_STOP = 0; tick();
+  assertMotorsOff();
+  if (benchMove !== "IDLE") throw new Error("Bench move not cancelled by E-stop");
+  pins.EMERGENCY_STOP = 1; tick(); resetEmergencyStop();
+});
+
+runTest("46. a feed cycle cannot start during a bench move; DISP times out; STOP works", () => {
+  resetMachine();
+  benchCommand("DISP 2000");
+  if (pins.DISPENSER_RELAY !== 1) throw new Error("Dispenser not on");
+  processRemoteCommand("CMD|ID:b2|ACTION:MANUAL_FEED|TARGET:20");
+  assertLogContains("CMD_ACK|ID:b2|STATUS:REJECTED|REASON:BENCH_ACTIVE");
+  runFor(2200);
+  if (pins.DISPENSER_RELAY !== 0) throw new Error("Dispenser not stopped after its time");
+  benchCommand("JOG F 5000");
+  runFor(500);
+  benchCommand("STOP");
+  assertMotorsOff();
+  if (benchCommand("JOG F 50") !== "USAGE") throw new Error("Out-of-range duration accepted");
 });
 
 console.log(`ALL ${passed} SIMULATION TESTS PASSED.`);

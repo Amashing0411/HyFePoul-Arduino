@@ -21,6 +21,7 @@ Arduino Mega 2560 (primary controller)
 - `SDLogging.ino` — CSV data logging
 - `Safety.ino` — emergency stop (latched until reset) and buzzer
 - `ScheduleStorage.ino` — feeding schedules saved to and loaded from EEPROM (survive power loss)
+- `SerialConsole.ino` — bench commissioning commands on the USB serial monitor (`HELP`): status, load-cell tare/calibration, chain jog/home, dispenser test, local feed. See `docs/hardware-commissioning-procedure.md` §7a
 
 ## Libraries required
 

@@ -35,6 +35,9 @@ void loop() {
   // Run local automation.
   handleFeeding();
 
+  // Commissioning moves started from the USB serial monitor.
+  updateBench();
+
   // Communicate with ESP32.
   handleESP32Communication();
 
