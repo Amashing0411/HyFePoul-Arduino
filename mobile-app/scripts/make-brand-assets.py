@@ -23,6 +23,7 @@ Outputs (mobile-app/assets/):
   android-icon-foreground.png    adaptive icon foreground (artwork,
                                  inside the 66/108 safe zone)
   android-icon-monochrome.png    themed-icon silhouette (Android 13+)
+  notification-icon.png          96 px white status-bar icon (chicken + arcs)
   splash-icon.png                artwork for the splash screen
   favicon.png                    48 px web icon
 
@@ -224,6 +225,24 @@ def main():
     white = Image.new("RGBA", fg.size, (255, 255, 255, 255))
     white.putalpha(Image.fromarray((solid * 255).astype(np.uint8)))
     white.save(ASSETS / "android-icon-monochrome.png")
+
+    # Notification icon (Android status bar, 24 dp): the full wordmark is
+    # unreadable that small, so use the chicken head and signal arcs only.
+    # The crop is a fraction of the artwork bounds (the head sits top right,
+    # above the "oul" letters).
+    bx0, by0, bx1, by1 = white.getchannel("A").getbbox()
+    bw, bh = bx1 - bx0, by1 - by0
+    head = white.crop((
+        bx0 + round(bw * 0.54), by0 - 6,
+        bx0 + round(bw * 0.955), by0 + round(bh * 0.369),
+    ))
+    head = head.crop(head.getchannel("A").getbbox())
+    inner = 88  # 96 px with Android's 2 dp padding at 24 dp
+    k = inner / max(head.size)
+    head = head.resize((round(head.width * k), round(head.height * k)), Image.LANCZOS)
+    notif = Image.new("RGBA", (96, 96), (255, 255, 255, 0))
+    notif.alpha_composite(head, ((96 - head.width) // 2, (96 - head.height) // 2))
+    notif.save(ASSETS / "notification-icon.png")
 
     # Square icon: the artwork a little larger than the adaptive one, on
     # the full-bleed gradient.
