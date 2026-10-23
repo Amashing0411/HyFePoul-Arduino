@@ -241,6 +241,11 @@ const char* startFeedCycle(float targetGrams) {
     return "FEEDING_ACTIVE";
   }
 
+  // A commissioning move from the serial console owns the motors.
+  if (benchMoveActive()) {
+    return "BENCH_ACTIVE";
+  }
+
   if (currentHopperLevelPercent <= HOPPER_EMPTY_PERCENT) {
     return "HOPPER_LOW";
   }

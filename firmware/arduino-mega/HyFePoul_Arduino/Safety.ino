@@ -88,7 +88,8 @@ const char* resetEmergencyStop(const char* logEvent) {
 }
 
 // Bench-testing path: type RESET in the USB serial monitor to clear a
-// latched E-stop when no ESP32 or Nextion reset is available.
+// latched E-stop when no ESP32 or Nextion reset is available. Every other
+// line goes to the bench console (SerialConsole.ino; type HELP).
 void handleLocalConsole() {
   static String consoleBuffer = "";
 
@@ -98,7 +99,7 @@ void handleLocalConsole() {
     if (incoming == '\n') {
       consoleBuffer.trim();
 
-      if (consoleBuffer == "RESET") {
+      if (consoleBuffer.equalsIgnoreCase("RESET")) {
         const char* rejectReason =
             resetEmergencyStop("EMERGENCY_STOP_RESET_LOCAL");
 
@@ -106,6 +107,9 @@ void handleLocalConsole() {
           Serial.print(F("RESET rejected: "));
           Serial.println(rejectReason);
         }
+      } else {
+        // Commissioning commands (SerialConsole.ino).
+        handleBenchCommand(consoleBuffer);
       }
 
       consoleBuffer = "";

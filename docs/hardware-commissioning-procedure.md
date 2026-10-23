@@ -125,7 +125,38 @@ Chain motor (two relays swapping polarity):
 7. With the hopper unloaded, verify forward moves toward the end switch and reverse toward home. Swap the motor leads if not.
 8. Run toward each limit switch and confirm the switch stops the motor. Request a reversal while moving and confirm both relays are off for ≥ 300 ms before the other closes.
 9. Disconnect the end switch and run a cycle: after the last tray the chain must stop within 15 s with `CHAIN_TIMEOUT` and a beep.
-10. Tune `TRAY_TRAVEL_MS` (open item O-1) so the hopper outlet stops over each tray; record the values in the commissioning log.
+10. Tune `TRAY_TRAVEL_MS` (open item O-1) so the hopper outlet stops over each tray; record the values in the commissioning log. Use the bench console (§7a).
+
+## 7a. Bench Console (USB serial monitor)
+
+The Mega firmware has commissioning commands on the USB serial monitor (115200 baud, line ending "Newline"). Type `HELP` for the list. Motor commands are refused while the E-stop is latched, while a feed cycle runs, or while another bench move is active. They stop at once on the E-stop or `STOP`, and they go through the normal chain driver, so the relay interlock, dead time and limit switches still apply. A feed cycle (scheduled or from the app) cannot start during a bench move.
+
+| Command | Use |
+|---------|-----|
+| `STATUS` | E-stop button and latch, home/end switches, reservoir float, hopper distance and %, chain, dispenser, cycle step, tray weights |
+| `WEIGH` | All 5 trays: grams, raw counts and current factor (about 1 s) |
+| `TARE <1-5\|ALL>` | Zero a tray (empty tray on its load cell) |
+| `CAL <1-5> <grams>` | After `TARE`, with a known weight on the tray: computes and applies that tray's factor (until reboot) |
+| `FACTORS` | Prints the factors as a `Config.ino` line to paste in |
+| `JOG <F\|R> <ms>` | Runs the chain 100–5000 ms and reports how long it actually ran (or that a limit switch stopped it) |
+| `HOME` | Reverses to the home switch and reports the time (30 s timeout) |
+| `DISP <ms>` | Runs the dispenser 100–5000 ms (flow-rate check) |
+| `FEED <grams>` | Starts a full 5-tray cycle at that many grams per tray, without the app |
+| `STOP` | Ends a bench move at once |
+| `RESET` | Clears a latched E-stop (button released) |
+
+**Calibrating the tray load cells (R-11, HIT-08):**
+1. Empty all trays. `TARE ALL`.
+2. For each tray: put a known weight on it (for example 500 g), type `CAL <tray> 500`, remove the weight. `TARE <tray>` again if the empty reading drifts.
+3. `WEIGH` with known weights on several trays to check the accuracy; repeat `CAL` if needed.
+4. `FACTORS`, then paste the printed line over `LOAD_CELL_CALIBRATION_FACTORS` in `Config.ino`, rebuild and flash. Record the values in the commissioning log.
+
+**Timing the travel to each tray (R-46, O-1):**
+1. Chain unloaded first, hand on the E-stop. `HOME`.
+2. `JOG F <ms>`, starting with the current `TRAY_TRAVEL_MS[0]` (3000 ms). Check where the hopper outlet stops relative to tray 1. `HOME` and adjust until it stops over the tray.
+3. From tray 1, find the time to tray 2 the same way (each `TRAY_TRAVEL_MS` entry is measured from the previous stop), then trays 3–5.
+4. From tray 5, `JOG F 5000` and note whether the end switch is reached (`Limit switch reached after … ms`); that confirms the end timeout (15 s) is generous.
+5. Put the values in `TRAY_TRAVEL_MS`, rebuild, flash, then `FEED 20` and check the hopper stops over every tray.
 
 ## 8. Sensor Commissioning
 
