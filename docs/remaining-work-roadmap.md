@@ -56,7 +56,7 @@ Tasks are ordered by priority: **P1** safety and security, **P2** blockers for a
 
 | ID | Subsystem | Description | Why | Status | HW |
 |----|-----------|-------------|-----|--------|----|
-| R-45 | Firebase | Deploy the revised RTDB rules (`state` now requires the tray fields and rejects `waterHigh`/`pumpActive`; schedule target ≤ 1000 g per tray; alert records validated and readable by the device for R-23; `megaLinkOk` for R-24) | **Breaking:** the deployed rules still accept the old state shape, and old firmware cannot write the new rules' shape. Deploy together with flashing both boards | NOT STARTED (needs owner approval) | No |
+| R-45 | Firebase | Deploy the revised RTDB rules (`state` now requires the tray fields and rejects `waterHigh`/`pumpActive`; schedule target ≤ 1000 g per tray; alert records validated and readable by the device for R-23; `megaLinkOk` for R-24; `state.timeSource` for R-44) | **Breaking:** the deployed rules still accept the old state shape, and old firmware cannot write the new rules' shape. Deploy together with flashing both boards | NOT STARTED (needs owner approval) | No |
 | R-46 | Firmware | Tune `TRAY_TRAVEL_MS`, `TRAY_DISPENSE_TIMEOUT_MS`, `CHAIN_END/HOME_TIMEOUT_MS` on the bench (open items O-1, O-4) | Placeholders; timed travel must stop the outlet over each tray | BLOCKED | Yes |
 | R-47 | Docs | Update the block diagram: 5 load cells / 5 HX711, 2 limit switches, chain motor with 2 relays, no pump (open item O-2) | Thesis figures must match the design | NOT STARTED | No |
 | R-48 | HMI | Rename the Home page caption `t0` "Hopper Load:" (t2 now shows feed in the 5 trays) | Label no longer matches | NOT STARTED | No |
@@ -71,7 +71,7 @@ Tasks are ordered by priority: **P1** safety and security, **P2** blockers for a
 | R-41 | App | iOS build and test | NOT STARTED | No |
 | R-42 | Repo | Delete merged branches (local and GitHub) | NOT STARTED | No |
 | R-43 | Firebase | Device-confirmed schedule marker (deferred in D4; needs a rules change) | NOT STARTED | No |
-| R-44 | App | Show the app version and the device's last `timeSource` in Settings | NOT STARTED | No |
+| R-44 | App | Show the app version and the device's last `timeSource` in Settings | DONE (branch `r44-settings-info`): the ESP32 now stores the Mega's `timeSource` in `state` (rules change ships with R-45); Settings shows the app version and the device clock (network / backup RTC / not set) | No |
 
 ## Completed (for reference)
 

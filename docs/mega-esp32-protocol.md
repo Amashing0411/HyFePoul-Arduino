@@ -36,7 +36,7 @@ DATA|<tray1>|<tray2>|<tray3>|<tray4>|<tray5>|<targetPerTray>|<hopperLevelPercent
 - `tray1`..`tray5` are the grams on each tray's load cell; `targetPerTray` is the per-tray target of the running/last cycle. Numbers have one decimal place. Booleans are `0` or `1`.
 - `cycleStep` is `IDLE`, `HOMING`, `TO_TRAY`, `TARING`, `DISPENSING`, `TO_END` or `RETURNING`; `currentTray` is 1–5 while the hopper is at or heading to a tray, otherwise 0. `waterLow` is the reservoir float switch (debounced 2 s). `timeSource` is `NETWORK`, `RTC` or `INVALID`.
 - It is also sent immediately in response to `STATUS_REQ`.
-- The ESP32 requires exactly 13 separators (14 fields) and ignores other lines. It writes `trayWeightsGrams`, their sum as `feedWeightGrams`, and a UTC timestamp from NTP to `devices/{id}/state`, then appends the record to `systemData/{id}`. It skips the write if NTP time is not yet valid.
+- The ESP32 requires exactly 13 separators (14 fields) and ignores other lines. It writes `trayWeightsGrams`, their sum as `feedWeightGrams`, `timeSource` (R-44) and a UTC timestamp from NTP to `devices/{id}/state`, then appends the record to `systemData/{id}`. It skips the write if NTP time is not yet valid.
 
 Example: `DATA|50.2|51.0|12.4|0.0|0.0|50.0|64.0|0|1|DISPENSING|3|0|NETWORK`
 

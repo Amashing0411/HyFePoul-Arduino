@@ -4,12 +4,25 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { spacing, layout } from '../theme';
+import Constants from 'expo-constants';
 import { useAuth } from '../context/AuthContext';
+import { useFirebaseData } from '../context/FirebaseDataContext';
+import { TimeSource } from '../types';
+
+// Wording for the device's clock source (R-44).
+const TIME_SOURCE_KEYS: Record<TimeSource, 'clockNetwork' | 'clockRtc' | 'clockInvalid'> = {
+  NETWORK: 'clockNetwork',
+  RTC: 'clockRtc',
+  INVALID: 'clockInvalid',
+};
 
 export default function SettingsScreen() {
   const { mode, toggleTheme, fontSize, setFontSize, colors, typography } = useTheme();
   const { language, setLanguage, t } = useLanguage();
   const { user, ownedDevices, signOut } = useAuth();
+  const { systemData } = useFirebaseData();
+  const appVersion = Constants.expoConfig?.version ?? '?';
+  const timeSource = systemData?.timeSource ?? null;
 
   const handleFontChange = (size: 'small' | 'medium' | 'large') => {
     setFontSize(size);
@@ -48,6 +61,30 @@ export default function SettingsScreen() {
           <Text style={[typography.bodySecondary, { marginTop: spacing.xs, marginLeft: 32 }]}>
             {ownedDevices && ownedDevices.length > 0 ? ownedDevices[0].id : 'No Device Claimed'}
           </Text>
+        </View>
+
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+        <View style={styles.column}>
+          <View style={styles.iconText}>
+            <Ionicons name="time-outline" size={24} color={colors.primary} />
+            <Text style={[typography.body, styles.label]}>{t('deviceClock')}</Text>
+          </View>
+          <Text
+            style={[typography.bodySecondary, { marginTop: spacing.xs, marginLeft: 32 }, timeSource === 'INVALID' && { color: colors.error }]}
+          >
+            {timeSource ? t(TIME_SOURCE_KEYS[timeSource]) : t('clockUnknown')}
+          </Text>
+        </View>
+
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+        <View style={styles.row}>
+          <View style={[styles.iconText, { marginBottom: 0 }]}>
+            <Ionicons name="information-circle-outline" size={24} color={colors.primary} />
+            <Text style={[typography.body, styles.label]}>{t('appVersion')}</Text>
+          </View>
+          <Text style={typography.bodySecondary}>{appVersion}</Text>
         </View>
       </View>
 

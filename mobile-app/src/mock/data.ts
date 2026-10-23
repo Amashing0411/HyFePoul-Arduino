@@ -17,6 +17,7 @@ export const mockSystemData: SystemData = {
   feedingActive: false,
   cycleStep: 'IDLE',
   currentTray: 0,
+  timeSource: 'NETWORK',
   emergencyStopActive: false,
   timestamp: new Date().toISOString(),
 };

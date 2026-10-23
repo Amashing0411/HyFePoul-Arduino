@@ -538,6 +538,20 @@ async function runTests() {
     await assertSucceeds(esp32_3Db.ref("alerts/dev3/CONTROLLER_OFFLINE").update({ resolved: true, resolvedAt: 1790000030000 }));
   });
 
+  // ==========================================
+  // DEVICE CLOCK SOURCE (R-44)
+  // ==========================================
+  await test("Time source: state accepts NETWORK, RTC and INVALID", async () => {
+    for (const ts of ["NETWORK", "RTC", "INVALID"]) {
+      await assertSucceeds(esp32Db.ref("devices/dev2/state").set({ ...validState(), timeSource: ts }));
+    }
+  });
+
+  await test("Time source: other values are rejected", async () => {
+    await assertFails(esp32Db.ref("devices/dev2/state").set({ ...validState(), timeSource: "GPS" }));
+    await assertFails(esp32Db.ref("devices/dev2/state").set({ ...validState(), timeSource: 1 }));
+  });
+
   console.log(`\nTests finished: ${passed} passed, ${failed} failed.`);
 
   process.exit(failed > 0 ? 1 : 0);

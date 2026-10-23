@@ -130,6 +130,12 @@ export const translations = {
     controllerNotRespondingHint: 'The Wi-Fi module is online but the main controller has stopped sending data. Check its power and the cable to the Wi-Fi module. Manual feeding is unavailable until it responds.',
     logOut: 'Log Out',
     logOutConfirm: 'Log out of HyFePoul? You will stop receiving device updates and notifications on this phone until you log in again.',
+    deviceClock: 'Device clock',
+    clockNetwork: 'Network time (synced)',
+    clockRtc: 'Backup clock (RTC); not synced with the network yet',
+    clockInvalid: 'Clock not set; schedules may run at the wrong time',
+    clockUnknown: 'Not reported yet',
+    appVersion: 'App version',
     deviceOfflineHint: 'The device is offline. Manual feeding is unavailable until it reconnects; scheduled feeding continues on the device.',
 
     // History
@@ -279,6 +285,12 @@ export const translations = {
     controllerNotRespondingHint: "Online ang Wi-Fi module pero tumigil sa pagpapadala ng datos ang pangunahing controller. Suriin ang kuryente nito at ang kable papunta sa Wi-Fi module. Hindi magagamit ang manual na pagpapakain hangga't hindi ito tumutugon.",
     logOut: 'Mag-log Out',
     logOutConfirm: 'Mag-log out sa HyFePoul? Hindi ka na makakatanggap ng balita at abiso mula sa device sa teleponong ito hanggang mag-log in ka muli.',
+    deviceClock: 'Orasan ng device',
+    clockNetwork: 'Oras mula sa network (naka-sync)',
+    clockRtc: 'Backup na orasan (RTC); hindi pa naka-sync sa network',
+    clockInvalid: 'Hindi nakatakda ang orasan; maaaring mali ang oras ng iskedyul',
+    clockUnknown: 'Hindi pa naiulat',
+    appVersion: 'Bersyon ng app',
     deviceOfflineHint: 'Offline ang device. Hindi magagamit ang manwal na pakain hanggang makakonekta ito muli; tuloy pa rin ang nakaiskedyul na pakain sa device.',
 
     // History

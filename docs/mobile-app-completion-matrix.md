@@ -128,6 +128,7 @@
   - physical phone.
 
 ### Settings
+- **R-44:** shows the device clock source (network time, backup RTC, or not set; from `state.timeSource`) and the app version (`expo-constants`).
 - **UI:** signed-in email, claimed device ID (or "No Device Claimed"), dark mode, text size, language (English/Tagalog), Log Out with confirmation.
 - **Emulator:** ✅ **R-35 (`95c3761`):** Log Out asks first; Cancel keeps the session; confirming returns to the login screen. Dark mode, text size and language not exercised.
 - **Remaining:**

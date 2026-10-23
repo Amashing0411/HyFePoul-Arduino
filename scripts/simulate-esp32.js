@@ -94,6 +94,7 @@ async function simulate() {
     currentTray: 0,
     feedingActive: false,
     emergencyStopActive: false,
+    timeSource: "NETWORK", // R-44: last DATA field, stored by the ESP32
     timestamp: timestamp
   };
 
