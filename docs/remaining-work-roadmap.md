@@ -69,7 +69,7 @@ Tasks are ordered by priority: **P1** safety and security, **P2** blockers for a
 |----|-----------|-------------|--------|----|
 | R-40 | App | Local notification when the device goes offline (heartbeat age) | DONE (branch `r40-offline-notification`; verified on the emulator: shown ~90 s after the last heartbeat, removed when heartbeats resume). Works only while the app is running | No |
 | R-41 | App | iOS build and test | NOT STARTED | No |
-| R-42 | Repo | Delete merged branches (local and GitHub) | NOT STARTED | No |
+| R-42 | Repo | Delete merged branches (local and GitHub) | DONE 2026-10-24: 21 merged branches deleted locally and 20 on GitHub; only `main` and open PR branches remain (merged PRs keep their history and a "Restore branch" button) | No |
 | R-43 | Firebase | Device-confirmed schedule marker (deferred in D4) | DONE (branch `r43-schedule-confirmation`): the ESP32 writes what the Mega accepted to `scheduleStatus/{id}`; the app shows each schedule as On device / Waiting for device. Rules change ships with R-45. Also fixed: the restore used the old 2000 g / 250 g limits, so a total above 1000 g would have been rejected by the Mega on every retry | No |
 | R-44 | App | Show the app version and the device's last `timeSource` in Settings | DONE (branch `r44-settings-info`): the ESP32 now stores the Mega's `timeSource` in `state` (rules change ships with R-45); Settings shows the app version and the device clock (network / backup RTC / not set) | No |
 
