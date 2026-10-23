@@ -74,6 +74,7 @@ struct DeviceStateData {
   String cycleStep;
   int currentTray;
   bool estop;
+  String timeSource; // NETWORK, RTC or INVALID (the Mega's clock source)
 };
 
 // Time management
@@ -423,6 +424,8 @@ void processMegaLine(String line) {
       data.cycleStep = line.substring(indices[9] + 1, indices[10]);
       data.currentTray = line.substring(indices[10] + 1, indices[11]).toInt();
       data.estop = line.substring(indices[11] + 1, indices[12]).toInt() == 1;
+      data.timeSource = line.substring(indices[12] + 1, indices[13]);
+      data.timeSource.trim();
 
       sendStateToFirebase(data);
     } else {
@@ -535,6 +538,9 @@ void sendStateToFirebase(const DeviceStateData& data) {
   doc["cycleStep"] = data.cycleStep;
   doc["currentTray"] = data.currentTray;
   doc["emergencyStopActive"] = data.estop;
+  if (data.timeSource == "NETWORK" || data.timeSource == "RTC" || data.timeSource == "INVALID") {
+    doc["timeSource"] = data.timeSource;
+  }
   doc["timestamp"] = currentTimestamp;
 
   String payload;

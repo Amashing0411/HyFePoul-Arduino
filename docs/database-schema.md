@@ -80,6 +80,7 @@ Both use the same record. `state` holds the latest copy, and `systemData` gets o
 | `cycleStep` | string | yes. `IDLE`, `HOMING`, `TO_TRAY`, `TARING`, `DISPENSING`, `TO_END`, `RETURNING` |
 | `currentTray` | number | yes. 0–5 (0 = none) |
 | `emergencyStopActive` | boolean | yes |
+| `timeSource` | string (optional) | yes. `NETWORK`, `RTC` or `INVALID`: where the Mega's clock comes from (R-44); shown in the app's Settings |
 | `timestamp` | number | yes |
 | any other child | | rejected |
 

@@ -4,6 +4,7 @@ import { RTDBDevice, RTDBDeviceState, RTDBSystemDataSnapshot, RTDBAlert, RTDBCom
 import { SystemData, TRAY_COUNT } from '../types';
 
 const CYCLE_STEPS = ['IDLE', 'HOMING', 'TO_TRAY', 'TARING', 'DISPENSING', 'TO_END', 'RETURNING'];
+const TIME_SOURCES = ['NETWORK', 'RTC', 'INVALID'];
 
 /**
  * Lightweight runtime validation
@@ -20,6 +21,7 @@ export const isValidDeviceState = (data: any): boolean => {
   if (typeof data.cycleStep !== 'string' || !CYCLE_STEPS.includes(data.cycleStep)) return false;
   if (typeof data.currentTray !== 'number') return false;
   if (typeof data.emergencyStopActive !== 'boolean') return false;
+  if (data.timeSource !== undefined && !TIME_SOURCES.includes(data.timeSource)) return false;
   if (typeof data.timestamp !== 'number') return false;
   return true;
 };
@@ -35,6 +37,7 @@ export const toSystemData = (state: RTDBDeviceState): SystemData => ({
   cycleStep: state.cycleStep,
   currentTray: state.currentTray,
   emergencyStopActive: state.emergencyStopActive,
+  timeSource: state.timeSource ?? null,
   timestamp: new Date(state.timestamp).toISOString(),
 });
 

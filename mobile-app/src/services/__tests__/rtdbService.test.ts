@@ -70,6 +70,9 @@ describe('rtdbService - validation functions', () => {
     expect(isValidDeviceState({ ...validState, trayWeightsGrams: [1, 2, 3, 4] })).toBe(false);
     expect(isValidDeviceState({ ...validState, trayWeightsGrams: [1, 2, 'x', 4, 5] })).toBe(false);
     expect(isValidDeviceState({ ...validState, cycleStep: 'PUMPING' })).toBe(false);
+    // R-44: timeSource is optional; when present it must be a known value.
+    expect(isValidDeviceState({ ...validState, timeSource: 'RTC' })).toBe(true);
+    expect(isValidDeviceState({ ...validState, timeSource: 'GPS' })).toBe(false);
     // Old pump-era records (no tray fields) are not shown.
     const { trayWeightsGrams: _t, cycleStep: _c, currentTray: _n, ...oldShape } = validState;
     expect(isValidDeviceState({ ...oldShape, waterHigh: true, pumpActive: false })).toBe(false);

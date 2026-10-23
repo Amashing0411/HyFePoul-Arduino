@@ -3,6 +3,10 @@ export type CycleStep = 'IDLE' | 'HOMING' | 'TO_TRAY' | 'TARING' | 'DISPENSING' 
 
 export const TRAY_COUNT = 5;
 
+// Where the Mega's clock comes from: network time via the ESP32, its own
+// backup RTC, or neither (clock not set).
+export type TimeSource = 'NETWORK' | 'RTC' | 'INVALID';
+
 export interface SystemData {
   feedWeightGrams: number;    // total feed in the 5 trays
   targetFeedGrams: number;    // target per tray for the running/last cycle
@@ -13,6 +17,7 @@ export interface SystemData {
   cycleStep: CycleStep;
   currentTray: number;        // 1-5 while at/heading to a tray, else 0
   emergencyStopActive: boolean;
+  timeSource: TimeSource | null; // null when not reported (older firmware)
   timestamp: string;
 }
 

@@ -46,6 +46,7 @@
           "cycleStep": { ".validate": "newData.isString() && newData.val().matches(/^(IDLE|HOMING|TO_TRAY|TARING|DISPENSING|TO_END|RETURNING)$/)" },
           "currentTray": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5" },
           "emergencyStopActive": { ".validate": "newData.isBoolean()" },
+          "timeSource": { ".validate": "newData.isString() && newData.val().matches(/^(NETWORK|RTC|INVALID)$/)" },
           "timestamp": { ".validate": "newData.isNumber()" },
           "$other": { ".validate": false }
         }
