@@ -18,7 +18,8 @@ Arduino Mega 2560 (primary controller)
 - `TimeManager.ino` — RTC + ESP32 network-time synchronization/fallback
 - `ESP32Communication.ino` — Mega↔ESP32 placeholder protocol
 - `Nextion.ino` — Nextion display interface placeholder
-- `SDLogging.ino` — CSV data logging
+- `SDLogging.ino` — CSV data logging, one file per month, 24-month cleanup
+- `DailyStats.ino` — per-day totals (feed, cycles, problems) kept in EEPROM and sent as `SUMMARY` lines
 - `Safety.ino` — emergency stop (latched until reset) and buzzer
 - `ScheduleStorage.ino` — feeding schedules saved to and loaded from EEPROM (survive power loss)
 - `SerialConsole.ino` — bench commissioning commands on the USB serial monitor (`HELP`): status, load-cell tare/calibration, chain jog/home, dispenser test, local feed. See `docs/hardware-commissioning-procedure.md` §7a
@@ -65,10 +66,19 @@ Mega → ESP32:
 - `DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|estop|timeSource` (every 10 s; tray grams, target per tray, cycle step and tray)
 - `EVENT|<name>` (including `SYSTEM_START` at boot)
 - `CMD_ACK|ID:<id>|STATUS:ACCEPTED|REJECTED[|REASON:…]` and `CMD_DONE|ID:<id>|STATUS:SUCCESS|FAILED[|REASON:…]`
+- `SUMMARY|YYYY-MM-DD|feedG|done|incomplete|trayTimeouts|chainFaults|lowWater|lowFeed|estops` (today and yesterday, after each feed cycle, at the day change and every 30 min)
 
 ## CSV log
 
-The Mega writes `HYFEPOUL.CSV`.
+The Mega writes one file per local month (UTC+8): `HFyyyymm.CSV`, for example `HF202610.CSV` for October 2026, each with its own header. Rows written while the clock is not set go to `HFNOTIME.CSV`.
+
+- **Size:** one row every 30 s plus events is about 0.3 MB a day, so roughly **9 MB and 90,000 rows per month**. Excel opens a month easily.
+- **Cleanup:** when a new month's file is created, monthly files from 24 or more months ago are deleted. If a write still fails (card full), the oldest month is deleted and the write retried once. Only files named `HFyyyymm.CSV` are ever deleted.
+- **Card:** use an 8–32 GB microSD formatted **FAT32**. Two years of logs are about 220 MB, so any such card is plenty. The SD library cannot read exFAT, which larger cards come formatted with.
+
+## Daily totals
+
+`DailyStats.ino` counts, per local day: feed dispensed (each tray's load-cell reading when its dispensing ends, including a partial tray after a timeout, an empty hopper or an E-stop), feed cycles completed and incomplete, tray timeouts, chain faults, low-water and low-feed episodes, and E-stops. Today's and yesterday's records are kept in EEPROM at address 64 (2 × 26 bytes; the schedule store uses 0–24), so a restart keeps the day. Counts made before the clock is set are kept for the first valid date. The ESP32 writes each `SUMMARY` to `dailySummary/{deviceId}/{date}`, which the app's History → Monthly view reads.
 
 Excel can open CSV directly. The Arduino is not generating a native `.xlsx` file.
 

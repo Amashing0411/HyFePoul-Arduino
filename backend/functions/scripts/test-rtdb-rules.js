@@ -578,6 +578,39 @@ async function runTests() {
     await assertFails(esp32_3Db.ref("scheduleStatus/dev3/sched_0").set(applied({ note: "x" })));
   });
 
+  // ==========================================
+  // DAILY SUMMARY (R-22)
+  // ==========================================
+  const summary = (extra = {}) => ({
+    date: "2026-10-24", feedGrams: 1500, cyclesCompleted: 3, cyclesIncomplete: 0,
+    trayTimeouts: 0, chainFaults: 0, lowWaterAlerts: 1, lowFeedAlerts: 0, emergencyStops: 0,
+    updatedAt: 1790000000000, ...extra,
+  });
+
+  await test("Daily summary: device writes and replaces a day", async () => {
+    await assertSucceeds(esp32_3Db.ref("dailySummary/dev3/2026-10-24").set(summary()));
+    await assertSucceeds(esp32_3Db.ref("dailySummary/dev3/2026-10-24").set(summary({ feedGrams: 1750 })));
+  });
+
+  await test("Daily summary: owner can read a month range but cannot write", async () => {
+    await assertSucceeds(owner3Db.ref("dailySummary/dev3").orderByKey().startAt("2026-10-01").endAt("2026-10-31").once("value"));
+    await assertFails(owner3Db.ref("dailySummary/dev3/2026-10-25").set(summary({ date: "2026-10-25" })));
+  });
+
+  await test("Daily summary: other devices and strangers are denied", async () => {
+    await assertFails(esp32Db.ref("dailySummary/dev3/2026-10-24").set(summary()));
+    await assertFails(user2Db.ref("dailySummary/dev3").once("value"));
+  });
+
+  await test("Daily summary: date key, counts and completeness are validated", async () => {
+    await assertFails(esp32_3Db.ref("dailySummary/dev3/24-10-2026").set(summary({ date: "24-10-2026" })));
+    await assertFails(esp32_3Db.ref("dailySummary/dev3/2026-10-24").set(summary({ date: "2026-10-23" })));
+    await assertFails(esp32_3Db.ref("dailySummary/dev3/2026-10-24").set(summary({ feedGrams: -5 })));
+    await assertFails(esp32_3Db.ref("dailySummary/dev3/2026-10-24").set(summary({ cyclesCompleted: "3" })));
+    await assertFails(esp32_3Db.ref("dailySummary/dev3/2026-10-24").set({ date: "2026-10-24", feedGrams: 10 }));
+    await assertFails(esp32_3Db.ref("dailySummary/dev3/2026-10-24").set(summary({ note: "x" })));
+  });
+
   console.log(`\nTests finished: ${passed} passed, ${failed} failed.`);
 
   process.exit(failed > 0 ? 1 : 0);

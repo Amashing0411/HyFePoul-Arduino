@@ -1,5 +1,5 @@
-import React from 'react';
-import { FlatList, View, Text, StyleSheet, RefreshControl } from 'react-native';
+import React, { useState } from 'react';
+import { FlatList, View, Text, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDeviceHistory } from '../hooks/useDeviceHistory';
 import { useTheme } from '../context/ThemeContext';
@@ -8,9 +8,45 @@ import { SystemData } from '../types';
 import EmptyState from '../components/EmptyState';
 import Skeleton from '../components/Skeleton';
 import Card from '../components/Card';
+import MonthlySummary from '../components/MonthlySummary';
 import { spacing, layout } from '../theme';
 
+type HistoryView = 'recent' | 'monthly';
+
 export default function HistoryScreen() {
+  const [view, setView] = useState<HistoryView>('recent');
+  const { colors, typography } = useTheme();
+  const { t } = useLanguage();
+
+  const tab = (value: HistoryView, label: string) => {
+    const selected = view === value;
+    return (
+      <TouchableOpacity
+        style={[styles.segmentButton, { borderColor: colors.border }, selected && { backgroundColor: colors.primary, borderColor: colors.primary }]}
+        onPress={() => setView(value)}
+        accessibilityRole="tab"
+        accessibilityState={{ selected }}
+        accessibilityLabel={label}
+      >
+        <Text style={[typography.bodySecondary, selected ? { color: '#fff', fontWeight: 'bold' } : { color: colors.textSecondary }]}>
+          {label}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.segmentedControl} accessibilityRole="tablist">
+        {tab('recent', t('historyRecent'))}
+        {tab('monthly', t('historyMonthly'))}
+      </View>
+      {view === 'recent' ? <RecentHistory /> : <MonthlySummary />}
+    </View>
+  );
+}
+
+function RecentHistory() {
   const { history, loading, error, refreshing, refreshData } = useDeviceHistory();
   const { colors, typography } = useTheme();
   const { t } = useLanguage();
@@ -79,6 +115,7 @@ export default function HistoryScreen() {
         contentContainerStyle={history.length === 0 ? styles.emptyList : styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshData} tintColor={colors.primary} />}
         ListEmptyComponent={<EmptyState message={t('noHistory')} />}
+        ListHeaderComponent={history.length > 0 ? <Text style={[typography.caption, styles.hint]}>{t('historyRecentHint')}</Text> : null}
       />
     </View>
   );
@@ -86,6 +123,18 @@ export default function HistoryScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  segmentedControl: { flexDirection: 'row', paddingHorizontal: spacing.md, paddingTop: spacing.md },
+  segmentButton: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
+    alignItems: 'center',
+    marginHorizontal: 2,
+    borderRadius: layout.borderRadius / 2,
+    minHeight: layout.minTouchTarget,
+    justifyContent: 'center'
+  },
+  hint: { marginBottom: spacing.sm },
   list: { padding: spacing.md },
   emptyList: { flexGrow: 1, justifyContent: 'center' },
   card: { borderRadius: layout.borderRadius, padding: spacing.md, marginBottom: spacing.sm, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },

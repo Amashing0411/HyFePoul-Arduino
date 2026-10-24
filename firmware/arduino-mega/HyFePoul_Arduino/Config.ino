@@ -255,6 +255,9 @@ void initializeSystem() {
   // After SD so the load result is logged.
   initializeSchedules();
 
+  // Today's / yesterday's totals from EEPROM (after the RTC).
+  initializeDailyStats();
+
   // Initial sensor reads.
   updateFeedLevel();
   initializeHydration();

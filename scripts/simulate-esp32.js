@@ -151,6 +151,8 @@ async function simulate() {
   await testScheduleRestore();
   await testAlertResolution();
   await testMegaLink();
+  await testDailySummary();
+  testHistoryThrottle();
   testUartCommandLines();
 
   console.log("======================================");
@@ -324,6 +326,83 @@ async function testMegaLink() {
   const alert = await readAlert("CONTROLLER_OFFLINE");
   if (alert.resolved !== true) throw new Error("CONTROLLER_OFFLINE not resolved on recovery");
   console.log("[R-24] Mega link health OK");
+}
+
+// ---------------------------------------------------------
+// Daily summary (R-22), mirroring sendDailySummary() in HyFePoul_ESP32.ino
+// ---------------------------------------------------------
+const SUMMARY_FIELDS = ["feedGrams", "cyclesCompleted", "cyclesIncomplete", "trayTimeouts", "chainFaults", "lowWaterAlerts", "lowFeedAlerts", "emergencyStops"];
+
+// Returns { date, payload } or null when the line is malformed.
+function parseSummaryLine(line, now) {
+  const f = line.split("|");
+  if (f.length !== 10 || f[0] !== "SUMMARY") return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(f[1])) return null;
+  const payload = { date: f[1] };
+  SUMMARY_FIELDS.forEach((k, i) => { payload[k] = Math.max(0, parseInt(f[i + 2], 10) || 0); });
+  payload.updatedAt = now;
+  return { date: f[1], payload };
+}
+
+async function putSummary(line) {
+  const parsed = parseSummaryLine(line, Date.now());
+  if (!parsed) return null;
+  const res = await fetch(getDbUrl(`dailySummary/${DEVICE_ID}/${parsed.date}.json`), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(parsed.payload),
+  });
+  if (res.status !== 200) throw new Error(`dailySummary write failed: ${await res.text()}`);
+  return parsed.payload;
+}
+
+async function testDailySummary() {
+  console.log("[R-22] Daily summary...");
+  if (parseSummaryLine("SUMMARY|2026-10-24|100|1", 1) !== null) throw new Error("Short line accepted");
+  if (parseSummaryLine("SUMMARY|24/10/2026|100|1|0|0|0|0|0|0", 1) !== null) throw new Error("Bad date accepted");
+
+  await putSummary("SUMMARY|2026-10-23|1480|3|0|0|0|1|0|0");
+  await putSummary("SUMMARY|2026-10-24|500|1|0|0|0|0|0|0");
+  // Later the same day: the PUT replaces the day.
+  await putSummary("SUMMARY|2026-10-24|1010|2|1|1|0|0|1|1");
+
+  const res = await fetch(`http://${EMULATOR_HOST}:${EMULATOR_RTDB_PORT}/dailySummary/${DEVICE_ID}.json?ns=${NAMESPACE}`, {
+    headers: { 'Authorization': 'Bearer owner' },
+  });
+  const days = await res.json();
+  if (!days["2026-10-23"] || days["2026-10-23"].feedGrams !== 1480) throw new Error("Yesterday missing");
+  const today = days["2026-10-24"];
+  if (today.feedGrams !== 1010 || today.cyclesIncomplete !== 1 || today.emergencyStops !== 1) throw new Error(`Today not replaced: ${JSON.stringify(today)}`);
+  console.log("[R-22] Daily summary OK");
+}
+
+// History throttle (R-22), mirroring sendStateToFirebase(): systemData gets a
+// row every 5 minutes, plus one whenever feedingActive changes.
+const HISTORY_INTERVAL_MS = 300000;
+function makeHistory() { return { written: false, lastFeeding: false, lastMs: 0, rows: 0 }; }
+function historyDue(h, feeding, nowMs) {
+  return !h.written || feeding !== h.lastFeeding || nowMs - h.lastMs >= HISTORY_INTERVAL_MS;
+}
+function onData(h, feeding, nowMs) {
+  if (!historyDue(h, feeding, nowMs)) return;
+  h.rows++; h.written = true; h.lastFeeding = feeding; h.lastMs = nowMs;
+}
+
+function testHistoryThrottle() {
+  console.log("[R-22] History throttle...");
+  const h = makeHistory();
+  // One idle day of DATA every 10 s: 8640 lines -> 288 rows.
+  for (let t = 0; t < 86400000; t += 10000) onData(h, false, t);
+  if (h.rows !== 288) throw new Error(`Idle day wrote ${h.rows} rows`);
+  // A feed cycle in the middle of an interval adds a row at start and at end.
+  const h2 = makeHistory();
+  onData(h2, false, 0);
+  onData(h2, true, 60000);
+  for (let t = 70000; t < 130000; t += 10000) onData(h2, true, t);
+  onData(h2, false, 130000);
+  onData(h2, false, 140000);
+  if (h2.rows !== 3) throw new Error(`Cycle wrote ${h2.rows} rows`);
+  console.log("[R-22] History throttle OK");
 }
 
 // ---------------------------------------------------------

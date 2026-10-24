@@ -20,7 +20,7 @@ process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATOR = 'true';
 process.env.EXPO_PUBLIC_EMULATOR_HOST = '127.0.0.1';
 
 import { rtdbService, isValidDeviceState, isValidDevice, isValidAlert } from '../rtdbService';
-import { RTDBDevice, RTDBDeviceState, RTDBAlert } from '../../types/rtdb';
+import { RTDBDevice, RTDBDeviceState, RTDBAlert, RTDBDailySummary } from '../../types/rtdb';
 import { auth } from '../firebase';
 import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 
@@ -125,6 +125,18 @@ describe('rtdbService - owner data access (emulator)', () => {
       push2: { eventId: '2', name: 'LOW_WATER', timestamp: 1000, resolved: true },
       push3: { eventId: '3' },
     });
+
+    const day = (date: string, feedGrams: number) => ({
+      date, feedGrams, cyclesCompleted: 3, cyclesIncomplete: 0, trayTimeouts: 0, chainFaults: 0,
+      lowWaterAlerts: 0, lowFeedAlerts: 0, emergencyStops: 0, updatedAt: 1,
+    });
+    await adminPut(`dailySummary/${deviceIds.owned}`, {
+      '2026-09-30': day('2026-09-30', 100),
+      '2026-10-01': day('2026-10-01', 700),
+      '2026-10-15': day('2026-10-15', 750),
+      '2026-10-20': { date: '2026-10-20', feedGrams: -1 },
+      '2026-11-01': day('2026-11-01', 800),
+    });
   });
 
   afterAll(async () => {
@@ -153,5 +165,12 @@ describe('rtdbService - owner data access (emulator)', () => {
     const res = await getFirstCallback<RTDBAlert[]>((cb) => rtdbService.subscribeToAlerts(deviceIds.owned, 5, cb));
     expect(res.error).toBeUndefined();
     expect(res.data.map((a) => a.timestamp)).toEqual([1000, 3000]);
+  });
+
+  it('subscribeToDailySummaries returns one month in date order and skips malformed days', async () => {
+    const res = await getFirstCallback<RTDBDailySummary[]>((cb) =>
+      rtdbService.subscribeToDailySummaries(deviceIds.owned, '2026-10-01', '2026-10-31', cb));
+    expect(res.error).toBeUndefined();
+    expect(res.data.map((d) => [d.date, d.feedGrams])).toEqual([['2026-10-01', 700], ['2026-10-15', 750]]);
   });
 });

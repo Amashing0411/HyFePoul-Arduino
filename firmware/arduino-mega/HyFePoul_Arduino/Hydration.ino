@@ -45,6 +45,7 @@ void checkLowWaterAlert() {
   if (waterLow) {
     if (!lowWaterAlertSent) {
       lowWaterAlertSent = true;
+      statLowWater();
       Serial.println(F("LOW WATER: refill the reservoir."));
       queueAlertEvent("LOW_WATER");
       triggerAlarm();

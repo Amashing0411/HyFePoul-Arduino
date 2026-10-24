@@ -96,6 +96,17 @@ CMD_DONE|ID:<id>|STATUS:FAILED|REASON:<reason>
 
 `<id>` echoes the UART ID from the `CMD` line (§4.3).
 
+### 3.4 `SUMMARY` (daily totals, R-22)
+
+```
+SUMMARY|YYYY-MM-DD|feedG|done|incomplete|trayTimeouts|chainFaults|lowWater|lowFeed|estops
+SUMMARY|2026-10-24|1490|3|0|0|0|1|0|0
+```
+
+- Local date (UTC+8). Whole grams; the rest are counts for that day.
+- Sent for yesterday and today after every feed cycle, when the date changes and every 30 minutes. Not sent while the date is unknown.
+- The ESP32 writes it to `dailySummary/{deviceId}/{date}` with `PUT` (repeats are harmless). A malformed line is ignored. Dropped while the ESP32 is offline; the next send covers it.
+
 ## 4. Messages: ESP32 → Mega
 
 ### 4.1 `TIME` (every 30 s once NTP is synced)
@@ -192,6 +203,9 @@ A `SCHEDULE_SET` that fails for any of these reasons also triggers a schedule re
 | What | Interval / timeout |
 |------|--------------------|
 | Mega `DATA` | 10 s |
+| ESP32 `state` write | every `DATA` (10 s) |
+| ESP32 `systemData` append | 5 min, plus when `feedingActive` changes |
+| Mega `SUMMARY` | 30 min, after each feed cycle and at the day change |
 | ESP32 `STATUS` | 10 s and on change |
 | Mega link timeout (`esp32Online`) | 15 s without any line |
 | ESP32 `TIME` and RTDB heartbeat | 30 s |

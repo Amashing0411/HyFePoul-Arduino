@@ -300,6 +300,9 @@ void runFeedCycle() {
        cycleStep == CYCLE_DISPENSING) &&
       currentHopperLevelPercent <= HOPPER_EMPTY_PERCENT) {
     digitalWrite(DISPENSER_RELAY_PIN, LOW);
+    if (cycleStep == CYCLE_DISPENSING) {
+      statAddFeed(trayWeightsGrams[currentTray - 1]);
+    }
     queueAlertEvent("LOW_FEED");
     triggerAlarm();
     returnHome("HOPPER_EMPTY");
@@ -421,12 +424,14 @@ void runDispensing(unsigned long elapsed) {
 
   if (trayWeightsGrams[trayIndex] >= activeFeedTargetGrams) {
     digitalWrite(DISPENSER_RELAY_PIN, LOW);
+    statAddFeed(trayWeightsGrams[trayIndex]);
     nextTray();
     return;
   }
 
   if (elapsed >= TRAY_DISPENSE_TIMEOUT_MS) {
     digitalWrite(DISPENSER_RELAY_PIN, LOW);
+    statAddFeed(trayWeightsGrams[trayIndex]); // what did reach the tray
     Serial.print(F("Tray "));
     Serial.print(currentTray);
     Serial.println(F(" dispense timeout; tray skipped."));
@@ -437,6 +442,7 @@ void runDispensing(unsigned long elapsed) {
 // The current tray was not filled (dispense timeout or no load cell).
 void trayFailed() {
   logEventToSD("TRAY_TIMEOUT");
+  statTrayTimeout();
 
   if (cycleFailReason == NULL) {
     cycleFailReason = "TRAY_TIMEOUT";
@@ -489,11 +495,13 @@ void finishFeedCycle() {
     logEventToSD("FEEDING_COMPLETED");
     queueAlertEvent("FEEDING_COMPLETED");
     finishRemoteCommand("SUCCESS", "");
+    statCycleEnded(true);
   } else {
     Serial.print(F("FEED CYCLE ENDED WITH PROBLEM: "));
     Serial.println(cycleFailReason);
     logEventToSD("FEEDING_INCOMPLETE");
     finishRemoteCommand("FAILED", cycleFailReason);
+    statCycleEnded(false);
   }
 }
 
@@ -503,6 +511,7 @@ void chainFault() {
   Serial.print(F("CHAIN TIMEOUT during "));
   Serial.println(getCycleStepName(cycleStep));
 
+  statChainFault();
   stopFeedCycle("CHAIN_TIMEOUT");
   queueAlertEvent("CHAIN_TIMEOUT");
   triggerAlarm();
@@ -514,6 +523,10 @@ void stopFeedCycle(const char* reason) {
   digitalWrite(DISPENSER_RELAY_PIN, LOW);
   stopChain();
 
+  if (feedingActive && cycleStep == CYCLE_DISPENSING && currentTray > 0) {
+    statAddFeed(trayWeightsGrams[currentTray - 1]);
+  }
+
   bool wasActive = feedingActive;
   feedingActive = false;
   currentTray = 0;
@@ -523,6 +536,7 @@ void stopFeedCycle(const char* reason) {
     Serial.print(F("FEED CYCLE STOP | Reason: "));
     Serial.println(reason);
     logEventToSD(reason);
+    statCycleEnded(false);
   }
 }
 

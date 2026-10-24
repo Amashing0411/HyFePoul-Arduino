@@ -63,6 +63,7 @@ void tripEmergencyStop() {
   Serial.println(F("!!! EMERGENCY STOP ACTIVE !!!"));
 
   logEventToSD("EMERGENCY_STOP");
+  statEmergencyStop();
   queueAlertEvent("EMERGENCY_STOP");
   triggerAlarm();
 }

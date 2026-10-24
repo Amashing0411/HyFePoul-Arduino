@@ -77,6 +77,23 @@ export interface RTDBScheduleStatus {
   appliedAt: number;
 }
 
+/**
+ * One day of totals counted by the Mega (R-22), local date (UTC+8).
+ * Stored in /dailySummary/{deviceId}/{YYYY-MM-DD}; rewritten during the day.
+ */
+export interface RTDBDailySummary {
+  date: string; // YYYY-MM-DD, same as the key
+  feedGrams: number;
+  cyclesCompleted: number;
+  cyclesIncomplete: number;
+  trayTimeouts: number;
+  chainFaults: number;
+  lowWaterAlerts: number;
+  lowFeedAlerts: number;
+  emergencyStops: number;
+  updatedAt: number;
+}
+
 export interface RTDBSchedule {
   scheduleId: string;
   hour: number;

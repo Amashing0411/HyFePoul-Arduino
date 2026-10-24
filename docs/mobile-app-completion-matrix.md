@@ -110,6 +110,7 @@
 - **Automated:** ordering and malformed filtering (service tests).
 - **Emulator:** ❌ not opened in the test sessions.
 - **Remaining:** emulator and phone check. Pull-to-refresh only animates; data is live from the listener.
+- **Monthly view (R-22):** a Recent | Monthly toggle. Monthly shows a month picker (back to any month, forward to the current one), feed dispensed in kg with the daily average, feedings completed / incomplete, problem counts (low water, low feed, E-stops, tray timeouts, chain faults), and a bar per day of feed in grams (today highlighted). Data: `dailySummary/{id}` for the month, by key range. Month helpers have Jest tests; the query has an emulator test. The Recent list now holds a reading every 5 minutes.
 
 ### Notifications
 - **UI:** one card per alert type, with the latest timestamp, "Last reported" label (F24) and an explainer line; empty state "You're all caught up."

@@ -77,6 +77,14 @@ struct DeviceStateData {
   String timeSource; // NETWORK, RTC or INVALID (the Mega's clock source)
 };
 
+// History (R-22). devices/{id}/state is replaced on every DATA line (10 s);
+// systemData/{id} gets a row every HISTORY_INTERVAL_MS, plus one whenever
+// feeding starts or stops, so the History screen still shows each cycle.
+const unsigned long HISTORY_INTERVAL_MS = 300000; // 5 min, ~290 rows/day
+unsigned long lastHistoryMillis = 0;
+bool historyWritten = false;
+bool lastHistoryFeeding = false;
+
 // Time management
 const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = 0;
@@ -434,6 +442,10 @@ void processMegaLine(String line) {
       Serial.println("DATA line ignored: wrong field count");
     }
   }
+  // SUMMARY|YYYY-MM-DD|feedG|done|incomplete|trayTimeouts|chainFaults|lowWater|lowFeed|estops
+  else if (line.startsWith("SUMMARY|")) {
+    sendDailySummary(line);
+  }
   else if (line.startsWith("EVENT|")) {
     String eventName = line.substring(6);
 
@@ -559,15 +571,77 @@ void sendStateToFirebase(const DeviceStateData& data) {
   noteHttpResult(code);
 
   if (code == 200) {
-    // 2. Append to history (systemData)
+    // 2. Append to history (systemData), throttled (see HISTORY_INTERVAL_MS)
+    bool due = !historyWritten || data.feeding != lastHistoryFeeding ||
+               millis() - lastHistoryMillis >= HISTORY_INTERVAL_MS;
+    if (!due) return;
     if (!beginRequest(http, getDatabaseUrl((String("systemData/") + DEVICE_ID + ".json").c_str()))) return;
     http.addHeader("Content-Type", "application/json");
-    noteHttpResult(http.POST(payload));
+    int historyCode = http.POST(payload);
     http.end();
+    noteHttpResult(historyCode);
+    if (historyCode == 200) {
+      historyWritten = true;
+      lastHistoryFeeding = data.feeding;
+      lastHistoryMillis = millis();
+    }
   } else {
     Serial.print("Failed to write state, code: ");
     Serial.println(code);
   }
+}
+
+// One day's totals from the Mega -> dailySummary/{deviceId}/{YYYY-MM-DD}.
+// PUT replaces the day, so the Mega's repeats are harmless. Dropped while
+// offline: the Mega re-sends today and yesterday every 30 minutes.
+void sendDailySummary(const String& line) {
+  const int FIELDS = 10;
+  String fields[FIELDS];
+  int start = 0;
+  for (int i = 0; i < FIELDS; i++) {
+    int end = line.indexOf('|', start);
+    if ((end == -1) != (i == FIELDS - 1)) {
+      Serial.println("SUMMARY line ignored: wrong field count");
+      return;
+    }
+    fields[i] = line.substring(start, end == -1 ? line.length() : end);
+    start = end + 1;
+  }
+
+  const String& date = fields[1];
+  bool dateOk = date.length() == 10 && date[4] == '-' && date[7] == '-';
+  for (int i = 0; dateOk && i < 10; i++) {
+    if (i != 4 && i != 7 && !isDigit(date[i])) dateOk = false;
+  }
+  if (!dateOk) {
+    Serial.println("SUMMARY line ignored: bad date");
+    return;
+  }
+
+  if (!hasValidToken() || WiFi.status() != WL_CONNECTED) return;
+  unsigned long now = getTimestampMillis();
+  if (now < 1000000000000ULL) return;
+
+  StaticJsonDocument<384> doc;
+  doc["date"] = date;
+  doc["feedGrams"] = max(0L, fields[2].toInt());
+  doc["cyclesCompleted"] = max(0L, fields[3].toInt());
+  doc["cyclesIncomplete"] = max(0L, fields[4].toInt());
+  doc["trayTimeouts"] = max(0L, fields[5].toInt());
+  doc["chainFaults"] = max(0L, fields[6].toInt());
+  doc["lowWaterAlerts"] = max(0L, fields[7].toInt());
+  doc["lowFeedAlerts"] = max(0L, fields[8].toInt());
+  doc["emergencyStops"] = max(0L, fields[9].toInt());
+  doc["updatedAt"] = now;
+  String payload;
+  serializeJson(doc, payload);
+
+  HTTPClient http;
+  String path = String("dailySummary/") + DEVICE_ID + "/" + date + ".json";
+  if (!beginRequest(http, getDatabaseUrl(path.c_str()))) return;
+  http.addHeader("Content-Type", "application/json");
+  noteHttpResult(http.PUT(payload));
+  http.end();
 }
 
 void sendEventToFirebase(String eventName) {

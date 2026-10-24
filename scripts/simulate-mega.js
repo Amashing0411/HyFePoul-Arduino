@@ -193,6 +193,7 @@ const updateFeedLevel = () => {
   if (currentHopperLevelPercent <= LOW_FEED_THRESHOLD_PERCENT) {
     if (!lowFeedAlertSent) {
       lowFeedAlertSent = true;
+      statLowFeed();
       queueAlertEvent("LOW_FEED");
       triggerAlarm();
     }
@@ -208,6 +209,7 @@ const checkLowWaterAlert = () => {
   if (waterLow) {
     if (!lowWaterAlertSent) {
       lowWaterAlertSent = true;
+      statLowWater();
       queueAlertEvent("LOW_WATER");
       triggerAlarm();
     }
@@ -321,11 +323,12 @@ const startFeedCycle = (targetGrams) => {
 const stopFeedCycle = (reason) => {
   pins.DISPENSER_RELAY = 0;
   stopChain();
+  if (feedingActive && cycleStep === "DISPENSING" && currentTray > 0) statAddFeed(trayWeightsGrams[currentTray - 1]);
   const wasActive = feedingActive;
   feedingActive = false;
   currentTray = 0;
   cycleStep = "IDLE";
-  if (wasActive) logEventToSD(reason);
+  if (wasActive) { logEventToSD(reason); statCycleEnded(false); }
 };
 
 const finishFeedCycle = () => {
@@ -338,13 +341,16 @@ const finishFeedCycle = () => {
     logEventToSD("FEEDING_COMPLETED");
     queueAlertEvent("FEEDING_COMPLETED");
     finishRemoteCommand("SUCCESS");
+    statCycleEnded(true);
   } else {
     logEventToSD("FEEDING_INCOMPLETE");
     finishRemoteCommand("FAILED", cycleFailReason);
+    statCycleEnded(false);
   }
 };
 
 const chainFault = () => {
+  statChainFault();
   stopFeedCycle("CHAIN_TIMEOUT");
   queueAlertEvent("CHAIN_TIMEOUT");
   triggerAlarm();
@@ -370,6 +376,7 @@ const nextTray = () => {
 
 const trayFailed = () => {
   logEventToSD("TRAY_TIMEOUT");
+  statTrayTimeout();
   if (cycleFailReason === null) cycleFailReason = "TRAY_TIMEOUT";
   if (!trayTimeoutAlertSent) {
     trayTimeoutAlertSent = true;
@@ -418,11 +425,13 @@ const runDispensing = (elapsed) => {
   readTrayWeight(i);
   if (trayWeightsGrams[i] >= activeFeedTargetGrams) {
     pins.DISPENSER_RELAY = 0;
+    statAddFeed(trayWeightsGrams[i]);
     nextTray();
     return;
   }
   if (elapsed >= TRAY_DISPENSE_TIMEOUT_MS) {
     pins.DISPENSER_RELAY = 0;
+    statAddFeed(trayWeightsGrams[i]);
     trayFailed();
   }
 };
@@ -433,6 +442,7 @@ const runFeedCycle = () => {
   if ((cycleStep === "TO_TRAY" || cycleStep === "TARING" || cycleStep === "DISPENSING") &&
       currentHopperLevelPercent <= HOPPER_EMPTY_PERCENT) {
     pins.DISPENSER_RELAY = 0;
+    if (cycleStep === "DISPENSING") statAddFeed(trayWeightsGrams[currentTray - 1]);
     queueAlertEvent("LOW_FEED");
     triggerAlarm();
     returnHome("HOPPER_EMPTY");
@@ -498,6 +508,7 @@ const tripEmergencyStop = () => {
   emergencyStopActive = true;
   stopFeedCycle("FEEDING_STOPPED_ESTOP");
   finishRemoteCommand("FAILED", "ESTOP_ACTIVE");
+  statEmergencyStop();
   queueAlertEvent("EMERGENCY_STOP");
   triggerAlarm();
 };
@@ -604,6 +615,7 @@ const tick = () => {
   updateHydration();
   handleFeeding();
   updateBench();
+  handleDailyStats();
   stepHardware();
   simMillis += LOOP_MS;
 };
@@ -874,6 +886,121 @@ const processRemoteCommand = (line) => {
   }
   else {
     sendCmdAck(cmdId, "REJECTED", "UNKNOWN_COMMAND");
+  }
+};
+
+// --- DailyStats.ino: per-day totals, EEPROM at 64, SUMMARY lines ---
+// simDate is the device's local date ("YYYY-MM-DD"), null while the clock is invalid.
+let simDate = null;
+const DAILY_STATS_ADDRESS = 64;
+const DAILY_STATS_SIZE = 26; // static_assert in the firmware
+const DAILY_SUMMARY_INTERVAL_MS = 30 * 60 * 1000;
+const STAT_COUNTERS = ["cyclesCompleted", "cyclesIncomplete", "trayTimeouts", "chainFaults", "lowWater", "lowFeed", "estops"];
+const blankStats = () => ({ year: 0, month: 0, day: 0, feedGrams: 0, ...Object.fromEntries(STAT_COUNTERS.map(k => [k, 0])) });
+let statsToday = blankStats();
+let statsYesterday = blankStats();
+let lastSummarySentMillis = 0;
+
+// Byte layout of struct DailyStats on the AVR (packed, little-endian).
+const serializeStats = (st) => {
+  const bytes = new Uint8Array(DAILY_STATS_SIZE);
+  const dv = new DataView(bytes.buffer);
+  dv.setUint16(0, 0x4453, true);
+  dv.setUint8(2, 1);
+  dv.setUint16(3, st.year, true);
+  dv.setUint8(5, st.month);
+  dv.setUint8(6, st.day);
+  dv.setFloat32(7, st.feedGrams, true);
+  STAT_COUNTERS.forEach((k, i) => dv.setUint16(11 + i * 2, st[k], true));
+  bytes[25] = scheduleChecksum(bytes.subarray(0, 25));
+  return bytes;
+};
+const deserializeStats = (bytes) => {
+  const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  if (dv.getUint16(0, true) !== 0x4453 || dv.getUint8(2) !== 1) return blankStats();
+  if (scheduleChecksum(bytes.subarray(0, 25)) !== bytes[25]) return blankStats();
+  const st = { year: dv.getUint16(3, true), month: dv.getUint8(5), day: dv.getUint8(6), feedGrams: dv.getFloat32(7, true) };
+  STAT_COUNTERS.forEach((k, i) => { st[k] = dv.getUint16(11 + i * 2, true); });
+  return st;
+};
+const saveDailyStats = () => {
+  [statsToday, statsYesterday].forEach((st, r) => serializeStats(st).forEach((v, i) => {
+    const a = DAILY_STATS_ADDRESS + r * DAILY_STATS_SIZE + i;
+    if (eeprom[a] !== v) { eeprom[a] = v; eepromByteWrites++; }
+  }));
+};
+const initializeDailyStats = () => {
+  statsToday = deserializeStats(eeprom.slice(DAILY_STATS_ADDRESS, DAILY_STATS_ADDRESS + DAILY_STATS_SIZE));
+  statsYesterday = deserializeStats(eeprom.slice(DAILY_STATS_ADDRESS + DAILY_STATS_SIZE, DAILY_STATS_ADDRESS + 2 * DAILY_STATS_SIZE));
+  updateDailyStatsDate();
+};
+const statsDate = (st) => `${String(st.year).padStart(4, "0")}-${String(st.month).padStart(2, "0")}-${String(st.day).padStart(2, "0")}`;
+const sendDailySummaryLine = (st) => {
+  if (st.year === 0) return;
+  outputLog.push(`SUMMARY|${statsDate(st)}|${st.feedGrams.toFixed(0)}|` + STAT_COUNTERS.map(k => st[k]).join("|"));
+};
+const sendDailySummaries = () => {
+  lastSummarySentMillis = simMillis;
+  sendDailySummaryLine(statsYesterday);
+  sendDailySummaryLine(statsToday);
+};
+const updateDailyStatsDate = () => {
+  if (!simDate) return;
+  const [y, m, d] = simDate.split("-").map(Number);
+  if (y < 2024) return;
+  if (statsToday.year === y && statsToday.month === m && statsToday.day === d) return;
+  if (statsToday.year !== 0) { statsYesterday = statsToday; statsToday = blankStats(); }
+  Object.assign(statsToday, { year: y, month: m, day: d });
+  saveDailyStats();
+  sendDailySummaries();
+};
+const handleDailyStats = () => {
+  updateDailyStatsDate();
+  if (simMillis - lastSummarySentMillis >= DAILY_SUMMARY_INTERVAL_MS) sendDailySummaries();
+};
+const statAddFeed = (g) => { if (g > 0) statsToday.feedGrams = Math.fround(statsToday.feedGrams + g); };
+const statCycleEnded = (completed) => {
+  if (completed) statsToday.cyclesCompleted++; else statsToday.cyclesIncomplete++;
+  saveDailyStats();
+  sendDailySummaries();
+};
+const statCount = (k) => { statsToday[k]++; saveDailyStats(); };
+const statTrayTimeout = () => statCount("trayTimeouts");
+const statChainFault = () => statCount("chainFaults");
+const statLowWater = () => statCount("lowWater");
+const statLowFeed = () => statCount("lowFeed");
+const statEmergencyStop = () => statCount("estops");
+
+// --- SDLogging.ino: monthly files and cleanup (file names only) ---
+const LOG_KEEP_MONTHS = 24;
+let sdFiles = new Set();
+let currentLogName = "";
+const logMonthIndex = (name) => {
+  const m = /^HF(\d{4})(\d{2})\.CSV$/.exec(name);
+  if (!m) return -1;
+  const month = Number(m[2]);
+  if (month < 1 || month > 12) return -1;
+  return Number(m[1]) * 12 + month - 1;
+};
+const pruneOldLogs = (currentIndex, oldestOnly) => {
+  if (currentIndex < 0 && !oldestOnly) return false;
+  let oldest = null, oldestIndex = Infinity, deleted = false;
+  for (const name of [...sdFiles]) {
+    const idx = logMonthIndex(name);
+    if (idx < 0 || name === currentLogName) continue;
+    if (oldestOnly) { if (idx < oldestIndex) { oldestIndex = idx; oldest = name; } }
+    else if (idx <= currentIndex - LOG_KEEP_MONTHS) { sdFiles.delete(name); deleted = true; }
+  }
+  if (oldestOnly && oldest) { sdFiles.delete(oldest); deleted = true; }
+  return deleted;
+};
+const selectLogFile = () => {
+  const name = simDate ? `HF${simDate.slice(0, 4)}${simDate.slice(5, 7)}.CSV` : "HFNOTIME.CSV";
+  if (name === currentLogName) return;
+  currentLogName = name;
+  if (!sdFiles.has(name)) {
+    pruneOldLogs(logMonthIndex(name), false);
+    sdFiles.add(name);
   }
 };
 
@@ -1552,6 +1679,77 @@ runTest("46. a feed cycle cannot start during a bench move; DISP times out; STOP
   benchCommand("STOP");
   assertMotorsOff();
   if (benchCommand("JOG F 50") !== "USAGE") throw new Error("Out-of-range duration accepted");
+});
+
+runTest("47. SD: one file per month; a new month deletes files 24+ months old, never other files", () => {
+  sdFiles = new Set(["HF202310.CSV", "HF202410.CSV", "HF202411.CSV", "HF202609.CSV", "HFNOTIME.CSV", "NOTES.TXT", "HF202413.CSV"]);
+  currentLogName = "";
+  simDate = "2026-10-05";
+  selectLogFile();
+  const files = [...sdFiles].sort().join(",");
+  if (files !== "HF202411.CSV,HF202413.CSV,HF202609.CSV,HF202610.CSV,HFNOTIME.CSV,NOTES.TXT") throw new Error(`Files: ${files}`);
+  simDate = null; selectLogFile();
+  if (currentLogName !== "HFNOTIME.CSV") throw new Error("Clock invalid should log to HFNOTIME.CSV");
+});
+
+runTest("48. SD full: the oldest month (not the current one) is deleted first", () => {
+  sdFiles = new Set(["HF202501.CSV", "HF202412.CSV", "HF202610.CSV", "HFNOTIME.CSV"]);
+  currentLogName = "HF202610.CSV";
+  if (!pruneOldLogs(-1, true)) throw new Error("Nothing deleted");
+  if (sdFiles.has("HF202412.CSV") || !sdFiles.has("HF202501.CSV") || !sdFiles.has("HF202610.CSV")) throw new Error([...sdFiles].join(","));
+  sdFiles = new Set(["HF202610.CSV"]);
+  if (pruneOldLogs(-1, true)) throw new Error("Deleted the current month");
+});
+
+runTest("49. daily stats: feed grams, completed/incomplete cycles and problems are counted; SUMMARY is sent", () => {
+  resetMachine();
+  eeprom.fill(0xFF, DAILY_STATS_ADDRESS, DAILY_STATS_ADDRESS + 2 * DAILY_STATS_SIZE);
+  simDate = "2026-10-24";
+  initializeDailyStats();
+  assertLogNotContains("SUMMARY|2026-10-23");
+  processRemoteCommand("CMD|ID:s1|ACTION:MANUAL_FEED|TARGET:50");
+  runUntil(() => !feedingActive);
+  if (statsToday.cyclesCompleted !== 1) throw new Error("Cycle not counted");
+  if (statsToday.feedGrams < 250 || statsToday.feedGrams > 300) throw new Error(`Feed ${statsToday.feedGrams}`);
+  assertLogContains(`SUMMARY|2026-10-24|${statsToday.feedGrams.toFixed(0)}|1|0|0|0|0|0|0`);
+  processRemoteCommand("CMD|ID:s2|ACTION:MANUAL_FEED|TARGET:50");
+  runUntil(() => cycleStep === "DISPENSING");
+  runFor(500);
+  pins.EMERGENCY_STOP = 0; tick();
+  if (statsToday.cyclesIncomplete !== 1 || statsToday.estops !== 1) throw new Error(JSON.stringify(statsToday));
+  if (!(statsToday.feedGrams > 250)) throw new Error("Partial tray not added on E-stop");
+  pins.EMERGENCY_STOP = 1; tick(); resetEmergencyStop();
+  floatSwitchLow = true; runFor(3000); floatSwitchLow = false; runFor(3000);
+  if (statsToday.lowWater !== 1) throw new Error("Low water episode not counted");
+});
+
+runTest("50. daily stats survive a reboot and roll over at local midnight (yesterday re-sent)", () => {
+  const before = { ...statsToday };
+  statsToday = blankStats(); statsYesterday = blankStats();
+  initializeDailyStats(); // reboot, same day
+  if (statsToday.cyclesCompleted !== before.cyclesCompleted || statsToday.feedGrams !== before.feedGrams) throw new Error("Lost on reboot");
+  outputLog = [];
+  simDate = "2026-10-25"; tick();
+  if (statsYesterday.day !== 24 || statsToday.day !== 25 || statsToday.cyclesCompleted !== 0) throw new Error("No rollover");
+  assertLogContains("SUMMARY|2026-10-24|");
+  assertLogContains("SUMMARY|2026-10-25|0|0|0|0|0|0|0|0");
+  outputLog = [];
+  runFor(DAILY_SUMMARY_INTERVAL_MS);
+  assertLogContains("SUMMARY|2026-10-24|");
+});
+
+runTest("51. daily stats: counts made before the clock is set are kept for the first valid date", () => {
+  eeprom.fill(0xFF, DAILY_STATS_ADDRESS, DAILY_STATS_ADDRESS + 2 * DAILY_STATS_SIZE);
+  simDate = null;
+  initializeDailyStats();
+  statLowFeed();
+  outputLog = [];
+  sendDailySummaries();
+  assertLogNotContains("SUMMARY|");
+  simDate = "2026-10-26"; updateDailyStatsDate();
+  if (statsToday.lowFeed !== 1 || statsToday.day !== 26) throw new Error(JSON.stringify(statsToday));
+  if (serializeStats(statsToday).length !== DAILY_STATS_SIZE) throw new Error("Layout size");
+  simDate = null;
 });
 
 console.log(`ALL ${passed} SIMULATION TESTS PASSED.`);

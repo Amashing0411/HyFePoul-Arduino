@@ -1,6 +1,6 @@
-import { ref, set, onValue, query, orderByChild, limitToLast, get, equalTo } from 'firebase/database';
+import { ref, set, onValue, query, orderByChild, orderByKey, startAt, endAt, limitToLast, get, equalTo } from 'firebase/database';
 import { rtdb } from './firebase';
-import { RTDBDevice, RTDBDeviceState, RTDBSystemDataSnapshot, RTDBAlert, RTDBCommand, RTDBCommandAction, RTDBSchedule, RTDBScheduleStatus } from '../types/rtdb';
+import { RTDBDevice, RTDBDeviceState, RTDBSystemDataSnapshot, RTDBAlert, RTDBCommand, RTDBCommandAction, RTDBSchedule, RTDBScheduleStatus, RTDBDailySummary } from '../types/rtdb';
 import { SystemData, TRAY_COUNT } from '../types';
 
 const CYCLE_STEPS = ['IDLE', 'HOMING', 'TO_TRAY', 'TARING', 'DISPENSING', 'TO_END', 'RETURNING'];
@@ -57,6 +57,19 @@ export const isValidAlert = (data: any): boolean => {
   if (typeof data.timestamp !== 'number') return false;
   if (typeof data.resolved !== 'boolean') return false;
   if (data.resolvedAt !== undefined && typeof data.resolvedAt !== 'number') return false;
+  return true;
+};
+
+const DAILY_SUMMARY_COUNTS = [
+  'feedGrams', 'cyclesCompleted', 'cyclesIncomplete', 'trayTimeouts', 'chainFaults',
+  'lowWaterAlerts', 'lowFeedAlerts', 'emergencyStops',
+];
+
+export const isValidDailySummary = (data: any): boolean => {
+  if (!data || typeof data !== 'object') return false;
+  if (typeof data.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(data.date)) return false;
+  if (!DAILY_SUMMARY_COUNTS.every((k) => typeof data[k] === 'number' && data[k] >= 0)) return false;
+  if (typeof data.updatedAt !== 'number') return false;
   return true;
 };
 
@@ -241,6 +254,31 @@ export const rtdbService = {
       (error) => {
         callback([], error);
       }
+    );
+    return () => unsubscribe();
+  },
+
+  // R-22: the days from startDate to endDate (YYYY-MM-DD keys), oldest first.
+  subscribeToDailySummaries(
+    deviceId: string,
+    startDate: string,
+    endDate: string,
+    callback: (days: RTDBDailySummary[], error?: Error) => void
+  ): () => void {
+    const daysQuery = query(ref(rtdb, `dailySummary/${deviceId}`), orderByKey(), startAt(startDate), endAt(endDate));
+    const unsubscribe = onValue(
+      daysQuery,
+      (snapshot) => {
+        const days: RTDBDailySummary[] = [];
+        snapshot.forEach((child) => {
+          const v = child.val();
+          if (isValidDailySummary(v) && v.date === child.key) {
+            days.push(v as RTDBDailySummary);
+          }
+        });
+        callback(days);
+      },
+      (error) => callback([], error)
     );
     return () => unsubscribe();
   },
