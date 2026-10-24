@@ -143,6 +143,7 @@ The Mega firmware has commissioning commands on the USB serial monitor (115200 b
 | `DISP <ms>` | Runs the dispenser 100–5000 ms (flow-rate check) |
 | `FEED <grams>` | Starts a full 5-tray cycle at that many grams per tray, without the app |
 | `STOP` | Ends a bench move at once |
+| `WDTEST` | Stops the program on purpose (only while nothing moves). The Mega must restart within about 2 s and print "Restarted by the watchdog". If it keeps restarting or hangs, burn the current Arduino Mega bootloader before relying on the watchdog |
 | `RESET` | Clears a latched E-stop (button released) |
 
 **Calibrating the tray load cells (R-11, HIT-08):**

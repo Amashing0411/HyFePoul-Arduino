@@ -150,6 +150,7 @@ async function simulate() {
   await testCommands();
   await testScheduleRestore();
   await testAlertResolution();
+  await testOfflineAlerts();
   await testMegaLink();
   await testDailySummary();
   testHistoryThrottle();
@@ -258,6 +259,65 @@ async function testAlertResolution() {
   await putAlert("LOW_WATER", t0 + 2000);
   if (!(await resolveOne("LOW_WATER")) || !(await resolveOne("LOW_WATER"))) throw new Error("Repeat resolve failed");
   console.log("[R-23] Alert resolution OK");
+}
+
+// ---------------------------------------------------------
+// Alerts raised while offline, mirroring sendEventToFirebase() /
+// processPendingAlerts() and the resolve ordering in processPendingResolves()
+// ---------------------------------------------------------
+const ALERT_NAMES = ["LOW_FEED", "LOW_WATER", "CHAIN_TIMEOUT", "TRAY_TIMEOUT", "EMERGENCY_STOP", "DEVICE_ERROR", "CONTROLLER_OFFLINE"];
+
+function makeBridge() {
+  return { alerts: new Map(), resolves: new Set() }; // alert name -> raisedMillis
+}
+
+// An EVENT line from the Mega (or CONTROLLER_OFFLINE from the ESP32 itself).
+function onEvent(b, name, nowMillis) {
+  noteAlertResolution(b.resolves, name);
+  if (ALERT_NAMES.includes(name)) b.alerts.set(name, nowMillis);
+}
+
+// One processing pass while online: alerts first, then resolves of alerts
+// that are already written. Returns the names written.
+async function processPending(b, epochNow, nowMillis) {
+  const written = [];
+  for (const [name, raisedMillis] of [...b.alerts]) {
+    await putAlert(name, epochNow - (nowMillis - raisedMillis));
+    b.alerts.delete(name);
+    written.push(name);
+  }
+  for (const name of [...b.resolves]) {
+    if (b.alerts.has(name)) continue;
+    if (await resolveOne(name)) b.resolves.delete(name);
+  }
+  return written;
+}
+
+async function testOfflineAlerts() {
+  console.log("[Alerts] Raised while offline...");
+  const b = makeBridge();
+  for (const n of ["LOW_FEED", "EMERGENCY_STOP"]) {
+    await fetch(getDbUrl(`alerts/${DEVICE_ID}/${n}.json`), { method: 'DELETE' });
+  }
+
+  // Offline: LOW_FEED at t=10 s; E-stop pressed at 20 s and released at 30 s.
+  onEvent(b, "LOW_FEED", 10000);
+  onEvent(b, "EMERGENCY_STOP", 20000);
+  onEvent(b, "EMERGENCY_STOP_RELEASED", 30000);
+  onEvent(b, "FEEDING_STARTED", 31000); // informational: not an alert
+  if (b.alerts.size !== 2 || !b.resolves.has("EMERGENCY_STOP")) throw new Error("Not queued while offline");
+
+  // Back online 10 minutes later (t = 610 s).
+  const epochNow = Date.now();
+  const written = await processPending(b, epochNow, 610000);
+  if (written.join(",") !== "LOW_FEED,EMERGENCY_STOP") throw new Error(`Written: ${written}`);
+
+  const feed = await readAlert("LOW_FEED");
+  if (feed.resolved !== false || feed.timestamp !== epochNow - 600000) throw new Error(`LOW_FEED time wrong: ${JSON.stringify(feed)}`);
+  const estop = await readAlert("EMERGENCY_STOP");
+  if (estop.resolved !== true || estop.timestamp !== epochNow - 590000) throw new Error(`E-stop should show as happened and resolved: ${JSON.stringify(estop)}`);
+  if (b.alerts.size !== 0 || b.resolves.size !== 0) throw new Error("Queues not empty");
+  console.log("[Alerts] Raised while offline OK");
 }
 
 // ---------------------------------------------------------

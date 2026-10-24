@@ -48,7 +48,7 @@ This line replaced the pump-era format (`…|waterLow|waterHigh|pump|feeding|…
 EVENT|<NAME>
 ```
 
-Events are queued on the Mega (4 slots; the oldest is dropped when full) and sent one per loop. They are not acknowledged and not retried.
+Events are queued on the Mega (8 slots; the oldest is dropped when full) and sent one per loop. The UART link does not acknowledge them; the ESP32 keeps every alert until it is written (§3.2.1).
 
 | Event | Raised when | Forwarded to RTDB `/alerts`? |
 |-------|-------------|------------------------------|
@@ -83,7 +83,7 @@ Clear events mark the matching alert record `resolved: true` with `resolvedAt`:
 - **The ESP32 keeps pending resolves** (one bit per alert type) until it is online with a valid token, because the boot clears usually arrive before Wi-Fi is up. It retries every 5 s until the write succeeds.
 - **Only existing, still-active records change:** the ESP32 first reads `/alerts/{id}/{NAME}/resolved`, then `PATCH`es `{resolved: true, resolvedAt}` only if it is `false`. A missing alert is never created. The rules also reject partial records.
 - **Order is kept:** a new occurrence of an alert (its own event) cancels a pending resolve for it, and its `PUT` replaces the record (`resolved: false`, no `resolvedAt`).
-- **Limitation:** an alert raised while the ESP32 is offline is still not written (no event retry); its clear then finds nothing to resolve.
+- **Alerts raised while offline:** the ESP32 keeps each alert (one per type, with the time it was raised) until its `PUT` succeeds, retrying every 5 s. A resolve waits until its alert is written, so an alert raised and cleared while offline still appears in the app, as resolved, with its real times. If the ESP32 itself restarts while offline, alerts it had not written are lost; the Mega's boot clears still resolve old ones.
 
 ### 3.3 `CMD_ACK` and `CMD_DONE` (command replies)
 
@@ -219,6 +219,8 @@ A `SCHEDULE_SET` that fails for any of these reasons also triggers a schedule re
 | Gap between ESP32 → Mega lines | ≥ 50 ms |
 
 ## 9. Safety and offline behaviour
+
+- **Watchdogs:** the Mega restarts within 2 s if its program stops (`Watchdog.ino`); all relays start OFF and the next feed cycle homes first. The ESP32 restarts if `loop()` or one HTTP request stalls for 60 s.
 
 - **No network:** the Mega keeps running feeding, hydration, E-stop and SD logging from its RTC and EEPROM schedules. The ESP32 keeps the UART link and `STATUS|OFFLINE` going, and reconnects in the background.
 - **UART link down:** the Mega's local logic is unaffected; `esp32Online` goes false after 15 s.

@@ -17,7 +17,7 @@
   reset while the button is released:
     - remote ESTOP_RELEASE command (ESP32Communication.ino)
     - "RESET" typed on the USB serial monitor (bench testing)
-    - Nextion reset button (planned with the Nextion integration)
+    - Nextion Start button (b4), once its ID is set in Nextion.ino (R-20)
   A power cycle also starts with the latch cleared; if the button is still
   pressed at boot, the first loop latches it again.
 */

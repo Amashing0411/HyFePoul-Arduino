@@ -1,26 +1,21 @@
 /*
   ESP32Communication.ino
 
-  PLACEHOLDER / INTERFACE FILE.
+  The Mega's side of the UART link to the ESP32 (Serial1, 115200 baud).
+  Wi-Fi, Firebase and notifications are all on the ESP32; the Mega only
+  exchanges lines with it. Full protocol: docs/mega-esp32-protocol.md.
 
-  All actual Wi-Fi, Internet, backend, authentication and notification
-  implementation belongs to the ESP32/backend side.
+    Architecture: Mega -> ESP32 -> Wi-Fi -> Firebase -> app
 
-  Mega responsibilities:
-    - Send local sensor/system data.
-    - Send events/alerts.
-    - Receive validated network time from ESP32.
-    - Optionally receive future configuration commands.
-
-  Proposed architecture:
-    Mega -> ESP32 -> Wi-Fi -> Internet -> Backend -> Application
-
-  Proposed packet examples:
-    TIME|2026-09-18|19:30:00
-    STATUS|ONLINE
-    STATUS|OFFLINE
-    DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|estop|timeSource
-    EVENT|LOW_FEED
+  Mega -> ESP32:
+    DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|estop|timeSource   (every 10 s)
+    EVENT|<name>                     (alert queue, one per loop)
+    CMD_ACK / CMD_DONE               (replies to CMD)
+    SUMMARY|...                      (daily totals, DailyStats.ino)
+  ESP32 -> Mega:
+    TIME|YYYY-MM-DD|HH:MM:SS         (network time, UTC)
+    STATUS|ONLINE / STATUS|OFFLINE   (whether the device is online)
+    CMD|ID:..|ACTION:..|...          (remote commands; processRemoteCommand)
 */
 
 String esp32ReceiveBuffer = "";
@@ -118,12 +113,7 @@ void processESP32Line(String line) {
     return;
   }
 
-  // PLACEHOLDER:
-  // Future remote configuration commands can be handled here.
-  // Example:
-  // SET_FEED|1|07:30|500
-  // ENABLE_FEED|1
-  // DISABLE_FEED|1
+  // Anything else is ignored (an unknown or garbled line).
 }
 
 // DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|estop|timeSource

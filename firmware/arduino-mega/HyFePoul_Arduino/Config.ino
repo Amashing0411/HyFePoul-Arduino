@@ -274,6 +274,9 @@ void initializeSystem() {
   queueAlertEvent("SYSTEM_START");
 
   queueBootClears();
+
+  // Last, so slow start-up work (SD card, sensors) cannot trigger a reset.
+  startWatchdog();
 }
 
 // Alerts raised before a restart stay "active" in the app until a clear
