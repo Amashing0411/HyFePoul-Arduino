@@ -73,7 +73,7 @@ Arduino Mega 2560 ──UART 115200 (≤63 chars/line)── ESP32 ──HTTPS (
 | Nextion HMI (F14) | Mapped to the real Home page fields (R-20). Stop (`b3`) and Start (`b4`, local E-stop reset) are coded but **disabled until their numeric IDs are read on the bench**; every touch is logged to make that a one-press job. The Home page has no field for hopper level % or network status. `b0`–`b2` (schedule and weight entry on the HMI) are not handled. |
 | Notifications | Delivered only while the app is running (Spark plan, no server push). Alerts raised while it is closed appear in the Notifications tab later. |
 | Alert resolution (F24) | Done in software (R-23): the Mega sends clear events, the ESP32 marks the alert resolved, and the app lists active alerts first. Alerts raised while the ESP32 is offline are kept and written when it is back online. |
-| Load cell meaning | Resolved (R-16): one load cell under each tray weighs dispensed feed. The HMI caption `t0` still says "Hopper Load" (R-48). |
+| Load cell meaning | Resolved (R-16): one load cell under each tray weighs dispensed feed. The HMI caption `t0` now says "Feed in Trays:" (R-48; HMI project compile passed, physical display appearance not checked). |
 | `SYSTEM_RESTART` | Always rejected by the Mega (`NOT_IMPLEMENTED_SAFELY`), by design. |
 | ESP32 → Mega link health | Both directions are tracked. The Mega times out the ESP32 after 15 s; the ESP32 times out the Mega after 30 s and reports `megaLinkOk` plus a `CONTROLLER_OFFLINE` alert (R-24). |
 | Feeding accuracy | The tray weight is read without blocking (one HX711 sample when ready). Overshoot from feed still falling after the dispenser stops is not measured yet. |

@@ -1,5 +1,5 @@
 page Logo p0 - Logo/Loading Screen
-page Home t0 - Hopper Load Label
+page Home t0 - Feed in Trays Label
 page Home t1 - Water Level Label
 page Home t2 - Feed Amount
 page Home t3 - Water Level Status
