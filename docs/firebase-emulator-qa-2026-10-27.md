@@ -9,6 +9,7 @@
 |---|---|---|
 | RTDB security rules (`node backend/functions/scripts/test-rtdb-rules.js`) | **88 passed, 0 failed** | PIN claim validation, ownership, device identity, commands, schedules, alerts, state/data validation and access rules |
 | Mobile Jest (`npm --prefix mobile-app test -- --detectOpenHandles`) | **53 passed, 8 suites** | App service and utility tests against local emulators; Jest exited with no open-handle warning |
+| Mega logic simulator (`node scripts/simulate-mega.js`) | **51 passed, 0 failed** | Feed-cycle and safety logic, persistence, schedule restore, system-data reporting and simulated Nextion button events |
 | ESP32 simulator (`node scripts/simulate-esp32.js`) | **Passed** | Auth, heartbeat, state/history/alerts, command lifecycle, schedule restore, summary/history behavior and UART line-size checks |
 | Owner-to-device journey (`node scripts/test-e2e-journey.js`) | **Passed** | Owner signup and claim, device state, schedule, manual-feed lifecycle, alert resolution, history and sign-out |
 | Mobile command flow (`node scripts/test-mobile-commands.js`) | **Passed** | Simulated state/alerts, command creation and schedule validation/authorization |

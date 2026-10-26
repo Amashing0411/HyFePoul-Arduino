@@ -129,7 +129,7 @@ All pins, levels and polarities are **intended, not verified** ([`hardware-assum
 |------|-----------|-------|
 | **Mobile app** | Feature-complete for scope; emulator-verified | Jest 53/53, `tsc`, Android emulator runs ([`mobile-app-completion-matrix.md`](mobile-app-completion-matrix.md)); Firebase/app QA details in [`firebase-emulator-qa-2026-10-27.md`](firebase-emulator-qa-2026-10-27.md). No physical phone against production yet. |
 | **Backend / security** | Ready in software; revised rules pending deployment | 88/88 local rules tests; production still uses the 2026-10-21 rules, not the revised tray-state rules (R-45). Owner and device positive paths have not been exercised in production. |
-| **Firmware (Mega)** | Logic complete; compile-checked and simulated | Mega simulator 34/34. Flash 14%, RAM 29%. Calibration and pins unverified. |
+| **Firmware (Mega)** | Logic complete; compile-checked and simulated | Mega simulator 51/51. Flash 14%, RAM 29%. Calibration and pins unverified. |
 | **Firmware (ESP32)** | Logic complete; compile-checked and simulated | ESP32 simulator (commands, restore R1–R4, UART U1–U4). Flash 86% of the default partition (CA bundle). |
 | **Build** | Reproducible | `arduino-cli` builds for both boards; `npx expo run:android` development build; EAS profiles configured with the production RTDB URL. |
 | **Deployment** | Not started on hardware | Requires commissioning ([`hardware-integration-test-plan.md`](hardware-integration-test-plan.md)). |

@@ -8,7 +8,7 @@ This plan lists the physical checks the prototype must pass. Step-by-step instru
 
 | Behaviour | Already shown in simulation / emulators | Still needs physical evidence |
 |-----------|------------------------------------------|-------------------------------|
-| 5-tray feed cycle, relay interlock and dead time, limit switches, chain/tray timeouts, empty hopper, E-stop latch, water alert, alert queue, local time | Mega simulator (37 tests, modelled chain position and tray scales) | Real timing, sensors, relays, chain and dispenser motors |
+| 5-tray feed cycle, relay interlock and dead time, limit switches, chain/tray timeouts, empty hopper, E-stop latch, water alert, alert queue, local time | Mega simulator (51 tests, modelled chain position and tray scales) | Real timing, sensors, relays, chain and dispenser motors |
 | EEPROM persistence | Byte-for-byte JS mirror | Real EEPROM across a power cycle |
 | UART protocol and 64-byte line limit | JS mirrors of both parsers | Real buffers, timing, level shifting, noise |
 | ESP32 sign-in, TLS, RTDB writes, restore | ESP32 simulator against the emulator rules | Real Firebase token size (F27), the real certificate chain, Wi-Fi |

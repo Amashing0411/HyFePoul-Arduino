@@ -33,7 +33,7 @@ Read these before starting new work:
 
 | Subsystem | Status |
 |-----------|--------|
-| **Arduino Mega** (primary controller) | Logic complete: 5-tray feed cycle (chain motor with interlocked relays, home/end limit switches, timed travel, per-tray tare and target, chain/tray timeouts, empty-hopper return), reservoir water alert, latching E-stop, EEPROM schedules, SD log. Simulated (37 tests) and compile-checked. Calibration, tray travel times and pins **unverified** (R-46). |
+| **Arduino Mega** (primary controller) | Logic complete: 5-tray feed cycle (chain motor with interlocked relays, home/end limit switches, timed travel, per-tray tare and target, chain/tray timeouts, empty-hopper return), reservoir water alert, latching E-stop, EEPROM schedules, SD log. Simulated (51 tests) and compile-checked. Calibration, tray travel times and pins **unverified** (R-46). |
 | **ESP32** (communication bridge) | Complete: Wi-Fi reconnect, verified TLS, Firebase sign-in, RTDB writes, command transport, schedule restore. Simulated and compile-checked; **never flashed**. |
 | **Firebase** (Auth + RTDB, Spark plan) | Repo rules updated for the tray state and covered by 88 emulator tests; **production still has the 2026-10-21 (pump-era) rules** until R-45. Firestore and Cloud Functions are **not used**. |
 | **Mobile app** (React Native / Expo SDK 57) | Feature-complete; shows tray weights and cycle progress, reservoir status; Jest 53/53, tsc and targeted lint clean. Revised screens and empty states were checked on Android emulators (R-49; see the QA records). **Not yet run on a physical phone against production.** Expo Go is not supported. |
