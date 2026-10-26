@@ -10,7 +10,13 @@ using local Firebase, with temporary simulated readings. See the
 "Feed in Trays:" to match the five-tray load-cell reading. Nextion compile passed
 with 0 errors and 0 warnings; physical display appearance remains unverified.
 
-**Updated:** 2026-10-23. **Current phase:** design revision implemented in software ([`design-revision-moving-hopper.md`](design-revision-moving-hopper.md), branch `design-moving-hopper`): the hopper moves on a chain past 5 trays, each with its own load cell (50 g per tray by default), and water is gravity-fed with no pump. **Hardware commissioning has not started** (prototype not yet available). The revised RTDB rules are **not deployed** (R-45).
+**2026-10-27 Firebase/app follow-up:** Local emulator verification passed: RTDB
+rules 88/88, mobile Jest 53/53 (8 suites, no open handles), ESP32 simulator,
+mobile command flow, and owner-to-device end-to-end journey. See the
+[QA record](firebase-emulator-qa-2026-10-27.md). Production provisioning and
+physical hardware checks remain unverified.
+
+**Updated:** 2026-10-27. **Current phase:** design revision implemented in software ([`design-revision-moving-hopper.md`](design-revision-moving-hopper.md), branch `design-moving-hopper`): the hopper moves on a chain past 5 trays, each with its own load cell (50 g per tray by default), and water is gravity-fed with no pump. **Hardware commissioning has not started** (prototype not yet available). The revised RTDB rules are **not deployed** (R-45).
 
 Read these before starting new work:
 
@@ -29,8 +35,8 @@ Read these before starting new work:
 |-----------|--------|
 | **Arduino Mega** (primary controller) | Logic complete: 5-tray feed cycle (chain motor with interlocked relays, home/end limit switches, timed travel, per-tray tare and target, chain/tray timeouts, empty-hopper return), reservoir water alert, latching E-stop, EEPROM schedules, SD log. Simulated (37 tests) and compile-checked. Calibration, tray travel times and pins **unverified** (R-46). |
 | **ESP32** (communication bridge) | Complete: Wi-Fi reconnect, verified TLS, Firebase sign-in, RTDB writes, command transport, schedule restore. Simulated and compile-checked; **never flashed**. |
-| **Firebase** (Auth + RTDB, Spark plan) | Repo rules updated for the tray state and covered by 64 tests; **production still has the 2026-10-21 (pump-era) rules** until R-45. Firestore and Cloud Functions are **not used**. |
-| **Mobile app** (React Native / Expo SDK 57) | Feature-complete; shows tray weights and cycle progress, reservoir status; Jest 33/33, tsc and lint clean. The revised screens have not been opened on the emulator yet (R-49); earlier screens were verified there. **Not yet run on a physical phone against production.** Expo Go is not supported. |
+| **Firebase** (Auth + RTDB, Spark plan) | Repo rules updated for the tray state and covered by 88 emulator tests; **production still has the 2026-10-21 (pump-era) rules** until R-45. Firestore and Cloud Functions are **not used**. |
+| **Mobile app** (React Native / Expo SDK 57) | Feature-complete; shows tray weights and cycle progress, reservoir status; Jest 53/53, tsc and targeted lint clean. Revised screens and empty states were checked on Android emulators (R-49; see the QA records). **Not yet run on a physical phone against production.** Expo Go is not supported. |
 | **Nextion HMI** | HMI project in `Nextion/`. Firmware writes the real Home page fields; the Stop/Start buttons are coded but stay disabled until their IDs are read on the bench (R-20). |
 
 ## Constraints (from AGENTS.md)

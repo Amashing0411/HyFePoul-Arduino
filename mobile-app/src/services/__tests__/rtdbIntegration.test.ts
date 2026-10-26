@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, jest } from '@jest/globals';
+import { deleteApp } from 'firebase/app';
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(),
@@ -92,6 +93,7 @@ describe('Checkpoint 5B.3 - Authenticated RTDB Integration', () => {
 
   afterAll(async () => {
     await signOut(auth);
+    await deleteApp(auth.app);
   });
 
   const getCallbackPromise = (fn: any, ...args: any[]) => new Promise<{data: any, error: any}>((resolve) => {
