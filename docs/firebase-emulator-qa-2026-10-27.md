@@ -29,6 +29,8 @@ The mobile service tests now sign out and delete their Firebase app instances du
 | Feeding screen | **Passed** | The app rendered all five tray weights (42, 40, 39, 41, and 38 g), the 200 g sum, idle cycle, and hopper level. |
 | Water screen | **Passed** | The app showed Water OK and the gravity-fed reservoir explanation. |
 | History screen | **Passed** | One local sample history record appeared with its timestamp, feed weight, hopper level, water status, and dispenser state. |
+| Notifications screen | **Passed** | The empty state explained that there were no alerts; it did not appear blank or stuck loading. |
+| Settings screen | **Passed (visual check)** | Account, active device, device clock, app version, language, dark-mode, and text-size controls were visible. Preferences were not changed during this check. |
 
 The sample was inserted directly into the local RTDB emulator as an administrator fixture. It did not come from an Arduino, ESP32, or physical sensor, and it does not verify hardware data transmission. The debug build is emulator evidence only; it does not update or verify the APK installed on the user's phone.
 

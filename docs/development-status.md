@@ -18,9 +18,10 @@ physical hardware checks remain unverified.
 
 The same QA record now includes a visible Android 15 emulator walkthrough using
 a separate debug build: local sign-up and device claim passed, the pre-update
-empty state rendered clearly, and Status, Feeding, Water, and History displayed
-local simulated data. This does not verify the APK on the physical phone or
-data from Arduino/ESP32 hardware.
+empty state rendered clearly, Status, Feeding, Water, and History displayed
+local simulated data, and Notifications and Settings rendered their empty state
+and controls. This does not verify the APK on the physical phone or data from
+Arduino/ESP32 hardware.
 
 **Updated:** 2026-10-27. **Current phase:** design revision implemented in software ([`design-revision-moving-hopper.md`](design-revision-moving-hopper.md), branch `design-moving-hopper`): the hopper moves on a chain past 5 trays, each with its own load cell (50 g per tray by default), and water is gravity-fed with no pump. **Hardware commissioning has not started** (prototype not yet available). The revised RTDB rules are **not deployed** (R-45).
 
