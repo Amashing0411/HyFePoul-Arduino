@@ -1,5 +1,11 @@
 # Development Status
 
+**2026-10-26 mobile follow-up:** Fixed indefinite loading after claiming a device
+that has not sent its first sensor update, and inaccessible Settings controls.
+Verified empty and populated Status/Feeding/Water views on the Android emulator
+using local Firebase, with temporary simulated readings. See the
+[verification record](mobile-empty-state-qa-2026-10-26.md) for scope and limitations.
+
 **Updated:** 2026-10-23. **Current phase:** design revision implemented in software ([`design-revision-moving-hopper.md`](design-revision-moving-hopper.md), branch `design-moving-hopper`): the hopper moves on a chain past 5 trays, each with its own load cell (50 g per tray by default), and water is gravity-fed with no pump. **Hardware commissioning has not started** (prototype not yet available). The revised RTDB rules are **not deployed** (R-45).
 
 Read these before starting new work:

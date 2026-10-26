@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Card from '../components/Card';
 import ProgressBar from '../components/ProgressBar';
 import StatusBadge from '../components/StatusBadge';
-import Skeleton from '../components/Skeleton';
+import DeviceDataUnavailable from '../components/DeviceDataUnavailable';
 import Button from '../components/Button';
 import TrayWeights from '../components/TrayWeights';
 import { describeCycleStep } from '../utils/feedCycle';
@@ -32,7 +32,7 @@ const DEFAULT_TRAY_TARGET_GRAMS = 50;
 const MAX_TRAY_TARGET_GRAMS = 1000;
 
 export default function FeedingScreen() {
-  const { deviceData, systemData, deviceOnline, controllerResponding, schedules, scheduleStatus, commands, loading, error, issueCommand, updateSchedule } = useFirebaseData();
+  const { deviceData, systemData, deviceOnline, controllerResponding, schedules, scheduleStatus, commands, loading, issueCommand, updateSchedule } = useFirebaseData();
   const { colors, typography } = useTheme();
   const { t } = useLanguage();
 
@@ -192,30 +192,8 @@ export default function FeedingScreen() {
     );
   };
 
-  // Without this, a listener error left the loading skeleton up forever.
-  if (error && !systemData) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.content}>
-          <Card title="Data Error">
-            <Text style={[typography.body, { color: colors.error }]}>{error}</Text>
-          </Card>
-        </View>
-      </View>
-    );
-  }
-
   if (loading || !deviceData || !systemData) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.content}>
-          <Skeleton height={150} style={{ marginBottom: spacing.md }} />
-          <Skeleton height={80} style={{ marginBottom: spacing.sm }} />
-          <Skeleton height={80} style={{ marginBottom: spacing.sm }} />
-          <Skeleton height={80} />
-        </View>
-      </View>
-    );
+    return <DeviceDataUnavailable />;
   }
 
   const feedColor = systemData.hopperLevelPercent < 20 ? colors.error : colors.warning;

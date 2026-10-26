@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Switch, TouchableOpacity, Alert } from 'react-native';
+import { ScrollView, View, Text, StyleSheet, Switch, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -37,7 +37,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
       <Text style={[typography.h1, styles.header]}>{t('settings')}</Text>
 
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, marginBottom: spacing.md }]}>
@@ -200,12 +200,13 @@ export default function SettingsScreen() {
           <Text style={[typography.body, styles.logoutText]}>{t('logOut')}</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: spacing.md },
+  container: { flex: 1 },
+  content: { padding: spacing.md },
   header: { marginBottom: spacing.lg, marginTop: spacing.md },
   card: {
     borderRadius: layout.borderRadius,

@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Card from '../components/Card';
 import StatusBadge from '../components/StatusBadge';
 import ProgressBar from '../components/ProgressBar';
-import Skeleton from '../components/Skeleton';
+import DeviceDataUnavailable from '../components/DeviceDataUnavailable';
 import Button from '../components/Button';
 import { describeCycleStep } from '../utils/feedCycle';
 import { useFirebaseData } from '../context/FirebaseDataContext';
@@ -16,7 +16,7 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { MainTabParamList } from '../navigation/AppNavigator';
 
 export default function DashboardScreen() {
-  const { deviceData, systemData, deviceOnline, controllerResponding, nowMs, commands, loading, error, issueCommand } = useFirebaseData();
+  const { deviceData, systemData, deviceOnline, controllerResponding, nowMs, commands, loading, issueCommand } = useFirebaseData();
   const { colors, typography } = useTheme();
   const { t } = useLanguage();
   const navigation = useNavigation<BottomTabNavigationProp<MainTabParamList>>();
@@ -63,31 +63,7 @@ export default function DashboardScreen() {
   };
 
   if (loading || !deviceData || !systemData) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        {error ? (
-          <Card title="Connection Error">
-            <Text style={[typography.body, { color: colors.error, marginBottom: 16 }]}>{error}</Text>
-          </Card>
-        ) : (
-          <>
-            <Card title={t('deviceStatus')}>
-              <Skeleton height={24} width="50%" />
-              <Skeleton height={16} width="30%" />
-            </Card>
-            <Card title={t('feedSystem')}>
-              <Skeleton height={24} width="40%" />
-              <Skeleton height={8} />
-              <Skeleton height={24} width="40%" />
-            </Card>
-            <Card title={t('waterSystem')}>
-              <Skeleton height={24} width="40%" />
-              <Skeleton height={24} width="40%" />
-            </Card>
-          </>
-        )}
-      </View>
-    );
+    return <DeviceDataUnavailable />;
   }
 
   const feedColor = systemData.hopperLevelPercent < 20 ? colors.error : colors.warning;

@@ -3,7 +3,7 @@ import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Card from '../components/Card';
 import StatusBadge from '../components/StatusBadge';
-import Skeleton from '../components/Skeleton';
+import DeviceDataUnavailable from '../components/DeviceDataUnavailable';
 import { useFirebaseData } from '../context/FirebaseDataContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -15,27 +15,12 @@ import { spacing, layout } from '../theme';
 export default function WaterScreen() {
   // Data arrives through the live device listener, so there is nothing to
   // pull-to-refresh; online/stale state comes from the shared context.
-  const { systemData, deviceData, deviceOnline, nowMs, loading, error } = useFirebaseData();
+  const { systemData, deviceData, deviceOnline, nowMs, loading } = useFirebaseData();
   const { colors, typography } = useTheme();
   const { t } = useLanguage();
 
-  // Without this, a listener error left the loading skeleton up forever.
-  if (error && !systemData) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background, padding: spacing.md }]}>
-        <Card title="Data Error">
-          <Text style={[typography.body, { color: colors.error }]}>{error}</Text>
-        </Card>
-      </View>
-    );
-  }
-
-  if (loading || !systemData) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <Card title={t('waterTank')}><Skeleton height={150} /></Card>
-      </View>
-    );
+  if (loading || !deviceData || !systemData) {
+    return <DeviceDataUnavailable />;
   }
 
   const { waterLow, timestamp } = systemData;

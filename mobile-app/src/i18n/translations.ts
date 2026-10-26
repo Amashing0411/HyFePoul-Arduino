@@ -1,5 +1,15 @@
 export const translations = {
   en: {
+    // Device data availability
+    deviceIdLabel: 'Device ID',
+    deviceDataError: 'Could not load device data',
+    loadingDeviceData: 'Loading device data',
+    deviceUnavailable: 'Device unavailable',
+    deviceUnavailableHint: 'No linked device could be loaded. Check your connection and sign in again.',
+    waitingDeviceData: 'Waiting for first device update',
+    waitingDeviceDataHint: 'Your device is linked. Feed, water, and safety readings will appear automatically when the device sends its first update.',
+    deviceOfflineSetupHint: 'When your hardware is ready, power on the device and check its Wi-Fi connection.',
+
     // Navigation
     navDashboard: 'Status',
     navFeeding: 'Feeding',
@@ -180,6 +190,16 @@ export const translations = {
     tagalog: 'Tagalog',
   },
   tl: {
+    // Device data availability
+    deviceIdLabel: 'Device ID',
+    deviceDataError: 'Hindi ma-load ang datos ng device',
+    loadingDeviceData: 'Nilo-load ang datos ng device',
+    deviceUnavailable: 'Hindi available ang device',
+    deviceUnavailableHint: 'Hindi ma-load ang naka-link na device. Suriin ang koneksyon at mag-sign in muli.',
+    waitingDeviceData: 'Hinihintay ang unang update ng device',
+    waitingDeviceDataHint: 'Naka-link na ang iyong device. Awtomatikong lalabas ang mga reading ng pakain, tubig, at kaligtasan kapag nagpadala ito ng unang update.',
+    deviceOfflineSetupHint: 'Kapag handa na ang hardware, buksan ang device at suriin ang koneksyon nito sa Wi-Fi.',
+
     // Navigation
     navDashboard: 'Status',
     navFeeding: 'Pakain',
