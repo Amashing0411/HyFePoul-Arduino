@@ -23,6 +23,12 @@ local simulated data, and Notifications and Settings rendered their empty state
 and controls. This does not verify the APK on the physical phone or data from
 Arduino/ESP32 hardware.
 
+**2026-10-27 standalone APK check:** Built and installed a release-variant QA
+APK with an embedded app bundle and local-emulator-only HTTP access. It launched
+directly into HyFePoul and a disposable sign-up reached Claim Device through the
+local Auth emulator. Physical phone testing and production Firebase remain
+pending. See the [APK and emulator QA record](firebase-emulator-qa-2026-10-27.md).
+
 **Updated:** 2026-10-27. **Current phase:** design revision implemented in software ([`design-revision-moving-hopper.md`](design-revision-moving-hopper.md), branch `design-moving-hopper`): the hopper moves on a chain past 5 trays, each with its own load cell (50 g per tray by default), and water is gravity-fed with no pump. **Hardware commissioning has not started** (prototype not yet available). The revised RTDB rules are **not deployed** (R-45).
 
 Read these before starting new work:

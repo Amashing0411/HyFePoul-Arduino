@@ -34,9 +34,46 @@ The mobile service tests now sign out and delete their Firebase app instances du
 
 The sample was inserted directly into the local RTDB emulator as an administrator fixture. It did not come from an Arduino, ESP32, or physical sensor, and it does not verify hardware data transmission. The debug build is emulator evidence only; it does not update or verify the APK installed on the user's phone.
 
+## Standalone Android release APK smoke check
+
+**Build:** `mobile-app/android/app/build/outputs/apk/release/app-release.apk`, built with an embedded JavaScript bundle and `EXPO_PUBLIC_USE_FIREBASE_EMULATOR=true`, `EXPO_PUBLIC_EMULATOR_HOST=127.0.0.1` for local Auth/RTDB emulator access. The checked-in `mobile-app/app.config.js` sets `android:usesCleartextTraffic=true` only when both values match; otherwise it sets the attribute to `false`. This is an emulator QA build, not a production APK.
+
+**SHA-256:** `A7BD004BABDCA85E7D6CB0B5177A1D7C2AE05F668A61428367E010DE45624AED`
+
+Rebuild from `mobile-app/` in PowerShell:
+
+```powershell
+$env:EXPO_PUBLIC_USE_FIREBASE_EMULATOR = 'true'
+$env:EXPO_PUBLIC_EMULATOR_HOST = '127.0.0.1'
+npx expo prebuild --platform android
+cd android
+.\gradlew.bat :app:assembleRelease
+```
+
+For a physical phone connected over USB, forward the Auth and RTDB emulator
+ports before launching this QA APK:
+
+```powershell
+adb reverse tcp:9099 tcp:9099
+adb reverse tcp:9000 tcp:9000
+```
+
+The phone and laptop must stay connected for those forwarded localhost services
+to work. A production build must use the normal HTTPS Firebase endpoints.
+
+| Check | Result | Evidence |
+|---|---|---|
+| Install and launch | **Passed** | Installed on MuMu Android 15 (`emulator-5554`) and launched directly into HyFePoul; no Expo Go or dev launcher prompt appeared. |
+| Local Auth connectivity | **Passed** | Created a disposable account from the APK; it advanced to Claim Device. Auth emulator port 9099 was forwarded to the emulator. |
+| Local device claim | **Not repeated** | Stopped at Claim Device; this smoke check did not claim the existing QA fixture or touch production. |
+| Physical phone | **Not tested** | No physical phone was connected to ADB during this check. |
+
+The successful sign-up verifies that the APK can reach the local Auth emulator after enabling cleartext only for an explicitly flagged local-emulator build. It does not verify RTDB claim traffic, production Firebase, physical phone behavior, or Arduino/ESP32 data transmission. Do not use this APK as a production build: it is configured for localhost emulator services and signed with the development key.
+
 ## Limits
 
 - These are emulator and simulator results, not tests with Arduino-generated data or physical hardware.
 - The visible UI check used a separate debug APK in the Android emulator. The APK installed on the user's physical phone was not rebuilt or tested against this local emulator. The automated app integration suite tests Firebase services, not the visible phone UI.
 - Production provisioning for `device-001` and its owner setup PIN remains unconfirmed (R-14). The test PINs are fixtures and must not be used as the production PIN.
+- The production Firebase setup reported by the earlier audit remains unresolved: no independent production check or provisioning change was made during this APK work. R-14 is still `NOT STARTED (confirm)`.
 - Physical serial reliability, Arduino↔Nextion operation, ESP32 Wi-Fi/TLS behavior and calibration remain for the prototype commissioning session.
