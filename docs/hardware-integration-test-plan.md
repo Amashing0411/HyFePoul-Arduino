@@ -1,6 +1,6 @@
 # HyFePoul: Hardware Integration Test Plan
 
-**As of:** 2026-10-23 (moving-hopper revision: chain motor, 5 trays with load cells, gravity water, no pump). **Prototype status: not yet available for testing**, so every test below is `BLOCKED`.
+**As of:** 2026-10-27 (moving-hopper revision: chain motor, 5 trays with load cells, gravity water, no pump). **Prototype status: not yet available for testing**, so every physical test below is `BLOCKED`.
 
 This plan lists the physical checks the prototype must pass. Step-by-step instructions for each area are in [`hardware-commissioning-procedure.md`](hardware-commissioning-procedure.md), referenced as "Proc. §x". Record results here, and add raw evidence (photos, serial logs, meter readings) to [`hardware-commissioning-log.md`](hardware-commissioning-log.md).
 
@@ -12,11 +12,28 @@ This plan lists the physical checks the prototype must pass. Step-by-step instru
 | EEPROM persistence | Byte-for-byte JS mirror | Real EEPROM across a power cycle |
 | UART protocol and 64-byte line limit | JS mirrors of both parsers | Real buffers, timing, level shifting, noise |
 | ESP32 sign-in, TLS, RTDB writes, restore | ESP32 simulator against the emulator rules | Real Firebase token size (F27), the real certificate chain, Wi-Fi |
-| Rules and app | 64 rules tests; Jest; Android emulator (pre-revision screens) | Physical phone against production; the revised Feeding/Water screens on a device |
+| Rules and app | RTDB rules (88 tests); Jest (53 tests); Android emulator with the revised Status, Feeding, Water and History screens against local Firebase emulators | Physical phone against production; production provisioning and deployed revised rules |
 | Calibration | none | All of it |
 | E-stop electrical isolation | none (software only) | All of it |
 
 **Rule:** a row may be marked `PASS` only with **measured evidence** (reading, log excerpt, photo or video). Simulator results never count as a hardware pass.
+
+### 1.1 Claude's six checks mapped to current evidence
+
+The six-item list is a useful summary, but it mixes software checks with physical commissioning. The simulator and emulator work below is complete; physical evidence is still required wherever stated.
+
+| Check | Current result | What remains |
+|---|---|---|
+| Send simulated/test data | **Passed in software.** The Mega and ESP32 simulators passed; a valid simulated state and history row also rendered in the Android emulator using local Firebase. See [`firebase-emulator-qa-2026-10-27.md`](firebase-emulator-qa-2026-10-27.md). | No physical pass is implied. HIT-04 and HIT-15 verify the hardware-to-app path later. |
+| Use actual Arduino-generated data when available | **Blocked until the prototype session.** | Capture one Mega `DATA` line, confirm the ESP32 accepted and wrote it to RTDB, and match the same readings in the app. Record the serial excerpt and screen evidence. HIT-04, HIT-15. |
+| Check serial communication reliability | **Protocol behavior simulated; physical reliability unverified.** | With level shifting installed, observe repeated Mega↔ESP32 messages, recovery after disconnect, and absence of `UART_TIMEOUT` / `LINE_TOO_LONG` during the schedule-edit check. HIT-01, HIT-04, HIT-05, HIT-14. |
+| Arduino↔Nextion integration | **Compile and touch-parser simulation passed; display not physically checked.** The Home caption change also compile-passed. | Confirm baud, live field updates, and identify the Stop/Start button IDs on the actual panel before enabling them. HIT-12. |
+| ESP32 integration | **Simulator passed against local Firebase; firmware compile-checked.** | Flash the board and verify device-account sign-in, TLS, heartbeat, state/history writes, UART behavior, and Wi-Fi recovery on the actual network. HIT-03, HIT-04, HIT-14. |
+| Backend integration | **Local integration passed.** RTDB rules tests, owner claim, simulated device writes, and the visible app flow passed against local emulators. | Production remains separate: deploy the revised RTDB rules (R-45), provision the production device account and record (R-14), then validate the physical phone and device against production only when ready. HIT-15. |
+
+### 1.2 Suggested order for the prototype session
+
+Use the numbered HIT sequence as the safety gate: start with wiring and power checks (HIT-01–02), then bring up the ESP32 and prove the serial path (HIT-03–05), check the E-stop circuit before supervised actuators (HIT-06–07, HIT-11), calibrate sensors and verify the display (HIT-08–10, HIT-12), and only then test schedules, recovery and the complete feeding cycle (HIT-13–16). Stop at the first failed prerequisite; record the observation and corrective action before continuing. Do not connect or run motors before the stated HIT-01–05 prerequisites pass.
 
 ## 2. Safety rules for every session
 
