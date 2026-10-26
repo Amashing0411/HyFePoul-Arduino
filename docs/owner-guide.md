@@ -24,6 +24,8 @@ No passwords or PINs are written in this guide or anywhere in the repository. Ke
 
 ### Provisioning `device-001` (admin, once, in the Firebase console)
 
+Follow the full [Firebase device provisioning and setup PIN guide](device-provisioning-guide.md), especially its R-45 rules prerequisite, before touching production.
+
 The last reported production check (2026-10-24) found no `devices/device-001` or `deviceSecrets/device-001`. This was not independently rechecked during the 2026-10-27 APK work; R-14 remains open until an admin confirms the device account and both database records in the [Firebase console](https://console.firebase.google.com), project **hyfepoul-dev**:
 
 1. **Device account:** Authentication → Users. If no user has the email in the ESP32's `Config.h` (`FIREBASE_AUTH_EMAIL`), click **Add user** with that email and `FIREBASE_AUTH_PASSWORD`. Copy its **User UID**.
@@ -39,7 +41,7 @@ The last reported production check (2026-10-24) found no `devices/device-001` or
 3. **Setup PIN:** add `deviceSecrets/device-001/setupPin` with your chosen six-digit PIN stored as a **string**, not a number. The app sends text and the rules compare types strictly; a numeric value makes a correct PIN fail as "wrong PIN". Do not reuse a sample or test PIN.
 4. **Claim:** in the app, Sign up, then Device ID `device-001` and the PIN. The device shows as yours, OFFLINE until the ESP32 is flashed and online.
 
-To hand the device to another owner later (for example after a demo), delete `devices/device-001/ownerId`; the next owner claims with the same PIN.
+After a successful claim, an administrator can remove the retained `claimRequests/device-001` record after verifying `ownerId`; this removes the submitted PIN from that claim record. For a later owner transfer, follow the handover process in the full provisioning guide. Deleting only `ownerId` is insufficient under the current rules because the old claim request can block the next owner's request.
 
 ## 2. Install the app (Android)
 
