@@ -16,9 +16,25 @@
 
 The mobile service tests now sign out and delete their Firebase app instances during teardown. This cleared a lingering Jest connection, confirmed by the full suite with `--detectOpenHandles`.
 
+## Visible Android app check
+
+**Environment:** A locally built Android debug development client running in the MuMu Android 15 emulator, connected to the local Expo Metro server and local Firebase Auth/RTDB emulators. The app JS confirmed `Connected to Auth/RTDB Emulators on 10.0.2.2`. Production Firebase and the user's physical phone were not used.
+
+| Check | Result | Evidence |
+|---|---|---|
+| App launch and sign-up | **Passed** | The debug APK launched, loaded its JS bundle from the local Metro server, and created a disposable owner account in the Auth emulator. |
+| Device claim | **Passed** | The app accepted the local-only `LOCAL-UI-TEST-001` fixture and emulator test PIN, then opened Status. |
+| First-update empty state | **Passed** | Before simulated readings were seeded, Status showed the device as offline and explained that it was waiting for its first update. |
+| Status dashboard | **Passed** | After seeding a valid local state, the app rendered online status, 200 g across trays, 76% hopper level, Water OK, and Running safety state. |
+| Feeding screen | **Passed** | The app rendered all five tray weights (42, 40, 39, 41, and 38 g), the 200 g sum, idle cycle, and hopper level. |
+| Water screen | **Passed** | The app showed Water OK and the gravity-fed reservoir explanation. |
+| History screen | **Passed** | One local sample history record appeared with its timestamp, feed weight, hopper level, water status, and dispenser state. |
+
+The sample was inserted directly into the local RTDB emulator as an administrator fixture. It did not come from an Arduino, ESP32, or physical sensor, and it does not verify hardware data transmission. The debug build is emulator evidence only; it does not update or verify the APK installed on the user's phone.
+
 ## Limits
 
 - These are emulator and simulator results, not tests with Arduino-generated data or physical hardware.
-- The installed phone APK was not rebuilt or tested against the local emulator in this run. The automated app integration suite tests Firebase services, not the visible phone UI.
+- The visible UI check used a separate debug APK in the Android emulator. The APK installed on the user's physical phone was not rebuilt or tested against this local emulator. The automated app integration suite tests Firebase services, not the visible phone UI.
 - Production provisioning for `device-001` and its owner setup PIN remains unconfirmed (R-14). The test PINs are fixtures and must not be used as the production PIN.
 - Physical serial reliability, Arduino↔Nextion operation, ESP32 Wi-Fi/TLS behavior and calibration remain for the prototype commissioning session.
