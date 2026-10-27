@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.0//EN'
+  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg width="507.27559055118115" height="215" preserveAspectRatio="xMinYMin meet" viewBox="0 0 507 215" xmlns="http://www.w3.org/2000/svg" version="1.0" fill-rule="evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<title>HyFePoul: accounts</title>
+	<desc>Functional illustration for the commissioning manuals; not a construction drawing.</desc>
+	<clipPath id="clip">
+		<rect x="0" y="0" width="507.27559055118115" height="215"/>
+	</clipPath>
+	<g id="group" transform="scale(1,-1) translate(0,-215)" style="clip-path: url(#clip)">
+		<g transform="">
+			<rect x="0" y="0" width="507.27559055118115" height="215" rx="8" ry="8" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(93%,96%,96%); fill-rule: evenodd;"/>
+			<rect x="20" y="119" width="140" height="74" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="42.170654296875" y="175" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,350) scale(1,-1)">OWNER ACCOUNT</text>
+			<text x="36.22192382812499" y="159" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,318) scale(1,-1)">App sign-in; controls linked</text>
+			<text x="76.9921875" y="147" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,294) scale(1,-1)">device</text>
+			<rect x="184" y="119" width="140" height="74" rx="6" ry="6" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,18%,27%); fill-rule: evenodd;"/>
+			<text x="206.7474365234375" y="175" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,350) scale(1,-1)">DEVICE ACCOUNT</text>
+			<text x="196.2119140625" y="159" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,318) scale(1,-1)">ESP32 sign-in; bound device</text>
+			<text x="246.250244140625" y="147" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,294) scale(1,-1)">UID</text>
+			<rect x="348" y="119" width="140" height="74" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="390.2862548828125" y="175" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,350) scale(1,-1)">SETUP PIN</text>
+			<text x="366.478515625" y="159" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,318) scale(1,-1)">Six-digit string; authorizes</text>
+			<text x="407.499267578125" y="147" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,294) scale(1,-1)">claim</text>
+			<rect x="103" y="22" width="302" height="57" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="227.1475830078125" y="61" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,122) scale(1,-1)">device-001</text>
+			<text x="161.44677734375" y="45" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,90) scale(1,-1)">ownerId and deviceAuthUid are different roles.</text>
+			<path d="M 90,119 L 161,79 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="161 79, 155.4167 79.2761, 157.8709 83.63234" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<path d="M 254,119 L 254,79 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="254 79, 251.5 84, 256.5 84" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<path d="M 418,119 L 347,79 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="347 79, 350.1291 83.63234, 352.5833 79.2761" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<text x="116.22373277559058" y="8" style="font-family: Arial, sans-serif; font-size: 8px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,16) scale(1,-1)">Keep passwords and the private PIN separate from published documentation.</text>
+		</g>
+	</g>
+</svg>

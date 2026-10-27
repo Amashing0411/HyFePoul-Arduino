@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.0//EN'
+  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg width="507.27559055118115" height="230" preserveAspectRatio="xMinYMin meet" viewBox="0 0 507 230" xmlns="http://www.w3.org/2000/svg" version="1.0" fill-rule="evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<title>HyFePoul: architecture</title>
+	<desc>Functional illustration for the commissioning manuals; not a construction drawing.</desc>
+	<clipPath id="clip">
+		<rect x="0" y="0" width="507.27559055118115" height="230"/>
+	</clipPath>
+	<g id="group" transform="scale(1,-1) translate(0,-230)" style="clip-path: url(#clip)">
+		<g transform="">
+			<rect x="0" y="0" width="507.27559055118115" height="230" rx="8" ry="8" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(93%,96%,96%); fill-rule: evenodd;"/>
+			<rect x="15" y="135" width="140" height="73" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="43.123046875" y="190" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,380) scale(1,-1)">Sensors + safety</text>
+			<text x="23.979736328124993" y="174" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,348) scale(1,-1)">Five trays, hopper, float, limits,</text>
+			<text x="71.994384765625" y="162" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,324) scale(1,-1)">E-stop</text>
+			<rect x="183" y="135" width="140" height="73" rx="6" ry="6" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,18%,27%); fill-rule: evenodd;"/>
+			<text x="224.1121826171875" y="190" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,380) scale(1,-1)">MEGA 2560</text>
+			<text x="191.2216796875" y="174" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,348) scale(1,-1)">Control, schedules, safety, SD,</text>
+			<text x="237.7421875" y="162" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,324) scale(1,-1)">Nextion</text>
+			<rect x="351" y="135" width="140" height="73" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="404.6552734375" y="190" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,380) scale(1,-1)">ESP32</text>
+			<text x="380.74609375" y="174" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,348) scale(1,-1)">UART / Wi-Fi bridge</text>
+			<path d="M 155,171 L 183,171 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="183 171, 178 168.5, 178 173.5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<path d="M 323,171 L 351,171 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="351 171, 346 168.5, 346 173.5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<rect x="183" y="28" width="140" height="65" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="222.0870361328125" y="75" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,150) scale(1,-1)">Android app</text>
+			<text x="200.724853515625" y="59" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,118) scale(1,-1)">Owner controls and status</text>
+			<rect x="351" y="28" width="140" height="65" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="399.4052734375" y="75" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,150) scale(1,-1)">Firebase</text>
+			<text x="394.36474609375" y="59" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,118) scale(1,-1)">Auth + RTDB</text>
+			<path d="M 421,135 L 421,93 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="421 93, 418.5 98, 423.5 98" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<text x="411.671875" y="121.0" style="font-family: Arial, sans-serif; font-size: 8px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,242) scale(1,-1)">Wi-Fi</text>
+			<path d="M 351,60 L 323,60 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="323 60, 328 62.5, 328 57.5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<text x="38.74462890624999" y="84" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,168) scale(1,-1)">Motor / relay control</text>
+			<path d="M 218,135 L 90,103 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="90 103, 94.24437 106.638, 95.45705 101.7873" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<text x="43.72363281249999" y="67" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,134) scale(1,-1)">Local, on the Mega</text>
+			<text x="114.90537340059058" y="11" style="font-family: Arial, sans-serif; font-size: 8px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,22) scale(1,-1)">Arrows show the data path; commands travel back through the same services.</text>
+		</g>
+	</g>
+</svg>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.0//EN'
+  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg width="507.27559055118115" height="168" preserveAspectRatio="xMinYMin meet" viewBox="0 0 507 168" xmlns="http://www.w3.org/2000/svg" version="1.0" fill-rule="evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<title>HyFePoul: mechanism</title>
+	<desc>Functional illustration for the commissioning manuals; not a construction drawing.</desc>
+	<clipPath id="clip">
+		<rect x="0" y="0" width="507.27559055118115" height="168"/>
+	</clipPath>
+	<g id="group" transform="scale(1,-1) translate(0,-168)" style="clip-path: url(#clip)">
+		<g transform="">
+			<rect x="0" y="0" width="507.27559055118115" height="168" rx="8" ry="8" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(93%,96%,96%); fill-rule: evenodd;"/>
+			<text x="131.97031480684058" y="147" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,294) scale(1,-1)">Moving hopper - functional illustration, not to scale</text>
+			<path d="M 30,108 L 477.275591,108 Z" style="stroke: rgb(32%,40%,47%); stroke-linecap: butt; stroke-width: 2;"/>
+			<rect x="184" y="82" width="140" height="48" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="216.37841796875" y="112" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,224) scale(1,-1)">Moving hopper</text>
+			<text x="229.98828125" y="96" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,192) scale(1,-1)">Chain travel</text>
+			<path d="M 336,117 L 465,117 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="465 117, 460 114.5, 460 119.5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<text x="20.996337890625" y="85" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,170) scale(1,-1)">Home</text>
+			<text x="466.26875461368115" y="85" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,170) scale(1,-1)">End</text>
+			<rect x="28" y="24" width="70" height="43" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="47.531982421875" y="49" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,98) scale(1,-1)">Tray 1</text>
+			<text x="44.98681640625" y="33" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,66) scale(1,-1)">Load cell</text>
+			<rect x="125" y="24" width="70" height="43" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="144.531982421875" y="49" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,98) scale(1,-1)">Tray 2</text>
+			<text x="141.98681640625" y="33" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,66) scale(1,-1)">Load cell</text>
+			<rect x="222" y="24" width="70" height="43" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="241.531982421875" y="49" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,98) scale(1,-1)">Tray 3</text>
+			<text x="238.98681640625" y="33" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,66) scale(1,-1)">Load cell</text>
+			<rect x="319" y="24" width="70" height="43" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="338.531982421875" y="49" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,98) scale(1,-1)">Tray 4</text>
+			<text x="335.98681640625" y="33" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,66) scale(1,-1)">Load cell</text>
+			<rect x="416" y="24" width="70" height="43" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="435.531982421875" y="49" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,98) scale(1,-1)">Tray 5</text>
+			<text x="432.98681640625" y="33" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,66) scale(1,-1)">Load cell</text>
+			<text x="113.77842027559058" y="8" style="font-family: Arial, sans-serif; font-size: 8px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,16) scale(1,-1)">One HX711 and one load cell beneath each tray. Gravity-fed water is separate.</text>
+		</g>
+	</g>
+</svg>

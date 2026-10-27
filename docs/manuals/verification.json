@@ -1,0 +1,40 @@
+{
+  "edition": "1.0",
+  "baseline": "d623cce",
+  "pdfs": [
+    {
+      "file": "HyFePoul-Users-Manual.pdf",
+      "pages": 8,
+      "bytes": 499317,
+      "sha256": "f2d3efb64b68fda57d62b0db8f8a50a70daa4955c7c89705c3ccba35737b1afb",
+      "checks": "PASS: text bounds, page count, bookmarks, contents links, source hygiene, full-page renders"
+    },
+    {
+      "file": "HyFePoul-Hardware-Technical-Manual.pdf",
+      "pages": 11,
+      "bytes": 110922,
+      "sha256": "89f3ca870a202e81a2f847a9ed960e5651039a6001efa78fb1415ff3bc7ec9e8",
+      "checks": "PASS: text bounds, page count, bookmarks, contents links, source hygiene, full-page renders"
+    },
+    {
+      "file": "HyFePoul-Troubleshooting-Manual.pdf",
+      "pages": 9,
+      "bytes": 226478,
+      "sha256": "dab1c3a000849bbfe2ad7e174143d4cf1f21c45b966e54a946dfb69177f7e38b",
+      "checks": "PASS: text bounds, page count, bookmarks, contents links, source hygiene, full-page renders"
+    },
+    {
+      "file": "HyFePoul-Account-Device-Setup-Manual.pdf",
+      "pages": 8,
+      "bytes": 222403,
+      "sha256": "3909e3d4e42e16cabffbfbccbfa313d28ec8565646f5f887042455451db1c062",
+      "checks": "PASS: text bounds, page count, bookmarks, contents links, source hygiene, full-page renders"
+    }
+  ],
+  "screenshots": {
+    "status-populated.png": "2ac3e1e6f2a1bf771f2c1ea4db9f9d0d7287e05dc10993351c2145d169368d4e",
+    "feeding-populated.png": "1fcfd026ae4454a809c8c61ab5d125bb93295d4272dce3f25ea729ff70a62119",
+    "dashboard-empty-final.png": "bd5804e4f66a6effe5a6b496b57e9671df3b657d1bcb20a17158f1ee0d085736",
+    "water-low.png": "23d742964e7b13a4add11e1959a713e76bbba1c2ebc2dd0cf8522d8b01f4d778"
+  }
+}

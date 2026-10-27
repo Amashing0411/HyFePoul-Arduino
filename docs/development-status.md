@@ -1,5 +1,15 @@
 # Development Status
 
+**2026-10-27 illustrated manuals:** Added the [manual set](manuals/README.md):
+User's Manual (8 pages), Hardware / Technical Manual (11), Troubleshooting Manual
+(9), and Account / Device Setup Manual (8). Editable Markdown, vector diagrams,
+reviewed emulator screenshots, PDF generation/verification scripts and a QA
+record are included. The edition uses implementation baseline `d623cce` and
+distinguishes software checks from pending physical commissioning. It documents
+the disabled Nextion controls, private PIN string typing, retained-claim cleanup,
+Wi-Fi rebuild requirement and separate owner/device identities. This documentation
+release does not mark any hardware HIT check passed.
+
 **2026-10-27 production credential recheck:** A temporary Firebase Auth export
 confirmed that the account configured in the local, Git-ignored ESP32 `Config.h`
 exists and its UID matches `devices/device-001/deviceAuthUid`; the export was
