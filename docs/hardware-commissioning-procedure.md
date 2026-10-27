@@ -98,15 +98,16 @@ DO NOT assume voltages based on component markings without measuring.
 ## 6. Physical E-Stop Verification
 
 **Goal:** Distinguish software detection from actual electrical cutoff.
+**Safety prerequisite:** Perform energized actuator checks only with a competent supervisor, the actuator secured and unloaded, and everyone outside the chain/motor travel and pinch areas. Never jumper live relay contacts or reach into moving machinery. If there is no documented safe way to create the required relay-ON condition, mark the independent cutoff check `BLOCKED` and get a qualified technician to define the bench setup.
 1. Put system in safe idle state.
 2. Verify physical E-Stop mechanism (latching vs momentary).
-3. Start a controlled actuator test (e.g., a feed cycle with the chain unloaded).
-4. Activate the physical E-Stop.
-5. **Verify actuator de-energizes instantly** (physical cutoff confirmation).
+3. **Independently verify electrical isolation before powered movement (HIT-06):** with the E-Stop engaged and actuator secured/unloaded, use only the documented, supervised bench method to hold the relay output ON. Measure that actuator power is removed even while the Mega's relay command remains ON. Do not improvise a jumper or expose live conductors to force this condition. If unexpected actuator power is measured, isolate the upstream supply immediately and record `FAIL`. If the test cannot be done safely, record `BLOCKED`; software setting the relay output LOW is not proof of independent isolation.
+4. Set the relay output OFF and verify it is off. Only after the independent cutoff check passes, release the physical E-Stop and reset the Mega using the documented sequence. Confirm safe idle and a clear test area before starting a brief controlled actuator test (e.g., a feed cycle with the chain unloaded).
+5. Activate the physical E-Stop and **verify actuator motion and power stop**.
 6. Verify Mega detects the E-Stop state via GPIO.
 7. Verify relay driver software sets output to LOW.
 8. Verify attempting a remote `MANUAL_FEED` returns `failed` (`ESTOP_ACTIVE`).
-9. Verify sending `ESTOP_RELEASE` via software does NOT re-energize the actuator (physical unlatching required).
+9. Verify sending `ESTOP_RELEASE` via software does NOT re-energize the actuator while the physical E-Stop remains latched.
 10. Verify system recovers safely only after physical unlatch and software release.
 11. Release the physical E-Stop **without** sending a reset. Verify the Mega stays stopped (Nextion shows `STOPPED`, the chain and dispenser stay off, `MANUAL_FEED` still returns `ESTOP_ACTIVE`).
 12. With the button released, type `RESET` in the Mega USB serial monitor (115200 baud). Verify `Emergency stop reset.` is printed and automation resumes. Repeat with the button pressed and verify `RESET rejected: PHYSICAL_ESTOP_ENGAGED`.
@@ -125,8 +126,8 @@ For the chain forward relay, chain reverse relay and dispenser relay:
 Chain motor (two relays swapping polarity):
 6. Confirm the wiring cannot short the supply if both relays close (typical 2× SPDT H-bridge: both on = motor braked, not shorted). The firmware never turns both on, but the wiring should be safe anyway.
 7. With the hopper unloaded, verify forward moves toward the end switch and reverse toward home. Swap the motor leads if not.
-8. Run toward each limit switch and confirm the switch stops the motor. Request a reversal while moving and confirm both relays are off for ≥ 300 ms before the other closes.
-9. Disconnect the end switch and run a cycle: after the last tray the chain must stop within 15 s with `CHAIN_TIMEOUT` and a beep.
+8. Run toward each limit switch and confirm the switch stops the motor. Operate each switch only from outside the chain travel and pinch areas; keep hands clear. Request a reversal while moving and confirm both relays are off for ≥ 300 ms before the other closes.
+9. With actuator power isolated, disconnect the end switch. Remove hands/tools from the mechanism, then reapply power and run a cycle: after the last tray the chain must stop within 15 s with `CHAIN_TIMEOUT` and a beep. Isolate power again before restoring the switch wiring; verify the wiring is restored before the next powered test.
 10. Tune `TRAY_TRAVEL_MS` (open item O-1) so the hopper outlet stops over each tray; record the values in the commissioning log. Use the bench console (§7a).
 
 ## 7a. Bench Console (USB serial monitor)
