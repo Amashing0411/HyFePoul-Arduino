@@ -10,11 +10,28 @@ On 2026-10-27, the production project `hyfepoul-dev` was provisioned and verifie
 
 The original ESP32 Auth account is also assigned to the existing `prod-test-device` record, which has an owner and prior heartbeat. That account and record remain unchanged. A separate account is bound to `device-001`. Its initial local password failed sign-in; with the user's approval, the dedicated account password was synchronized to the current value in ignored local `Config.h`. Production Auth sign-in and an authenticated read of the device UID binding then passed. This is a REST-level check, not proof that the firmware has signed in or written state.
 
-The production Firebase API key is synchronized into ignored local `Config.h`. The Wi-Fi SSID and password are still placeholders, so physical network connection remains blocked until those are set privately. The record is expected to remain offline until the ESP32 is configured and online. The production owner claim and physical-phone checks have not yet been run. Never put passwords, setup PINs, or Auth tokens in chat, Git, or screenshots.
+The restricted Firebase API key is synchronized into ignored local `Config.h`; the original Firebase-created key remains enabled in Cloud for rollback. The Wi-Fi SSID and password are still placeholders, so physical network connection remains blocked until those are set privately. The record is expected to remain offline until the ESP32 is configured and online. The production owner claim and physical-phone checks have not yet been run. Never put passwords, setup PINs, or Auth tokens in chat, Git, or screenshots.
 
-A separate API key candidate restricted to the three Auth/RTDB services passed Firebase JavaScript SDK sign-in, token refresh, RTDB read, and an ESP32-style RTDB REST read on 2026-10-27. It has not been adopted: the production app config and local ESP32 config still use the existing production key.
+The approved candidate is restricted to Identity Toolkit, Secure Token, and
+Realtime Database, with no application restriction. It passed Firebase JavaScript
+SDK sign-in, token refresh, RTDB read, and an ESP32-style RTDB REST read on
+2026-10-27. It is now adopted in all three EAS profiles, ignored `.env.local`,
+and ignored ESP32 `Config.h`. The ESP32 compile passed after adoption; actual
+device sign-in, TLS, and state writes still need hardware.
 
-The earlier APK at `mobile-app/android/app/build/outputs/apk/release/app-release.apk` was a **local-emulator QA build** and is not suitable for claiming a production device. A production-configured release APK was built locally on 2026-10-27 at `mobile-app/android/app/build/outputs/apk/release/app-release-production.apk` from the EAS `preview` Firebase settings, with emulator use disabled and cleartext traffic false. SHA-256: `FEA705D2848BC706DE42CC9C518ECD041F7BF67F3632C0E3DF718A82BA130C49`. It has not been used to claim a device or tested on the owner's physical phone. The local build is signed with the development key for direct installation, not Play Store distribution.
+The earlier `app-release.apk` was a **local-emulator QA build** and is not
+suitable for claiming a production device; it was overwritten during the
+production rebuild and is no longer retained.
+
+The production-configured release APK was rebuilt locally on 2026-10-27 at
+`mobile-app/android/app/build/outputs/apk/release/app-release-production.apk`
+using the restricted candidate key, production endpoints, Firebase emulators
+disabled, and Android cleartext traffic disabled. The embedded JS bundle contains
+the candidate key, `aapt` confirmed `usesCleartextTraffic=false`, and `apksigner`
+verified the APK signature. SHA-256: `86F677D1B5B7D1FBD72CED83C75383F18961C0B1EDDEBC975757ADE0B11492BF`;
+size: 82,507,509 bytes. It has not been used to claim a device or tested on the
+owner's physical phone. The local build is signed with the development key for
+direct installation, not Play Store distribution.
 
 ## What the setup PIN is
 

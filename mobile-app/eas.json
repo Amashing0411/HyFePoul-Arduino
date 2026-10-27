@@ -7,7 +7,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyBevznrvGj8zuKZfAcOeSGYdmuRz25sX6g",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyC8zqcTzHXuLTpBkgMdzz3f0uukFMNWOoU",
         "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "hyfepoul-dev.firebaseapp.com",
         "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "hyfepoul-dev",
         "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "hyfepoul-dev.firebasestorage.app",
@@ -22,7 +22,7 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyBevznrvGj8zuKZfAcOeSGYdmuRz25sX6g",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyC8zqcTzHXuLTpBkgMdzz3f0uukFMNWOoU",
         "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "hyfepoul-dev.firebaseapp.com",
         "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "hyfepoul-dev",
         "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "hyfepoul-dev.firebasestorage.app",
@@ -36,7 +36,7 @@
     },
     "production": {
       "env": {
-        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyBevznrvGj8zuKZfAcOeSGYdmuRz25sX6g",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyC8zqcTzHXuLTpBkgMdzz3f0uukFMNWOoU",
         "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "hyfepoul-dev.firebaseapp.com",
         "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "hyfepoul-dev",
         "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "hyfepoul-dev.firebasestorage.app",

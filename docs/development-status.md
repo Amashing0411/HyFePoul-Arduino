@@ -7,10 +7,11 @@ deleted immediately. The initial sign-in with the local value returned
 `INVALID_LOGIN_CREDENTIALS`. With the user's approval, the dedicated device
 account password was synchronized to the value in local `Config.h`; production
 sign-in then passed, and the authenticated RTDB read of the device binding
-matched the sign-in UID. The ESP32 API key was synchronized from the matching
-production mobile-app config, and the ESP32 build passed (1,147,088 bytes flash,
-49,688 bytes RAM). Wi-Fi settings in local `Config.h` remain placeholders. This
-checks the Firebase REST path, not sign-in or writes from flashed ESP32 hardware.
+matched the sign-in UID. The Firebase API key shared by the app and ESP32 was
+later switched to the restricted candidate described below. The ESP32 build
+passed after adoption (1,147,088 bytes flash, 49,688 bytes RAM). Wi-Fi settings
+in local `Config.h` remain placeholders. This checks the Firebase REST path,
+not sign-in or writes from flashed ESP32 hardware.
 No credentials, setup PIN, auth tokens, or user records are included here.
 
 **2026-10-27 API key restriction review:** The production app key already has
@@ -29,9 +30,12 @@ and [Google Android key restriction requirements](https://docs.cloud.google.com/
 Identity Toolkit, Secure Token, and Realtime Database, with no application
 restriction. Firebase JavaScript SDK sign-in, forced token refresh, and RTDB
 read passed; an ESP32-style authenticated RTDB REST read also passed, with the
-UID matching `device-001`. No database writes were made. The candidate remains
-unused; the existing production key, EAS settings, and ignored ESP32 config
-were left unchanged pending an adoption decision.
+UID matching `device-001`. No database writes were made. With the user's
+approval, the candidate was adopted in all three EAS profiles, ignored
+`.env.local` for local APK builds, and ignored ESP32 `Config.h`. The existing
+Firebase-created key remains enabled in Cloud for rollback. The ESP32 compile
+passed after adoption; physical sign-in, TLS, and state writes remain unverified
+until hardware is available.
 
 **2026-10-26 mobile follow-up:** Fixed indefinite loading after claiming a device
 that has not sent its first sensor update, and inaccessible Settings controls.
@@ -71,11 +75,18 @@ directly into HyFePoul and a disposable sign-up reached Claim Device through the
 local Auth emulator. Physical phone testing and production Firebase remain
 pending. See the [APK and emulator QA record](firebase-emulator-qa-2026-10-27.md).
 
-**2026-10-27 production APK preparation:** Built a standalone release APK with
-the EAS preview production Firebase settings, emulator use disabled, and
-cleartext traffic false. It is ready for direct installation; production
-provisioning is now complete, but the APK has not been tested on a physical
-phone. See the [device provisioning guide](device-provisioning-guide.md).
+**2026-10-27 production APK rebuild:** Built a standalone release APK with the
+restricted Firebase API key, production endpoints, Firebase emulators disabled,
+and Android cleartext traffic disabled. The APK contains the candidate key in its
+embedded JS bundle, `aapt` confirmed `usesCleartextTraffic=false`, and `apksigner`
+verified the signature.
+
+Artifact: `mobile-app/android/app/build/outputs/apk/release/app-release-production.apk`
+
+SHA-256: `86F677D1B5B7D1FBD72CED83C75383F18961C0B1EDDEBC975757ADE0B11492BF`
+(82,507,509 bytes). It is signed with the development key for direct
+installation, not Play Store distribution. Owner sign-in and device claim on a
+physical phone remain untested. See the [device provisioning guide](device-provisioning-guide.md).
 
 **2026-10-27 production Firebase provisioning:** Deployed the reviewed RTDB
 rules and provisioned `device-001`. The configured ESP32 Auth account UID
@@ -97,8 +108,7 @@ export, which was deleted after checking. A sign-in attempt using the current
 local password initially returned `INVALID_LOGIN_CREDENTIALS`; after the
 user-approved sync, production REST sign-in and the authenticated RTDB binding
 read passed. Do not mark ESP32 hardware authentication ready until on-device
-sign-in, TLS, and state writes pass. The production API key is now present in
-ignored local `Config.h`, but Wi-Fi settings remain placeholders.
+sign-in, TLS, and state writes pass. The restricted Firebase API key is now present in ignored local `Config.h`; Wi-Fi settings remain placeholders.
 
 **Updated:** 2026-10-27. **Current phase:** design revision implemented in software ([`design-revision-moving-hopper.md`](design-revision-moving-hopper.md)): the hopper moves on a chain past 5 trays, each with its own load cell (50 g per tray by default), and water is gravity-fed with no pump. **Hardware commissioning has not started** (prototype not yet available). Production RTDB rules and `device-001` provisioning are complete; see the open credential and phone-test notes above.
 
