@@ -12,6 +12,8 @@ The original ESP32 Auth account is also assigned to the existing `prod-test-devi
 
 The production Firebase API key is synchronized into ignored local `Config.h`. The Wi-Fi SSID and password are still placeholders, so physical network connection remains blocked until those are set privately. The record is expected to remain offline until the ESP32 is configured and online. The production owner claim and physical-phone checks have not yet been run. Never put passwords, setup PINs, or Auth tokens in chat, Git, or screenshots.
 
+A separate API key candidate restricted to the three Auth/RTDB services passed Firebase JavaScript SDK sign-in, token refresh, RTDB read, and an ESP32-style RTDB REST read on 2026-10-27. It has not been adopted: the production app config and local ESP32 config still use the existing production key.
+
 The earlier APK at `mobile-app/android/app/build/outputs/apk/release/app-release.apk` was a **local-emulator QA build** and is not suitable for claiming a production device. A production-configured release APK was built locally on 2026-10-27 at `mobile-app/android/app/build/outputs/apk/release/app-release-production.apk` from the EAS `preview` Firebase settings, with emulator use disabled and cleartext traffic false. SHA-256: `FEA705D2848BC706DE42CC9C518ECD041F7BF67F3632C0E3DF718A82BA130C49`. It has not been used to claim a device or tested on the owner's physical phone. The local build is signed with the development key for direct installation, not Play Store distribution.
 
 ## What the setup PIN is

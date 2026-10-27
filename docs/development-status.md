@@ -21,9 +21,17 @@ for direct REST calls. The current SDK package does not contain Android package
 or certificate headers. Google's Firebase key guidance identifies Identity
 Toolkit and Secure Token for Auth, and Realtime Database for the ESP32's direct
 REST use; it also warns to test restriction changes before changing a production
-key. R-04 therefore remains open pending a safe test of the shared clients; no
-Cloud API key restrictions were changed. See the [Firebase API key guide](https://firebase.google.com/docs/projects/api-keys)
+key. A separate candidate was created for controlled testing; the production
+key restrictions were not changed. See the [Firebase API key guide](https://firebase.google.com/docs/projects/api-keys)
 and [Google Android key restriction requirements](https://docs.cloud.google.com/docs/authentication/api-keys).
+
+**2026-10-27 candidate API key test:** The approved candidate is restricted to
+Identity Toolkit, Secure Token, and Realtime Database, with no application
+restriction. Firebase JavaScript SDK sign-in, forced token refresh, and RTDB
+read passed; an ESP32-style authenticated RTDB REST read also passed, with the
+UID matching `device-001`. No database writes were made. The candidate remains
+unused; the existing production key, EAS settings, and ignored ESP32 config
+were left unchanged pending an adoption decision.
 
 **2026-10-26 mobile follow-up:** Fixed indefinite loading after claiming a device
 that has not sent its first sensor update, and inaccessible Settings controls.
