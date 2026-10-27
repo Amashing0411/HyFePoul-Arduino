@@ -6,7 +6,7 @@ This guide covers first-time provisioning of `device-001` in the production Fire
 
 ## Current project status
 
-The last reported production check found no `devices/device-001` or `deviceSecrets/device-001`. That check was not repeated during the APK work. Roadmap item R-14 remains **unconfirmed**. The revised production database rules (R-45) are also documented as **not deployed**. Before attempting an owner claim, an administrator must confirm the production project and deploy/review the intended rules. Do not loosen the rules to make a claim work.
+On 2026-10-27, a read-only Firebase CLI check of the selected `hyfepoul-dev` project found both `devices/device-001` and `deviceSecrets/device-001/setupPin` absent. No Firebase values were changed. The device Auth account and the currently deployed production rules were not checked by that query. Roadmap item R-14 remains **incomplete**; R-45 is still recorded as **not deployed** in the project status. Before attempting an owner claim, an administrator must confirm the production rules and deploy/review the intended rules. Do not loosen the rules to make a claim work.
 
 The previously built APK at `mobile-app/android/app/build/outputs/apk/release/app-release.apk` is a **local-emulator QA build**. It points at localhost emulators and is not suitable for provisioning or claiming a production device. Use a build configured for the production Firebase URL; for example, the EAS `preview` profile currently contains the production Firebase settings. See [the APK QA record](firebase-emulator-qa-2026-10-27.md).
 

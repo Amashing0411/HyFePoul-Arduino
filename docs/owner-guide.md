@@ -26,7 +26,7 @@ No passwords or PINs are written in this guide or anywhere in the repository. Ke
 
 Follow the full [Firebase device provisioning and setup PIN guide](device-provisioning-guide.md), especially its R-45 rules prerequisite, before touching production.
 
-The last reported production check (2026-10-24) found no `devices/device-001` or `deviceSecrets/device-001`. This was not independently rechecked during the 2026-10-27 APK work; R-14 remains open until an admin confirms the device account and both database records in the [Firebase console](https://console.firebase.google.com), project **hyfepoul-dev**:
+The 2026-10-27 read-only Firebase CLI check found no `devices/device-001` or `deviceSecrets/device-001/setupPin`; no production values were changed. The device Auth account and deployed rules were not checked. R-14 remains open until an admin confirms the device account and both database records in the [Firebase console](https://console.firebase.google.com), project **hyfepoul-dev**:
 
 1. **Device account:** Authentication → Users. If no user has the email in the ESP32's `Config.h` (`FIREBASE_AUTH_EMAIL`), click **Add user** with that email and `FIREBASE_AUTH_PASSWORD`. Copy its **User UID**.
 2. **Device record:** Realtime Database → Data, under the root add:
