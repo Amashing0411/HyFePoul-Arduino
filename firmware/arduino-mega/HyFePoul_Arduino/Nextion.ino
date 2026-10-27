@@ -10,13 +10,13 @@
     t3  Water Level Status
     t4  Status (the HMI's initial text is "Status: IDLE")
     t5  Time (local, HH:MM:SS)
-  t0 "Hopper Load:", t1 "Water Level:", t6 "Current Time" and t7 "g" are
+  t0 "Feed in Trays:", t1 "Water Level:", t6 "Current Time" and t7 "g" are
   static captions set in the HMI and are not written. The Home page has no
   field for hopper level % or network status.
 
   NOTE: t2 shows the total grams in the 5 trays (the tray load cells weigh
-  dispensed feed). The HMI caption t0 still reads "Hopper Load:" and should
-  be renamed in the HMI project (e.g. "Feed in Trays:").
+  dispensed feed); the t0 caption was updated to "Feed in Trays:" in the HMI
+  project to match that measurement.
   t4 shows the feed cycle step, e.g. "Status: FEEDING TRAY 3/5".
 
   Home page buttons handled by the Mega (touch events, see below):
