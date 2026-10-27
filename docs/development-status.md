@@ -23,6 +23,15 @@ local simulated data, and Notifications and Settings rendered their empty state
 and controls. This does not verify the APK on the physical phone or data from
 Arduino/ESP32 hardware.
 
+**2026-10-27 pre-session recheck:** Mobile Jest passed 53/53 with local Auth and
+Realtime Database emulators; the RTDB rules suite passed 88/88; Mega simulation
+passed 51/51; the ESP32 simulator, mobile command flow, schedule restore/UART
+line checks, and owner-device journey passed. Arduino CLI builds for the Mega
+and ESP32 targets passed. TypeScript passed. Expo lint reported 0 errors and 3
+`react-hooks/set-state-in-effect` warnings. Emulator tests used local Firebase
+only; none of these checks verifies the production device password, physical
+phone, or hardware.
+
 **2026-10-27 standalone APK check:** Built and installed a release-variant QA
 APK with an embedded app bundle and local-emulator-only HTTP access. It launched
 directly into HyFePoul and a disposable sign-up reached Claim Device through the
@@ -76,7 +85,7 @@ Read these before starting new work:
 | **Arduino Mega** (primary controller) | Logic complete: 5-tray feed cycle (chain motor with interlocked relays, home/end limit switches, timed travel, per-tray tare and target, chain/tray timeouts, empty-hopper return), reservoir water alert, latching E-stop, EEPROM schedules, SD log. Simulated (51 tests) and compile-checked. Calibration, tray travel times and pins **unverified** (R-46). |
 | **ESP32** (communication bridge) | Firmware implements Wi-Fi reconnect, TLS certificate verification, Firebase sign-in, RTDB writes, command transport, and schedule restore. Simulator and compile checks passed; the firmware has **not been flashed** and physical sign-in/TLS remain unverified. |
 | **Firebase** (Auth + RTDB, Spark plan) | Revised RTDB rules deployed to production on 2026-10-27; `device-001` has a dedicated Auth UID and string setup PIN. The earlier sign-in attempt used the original device account and failed; the new account password has not been verified against local `Config.h`. The record remains offline and unclaimed. Firestore and Cloud Functions are **not used**. |
-| **Mobile app** (React Native / Expo SDK 57) | Feature-complete; shows tray weights and cycle progress, reservoir status; Jest 53/53, tsc and targeted lint clean. Revised screens and empty states were checked on Android emulators (R-49; see the QA records). **Not yet run on a physical phone against production.** Expo Go is not supported. |
+| **Mobile app** (React Native / Expo SDK 57) | Feature-complete; shows tray weights and cycle progress, reservoir status; Jest 53/53 and TypeScript pass. Expo lint reports 0 errors and 3 `react-hooks/set-state-in-effect` warnings. Revised screens and empty states were checked on Android emulators (R-49; see the QA records). **Not yet run on a physical phone against production.** Expo Go is not supported. |
 | **Nextion HMI** | HMI project in `Nextion/`. Firmware writes the real Home page fields; the Stop/Start buttons are coded but stay disabled until their IDs are read on the bench (R-20). |
 
 ## Constraints (from AGENTS.md)
