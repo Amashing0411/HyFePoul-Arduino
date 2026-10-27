@@ -4,6 +4,11 @@ Edition 1.0 - 27 October 2026. Prepared for supervised prototype commissioning.
 Implementation baseline: `d623cce`. These manuals do not certify the physical
 prototype; HIT-01 through HIT-16 still require hardware evidence.
 
+**27 October 2026 follow-up:** The troubleshooting guide and its PDF now cover
+password recovery. The app's reset flow was added after the baseline above and
+is included in the separately recorded APK build in `docs/development-status.md`.
+Firebase email delivery to the intended owner mailbox has not yet been confirmed.
+
 | Manual | Reader | Editable source | PDF |
 |---|---|---|---|
 | User's Manual | Daily operator | [Markdown](user-manual.md) | [PDF](pdf/HyFePoul-Users-Manual.pdf) |

@@ -1,5 +1,24 @@
 # Development Status
 
+**2026-10-27 password recovery follow-up:** The Login screen in the repository
+had no password-reset control, and the Auth context did not call Firebase's
+`sendPasswordResetEmail`; editing the Firebase email template alone could not
+trigger a message. Added a **Forgot password?** action using the signed-in
+project's Firebase Auth client, email trimming, progress/error feedback and a
+generic success message. The message explains that a reset email is sent only
+when an account matches without exposing whether it exists. The user reported
+two spellings for the test email across messages, so live inbox delivery is
+not yet confirmed. The release build succeeded using `hyfepoul-dev` with the
+Firebase emulator disabled. Updated APK:
+`mobile-app/android/app/build/outputs/apk/release/app-release-password-reset.apk`
+(82,509,933 bytes, SHA-256
+`43A5ED6809751F670CFA1B772785E83601F0C848D27FF96D4FD5DA98E4581B4C`).
+APK Signature Scheme v2 verification passed; it uses the development signing
+key for direct installation, not Play Store distribution. Install this build
+before using password recovery; see the troubleshooting manual for account,
+inbox and emulator checks. A successful build does not confirm delivery to the
+reported mailbox.
+
 **2026-10-27 illustrated manuals:** Added the [manual set](manuals/README.md):
 User's Manual (8 pages), Hardware / Technical Manual (11), Troubleshooting Manual
 (9), and Account / Device Setup Manual (8). Editable Markdown, vector diagrams,

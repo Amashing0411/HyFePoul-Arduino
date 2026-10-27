@@ -2,6 +2,18 @@
 
 Reviewed 27 October 2026 against implementation baseline `d623cce`.
 
+## Password-recovery follow-up - 27 October 2026
+
+Added a password-reset request from the production Login screen and updated the
+Troubleshooting Manual's editable source and PDF. Regenerated all four PDFs;
+all 36 pages passed page-count, bookmark, source-hygiene, text-bound and
+render-count checks, then were visually inspected in contact sheets. Current
+PDF hashes are recorded in `verification.json`. The production APK build
+succeeded and its v2 signature verified. The account spelling differed across
+the user's messages, so delivery to the intended inbox remains unconfirmed.
+No Firebase records or rules, production accounts, or device settings were
+changed. This follow-up does not alter any hardware acceptance status.
+
 | Deliverable | Pages | Automated checks | Visual review |
 |---|---:|---|---|
 | User's Manual | 8 | PASS | All pages reviewed |
@@ -38,9 +50,10 @@ Page renders/contact sheets are local QA artifacts and are not shipped in Git.
 
 ## Scope and limitations
 
-This is a documentation release. No firmware, app behavior, database rule,
-production account or device setting was changed. No new physical test was
-performed, and no HIT status was changed to PASS. Firmware compilation and
+The original manual edition was a documentation release. The password-recovery
+follow-up changed app behavior as recorded above, but did not change firmware,
+database rules, production accounts or device settings. No new physical test
+was performed, and no HIT status was changed to PASS. Firmware compilation and
 previous simulator/emulator results are described as existing evidence, not
 rerun or upgraded to hardware acceptance by this work.
 

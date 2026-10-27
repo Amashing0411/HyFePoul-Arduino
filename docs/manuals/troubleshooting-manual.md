@@ -63,6 +63,7 @@ The app uses the same message for an invalid Device ID, an incorrect PIN or an a
 | Problem | Safe next step |
 | --- | --- |
 | Email/password rejected in the phone | Use the owner account, not the ESP32 account. Confirm the email and password privately; follow the administrator's account-recovery process. |
+| Password reset email does not arrive | On the production Login screen, enter the exact owner-account email and tap **Forgot password?**. Check Firebase Authentication / Users for that exact address, then check Inbox, Spam and filtered mail. A local Auth Emulator does not send production email. The app's generic confirmation does not prove that the account exists. |
 | ESP32 sign-in fails | Technician compares the dedicated device account with ignored Config.h and the bound deviceAuthUid. Reset only the authorized device account if necessary. |
 | Email already in use | Sign in to the existing intended account or recover it. Do not create variants that obscure ownership. |
 | API key / application restriction error | Administrator verifies the selected project's active key restrictions against the SDK and ESP32 REST requirements. Do not remove all restrictions or disclose the key in a report. |
