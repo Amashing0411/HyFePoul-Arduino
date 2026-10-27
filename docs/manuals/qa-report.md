@@ -9,10 +9,11 @@ Troubleshooting Manual's editable source and PDF. Regenerated all four PDFs;
 all 36 pages passed page-count, bookmark, source-hygiene, text-bound and
 render-count checks, then were visually inspected in contact sheets. Current
 PDF hashes are recorded in `verification.json`. The production APK build
-succeeded and its v2 signature verified. The account spelling differed across
-the user's messages, so delivery to the intended inbox remains unconfirmed.
-No Firebase records or rules, production accounts, or device settings were
-changed. This follow-up does not alter any hardware acceptance status.
+succeeded and its v2 signature verified. Gmail later showed a matching Firebase
+reset email for the previously reported test-account spelling in Spam; delivery
+to the differently spelled address reported later remains unconfirmed. No
+Firebase records or rules, production accounts, or device settings were changed.
+This follow-up does not alter any hardware acceptance status.
 
 | Deliverable | Pages | Automated checks | Visual review |
 |---|---:|---|---|

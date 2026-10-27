@@ -6,9 +6,11 @@ had no password-reset control, and the Auth context did not call Firebase's
 trigger a message. Added a **Forgot password?** action using the signed-in
 project's Firebase Auth client, email trimming, progress/error feedback and a
 generic success message. The message explains that a reset email is sent only
-when an account matches without exposing whether it exists. The user reported
-two spellings for the test email across messages, so live inbox delivery is
-not yet confirmed. The release build succeeded using `hyfepoul-dev` with the
+when an account matches without exposing whether it exists. Gmail received a
+matching Firebase reset email for the previously reported test-account
+spelling and classified it as Spam. A second spelling was reported later, so
+delivery to that different address remains unverified. The release build
+succeeded using `hyfepoul-dev` with the
 Firebase emulator disabled. Updated APK:
 `mobile-app/android/app/build/outputs/apk/release/app-release-password-reset.apk`
 (82,509,933 bytes, SHA-256

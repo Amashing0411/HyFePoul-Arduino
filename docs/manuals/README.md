@@ -7,7 +7,9 @@ prototype; HIT-01 through HIT-16 still require hardware evidence.
 **27 October 2026 follow-up:** The troubleshooting guide and its PDF now cover
 password recovery. The app's reset flow was added after the baseline above and
 is included in the separately recorded APK build in `docs/development-status.md`.
-Firebase email delivery to the intended owner mailbox has not yet been confirmed.
+A Firebase reset email reached the previously reported test-account mailbox but
+Gmail placed it in Spam; delivery to the later, differently spelled address is
+not confirmed.
 
 | Manual | Reader | Editable source | PDF |
 |---|---|---|---|
