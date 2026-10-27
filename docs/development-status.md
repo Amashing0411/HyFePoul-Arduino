@@ -75,6 +75,8 @@ directly into HyFePoul and a disposable sign-up reached Claim Device through the
 local Auth emulator. Physical phone testing and production Firebase remain
 pending. See the [APK and emulator QA record](firebase-emulator-qa-2026-10-27.md).
 
+**2026-10-27 commissioning firmware images:** The Mega and ESP32 compile outputs are saved locally under `firmware/build/commissioning-2026-10-27/`; the files are ignored by Git. The Mega build passed at 49,176 bytes flash and 3,191 bytes RAM. The ESP32 build passed at 1,147,088 bytes flash and 49,688 bytes RAM. Its local `Config.h` still has Wi-Fi placeholders, so rebuild after privately setting them before network testing. See [`firmware-build-environment.md`](firmware-build-environment.md) for paths and checksums.
+
 **2026-10-27 production APK rebuild:** Built a standalone release APK with the
 restricted Firebase API key, production endpoints, Firebase emulators disabled,
 and Android cleartext traffic disabled. The APK contains the candidate key in its

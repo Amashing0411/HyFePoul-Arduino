@@ -11,8 +11,10 @@ Use this with the detailed [hardware commissioning procedure](hardware-commissio
 - Production RTDB rules and the `device-001` record are provisioned. The dedicated ESP32 Auth UID is bound to `device-001`; the record is expected to remain `offline` until the device connects.
 - The six-digit setup PIN is stored privately in Firebase. It is deliberately omitted here and from Git.
 - The production APK is built. A temporary test-owner account is available for production QA; the actual client account is not implemented.
-- Production REST sign-in now passes with the dedicated device account; its UID matches the device binding and an authenticated RTDB binding read passed. This does not prove firmware sign-in, TLS, or state writes. The API key is synchronized from production app config; Wi-Fi SSID/password are still placeholders and must be filled privately before HIT-03.
+- Production REST sign-in passes with the dedicated device account; its UID matches the device binding and an authenticated RTDB read passed. The app and local ESP32 config now use the restricted candidate API key; the original key remains enabled for rollback. This does not prove firmware sign-in, TLS, or state writes. Wi-Fi SSID/password are placeholders and must be filled privately before HIT-03.
 - Simulator and emulator checks have passed, but the prototype has not yet supplied physical evidence for HIT-01–HIT-16.
+
+**Prepared firmware artifacts (2026-10-27):** The Mega `.hex` and ESP32 `.bin` images are compiled under `firmware/build/commissioning-2026-10-27/` (artifact checksums are in [`firmware-build-environment.md`](firmware-build-environment.md)). They are local, ignored build outputs. The ESP32 image was compiled while Wi-Fi settings were still placeholders; rebuild it after setting Wi-Fi and before HIT-03. Keep the ESP32 binary private because it embeds the device Firebase credentials.
 
 ## Before powering anything
 

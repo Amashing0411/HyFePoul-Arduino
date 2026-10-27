@@ -90,6 +90,27 @@ arduino-cli compile --fqbn esp32:esp32:esp32 firmware/esp32/HyFePoul_ESP32
 
 ---
 
+## Local commissioning firmware images (2026-10-27)
+
+Compile outputs are stored locally under `firmware/build/commissioning-2026-10-27/` and ignored by Git. They were built with the board targets above from the current source.
+
+| Board | Artifact | Size | SHA-256 |
+|---|---|---:|---|
+| Mega 2560 | `mega/HyFePoul_Arduino.ino.hex` | 138,327 bytes | `FB951952113159D59FDA12A3729551A4AB657E0177B9F3FD54BC30CFB6262168` |
+| ESP32 | `esp32/HyFePoul_ESP32.ino.bin` (application image) | 1,147,232 bytes | `3C72A38EB78C48545C49776297A218D0A607D4A059B48AE5BEB9AED078650E3D` |
+| ESP32 | `esp32/HyFePoul_ESP32.ino.merged.bin` (full flash image) | 4,194,304 bytes | `0CE417FBF7ECCABA523AE0D3C24039F15EFF0C774B741D1E3612D18B3876FFD1` |
+
+The ESP32 images were compiled from ignored local `Config.h`, which still has Wi-Fi placeholders. Rebuild after privately entering Wi-Fi credentials before HIT-03 or any Firebase connectivity test. ESP32 firmware contains the device account credentials; keep these local and do not commit or share the binary.
+
+With the boards connected, identify the correct serial ports first, then upload the prepared images using the corresponding `--input-dir`:
+
+```powershell
+arduino-cli upload --fqbn arduino:avr:mega --port COMx --input-dir firmware/build/commissioning-2026-10-27/mega
+arduino-cli upload --fqbn esp32:esp32:esp32 --port COMy --input-dir firmware/build/commissioning-2026-10-27/esp32
+```
+
+Replace `COMx` and `COMy` with the actual board ports. Do not connect actuator power until the commissioning run sheet prerequisites pass.
+
 ## Verifying Toolchain & Troubleshooting
 
 ### Check Installation
