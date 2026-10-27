@@ -1,6 +1,8 @@
 # HARDWARE COMMISSIONING PROCEDURE
 
-This document defines the strict sequential procedure to validate the physical prototype upon arrival (Expected: October 30, 2026).
+This document defines the strict sequential procedure to validate the physical prototype upon arrival (Expected: October 28, 2026, per the owner’s latest schedule).
+
+**Readiness note (2026-10-27):** the production APK is built for phone checks. A separate device-only Firebase Auth user exists, its UID is saved on `devices/device-001` and was verified, and local `Config.h` has its email. Its password has not been verified against the local configuration; reconcile it privately before HIT-03. Do not use the temporary app test-owner UID for ESP32 authentication. The app can use the test-owner account for owner-side QA; the client account is not implemented yet. HIT-01 electrical checks remain the first hardware gate, and actuators stay disconnected through HIT-05. Phone claim and physical hardware checks are still pending.
 
 **IMPORTANT SAFETY RULE**: DO NOT assume software pin assignments match physical wiring. DO NOT energize unverified circuits.
 

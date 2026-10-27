@@ -39,9 +39,20 @@ phone. See the [device provisioning guide](device-provisioning-guide.md).
 rules and provisioned `device-001`. The configured ESP32 Auth account UID
 matches the device record; the setup PIN is saved as a string and is omitted
 from Git and reports. R-14 and R-45 are complete. A sign-in check with the
-local ESP32 `Config.h` password failed, so device authentication still needs to
-be reconciled. Owner claim, physical-phone verification, and hardware tests are
-still pending.
+original device account credentials failed, so device authentication still
+needs to be reconciled. Owner claim, physical-phone verification, and hardware
+tests are still pending.
+
+**2026-10-27 credential follow-up:** The original ESP32 Auth UID was also
+assigned to the existing `prod-test-device` record, which has an owner and a
+prior heartbeat. That binding and account were left unchanged. A dedicated
+Firebase Auth user was created for `device-001`; its UID is now saved in
+`devices/device-001/deviceAuthUid` and was verified in the Firebase Console.
+The local ESP32 `Config.h` email matches this dedicated account, but its
+password has not been verified against the account. Do not mark ESP32
+authentication ready until the local password is reconciled and a live sign-in
+is observed. The Firebase CLI admin session is expired; the database binding
+was completed in the Firebase Console.
 
 **Updated:** 2026-10-27. **Current phase:** design revision implemented in software ([`design-revision-moving-hopper.md`](design-revision-moving-hopper.md)): the hopper moves on a chain past 5 trays, each with its own load cell (50 g per tray by default), and water is gravity-fed with no pump. **Hardware commissioning has not started** (prototype not yet available). Production RTDB rules and `device-001` provisioning are complete; see the open credential and phone-test notes above.
 
