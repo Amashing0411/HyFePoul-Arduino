@@ -2,11 +2,13 @@
 
 **For:** the Firebase project administrator and the person setting up the HyFePoul ESP32 and owner app.
 
-This guide covers first-time provisioning of `device-001` in the production Firebase project. It does not provision or change Firebase. Do each production step yourself in the Firebase console; never send the device password or setup PIN through chat, email, source code, screenshots, or a shared document.
+This guide is the runbook and status record for first-time provisioning of `device-001` in the production Firebase project. Do not put the actual setup PIN or either account password in this document, source control, or screenshots.
 
 ## Current project status
 
-On 2026-10-27, a read-only Firebase CLI check of the selected `hyfepoul-dev` project found both `devices/device-001` and `deviceSecrets/device-001/setupPin` absent. No Firebase values were changed. The device Auth account and the currently deployed production rules were not checked by that query. Roadmap item R-14 remains **incomplete**; R-45 is still recorded as **not deployed** in the project status. Before attempting an owner claim, an administrator must confirm the production rules and deploy/review the intended rules. Do not loosen the rules to make a claim work.
+On 2026-10-27, the production project `hyfepoul-dev` was provisioned and verified in the Firebase Console. The configured ESP32 Auth account exists; its email matches the local `Config.h`, and its UID matches `devices/device-001/deviceAuthUid`. The device record contains `status: "offline"` and numeric `lastHeartbeat: 0`, with no `ownerId`. A fresh six-digit setup PIN is saved as a string at `deviceSecrets/device-001/setupPin`; its value is intentionally excluded from this guide and Git. Roadmap item R-14 is **complete**.
+
+The reviewed repository RTDB rules were successfully deployed to production on 2026-10-27 (R-45 complete). A sign-in check using the local ESP32 `Config.h` password did not authenticate, although the configured Auth email already exists. Treat the device password as unresolved; the ESP32 cannot be considered online-ready until the local firmware password and Firebase account credential are reconciled. The production owner claim and physical-phone checks have not yet been run.
 
 The earlier APK at `mobile-app/android/app/build/outputs/apk/release/app-release.apk` was a **local-emulator QA build** and is not suitable for claiming a production device. A production-configured release APK was built locally on 2026-10-27 at `mobile-app/android/app/build/outputs/apk/release/app-release-production.apk` from the EAS `preview` Firebase settings, with emulator use disabled and cleartext traffic false. SHA-256: `FEA705D2848BC706DE42CC9C518ECD041F7BF67F3632C0E3DF718A82BA130C49`. It has not been used to claim a device or tested on the owner's physical phone. The local build is signed with the development key for direct installation, not Play Store distribution.
 
@@ -41,7 +43,7 @@ The device account and owner account are different accounts:
 
 1. Open the [Firebase Console](https://console.firebase.google.com/) and select **`hyfepoul-dev`**. Check the project ID carefully before editing anything.
 2. Open **Realtime Database** and confirm the instance is `hyfepoul-dev-default-rtdb` in `asia-southeast1` (the URL in the app configuration is `https://hyfepoul-dev-default-rtdb.asia-southeast1.firebasedatabase.app`).
-3. Open the database **Rules** tab. Have the project maintainer compare the deployed rules with the reviewed repository rules in [`database.rules.json`](../database.rules.json). R-45 is currently recorded as not deployed. A production owner claim depends on the rules that protect `deviceSecrets`, validate `claimRequests`, and allow a first `ownerId` claim. Stop here if the deployed rules are unknown or are open to public access.
+3. Open the database **Rules** tab. The reviewed repository rules in [`database.rules.json`](../database.rules.json) were deployed on 2026-10-27. Recheck them before future changes. A production owner claim depends on the rules that protect `deviceSecrets`, validate `claimRequests`, and allow a first `ownerId` claim. Do not loosen the rules to make a claim work.
 4. Confirm that Email/Password sign-in is enabled under **Authentication → Sign-in method** (the exact console label may be **Sign-in providers**).
 
 Firebase's official guides: [view/edit RTDB data in the console](https://firebase.google.com/docs/database/manage-data-console) and [manage Firebase Authentication users](https://firebase.google.com/docs/auth/admin/manage-users).
@@ -134,10 +136,12 @@ For an authorized change of owner, first agree who should retain access. The cur
 
 ## Completion record for R-14
 
-R-14 may be marked complete only after an administrator verifies all three production items and records evidence without secrets:
+R-14 was completed on 2026-10-27. The production evidence was verified without recording secret values:
 
-1. The ESP32 Firebase Auth account exists and is enabled.
-2. `devices/device-001/deviceAuthUid` matches the account UID.
+1. The ESP32 Firebase Auth account exists.
+2. Its email matches local `Config.h`, and `devices/device-001/deviceAuthUid` matches its Auth UID.
 3. `deviceSecrets/device-001/setupPin` exists as a six-digit string.
+
+This does not verify that the configured ESP32 password can sign in, that the owner can claim the device, or that the device can connect. Those checks remain open under the app and hardware commissioning tasks.
 
 Owner claiming and ESP32 online status are separate checks. Record the owner claim result under the app commissioning work and the online/heartbeat result under the hardware integration test plan; do not mark hardware tests passed from console setup alone.

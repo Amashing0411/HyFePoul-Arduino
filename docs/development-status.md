@@ -31,11 +31,19 @@ pending. See the [APK and emulator QA record](firebase-emulator-qa-2026-10-27.md
 
 **2026-10-27 production APK preparation:** Built a standalone release APK with
 the EAS preview production Firebase settings, emulator use disabled, and
-cleartext traffic false. It is ready for direct installation after provisioning;
-the device record and setup PIN remain absent, and it has not been tested on a
-physical phone. See the [device provisioning guide](device-provisioning-guide.md).
+cleartext traffic false. It is ready for direct installation; production
+provisioning is now complete, but the APK has not been tested on a physical
+phone. See the [device provisioning guide](device-provisioning-guide.md).
 
-**Updated:** 2026-10-27. **Current phase:** design revision implemented in software ([`design-revision-moving-hopper.md`](design-revision-moving-hopper.md), branch `design-moving-hopper`): the hopper moves on a chain past 5 trays, each with its own load cell (50 g per tray by default), and water is gravity-fed with no pump. **Hardware commissioning has not started** (prototype not yet available). The revised RTDB rules are **not deployed** (R-45).
+**2026-10-27 production Firebase provisioning:** Deployed the reviewed RTDB
+rules and provisioned `device-001`. The configured ESP32 Auth account UID
+matches the device record; the setup PIN is saved as a string and is omitted
+from Git and reports. R-14 and R-45 are complete. A sign-in check with the
+local ESP32 `Config.h` password failed, so device authentication still needs to
+be reconciled. Owner claim, physical-phone verification, and hardware tests are
+still pending.
+
+**Updated:** 2026-10-27. **Current phase:** design revision implemented in software ([`design-revision-moving-hopper.md`](design-revision-moving-hopper.md)): the hopper moves on a chain past 5 trays, each with its own load cell (50 g per tray by default), and water is gravity-fed with no pump. **Hardware commissioning has not started** (prototype not yet available). Production RTDB rules and `device-001` provisioning are complete; see the open credential and phone-test notes above.
 
 Read these before starting new work:
 
@@ -55,7 +63,7 @@ Read these before starting new work:
 |-----------|--------|
 | **Arduino Mega** (primary controller) | Logic complete: 5-tray feed cycle (chain motor with interlocked relays, home/end limit switches, timed travel, per-tray tare and target, chain/tray timeouts, empty-hopper return), reservoir water alert, latching E-stop, EEPROM schedules, SD log. Simulated (51 tests) and compile-checked. Calibration, tray travel times and pins **unverified** (R-46). |
 | **ESP32** (communication bridge) | Complete: Wi-Fi reconnect, verified TLS, Firebase sign-in, RTDB writes, command transport, schedule restore. Simulated and compile-checked; **never flashed**. |
-| **Firebase** (Auth + RTDB, Spark plan) | Repo rules updated for the tray state and covered by 88 emulator tests; **production still has the 2026-10-21 (pump-era) rules** until R-45. Firestore and Cloud Functions are **not used**. |
+| **Firebase** (Auth + RTDB, Spark plan) | Revised RTDB rules deployed to production on 2026-10-27; `device-001` is provisioned and its setup PIN is a string. ESP32 sign-in with the local configured password failed, and owner claim is not yet tested. Firestore and Cloud Functions are **not used**. |
 | **Mobile app** (React Native / Expo SDK 57) | Feature-complete; shows tray weights and cycle progress, reservoir status; Jest 53/53, tsc and targeted lint clean. Revised screens and empty states were checked on Android emulators (R-49; see the QA records). **Not yet run on a physical phone against production.** Expo Go is not supported. |
 | **Nextion HMI** | HMI project in `Nextion/`. Firmware writes the real Home page fields; the Stop/Start buttons are coded but stay disabled until their IDs are read on the bench (R-20). |
 

@@ -12,7 +12,7 @@ This plan lists the physical checks the prototype must pass. Step-by-step instru
 | EEPROM persistence | Byte-for-byte JS mirror | Real EEPROM across a power cycle |
 | UART protocol and 64-byte line limit | JS mirrors of both parsers | Real buffers, timing, level shifting, noise |
 | ESP32 sign-in, TLS, RTDB writes, restore | ESP32 simulator against the emulator rules | Real Firebase token size (F27), the real certificate chain, Wi-Fi |
-| Rules and app | RTDB rules (88 tests); Jest (53 tests); Android emulator with the revised Status, Feeding, Water and History screens against local Firebase emulators | Physical phone against production; production provisioning and deployed revised rules |
+| Rules and app | RTDB rules (88 tests); Jest (53 tests); Android emulator with the revised Status, Feeding, Water and History screens against local Firebase emulators; production RTDB rules deployed and `device-001` provisioned | Physical phone against production; owner claim; production device sign-in and writes; hardware integration |
 | Calibration | none | All of it |
 | E-stop electrical isolation | none (software only) | All of it |
 

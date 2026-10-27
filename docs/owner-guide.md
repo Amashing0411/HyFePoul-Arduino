@@ -22,24 +22,13 @@ No passwords or PINs are written in this guide or anywhere in the repository. Ke
 - There is no shared demo login in the real Firebase project. For a demonstration, the presenter signs up as the owner and claims `device-001` (section 3). After the demo, the device can be released to the real owner by clearing `devices/device-001/ownerId` in the Firebase console, after which the real owner claims it with the setup PIN.
 - A demonstration without hardware can run against the local emulator (see `docs/hardware-commissioning-procedure.md` and the simulators in `scripts/`); it shows the app with sample data only.
 
-### Provisioning `device-001` (admin, once, in the Firebase console)
+### Production provisioning for `device-001`
 
-Follow the full [Firebase device provisioning and setup PIN guide](device-provisioning-guide.md), especially its R-45 rules prerequisite, before touching production.
+Initial provisioning was completed on 2026-10-27. R-14 (device Auth account, matching `deviceAuthUid`, string setup PIN) and R-45 (reviewed RTDB rules deployment) are recorded complete. The PIN value is not stored in this guide or the repository. See the full [Firebase device provisioning and setup PIN guide](device-provisioning-guide.md) for evidence and troubleshooting.
 
-The 2026-10-27 read-only Firebase CLI check found no `devices/device-001` or `deviceSecrets/device-001/setupPin`; no production values were changed. The device Auth account and deployed rules were not checked. R-14 remains open until an admin confirms the device account and both database records in the [Firebase console](https://console.firebase.google.com), project **hyfepoul-dev**:
+The ESP32 account email matches local `Config.h`, and its Auth UID matches `devices/device-001/deviceAuthUid`. However, a sign-in check with the local `Config.h` password failed. Reconcile the password before expecting the device to connect. Do not create another Auth account or change the device UID to the owner's UID.
 
-1. **Device account:** Authentication → Users. If no user has the email in the ESP32's `Config.h` (`FIREBASE_AUTH_EMAIL`), click **Add user** with that email and `FIREBASE_AUTH_PASSWORD`. Copy its **User UID**.
-2. **Device record:** Realtime Database → Data, under the root add:
-   ```
-   devices
-     └ device-001
-         ├ deviceAuthUid: "<User UID from step 1>"
-         ├ status: "offline"
-         └ lastHeartbeat: 0
-   ```
-   Do not add `ownerId`; claiming sets it.
-3. **Setup PIN:** add `deviceSecrets/device-001/setupPin` with your chosen six-digit PIN stored as a **string**, not a number. The app sends text and the rules compare types strictly; a numeric value makes a correct PIN fail as "wrong PIN". Do not reuse a sample or test PIN.
-4. **Claim:** in the app, Sign up, then Device ID `device-001` and the PIN. The device shows as yours, OFFLINE until the ESP32 is flashed and online.
+**Next:** install/open the production-connected APK, sign in or sign up with the owner's account, then claim `device-001` using the six-digit PIN provided privately. The owner claim and physical-phone flow have not yet been verified. OFFLINE is expected until the ESP32 has compatible firmware, matching credentials, Wi-Fi, and hardware.
 
 After a successful claim, an administrator can remove the retained `claimRequests/device-001` record after verifying `ownerId`; this removes the submitted PIN from that claim record. For a later owner transfer, follow the handover process in the full provisioning guide. Deleting only `ownerId` is insufficient under the current rules because the old claim request can block the next owner's request.
 
@@ -53,7 +42,7 @@ After a successful claim, an administrator can remove the retained `claimRequest
 
 1. Tap **Sign up**, enter your email and a password, and confirm.
 2. On **Claim your device**, enter the **Device ID** (`device-001`) and the **6-digit setup PIN** that came with the device.
-3. The Status screen opens. Within about a minute of the device being powered and on Wi-Fi, it shows **ONLINE** with the tray weights and hopper level.
+3. The Status screen opens. It may show **OFFLINE** until the ESP32 is flashed with compatible firmware, its Firebase credentials are reconciled, and it connects over Wi-Fi. Once commissioned, confirm that the app shows **ONLINE** with the tray weights and hopper level.
 
 If the claim fails: check the ID and PIN, and make sure nobody else has claimed the device already.
 

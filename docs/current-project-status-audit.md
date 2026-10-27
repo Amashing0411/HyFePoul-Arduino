@@ -107,7 +107,7 @@ Arduino Mega 2560 ──UART 115200 (≤63 chars/line)── ESP32 ──HTTPS (
 | 4 | Relay active level and NO/NC wiring unverified | High | Code assumes HIGH = ON. |
 | 5 | Timed travel to each tray is uncalibrated (R-46) | High | Placeholder 3 s per tray; wrong values spill feed between trays or hit the end switch early (`END_LIMIT_EARLY`). |
 | 6 | `systemData` unbounded growth | Medium | Retention decision needed. |
-| 7 | Revised RTDB rules not deployed (R-45) | High | Deploy with the new firmware on both boards. No saved schedules exist in production (checked 2026-10-23), so none need converting (R-50). |
+| 7 | Revised RTDB rules are deployed, but production owner/device flows are not verified | High | R-45 deployed 2026-10-27. Flash compatible firmware before connecting the prototype; verify production claim and device writes. No saved schedules exist in production (checked 2026-10-23), so none need converting (R-50). |
 | 8 | Firebase web API key not restricted (SEC-2) | Medium | The key is public in `eas.json` (by design for web keys); restrict it in Google Cloud Console. |
 | 9 | Old `Config.h` values in git history | Low–Medium | Probably the emulator test password; rotate it if it was used for the production device account. |
 | 10 | Nextion button IDs not yet confirmed | Low | Stop/Start on the HMI do nothing until set (procedure §9). |
@@ -128,7 +128,7 @@ All pins, levels and polarities are **intended, not verified** ([`hardware-assum
 | Area | Readiness | Basis |
 |------|-----------|-------|
 | **Mobile app** | Feature-complete for scope; emulator-verified | Jest 53/53, `tsc`, Android emulator runs ([`mobile-app-completion-matrix.md`](mobile-app-completion-matrix.md)); Firebase/app QA details in [`firebase-emulator-qa-2026-10-27.md`](firebase-emulator-qa-2026-10-27.md). No physical phone against production yet. |
-| **Backend / security** | Ready in software; revised rules pending deployment | 88/88 local rules tests; production still uses the 2026-10-21 rules, not the revised tray-state rules (R-45). Owner and device positive paths have not been exercised in production. |
+| **Backend / security** | Revised rules deployed; production claim and device sign-in remain unverified | 88/88 local rules tests; R-45 deployed 2026-10-27 and R-14 provisioning completed. Sign-in with the local ESP32 password failed; owner claim and physical device writes have not been exercised in production. |
 | **Firmware (Mega)** | Logic complete; compile-checked and simulated | Mega simulator 51/51. Flash 14%, RAM 29%. Calibration and pins unverified. |
 | **Firmware (ESP32)** | Logic complete; compile-checked and simulated | ESP32 simulator (commands, restore R1–R4, UART U1–U4). Flash 86% of the default partition (CA bundle). |
 | **Build** | Reproducible | `arduino-cli` builds for both boards; `npx expo run:android` development build; EAS profiles configured with the production RTDB URL. |
