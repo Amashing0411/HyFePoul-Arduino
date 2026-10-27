@@ -33,7 +33,7 @@ The six-item list is a useful summary, but it mixes software checks with physica
 
 ### 1.2 Suggested order for the prototype session
 
-Use the numbered HIT sequence as the safety gate: start with wiring and power checks (HIT-01–02), then bring up the ESP32 and prove the serial path (HIT-03–05), check the E-stop circuit before supervised actuators (HIT-06–07, HIT-11), calibrate sensors and verify the display (HIT-08–10, HIT-12), and only then test schedules, recovery and the complete feeding cycle (HIT-13–16). Stop at the first failed prerequisite; record the observation and corrective action before continuing. Do not connect or run motors before the stated HIT-01–05 prerequisites pass.
+Use the numbered HIT sequence as the safety gate: start with wiring and power checks (HIT-01–02), then bring up the ESP32 and prove the serial path (HIT-03–05), check the E-stop circuit before supervised actuators (HIT-06–07, HIT-11), calibrate sensors and verify the display (HIT-08–10, HIT-12), and only then test schedules, recovery and the complete feeding cycle (HIT-13–16). Stop at the first failed prerequisite; record the observation and corrective action before continuing. Do not connect or run motors before the stated HIT-01–05 prerequisites pass. The single-session sequence, credentials preflight, stop gates, and completion definitions are consolidated in the [hardware test-day run sheet](hardware-test-day-run-sheet.md).
 
 ## 2. Safety rules for every session
 

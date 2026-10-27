@@ -65,6 +65,7 @@ Read these before starting new work:
 | [`device-provisioning-guide.md`](device-provisioning-guide.md) | Admin steps for the ESP32 Firebase account, device record, private setup PIN, app claim, and transfer |
 | [`mobile-app-completion-matrix.md`](mobile-app-completion-matrix.md) | Screen-by-screen app status and test evidence |
 | [`hardware-integration-test-plan.md`](hardware-integration-test-plan.md) | Physical tests `HIT-01`–`HIT-16`, all currently `BLOCKED` |
+| [`hardware-test-day-run-sheet.md`](hardware-test-day-run-sheet.md) | One ordered session plan for the 2026-10-28 prototype checks, with stop gates and completion criteria |
 | [`checkpoint-current-status-report.md`](checkpoint-current-status-report.md) | What was changed in the audit, commands run, results |
 | [`comprehensive-work-plan.md`](comprehensive-work-plan.md) | Full history: findings F1–F27, decisions D1–D6, per-phase evidence |
 
