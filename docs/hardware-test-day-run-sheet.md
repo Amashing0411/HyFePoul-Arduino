@@ -11,13 +11,13 @@ Use this with the detailed [hardware commissioning procedure](hardware-commissio
 - Production RTDB rules and the `device-001` record are provisioned. The dedicated ESP32 Auth UID is bound to `device-001`; the record is expected to remain `offline` until the device connects.
 - The six-digit setup PIN is stored privately in Firebase. It is deliberately omitted here and from Git.
 - The production APK is built. A temporary test-owner account is available for production QA; the actual client account is not implemented.
-- The device account password in the ignored local `Config.h` has not been verified. This is the pre-session credential blocker for HIT-03.
+- A production Auth check confirmed the configured account UID matches the device binding, but sign-in with the current local `Config.h` credential returned `INVALID_LOGIN_CREDENTIALS`. The API key has been synchronized from the production app config. Wi-Fi SSID/password are still placeholders. Resolve both before HIT-03.
 - Simulator and emulator checks have passed, but the prototype has not yet supplied physical evidence for HIT-01–HIT-16.
 
 ## Before powering anything
 
-- [ ] Privately verify that `FIREBASE_AUTH_PASSWORD` in the ignored local ESP32 `Config.h` matches the password used for the dedicated device Auth account; update it locally if needed. Do not put the password in chat, logs, screenshots, or Git.
-- [ ] Confirm `DEVICE_ID`, Firebase project, device email, and Wi-Fi settings in `Config.h`; keep ESP32 Core Debug Level at **None** so logs do not expose authentication tokens.
+- [ ] Reconcile the failed production sign-in: make the `FIREBASE_AUTH_PASSWORD` in ignored local ESP32 `Config.h` match the dedicated device Auth account, then verify sign-in before HIT-03. Do not put the password in chat, logs, screenshots, or Git.
+- [ ] Replace the Wi-Fi SSID/password placeholders and confirm `DEVICE_ID`, Firebase project, and device account in `Config.h`; keep ESP32 Core Debug Level at **None** so logs do not expose authentication tokens.
 - [ ] Have the current Mega and ESP32 firmware, production APK, wiring/pin documents, a multimeter, and the required board/programming cables ready.
 - [ ] Have the person responsible for the Firebase test-owner account present for the phone claim. Keep the setup PIN private.
 - [ ] Set up the bench with the physical E-stop reachable. Start with actuator power disconnected. Follow the actual wiring documentation; do not infer missing pins or hardware.

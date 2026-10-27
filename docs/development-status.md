@@ -1,5 +1,15 @@
 # Development Status
 
+**2026-10-27 production credential recheck:** A temporary Firebase Auth export
+confirmed that the account configured in the local, Git-ignored ESP32 `Config.h`
+exists and its UID matches `devices/device-001/deviceAuthUid`; the export was
+deleted immediately. A production sign-in using the current local credential
+returned `INVALID_LOGIN_CREDENTIALS`, so ESP32 authentication is still blocked.
+The ESP32 API key was synchronized from the matching production mobile-app
+config, and the ESP32 build passed (1,147,088 bytes flash, 49,688 bytes RAM).
+The Wi-Fi SSID and password in local `Config.h` remain placeholders. No
+credentials, setup PIN, auth tokens, or user records are included here.
+
 **2026-10-26 mobile follow-up:** Fixed indefinite loading after claiming a device
 that has not sent its first sensor update, and inaccessible Settings controls.
 Verified empty and populated Status/Feeding/Water views on the Android emulator
@@ -48,20 +58,22 @@ phone. See the [device provisioning guide](device-provisioning-guide.md).
 rules and provisioned `device-001`. The configured ESP32 Auth account UID
 matches the device record; the setup PIN is saved as a string and is omitted
 from Git and reports. R-14 and R-45 are complete. A sign-in check with the
-original device account credentials failed, so device authentication still
-needs to be reconciled. Owner claim, physical-phone verification, and hardware
-tests are still pending.
+original device account credentials failed. The later check with the dedicated
+account also failed with `INVALID_LOGIN_CREDENTIALS`; device authentication
+still needs to be reconciled. Owner claim, physical-phone verification, and
+hardware tests are still pending.
 
 **2026-10-27 credential follow-up:** The original ESP32 Auth UID was also
 assigned to the existing `prod-test-device` record, which has an owner and a
 prior heartbeat. That binding and account were left unchanged. A dedicated
 Firebase Auth user was created for `device-001`; its UID is now saved in
 `devices/device-001/deviceAuthUid` and was verified in the Firebase Console.
-The local ESP32 `Config.h` email matches this dedicated account, but its
-password has not been verified against the account. Do not mark ESP32
-authentication ready until the local password is reconciled and a live sign-in
-is observed. The Firebase CLI admin session is expired; the database binding
-was completed in the Firebase Console.
+The configured email was confirmed to map to that UID by a temporary Auth
+export, which was deleted after checking. A sign-in attempt using the current
+local password returned `INVALID_LOGIN_CREDENTIALS`; do not mark ESP32
+authentication ready until the password is reconciled and a live sign-in is
+observed. The production API key is now present in ignored local `Config.h`,
+but Wi-Fi settings remain placeholders.
 
 **Updated:** 2026-10-27. **Current phase:** design revision implemented in software ([`design-revision-moving-hopper.md`](design-revision-moving-hopper.md)): the hopper moves on a chain past 5 trays, each with its own load cell (50 g per tray by default), and water is gravity-fed with no pump. **Hardware commissioning has not started** (prototype not yet available). Production RTDB rules and `device-001` provisioning are complete; see the open credential and phone-test notes above.
 
@@ -83,8 +95,8 @@ Read these before starting new work:
 | Subsystem | Status |
 |-----------|--------|
 | **Arduino Mega** (primary controller) | Logic complete: 5-tray feed cycle (chain motor with interlocked relays, home/end limit switches, timed travel, per-tray tare and target, chain/tray timeouts, empty-hopper return), reservoir water alert, latching E-stop, EEPROM schedules, SD log. Simulated (51 tests) and compile-checked. Calibration, tray travel times and pins **unverified** (R-46). |
-| **ESP32** (communication bridge) | Firmware implements Wi-Fi reconnect, TLS certificate verification, Firebase sign-in, RTDB writes, command transport, and schedule restore. Simulator and compile checks passed; the firmware has **not been flashed** and physical sign-in/TLS remain unverified. |
-| **Firebase** (Auth + RTDB, Spark plan) | Revised RTDB rules deployed to production on 2026-10-27; `device-001` has a dedicated Auth UID and string setup PIN. The earlier sign-in attempt used the original device account and failed; the new account password has not been verified against local `Config.h`. The record remains offline and unclaimed. Firestore and Cloud Functions are **not used**. |
+| **ESP32** (communication bridge) | Firmware implements Wi-Fi reconnect, TLS certificate verification, Firebase sign-in, RTDB writes, command transport, and schedule restore. Simulator and compile checks passed; current production Auth attempt returned `INVALID_LOGIN_CREDENTIALS`, Wi-Fi credentials remain placeholders, and firmware has **not been flashed**. |
+| **Firebase** (Auth + RTDB, Spark plan) | Revised RTDB rules deployed to production on 2026-10-27; `device-001` has a dedicated Auth UID and string setup PIN. The configured account UID matches the device binding, but the local credential did not sign in (`INVALID_LOGIN_CREDENTIALS`). The record remains offline and unclaimed. Firestore and Cloud Functions are **not used**. |
 | **Mobile app** (React Native / Expo SDK 57) | Feature-complete; shows tray weights and cycle progress, reservoir status; Jest 53/53 and TypeScript pass. Expo lint reports 0 errors and 3 `react-hooks/set-state-in-effect` warnings. Revised screens and empty states were checked on Android emulators (R-49; see the QA records). **Not yet run on a physical phone against production.** Expo Go is not supported. |
 | **Nextion HMI** | HMI project in `Nextion/`. Firmware writes the real Home page fields; the Stop/Start buttons are coded but stay disabled until their IDs are read on the bench (R-20). |
 
