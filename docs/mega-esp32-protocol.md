@@ -198,6 +198,38 @@ A `SCHEDULE_SET` that fails for any of these reasons also triggers a schedule re
   - Restore IDs are never written to `/commands`.
 - **Device confirmation (R-43).** When the Mega answers a `SCHEDULE_SET` (from the app or a restore) with `CMD_ACK ACCEPTED`, it has already saved the slot to EEPROM. The ESP32 then writes the values from that exact line to `scheduleStatus/{deviceId}/sched_<i>` (`hour`, `minute`, `targetGrams`, `enabled`, `appliedAt`). The app compares these with `/schedules` and shows each schedule as "On device" or "Waiting for device". A failed write is not retried; the next restore (on reconnect or Mega boot) writes it again.
 
+## 7a. HMI Recent History request
+
+- When the Mega opens page 3 or receives the page's Refresh touch, it sends
+  `HISTORY_REQ` to the ESP32. The ESP32 queries the device's own
+  `/systemData/{deviceId}` path ordered by `timestamp` with `limitToLast=4`.
+  The app listens to the same node, returns the latest 50, and displays them
+  newest first; the HMI shows the newest four due to its four cards.
+- The ESP32 skips records missing numeric `timestamp`, `feedWeightGrams`, or
+  `hopperLevelPercent`, or boolean `waterLow` and `feedingActive`. It sorts the
+  valid result newest first, then sends:
+
+  ```
+  HISTORY_REQ
+  HIST|BEGIN
+  HIST|ROW|IDX:<0-3>|TS:<epoch seconds>|FEED:<whole grams>|HOP:<percent>|W:<0|1>|DISP:<0|1>
+  HIST|END
+  ```
+
+- An empty result returns `HIST|EMPTY`; an unavailable Wi-Fi/Firebase read or
+  bad response returns `HIST|ERROR|...`. The Mega formats each timestamp using
+  its fixed UTC+8 display offset and updates one Nextion field at a time. This
+  is the same cloud snapshot data as app Recent History; SD event rows remain a
+  separate local record.
+- RTDB rules permit reads at only the matching device's history node to its
+  `deviceAuthUid`, as well as the existing owner read. That device read rule
+  must be deployed before this feature can read production history.
+- Schedule overview labels display each accepted slot's target and enabled
+  state alongside its time. App schedule changes already travel through
+  `/schedules` and `SCHEDULE_SET` to the Mega. The HMI editor still writes only
+  hour/minute to local EEPROM; it does not write changes back to Firebase
+  (R-54).
+
 ## 8. Timing summary
 
 | What | Interval / timeout |

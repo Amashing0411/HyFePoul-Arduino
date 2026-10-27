@@ -140,7 +140,7 @@ Source: Feeding.ino; ESP32Communication.ino; HyFePoul_ESP32.ino; ScheduleStorage
 | Water LOW when full | Float orientation, pin 34, active-low wiring. | Stable low/full tests; 2 s debounce. |
 | Wrong direction / overshoot | Relay polarity, motor wiring, limits, travel timing. | Stop; repeat unloaded safety check. |
 | Nextion blank or buttons fail | Panel power, TX/RX, ground, 9600 baud, matching TFT and IDs. | HIT-12: check live values and touch controls with actuators disconnected. |
-| Event Log empty / SD unavailable | SD ready; active CSV exists and has events. Scan covers latest 64 KiB. | HIT-12: compare p3 Refresh output with the CSV. |
+| Recent History empty / unavailable | History requires the ESP32 Wi-Fi/Firebase link and at least one valid `/systemData` snapshot; the page shows the latest four. | HIT-12: compare p3 values and ordering with the app's Recent History screen; test Refresh online and offline. SD CSV events are logged separately and are not shown here. |
 | App and Nextion schedules differ | Panel saves EEPROM; cloud restore can replace it. No write-back yet (R-54). | Use app for a schedule that must match remotely. |
 
 ### Weight changes after a feed

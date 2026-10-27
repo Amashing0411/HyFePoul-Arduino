@@ -14,13 +14,15 @@ not confirmed.
 **28 October 2026 follow-up:** Updated onsite Nextion guidance to match the
 checked-in pages and Mega touch handlers. The phone app is described as the
 owner's away-from-device surface; the Nextion is the onsite interface. The
-manuals call out that Nextion schedule edits do not write back to Firebase and
-may be replaced by a cloud restore (R-54). The HMI now uses the HyFePoul app
-logo, has a local Mega/SD Event Log and a separate System Check page, and has a
-compiled `.tft` export. The updated Markdown is the source of truth for this
-follow-up, and all four edition 1.1 PDFs have been regenerated and visually
-reviewed; see the QA report and `verification.json` for checksums. Physical
-display/touch checks remain unverified.
+HMI's Home button is captioned **History**; it opens the Recent History page
+showing the newest four cloud snapshots from the same RTDB source as the app.
+The schedule overview reflects app-synchronized time, target and enabled state.
+The manuals call out that onsite schedule edits remain local EEPROM changes and
+may be replaced by a cloud restore (R-54). The HMI uses the HyFePoul logo,
+retains SD event logging locally, and has a separate System Check page. The four
+PDFs have been rebuilt and visually inspected page by page. The device-scoped
+RTDB permission needed by HMI History is in source but still requires production
+deployment; physical display/touch checks remain unverified.
 
 | Manual | Reader | Editable source | PDF |
 |---|---|---|---|

@@ -656,6 +656,29 @@ const buildScheduleRestoreLines = (schedules) => {
   return lines;
 };
 
+// Mirrors the ESP32's HMI history projection from /systemData: newest four
+// valid snapshots, with the same fields the app's Recent History cards show.
+function buildHmiHistoryLines(snapshots) {
+  const rows = Object.values(snapshots || {})
+    .filter((row) => row && Number.isFinite(row.timestamp) && row.timestamp >= 1e12 &&
+      Number.isFinite(row.feedWeightGrams) && row.feedWeightGrams >= 0 &&
+      Number.isFinite(row.hopperLevelPercent) && row.hopperLevelPercent >= 0 && row.hopperLevelPercent <= 100 &&
+      typeof row.waterLow === 'boolean' && typeof row.feedingActive === 'boolean')
+    .map((row) => ({
+      timestampSeconds: Math.floor(row.timestamp / 1000),
+      feedGrams: Math.round(row.feedWeightGrams),
+      hopperPercent: Math.round(row.hopperLevelPercent),
+      waterLow: row.waterLow,
+      feeding: row.feedingActive,
+    }))
+    .sort((a, b) => b.timestampSeconds - a.timestampSeconds)
+    .slice(0, 4);
+  if (!rows.length) return ["HIST|BEGIN", "HIST|EMPTY"];
+  return ["HIST|BEGIN", ...rows.map((row, index) =>
+    `HIST|ROW|IDX:${index}|TS:${row.timestampSeconds}|FEED:${row.feedGrams}|HOP:${row.hopperPercent}|W:${row.waterLow ? 1 : 0}|DISP:${row.feeding ? 1 : 0}`
+  ), "HIST|END"];
+}
+
 // Mirrors reportScheduleApplied() in HyFePoul_ESP32.ino: values parsed from
 // the exact SCHEDULE_SET line the Mega accepted.
 function reportScheduleAppliedPayload(line) {
@@ -728,7 +751,32 @@ async function testScheduleRestore() {
   const back = await (await fetch(`http://${EMULATOR_HOST}:${EMULATOR_RTDB_PORT}/scheduleStatus/${DEVICE_ID}/sched_0.json?ns=${NAMESPACE}`, { headers: { 'Authorization': 'Bearer owner' } })).json();
   assert(back.hour === 9 && back.minute === 30 && back.targetGrams === 250 && back.enabled === true && typeof back.appliedAt === 'number', `Stored status wrong: ${JSON.stringify(back)}`);
 
-  console.log("\nALL SCHEDULE RESTORE TESTS PASSED.");
+  console.log("Test R6: device reads its own newest app History snapshots; another device's rows are denied");
+  const baseTimestamp = Date.now();
+  const historyRows = Object.fromEntries(Array.from({ length: 6 }, (_, i) => [`row_${i}`, {
+    timestamp: baseTimestamp - (5 - i) * 60000,
+    feedWeightGrams: 200 + i,
+    targetFeedGrams: 50,
+    hopperLevelPercent: 60 + i,
+    trayWeightsGrams: [40, 40, 40, 40, 40],
+    waterLow: i === 5,
+    feedingActive: i === 4,
+    cycleStep: i === 4 ? "DISPENSING" : "IDLE",
+    currentTray: i === 4 ? 3 : 0,
+    emergencyStopActive: false,
+  }]));
+  await adminPut(`systemData/${DEVICE_ID}`, historyRows);
+  const historyUrl = `http://${EMULATOR_HOST}:${EMULATOR_RTDB_PORT}/systemData/${DEVICE_ID}.json?orderBy=%22timestamp%22&limitToLast=4&ns=${NAMESPACE}&auth=${idToken}`;
+  const historyRes = await fetch(historyUrl);
+  assert(historyRes.status === 200, `Device cannot read its own systemData (HTTP ${historyRes.status})`);
+  const history = await historyRes.json();
+  const historyLines = buildHmiHistoryLines(history);
+  assert(historyLines.length === 6 && historyLines[1].includes(`TS:${Math.floor(baseTimestamp / 1000)}`), `HMI did not receive the newest four rows first: ${historyLines.join("; ")}`);
+  assert(historyLines[1].includes("FEED:205|HOP:65|W:1|DISP:0"), `Newest row fields differ from app History: ${historyLines[1]}`);
+  const otherHistoryRes = await fetch(`http://${EMULATOR_HOST}:${EMULATOR_RTDB_PORT}/systemData/device-001.json?ns=${NAMESPACE}&auth=${idToken}`);
+  assert(otherHistoryRes.status === 401 || otherHistoryRes.status === 403, `Device should not read another device's history (HTTP ${otherHistoryRes.status})`);
+
+  console.log("\nALL SCHEDULE RESTORE AND HISTORY TESTS PASSED.");
 }
 
 // ---------------------------------------------------------

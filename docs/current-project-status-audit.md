@@ -60,7 +60,7 @@ Arduino Mega 2560 ──UART 115200 (≤63 chars/line)── ESP32 ──HTTPS (
 | Device claiming with setup PIN (wrong PIN denied, no transfer) | App, RTDB rules | Verified (emulator, rules tests) |
 | Device online status from heartbeat age (90 s) | App | Verified (emulator), 5 unit tests |
 | History (latest 50 records), alert feed, settings (language, dark mode, text size) | App | Emulator (partial; see the matrix) |
-| Nextion onsite UI: Home values/navigation, Stop/Feed Now, SD Event Log, System Check, Feed Target, three schedule editors | Mega `Nextion.ino`, `SDLogging.ino`, checked-in HMI and TFT | Mega simulator 56/56 covers mapped touch frames, log-field pacing and schedule/target edits; Nextion Editor compile passed with 0 errors/warnings and Home → Log simulator navigation returned page ID 3. Physical UART/touch/SD check remains HIT-12. |
+| Nextion onsite UI: Home values/navigation, Stop/Feed Now, app History, System Check, Feed Target, three schedule editors | Mega `Nextion.ino`, ESP32 bridge, RTDB rules, checked-in HMI and TFT | Mega simulator 56/56 covers app-history row formatting/order, refresh mapping, schedule target/enabled display and touch handling. Physical Firebase read, UART/touch/display/history parity remains HIT-12. |
 | SD CSV log | Mega `SDLogging.ino` | Compile-checked |
 | Network time to RTC (ESP32 NTP, every 30 s) | ESP32, Mega | Compile-checked |
 | HTTPS with certificate verification | ESP32 | Compile-checked |
@@ -69,7 +69,7 @@ Arduino Mega 2560 ──UART 115200 (≤63 chars/line)── ESP32 ──HTTPS (
 
 | Item | Limitation |
 |------|------------|
-| Nextion HMI (R-20) | Page 3 is a local Mega/SD Event Log (up to four newest event rows); page 9 is System Check with hopper, water, ESP32 link and target. Mega touch handling, local target edits, schedule edits and log field pacing are simulated. Home has no hopper percentage or network field. Physical UART/touch behavior remains unverified until HIT-12. Schedule edits persist to local EEPROM but do not write to Firebase; online restore can replace them (R-54). |
+| Nextion HMI (R-20) | Page 3 (named `Log`) requests the latest four `/systemData/{deviceId}` snapshots also shown in app Recent History; page 9 is System Check with hopper, water, ESP32 link and target. Page 2 shows app-synchronized time, target and enabled status. Mega/ESP32 simulators cover row and schedule mapping; a scoped device read rule is present in source but is not deployed yet. Physical Firebase read, UART/touch/display/history parity remains unverified until HIT-12. Onsite schedule time edits persist to EEPROM but do not write to Firebase (R-54). |
 | Notifications | Delivered only while the app is running (Spark plan, no server push). Alerts raised while it is closed appear in the Notifications tab later. |
 | Alert resolution (F24) | Done in software (R-23): the Mega sends clear events, the ESP32 marks the alert resolved, and the app lists active alerts first. Alerts raised while the ESP32 is offline are kept and written when it is back online. |
 | Load cell meaning | Resolved (R-16): one load cell under each tray weighs dispensed feed. The HMI caption `t0` now says "Feed in Trays:" (R-48; HMI project compile passed, physical display appearance not checked). |

@@ -11,9 +11,10 @@
     t4  Status (the HMI's initial text is "Status: WAITING")
     t5  Local time value (HH:MM:SS)
     t6  Static local-time caption
-  Log page t1..t4 show recent Mega/SD event records. System Check page t1..t4
-  show separate hopper, water, ESP32-link and manual-target readouts. Each page
-  sends one component per update.
+  Log page t1..t4 show the newest cloud system-data snapshots also listed by
+  the app's History screen. System Check page t1..t4 show separate hopper,
+  water, ESP32-link and manual-target readouts. Each page sends one component
+  per update.
   t0 "Feed in Trays:", t1 "Water Level:", t6 "LOCAL TIME:", and t7 "g"
   are static captions set in the HMI and are not written. The Home page has no
   field for hopper level % or network status.
@@ -70,10 +71,11 @@ uint8_t nextionDraftScheduleIndex = NEXTION_ID_UNSET;
 uint8_t nextionScheduleField = 0;
 uint8_t nextionSystemField = 0;
 uint8_t nextionLogField = 0;
-// Filled by SDLogging.ino when the operator opens or refreshes the Log page.
-char nextionRecentEvents[NEXTION_LOG_EVENT_COUNT][64] = {
-  "NO RECENT EVENTS", "", "", ""
+// Filled by the ESP32 from the same /systemData records as app History.
+char nextionHistoryRows[NEXTION_LOG_EVENT_COUNT][64] = {
+  "NO HISTORY YET", "", "", ""
 };
+uint8_t nextionHistoryRowsReceived = 0;
 FeedSchedule nextionScheduleDraft;
 float nextionManualTargetDraft = DEFAULT_FEED_TARGET_GRAMS;
 unsigned long nextionLastTouchMillis = 0;
@@ -108,28 +110,37 @@ void updateNextion() {
   } else if (nextionCurrentPageId == NEXTION_LOG_PAGE_ID) {
     refreshNextionLogEntries();
   } else if (nextionCurrentPageId == NEXTION_SCHEDULE_PAGE_ID) {
-    static const char* components[] = {"t4", "t7", "t5", "t6", "t8", "t9"};
-    uint8_t slot = nextionScheduleField / 2;
-    bool isHour = (nextionScheduleField % 2) == 0;
-    const FeedSchedule& schedule = feedSchedules[slot];
-    String value;
+    static const char* timeComponents[] = {"t4", "t7", "t5", "t6", "t8", "t9"};
+    static const char* summaryComponents[] = {"t1", "t2", "t3"};
+    if (nextionScheduleField < 6) {
+      uint8_t slot = nextionScheduleField / 2;
+      bool isHour = (nextionScheduleField % 2) == 0;
+      const FeedSchedule& schedule = feedSchedules[slot];
+      String value;
 
-    if (!schedule.enabled) {
-      value = isHour ? "OFF" : "";
-    } else if (isHour) {
-      char hourText[4];
-      snprintf(hourText, sizeof(hourText), "%02u:", schedule.hour);
-      value = hourText;
+      if (!schedule.enabled) {
+        value = isHour ? "OFF" : "";
+      } else if (isHour) {
+        char hourText[4];
+        snprintf(hourText, sizeof(hourText), "%02u:", schedule.hour);
+        value = hourText;
+      } else {
+        char minuteText[3];
+        snprintf(minuteText, sizeof(minuteText), "%02u", schedule.minute);
+        value = minuteText;
+      }
+      setNextionText(timeComponents[nextionScheduleField], value);
     } else {
-      char minuteText[3];
-      snprintf(minuteText, sizeof(minuteText), "%02u", schedule.minute);
-      value = minuteText;
+      uint8_t slot = nextionScheduleField - 6;
+      const FeedSchedule& schedule = feedSchedules[slot];
+      String value = String("S") + (slot + 1) + " " +
+                     String(schedule.targetGrams, 0) + "g " +
+                     (schedule.enabled ? "ON" : "OFF");
+      setNextionText(summaryComponents[slot], value);
     }
-
-    // The schedule overview is split across paired hour/minute fields. Send
-    // one component per update so Serial2's 64-byte TX buffer never blocks.
-    setNextionText(components[nextionScheduleField], value);
-    nextionScheduleField = (nextionScheduleField + 1) % 6;
+    // Show the app's time, target amount and enabled state without sending a
+    // long multi-field burst to the Nextion's 64-byte UART buffer.
+    nextionScheduleField = (nextionScheduleField + 1) % 9;
   }
 }
 
@@ -245,8 +256,7 @@ void handleNextionPageChange(uint8_t pageId) {
     setNextionValue("n0", nextionScheduleDraft.hour);
     setNextionValue("n1", nextionScheduleDraft.minute);
   } else if (pageId == NEXTION_LOG_PAGE_ID) {
-    loadRecentLogEventsFromSD();
-    nextionLogField = 0;
+    requestNextionHistory();
   } else if (pageId == NEXTION_SYSTEM_PAGE_ID) {
     nextionSystemField = 0;
   } else if (pageId == NEXTION_HOME_PAGE_ID) {
@@ -287,8 +297,94 @@ void refreshNextionSystemReadings() {
 
 void refreshNextionLogEntries() {
   static const char* components[] = {"t1", "t2", "t3", "t4"};
-  setNextionText(components[nextionLogField], nextionRecentEvents[nextionLogField]);
+  setNextionText(components[nextionLogField], nextionHistoryRows[nextionLogField]);
   nextionLogField = (nextionLogField + 1) % NEXTION_LOG_EVENT_COUNT;
+}
+
+void requestNextionHistory() {
+  nextionHistoryRowsReceived = 0;
+  for (uint8_t i = 0; i < NEXTION_LOG_EVENT_COUNT; i++) {
+    nextionHistoryRows[i][0] = '\0';
+  }
+  strncpy(nextionHistoryRows[0], "LOADING HISTORY",
+          sizeof(nextionHistoryRows[0]) - 1);
+  nextionLogField = 0;
+
+  if (!esp32Online) {
+    strncpy(nextionHistoryRows[0], "HISTORY UNAVAILABLE",
+            sizeof(nextionHistoryRows[0]) - 1);
+    return;
+  }
+
+  ESP32_SERIAL.println(F("HISTORY_REQ"));
+}
+
+void processNextionHistoryLine(const String& line) {
+  if (line == "HIST|BEGIN") {
+    for (uint8_t i = 0; i < NEXTION_LOG_EVENT_COUNT; i++) {
+      nextionHistoryRows[i][0] = '\0';
+    }
+    nextionHistoryRowsReceived = 0;
+    strncpy(nextionHistoryRows[0], "LOADING HISTORY",
+            sizeof(nextionHistoryRows[0]) - 1);
+    nextionLogField = 0;
+    return;
+  }
+
+  if (line == "HIST|EMPTY") {
+    for (uint8_t i = 0; i < NEXTION_LOG_EVENT_COUNT; i++) {
+      nextionHistoryRows[i][0] = '\0';
+    }
+    strncpy(nextionHistoryRows[0], "NO HISTORY YET",
+            sizeof(nextionHistoryRows[0]) - 1);
+    nextionHistoryRowsReceived = 0;
+    nextionLogField = 0;
+    return;
+  }
+
+  if (line.startsWith("HIST|ERROR|")) {
+    for (uint8_t i = 0; i < NEXTION_LOG_EVENT_COUNT; i++) {
+      nextionHistoryRows[i][0] = '\0';
+    }
+    strncpy(nextionHistoryRows[0], "HISTORY UNAVAILABLE",
+            sizeof(nextionHistoryRows[0]) - 1);
+    nextionHistoryRowsReceived = 0;
+    nextionLogField = 0;
+    return;
+  }
+
+  if (!line.startsWith("HIST|ROW|")) return;
+  int index = extractMegaValue(line, "IDX:").toInt();
+  long timestampSeconds = extractMegaValue(line, "TS:").toInt();
+  long feedGrams = extractMegaValue(line, "FEED:").toInt();
+  long hopperPercent = extractMegaValue(line, "HOP:").toInt();
+  int waterLowValue = extractMegaValue(line, "W:").toInt();
+  int feedingValue = extractMegaValue(line, "DISP:").toInt();
+  if (index < 0 || index >= NEXTION_LOG_EVENT_COUNT ||
+      timestampSeconds <= 0 || feedGrams < 0 || hopperPercent < 0 ||
+      hopperPercent > 100 || (waterLowValue != 0 && waterLowValue != 1) ||
+      (feedingValue != 0 && feedingValue != 1)) return;
+
+  uint32_t localSeconds = (uint32_t)timestampSeconds +
+      (uint32_t)LOCAL_UTC_OFFSET_MINUTES * 60UL;
+  DateTime stamp(localSeconds);
+  snprintf(nextionHistoryRows[index], sizeof(nextionHistoryRows[index]),
+           "%02u-%02u %02u:%02u  %ldg  %ld%%  W:%s D:%s",
+           stamp.month(), stamp.day(), stamp.hour(), stamp.minute(),
+           feedGrams, hopperPercent, waterLowValue ? "LOW" : "OK",
+           feedingValue ? "ON" : "OFF");
+  if ((uint8_t)(index + 1) > nextionHistoryRowsReceived) {
+    nextionHistoryRowsReceived = index + 1;
+  }
+  nextionLogField = 0;
+}
+
+void finishNextionHistory() {
+  if (nextionHistoryRowsReceived == 0) {
+    strncpy(nextionHistoryRows[0], "NO HISTORY YET",
+            sizeof(nextionHistoryRows[0]) - 1);
+  }
+  nextionLogField = 0;
 }
 
 void handleNextionTouch(uint8_t pageId, uint8_t componentId) {
@@ -363,8 +459,7 @@ void handleNextionTouch(uint8_t pageId, uint8_t componentId) {
   // a paced update of all four live readings.
   if (pageId == NEXTION_LOG_PAGE_ID &&
       componentId == NEXTION_LOG_REFRESH_BUTTON_ID) {
-    loadRecentLogEventsFromSD();
-    nextionLogField = 0;
+    requestNextionHistory();
   }
 
   if (pageId == NEXTION_SYSTEM_PAGE_ID &&

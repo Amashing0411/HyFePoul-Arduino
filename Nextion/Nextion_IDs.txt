@@ -6,8 +6,8 @@ The Android app is the away-from-device interface through Firebase; it never tal
 Pages (page ID / editor page / purpose)
 0 Logo         startup screen; uses HyFePoul app logo resource ID 2
 1 Home         onsite status, Feed Now, Stop / Reset Stop, local navigation
-2 Sched        three local feeding times; opens one editor per slot
-3 Log          newest four Mega/SD event records, newest first
+2 Sched        three app-synchronized feeding schedules; opens one editor per slot
+3 Log          newest four cloud system-data snapshots, newest first (same records as app History)
 4 Grams        local manual target in grams per tray
 5 Sched1       time editor for local schedule slot 1
 6 Sched2       time editor for local schedule slot 2
@@ -27,7 +27,7 @@ t7  static unit "g"
 
 Home actions
 b0  Schedule overview
-b1  Event Log
+b1  History
 b2  Feed Target
 b3  Stop; latches the software stop and turns actuators off; red, high-visibility control
 b4  Feed Now; becomes Reset Stop when the software stop is latched; green, high-visibility control
@@ -36,18 +36,22 @@ The four navigation buttons form a spaced vertical stack on the left side of Hom
 Navigation and action touches are handled by the HMI; only the controls that need Mega
 handling send a touch component frame.
 
-Event Log page (p3)
-t1..t4  newest four nonempty AlertEvent entries in the current Mega SD log file;
-        t1 is newest. Each entry includes MM-DD HH:MM:SS and an event name.
+History page (p3; HMI page name remains Log)
+t1..t4  newest four valid `/systemData/{deviceId}` snapshots; t1 is newest.
+        Each card shows MM-DD HH:MM, total tray feed grams, hopper percentage,
+        reservoir water state and dispenser state, matching the app's Recent
+        History fields. These are the same cloud snapshots, not the SD CSV.
 b0       Back to Home (navy with white label)
-b1       Refresh (reloads the newest SD rows; green with black label; touch ID 4)
+b1       Refresh (requests the newest cloud rows from the ESP32; green with black
+         label; touch ID 4)
 
-The loader scans backward through at most the last 64 KiB of the active monthly CSV
-(or HFNOTIME.CSV when the clock is unset), skips the header and periodic rows, and
-shows up to four event entries. Event names are clipped to 32 characters for a short
-UART command. It shows NO RECENT EVENTS if no events were found, or SD LOG UNAVAILABLE
-when the card/file cannot be read. This is local Mega/SD history; it may differ from
-the app's cloud history and remains available independently of cloud connectivity.
+The ESP32 reads the latest four snapshots ordered by `timestamp`, validates the
+History fields and sends them newest first. The Mega applies the project's fixed
+UTC+8 offset when formatting the timestamp, matching the intended phone timezone.
+When the cloud history is empty the HMI shows NO HISTORY YET; when the ESP32 or
+Firebase read fails it shows HISTORY UNAVAILABLE. SD event logging continues
+locally but is not the source for this History page. An opened page requests a new
+snapshot set; Refresh repeats that request.
 
 System Check page (p9; editor page name SystemCheck)
 t1  hopper percentage
@@ -72,6 +76,8 @@ b4  ID 10  decrease minute
 b5  ID 11  save schedule time to EEPROM
 
 Schedule overview display fields (one Mega update per 100 ms tick)
+Slot labels t1/t2/t3 show S1/S2/S3, the target grams and ON/OFF state from
+the Mega schedule array, which is updated from the app by ESP32 `SCHEDULE_SET`.
 Slot 1: t4 = hour with colon (HH:); t7 = minute (MM)
 Slot 2: t5 = hour with colon (HH:); t6 = minute (MM)
 Slot 3: t8 = hour with colon (HH:); t9 = minute (MM)
@@ -83,11 +89,13 @@ Branding and layout
 - High-visibility green is reserved for Feed Now, Save and Refresh; navy is used for Back;
   Stop remains red. Readout cards remain neutral so controls retain clear visual priority.
 - Home navigation controls use a four-row vertical stack with consistent spacing.
-- The Event Log and System Check use separate pages and clearly different data sources.
+- Recent History shows cloud snapshots also displayed in the app; System Check shows current Mega readings.
 
-Schedule touch changes are local EEPROM edits. Online Firebase schedule restore can
-replace them; write-back synchronization to the app is tracked as R-54. The HMI edits
-hour/minute only and has no onsite schedule enable/disable toggle.
+Schedule values set in the app reach the Mega through the existing cloud
+`SCHEDULE_SET` flow and are displayed on this page (time, target and enabled state).
+Onsite schedule-editor Save still changes hour/minute in Mega EEPROM only; it does
+not write back to Firebase and a later cloud restore can replace it (R-54). The HMI
+editor has no onsite schedule target or enable/disable control.
 
 Simulation and source review confirm the IDs/page routing and Mega touch handling.
 Physical panel display, touch, UART levels, SD read path and button feel remain

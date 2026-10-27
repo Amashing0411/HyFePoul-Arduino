@@ -98,6 +98,12 @@ void processESP32Line(String line) {
     return;
   }
 
+  if (line.startsWith("HIST|")) {
+    processNextionHistoryLine(line);
+    if (line == "HIST|END") finishNextionHistory();
+    return;
+  }
+
   if (line.startsWith("CMD|")) {
     processRemoteCommand(line);
     return;

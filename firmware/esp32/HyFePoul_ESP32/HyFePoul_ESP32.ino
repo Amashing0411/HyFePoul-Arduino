@@ -351,10 +351,16 @@ String getAuthUrl() {
 }
 
 String getDatabaseUrl(const char* path) {
+  const String base = FIREBASE_USE_EMULATOR
+      ? String("http://") + EMULATOR_HOST + ":" + EMULATOR_RTDB_PORT + "/"
+      : String("https://") + FIREBASE_PROJECT_ID + "-default-rtdb.asia-southeast1.firebasedatabase.app/";
+  String url = base + path;
+  url += strchr(path, '?') == NULL ? "?" : "&";
   if (FIREBASE_USE_EMULATOR) {
-    return String("http://") + EMULATOR_HOST + ":" + EMULATOR_RTDB_PORT + "/" + path + "?ns=" + FIREBASE_PROJECT_ID + "-default-rtdb&auth=" + idToken;
+    url += String("ns=") + FIREBASE_PROJECT_ID + "-default-rtdb&";
   }
-  return String("https://") + FIREBASE_PROJECT_ID + "-default-rtdb.asia-southeast1.firebasedatabase.app/" + path + "?auth=" + idToken;
+  url += String("auth=") + idToken;
+  return url;
 }
 
 // Production: certificate-verified TLS. Emulator: plain HTTP on the LAN.
@@ -492,6 +498,9 @@ void processMegaLine(String line) {
   // SUMMARY|YYYY-MM-DD|feedG|done|incomplete|trayTimeouts|chainFaults|lowWater|lowFeed|estops
   else if (line.startsWith("SUMMARY|")) {
     sendDailySummary(line);
+  }
+  else if (line == "HISTORY_REQ") {
+    sendRecentHistoryToMega();
   }
   else if (line.startsWith("EVENT|")) {
     String eventName = line.substring(6);
@@ -1042,6 +1051,99 @@ void checkCommandTimeout() {
 void requestScheduleRestore() {
   scheduleRestorePending = true;
   nextScheduleRestoreMillis = millis();
+}
+
+// The onsite HMI reads the same newest cloud snapshots as the app's History
+// screen. Fetch only four rows for the four visible HMI cards, validate their
+// fields, sort newest first, then send short UART records to the Mega.
+void sendRecentHistoryToMega() {
+  sendToMega("HIST|BEGIN");
+  if (!hasValidToken() || WiFi.status() != WL_CONNECTED) {
+    sendToMega("HIST|ERROR|OFFLINE");
+    return;
+  }
+
+  String path = String("systemData/") + DEVICE_ID +
+      ".json?orderBy=%22timestamp%22&limitToLast=4";
+  HTTPClient http;
+  if (!beginRequest(http, getDatabaseUrl(path.c_str()))) {
+    sendToMega("HIST|ERROR|HTTP");
+    return;
+  }
+  int code = http.GET();
+  String payload = code == 200 ? http.getString() : "";
+  http.end();
+  noteHttpResult(code);
+  if (code != 200) {
+    sendToMega("HIST|ERROR|HTTP");
+    return;
+  }
+  if (payload == "null" || payload.length() <= 2) {
+    sendToMega("HIST|EMPTY");
+    return;
+  }
+
+  DynamicJsonDocument doc(8192);
+  if (deserializeJson(doc, payload)) {
+    sendToMega("HIST|ERROR|PARSE");
+    return;
+  }
+
+  struct HistoryRow {
+    uint32_t timestampSeconds;
+    long feedGrams;
+    long hopperPercent;
+    bool waterLow;
+    bool feeding;
+  } rows[4];
+  uint8_t count = 0;
+  JsonObject snapshots = doc.as<JsonObject>();
+  for (JsonPair entry : snapshots) {
+    JsonObject snapshot = entry.value().as<JsonObject>();
+    if (snapshot.isNull() || !snapshot["timestamp"].is<double>() ||
+        !snapshot["feedWeightGrams"].is<double>() ||
+        !snapshot["hopperLevelPercent"].is<double>() ||
+        !snapshot["waterLow"].is<bool>() ||
+        !snapshot["feedingActive"].is<bool>()) continue;
+
+    double timestampMs = snapshot["timestamp"].as<double>();
+    double feed = snapshot["feedWeightGrams"].as<double>();
+    double hopper = snapshot["hopperLevelPercent"].as<double>();
+    if (timestampMs < 1000000000000.0 || timestampMs > 4102444800000.0 ||
+        feed < 0.0 || feed > 1000000.0 || hopper < 0.0 || hopper > 100.0) continue;
+
+    HistoryRow row;
+    row.timestampSeconds = (uint32_t)(timestampMs / 1000.0);
+    row.feedGrams = lround(feed);
+    row.hopperPercent = lround(hopper);
+    row.waterLow = snapshot["waterLow"].as<bool>();
+    row.feeding = snapshot["feedingActive"].as<bool>();
+
+    uint8_t insertAt = count;
+    while (insertAt > 0 && rows[insertAt - 1].timestampSeconds < row.timestampSeconds) {
+      if (insertAt < 4) rows[insertAt] = rows[insertAt - 1];
+      insertAt--;
+    }
+    if (insertAt < 4) {
+      rows[insertAt] = row;
+      if (count < 4) count++;
+    }
+  }
+
+  if (count == 0) {
+    sendToMega("HIST|EMPTY");
+    return;
+  }
+  for (uint8_t i = 0; i < count; i++) {
+    String line = String("HIST|ROW|IDX:") + i +
+        "|TS:" + rows[i].timestampSeconds +
+        "|FEED:" + rows[i].feedGrams +
+        "|HOP:" + rows[i].hopperPercent +
+        "|W:" + (rows[i].waterLow ? "1" : "0") +
+        "|DISP:" + (rows[i].feeding ? "1" : "0");
+    sendToMega(line);
+  }
+  sendToMega("HIST|END");
 }
 
 // Builds one SCHEDULE_SET line per slot from /schedules/{deviceId}.

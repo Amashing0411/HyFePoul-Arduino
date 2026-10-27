@@ -662,6 +662,7 @@ const receiveESP32Line = (line) => {
   lastESP32MessageMillis = simMillis;
   if (line === "STATUS|ONLINE") esp32ReportsOnline = true;
   else if (line === "STATUS|OFFLINE") esp32ReportsOnline = false;
+  else if (line.startsWith("HIST|")) processNextionHistoryLine(line);
 };
 
 const updateLinkStatus = () => {
@@ -691,7 +692,8 @@ const NEXTION_SCHEDULE_SAVE_BUTTON_ID = 11;
 const NEXTION_SYSTEM_REFRESH_BUTTON_ID = 4;
 const NEXTION_LOG_REFRESH_BUTTON_ID = 4;
 const NEXTION_LOG_EVENT_COUNT = 4;
-const NEXTION_SCHEDULE_DISPLAY_FIELDS = ["t4", "t7", "t5", "t6", "t8", "t9"];
+const NEXTION_SCHEDULE_TIME_FIELDS = ["t4", "t7", "t5", "t6", "t8", "t9"];
+const NEXTION_SCHEDULE_SUMMARY_FIELDS = ["t1", "t2", "t3"];
 let nextionFrame = [];
 let nextionFfCount = 0;
 let nextionCurrentPageId = NEXTION_ID_UNSET;
@@ -699,7 +701,8 @@ let nextionDraftScheduleIndex = NEXTION_ID_UNSET;
 let nextionScheduleField = 0;
 let nextionSystemField = 0;
 let nextionLogField = 0;
-let nextionLogEntries = ["NO RECENT EVENTS", "", "", ""];
+let nextionLogEntries = ["NO HISTORY YET", "", "", ""];
+let nextionHistoryRowsReceived = 0;
 let nextionScheduleDraft = null;
 let nextionManualTargetDraft = DEFAULT_FEED_TARGET_GRAMS;
 let nextionLastTouchMs = 0;
@@ -711,7 +714,14 @@ const handleNextionPageChange = (page) => {
   nextionDraftScheduleIndex = NEXTION_ID_UNSET;
   if (page === NEXTION_SCHEDULE_PAGE_ID) nextionScheduleField = 0;
   if (page === NEXTION_SYSTEM_PAGE_ID) nextionSystemField = 0;
-  if (page === NEXTION_LOG_PAGE_ID) nextionLogField = 0;
+  if (page === NEXTION_LOG_PAGE_ID) {
+    nextionLogField = 0;
+    nextionLogEntries = esp32Online
+      ? ["LOADING HISTORY", "", "", ""]
+      : ["HISTORY UNAVAILABLE", "", "", ""];
+    nextionHistoryRowsReceived = 0;
+    if (esp32Online) outputLog.push("HISTORY_REQ");
+  }
   if (page === NEXTION_TARGET_PAGE_ID) nextionManualTargetDraft = manualFeedTargetGrams;
   if (page >= NEXTION_SCHEDULE_EDITOR_FIRST_PAGE_ID && page <= NEXTION_SCHEDULE_EDITOR_LAST_PAGE_ID) {
     nextionDraftScheduleIndex = page - NEXTION_SCHEDULE_EDITOR_FIRST_PAGE_ID;
@@ -720,19 +730,76 @@ const handleNextionPageChange = (page) => {
 };
 
 // Mirrors the Mega's one-component-per-tick schedule overview refresh. The
-// HMI lays out hour and minute values in paired fields, not three full times.
+// overview shows the app's time, target grams and enabled state for each slot.
 const nextionNextScheduleDisplayUpdate = () => {
   const field = nextionScheduleField;
-  const slot = Math.floor(field / 2);
-  const isHour = field % 2 === 0;
-  const schedule = feedSchedules[slot];
-  const value = !schedule.enabled
-    ? (isHour ? "OFF" : "")
-    : (isHour
-      ? `${String(schedule.hour).padStart(2, "0")}:`
-      : String(schedule.minute).padStart(2, "0"));
-  nextionScheduleField = (nextionScheduleField + 1) % NEXTION_SCHEDULE_DISPLAY_FIELDS.length;
-  return { component: NEXTION_SCHEDULE_DISPLAY_FIELDS[field], value };
+  let component;
+  let value;
+  if (field < 6) {
+    const slot = Math.floor(field / 2);
+    const isHour = field % 2 === 0;
+    const schedule = feedSchedules[slot];
+    value = !schedule.enabled
+      ? (isHour ? "OFF" : "")
+      : (isHour
+        ? `${String(schedule.hour).padStart(2, "0")}:`
+        : String(schedule.minute).padStart(2, "0"));
+    component = NEXTION_SCHEDULE_TIME_FIELDS[field];
+  } else {
+    const slot = field - 6;
+    const schedule = feedSchedules[slot];
+    component = NEXTION_SCHEDULE_SUMMARY_FIELDS[slot];
+    value = `S${slot + 1} ${Math.round(schedule.targetGrams)}g ${schedule.enabled ? "ON" : "OFF"}`;
+  }
+  nextionScheduleField = (nextionScheduleField + 1) % 9;
+  return { component, value };
+};
+
+const processNextionHistoryLine = (line) => {
+  if (line === "HIST|BEGIN") {
+    nextionLogEntries = ["LOADING HISTORY", "", "", ""];
+    nextionHistoryRowsReceived = 0;
+    nextionLogField = 0;
+    return;
+  }
+  if (line === "HIST|EMPTY") {
+    nextionLogEntries = ["NO HISTORY YET", "", "", ""];
+    nextionHistoryRowsReceived = 0;
+    nextionLogField = 0;
+    return;
+  }
+  if (line.startsWith("HIST|ERROR|")) {
+    nextionLogEntries = ["HISTORY UNAVAILABLE", "", "", ""];
+    nextionHistoryRowsReceived = 0;
+    nextionLogField = 0;
+    return;
+  }
+  if (line === "HIST|END") {
+    if (!nextionHistoryRowsReceived) nextionLogEntries = ["NO HISTORY YET", "", "", ""];
+    nextionLogField = 0;
+    return;
+  }
+  if (!line.startsWith("HIST|ROW|")) return;
+  const value = (key) => {
+    const i = line.indexOf(key);
+    if (i < 0) return "";
+    const j = line.indexOf("|", i + key.length);
+    return line.substring(i + key.length, j < 0 ? line.length : j);
+  };
+  const index = Number(value("IDX:"));
+  const timestampSeconds = Number(value("TS:"));
+  const feed = Number(value("FEED:"));
+  const hopper = Number(value("HOP:"));
+  const water = Number(value("W:"));
+  const feeding = Number(value("DISP:"));
+  if (!Number.isInteger(index) || index < 0 || index >= 4 || !timestampSeconds ||
+      feed < 0 || hopper < 0 || hopper > 100 || ![0, 1].includes(water) || ![0, 1].includes(feeding)) return;
+  const local = new Date(timestampSeconds * 1000 + 8 * 60 * 60 * 1000);
+  const date = `${String(local.getUTCMonth() + 1).padStart(2, "0")}-${String(local.getUTCDate()).padStart(2, "0")}`;
+  const time = `${String(local.getUTCHours()).padStart(2, "0")}:${String(local.getUTCMinutes()).padStart(2, "0")}`;
+  nextionLogEntries[index] = `${date} ${time}  ${feed}g  ${hopper}%  W:${water ? "LOW" : "OK"} D:${feeding ? "ON" : "OFF"}`;
+  nextionHistoryRowsReceived = Math.max(nextionHistoryRowsReceived, index + 1);
+  nextionLogField = 0;
 };
 
 // Mirrors the four System Check cards and the Mega's one-component-per-tick
@@ -818,7 +885,7 @@ const handleNextionTouch = (page, id) => {
   }
   if (page === NEXTION_LOG_PAGE_ID && id === NEXTION_LOG_REFRESH_BUTTON_ID) {
     nextionLogField = 0;
-    outputLog.push("NEXTION_LOG_REFRESHED");
+    outputLog.push("HISTORY_REQ");
   }
 };
 
@@ -1699,17 +1766,24 @@ runTest("Nextion System Check streams four separate readouts one field per updat
   if (nextionSystemField !== 0) throw new Error("System Check cycle must wrap after four fields");
 });
 
-runTest("Nextion Log streams four local event rows and refresh uses page 3 component 4", () => {
+runTest("Nextion History requests cloud rows and displays the same four fields as app History", () => {
   resetMachine();
-  nextionLogEntries = [
-    "10-28 08:15:00  FEEDING_COMPLETED",
-    "10-28 08:14:21  FEEDING_STARTED",
-    "10-28 08:00:00  LOW_FEED",
-    "10-27 19:45:13  NEXTION_SCHEDULE_SAVED"
-  ];
+  esp32Online = true;
   handleNextionPageChange(NEXTION_LOG_PAGE_ID);
   if (NEXTION_LOG_PAGE_ID !== 3 || NEXTION_SYSTEM_PAGE_ID !== 9) {
     throw new Error("Log and System Check page IDs must remain distinct and match the HMI");
+  }
+  if (!outputLog.includes("HISTORY_REQ")) throw new Error("Opening History must request cloud system data from ESP32");
+  const newest = Math.floor(Date.UTC(2026, 9, 28, 0, 15) / 1000);
+  receiveESP32Line("HIST|BEGIN");
+  receiveESP32Line(`HIST|ROW|IDX:0|TS:${newest}|FEED:250|HOP:65|W:0|DISP:1`);
+  receiveESP32Line(`HIST|ROW|IDX:1|TS:${newest - 300}|FEED:225|HOP:70|W:1|DISP:0`);
+  receiveESP32Line("HIST|END");
+  if (!nextionLogEntries[0].startsWith("10-28 08:15  250g  65%  W:OK D:ON")) {
+    throw new Error(`Newest app history fields/time mismatch: ${nextionLogEntries[0]}`);
+  }
+  if (!nextionLogEntries[1].startsWith("10-28 08:10  225g  70%  W:LOW D:OFF")) {
+    throw new Error(`Second newest app history row mismatch: ${nextionLogEntries[1]}`);
   }
   const updates = Array.from({ length: 4 }, () => nextionNextLogDisplayUpdate());
   const expected = nextionLogEntries.map((value, index) => ({
@@ -1720,8 +1794,8 @@ runTest("Nextion Log streams four local event rows and refresh uses page 3 compo
   }
   nextionLogField = 3;
   handleNextionTouch(NEXTION_LOG_PAGE_ID, NEXTION_LOG_REFRESH_BUTTON_ID);
-  if (nextionLogField !== 0 || !outputLog.includes("NEXTION_LOG_REFRESHED")) {
-    throw new Error("Log refresh must restart the four-row update sequence");
+  if (nextionLogField !== 0 || outputLog.filter(line => line === "HISTORY_REQ").length !== 2) {
+    throw new Error("History refresh must request cloud data again and restart the four-row update sequence");
   }
 });
 
@@ -1765,7 +1839,7 @@ runTest("37. Nextion Home Stop latches; Feed Now uses saved target; reset requir
   resetMachine();
 });
 
-runTest("Nextion schedule overview sends paired hour/minute fields one update at a time", () => {
+runTest("Nextion schedule overview shows app time, target and enabled status one field at a time", () => {
   const savedSchedules = feedSchedules;
   feedSchedules = [
     { hour: 7, minute: 0, targetGrams: 50, enabled: true },
@@ -1774,11 +1848,13 @@ runTest("Nextion schedule overview sends paired hour/minute fields one update at
   ];
   nextionScheduleField = 4;
   feedNextionBytes([0x66, NEXTION_SCHEDULE_PAGE_ID, 0xFF, 0xFF, 0xFF]);
-  const updates = Array.from({ length: 6 }, () => nextionNextScheduleDisplayUpdate());
+  const updates = Array.from({ length: 9 }, () => nextionNextScheduleDisplayUpdate());
   const expected = [
     { component: "t4", value: "07:" }, { component: "t7", value: "00" },
     { component: "t5", value: "12:" }, { component: "t6", value: "05" },
-    { component: "t8", value: "OFF" }, { component: "t9", value: "" }
+    { component: "t8", value: "OFF" }, { component: "t9", value: "" },
+    { component: "t1", value: "S1 50g ON" }, { component: "t2", value: "S2 50g ON" },
+    { component: "t3", value: "S3 50g OFF" }
   ];
   if (JSON.stringify(updates) !== JSON.stringify(expected)) {
     feedSchedules = savedSchedules;

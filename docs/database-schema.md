@@ -88,7 +88,7 @@ Both use the same record. `state` holds the latest copy, and `systemData` gets o
 The pump-era fields `waterHigh` and `pumpActive` were removed in the moving-hopper revision; the rules now reject them, so the old firmware can no longer write `state`. Old `systemData` records without tray fields are skipped by the app.
 
 - **Write:** only the device (`deviceAuthUid`).
-- **Read:** `state` by the owner or the device; `systemData` by the owner only.
+- **Read:** `state` by the owner or the device; `systemData` by the owner and the matching device Auth account. The device account needs this scoped read so the onsite Nextion can show the same newest History snapshots as the app; another device's history remains denied.
 - `systemData` is indexed on `timestamp`. The app reads the latest 50 records with `orderByChild("timestamp").limitToLast(50)` and skips malformed ones.
 - **Cadence:** the Mega sends `DATA` every 10 s and the ESP32 writes `state` (`PUT`) each time. It appends to `systemData` (`POST`) only every 5 minutes, plus whenever `feedingActive` changes, so the start and end of each feed cycle are kept (R-22).
 

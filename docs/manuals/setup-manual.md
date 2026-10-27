@@ -134,6 +134,8 @@ Keep ESP32 Core Debug Level at None. Build and upload using the Hardware / Techn
 
 The approved app/device API key for this edition allows Identity Toolkit, Secure Token and Realtime Database. It has no Android application restriction because this implementation uses the Firebase JavaScript SDK and direct ESP32 REST requests. Its value is intentionally omitted. Database authorization still depends on authentication, identity binding and rules.
 
+Before testing HMI History, deploy the reviewed `database.rules.json` change that lets the configured device account read only `/systemData/{deviceId}` for its own Device ID. That permission is present in repository source but is not yet deployed to production for this edition. Until deployment, the owner app can show History while the HMI reports it unavailable. Do not broaden the rule to other devices or use the owner's credentials on the ESP32.
+
 Do not change production key restrictions or weaken database rules simply to make a test pass. Capture the exact failure and compare the current configuration against the approved build record. Legacy Firestore/Functions/FCM setup is not needed for this edition's deployed path.
 
 Source: development-status.md; firmware-build-environment.md; hardware-test-day-run-sheet.md.

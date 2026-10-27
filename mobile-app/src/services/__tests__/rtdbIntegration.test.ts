@@ -205,6 +205,21 @@ describe('Checkpoint 5B.3 - Authenticated RTDB Integration', () => {
       await set(ref(rtdb, 'devices/device-001/state'), state);
     });
 
+    it('allows the onsite device to read its own app History rows only', async () => {
+      await adminPut('systemData/device-001/hmi-history-row', {
+        feedWeightGrams: 250, targetFeedGrams: 50, hopperLevelPercent: 65,
+        trayWeightsGrams: [50, 50, 50, 50, 50], waterLow: false,
+        feedingActive: true, cycleStep: 'DISPENSING', currentTray: 3,
+        emergencyStopActive: false, timestamp: 1690000000000,
+      });
+
+      const ownHistory = await get(ref(rtdb, 'systemData/device-001'));
+      expect(ownHistory.exists()).toBe(true);
+      expect(ownHistory.child('hmi-history-row/feedWeightGrams').val()).toBe(250);
+
+      await expect(get(ref(rtdb, 'systemData/device-002'))).rejects.toThrow(/permission_denied/i);
+    });
+
     it('prevents Device A from modifying ownerId', async () => {
       await expect(set(ref(rtdb, 'devices/device-001/ownerId'), 'hacker')).rejects.toThrow(/permission_denied/i);
     });

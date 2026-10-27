@@ -1,29 +1,20 @@
 # Development Status
 
-**2026-10-28 onsite HMI revision:** The Nextion is the local operator screen for
-the person beside the feeder; the Android app is the owner's away-from-device
-surface through Firebase. The HMI now uses the HyFePoul logo used by the app,
-separate Event Log and System Check pages, and clearer high-visibility controls.
-Back controls are navy with white labels; Feed Now, Save and Refresh controls are
-green with black labels; Stop remains red. Feed Target and schedule-editor
-Back/Save rows use equal 200x64 controls. Event Log reads up to four newest event
-rows from the Mega's current SD CSV; System Check shows hopper, water, ESP32 link
-and target. Mega refreshes one field per 100 ms update to keep serial writes
-short. The HMI project compiled in Nextion Editor with 0 errors and 0 warnings,
-and the generated `Nextion/ChickenFeederV1 (1).tft` is ready for physical-panel
-commissioning. Its SHA-256 is recorded in
-[`firmware-build-environment.md`](firmware-build-environment.md). The Mega
-simulation passes 56/56, including four SD event rows, refresh mapping and
-System Check pacing. The Nextion Debug simulator confirmed Home → Event Log page
-navigation and page ID 3. The Mega sketch's successful local AVR build uses
-53,822 bytes flash and 3,848 bytes RAM; its Git-ignored `.hex` is in the local
-commissioning build directory. The Mega simulator and Nextion simulator had no
-physical hardware attached, so live values, EEPROM persistence, SD reads,
-physical touch, UART levels and button feel remain unverified until HIT-12. The
-local schedule editor saves to EEPROM but does not write to Firebase; online
-restore can replace that edit (R-54). The HMI time editor has no onsite
-schedule enable/disable toggle. The manuals and Nextion ID map describe these
-boundaries.
+**2026-10-28 onsite HMI app-data sync:** The Nextion remains the local operator
+screen, with the Android app as the owner's away-from-device surface. The HMI
+page called `Log` now shows the newest four `/systemData/{deviceId}` cloud
+snapshots also used by app Recent History: time, feed grams, hopper percentage,
+water state and dispenser state. It requests them from the ESP32 on page open or
+Refresh; the ESP32 queries RTDB and the Mega formats them newest first. The app
+shows up to 50 snapshots from that same node. Schedule overview now displays
+each app-synchronized slot's time, target grams and enabled state. The source
+RTDB rules grant the matching device Auth account read access only to its own
+history node; this additional rule has not yet been deployed to production.
+The HMI source, protocol and simulator are updated; `docs/nextion-app-history-sync-2026-10-28.md`
+records behavior, tests and the deployment gate. Local schedule time edits still
+save only to Mega EEPROM; write-back/conflict handling remains R-54. Physical
+Firebase reads, panel UART, touch, display wrap and values remain unverified
+until HIT-12.
 
 **2026-10-27 password recovery follow-up:** The Login screen in the repository
 had no password-reset control, and the Auth context did not call Firebase's
@@ -191,7 +182,7 @@ Read these before starting new work:
 | **ESP32** (communication bridge) | Firmware implements Wi-Fi reconnect, TLS certificate verification, Firebase sign-in, RTDB writes, command transport, and schedule restore. Simulator and compile checks passed; production REST sign-in and device UID match passed, but the firmware has **not been flashed** and Wi-Fi credentials remain placeholders. |
 | **Firebase** (Auth + RTDB, Spark plan) | Revised RTDB rules deployed to production on 2026-10-27; `device-001` has a dedicated Auth UID and string setup PIN. The dedicated account signs in through the production REST API, matches the device binding, and can read that binding. The record remains offline and unclaimed. Firestore and Cloud Functions are **not used**. |
 | **Mobile app** (React Native / Expo SDK 57) | Feature-complete; shows tray weights and cycle progress, reservoir status; Jest 53/53 and TypeScript pass. Expo lint reports 0 errors and 3 `react-hooks/set-state-in-effect` warnings. Revised screens and empty states were checked on Android emulators (R-49; see the QA records). **Not yet run on a physical phone against production.** Expo Go is not supported. |
-| **Nextion HMI (onsite panel)** | HyFePoul-branded HMI source and compiled `.tft` in `Nextion/`. Firmware maps Home status/time, Stop and Feed Now/Reset, local SD Event Log, four paced System Check readouts, target adjustment and local schedule editors. HMI compile and simulator touch-frame checks passed; physical UART, display, SD read and touch checks remain HIT-12. Nextion schedule edits are local only; R-54 tracks cloud write-back and conflict handling. |
+| **Nextion HMI (onsite panel)** | HyFePoul-branded HMI. Page `Log` now requests the same cloud History snapshots as the app; schedule overview shows app-synchronized time, target and enabled state. Local HMI time edits remain EEPROM-only (R-54). Physical Firebase read, UART, display, touch and history parity remain HIT-12; the new scoped RTDB device-read rule is in source but not yet deployed. |
 
 ## Constraints (from AGENTS.md)
 

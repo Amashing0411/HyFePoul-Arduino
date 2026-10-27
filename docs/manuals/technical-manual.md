@@ -115,7 +115,7 @@ Upload does not recompile. Do not flash an old output folder after editing Confi
 
 ### Verify after upload
 
-Record the commit, board, port, build timestamp and checksum. Observe safe startup and serial messages; confirm all outputs remain off with loads disconnected. Current local builds consumed Mega 49,176 bytes flash / 3,191 bytes RAM and ESP32 1,147,088 bytes flash / 49,688 bytes RAM. These figures are a baseline, not an acceptance limit.
+Record the commit, board, port, build timestamp and checksum. Observe safe startup and serial messages; confirm all outputs remain off with loads disconnected. The latest local build consumed Mega 54,434 bytes flash / 3,987 bytes RAM and ESP32 1,150,528 bytes flash / 49,688 bytes RAM. These compiler figures are a build record, not an acceptance limit; see `docs/firmware-build-environment.md` for artifact checksums.
 
 Source: docs/firmware-build-environment.md; firmware READMEs.
 
@@ -210,7 +210,7 @@ the card and verify initialization.
 ### Nextion onsite display
 
 The 800x480 panel runs at 9600 baud on Mega `Serial2`. Page IDs: p0 Logo, p1
-Home, p2 Schedule, p3 Event Log, p4 Feed Target, p5-p7 schedule editors, p8
+Home, p2 Schedule, p3 Recent History (HMI page name `Log`), p4 Feed Target, p5-p7 schedule editors, p8
 internal keypad, p9 System Check. The editable source is
 `Nextion/ChickenFeederV1 (1).hmi`; the compiled panel image is
 `Nextion/ChickenFeederV1 (1).tft`. The source compiles with 0 errors and 0
@@ -220,18 +220,20 @@ are in `Nextion/Nextion_IDs.txt`.
 | Page | Main controls and values |
 | --- | --- |
 | Home | Combined tray grams, water, cycle status and local time; Stop and Feed Now / Reset Stop. Hopper percentage and ESP32 link are on System Check. |
-| Event Log | Up to four newest nonempty event rows from the Mega SD CSV; Refresh rereads the local file. |
+| Recent History | Up to four newest `/systemData/{deviceId}` snapshots with feed, hopper, water and dispenser fields matching app Recent History; ESP32 fetches them and Mega formats local time. Refresh requests the records again. SD events remain in local CSV only. |
 | System Check | Hopper, water, ESP32 link and target values; Refresh sends one field per update. |
 | Feed Target | +/- adjusts the local manual target; Save stores it in Mega EEPROM. |
-| Schedule / editors | Three local times; editors adjust hour/minute and save to EEPROM. |
+| Schedule / editors | Overview displays app-synchronized time, target and enabled state; editors still adjust hour/minute locally and save to EEPROM only. |
 
-The Log scans at most the last 64 KiB of the active CSV; it is not a complete
-cloud History view. HIT-12 remains blocked until the actual panel, SD and Mega
-are connected. Keep actuator loads disconnected first; verify model, ground,
-UART levels, page/touch mapping, live values, refresh, Save, EEPROM persistence,
-Stop and guarded Reset Stop. See the physical acceptance procedure for sequence.
+The HMI shows four newest cloud snapshots while the app shows up to 50 from the
+same source. History needs the device's scoped read permission on its own
+`systemData` node. HIT-12 remains blocked until the actual panel, ESP32, SD and
+Mega are connected. Keep actuator loads disconnected first; verify model,
+ground, UART levels, page/touch mapping, live values, app-history parity,
+refresh, Save, EEPROM persistence, Stop and guarded Reset Stop. See the physical
+acceptance procedure for sequence.
 
-:::note SCHEDULE SOURCE-OF-TRUTH GAP | A Nextion schedule edit saves to local EEPROM but does not update Firebase. Online cloud restore can overwrite that edit. R-54 tracks the write-back and conflict behavior.
+:::note SCHEDULE SOURCE-OF-TRUTH GAP | App schedule edits reach the Mega and appear in the HMI overview. A Nextion schedule time edit saves to local EEPROM but does not update Firebase. Online cloud restore can overwrite it; R-54 tracks the write-back and conflict behavior.
 
 Source: TimeManager.ino; ScheduleStorage.ino; SDLogging.ino; Nextion.ino; Nextion_IDs.txt.
 

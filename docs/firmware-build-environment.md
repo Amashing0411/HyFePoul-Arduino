@@ -119,16 +119,32 @@ flashed or physically tested.
 The editable project is `Nextion/ChickenFeederV1 (1).hmi`. It was compiled in
 Nextion Editor with 0 errors and 0 warnings. The matching TFT output is
 `Nextion/ChickenFeederV1 (1).tft`, 1,205,984 bytes, SHA-256
-`B8BF5A7043C7A9B019BDF0B1E59D5836DE918859762AD36DF9D152195A9DAA3A`. This is
+`0476E259F906D63E80935218010C6102AF110EA0080ED3262670054A2889237F`. This is
 the panel-loadable artifact for the documented 800x480 NX8048P070_011 model.
 Confirm the actual panel model before flashing. No physical upload or display
 verification has been performed.
 
+## App-History sync build (2026-10-28)
+
+These are the latest local outputs built from the app-History sync source. The
+build folder is Git-ignored; checksums let the locally held artifacts be
+identified without publishing firmware that may contain device credentials.
+
+| Board | Artifact | File size | Compiler usage | SHA-256 |
+|---|---|---:|---:|---|
+| Mega 2560 | `commissioning-2026-10-28-hmi-sync/mega/HyFePoul_Arduino.ino.hex` | 153,120 bytes | 54,434 B flash / 3,987 B RAM | `833C8EE5B8767167E3E9CD1FF6D6F08BF168179208B469D8A8D0D10DA6FF9E64` |
+| ESP32 | `commissioning-2026-10-28-hmi-sync/esp32/HyFePoul_ESP32.ino.bin` | 1,150,672 bytes | 1,150,528 B flash / 49,688 B RAM | `815DBCB190E104DBB98EA6FB04A01A36E95195BFB24A248832FAE0C49CE922D3` |
+| Nextion | `Nextion/ChickenFeederV1 (1).tft` | 1,205,984 bytes | Editor compile: 0 errors / 0 warnings | `0476E259F906D63E80935218010C6102AF110EA0080ED3262670054A2889237F` |
+
+The updated Home button is captioned **History**. The editable HMI project was
+saved, compiled and explicitly exported to the TFT file above. None of these
+firmware files has been flashed to hardware or accepted by a physical test.
+
 With the boards connected, identify the correct serial ports first, then upload the prepared images using the corresponding `--input-dir`:
 
 ```powershell
-arduino-cli upload --fqbn arduino:avr:mega --port COMx --input-dir firmware/build/commissioning-2026-10-28/mega
-arduino-cli upload --fqbn esp32:esp32:esp32 --port COMy --input-dir firmware/build/commissioning-2026-10-27/esp32
+arduino-cli upload --fqbn arduino:avr:mega --port COMx --input-dir firmware/build/commissioning-2026-10-28-hmi-sync/mega
+arduino-cli upload --fqbn esp32:esp32:esp32 --port COMy --input-dir firmware/build/commissioning-2026-10-28-hmi-sync/esp32
 ```
 
 Replace `COMx` and `COMy` with the actual board ports. Do not connect actuator power until the commissioning run sheet prerequisites pass.
