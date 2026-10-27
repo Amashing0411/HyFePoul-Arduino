@@ -1,6 +1,38 @@
-# Manual release QA - edition 1.0
+# Manual release QA - edition 1.1
 
-Reviewed 27 October 2026 against implementation baseline `d623cce`.
+Reviewed 28 October 2026 against implementation baseline `d623cce`.
+
+## Onsite Nextion follow-up - 28 October 2026
+
+Updated the user, technical and troubleshooting manuals to distinguish the
+onsite Nextion panel from the owner's away-from-device Android app. Replaced the
+university mark on the startup page with the HyFePoul app logo. The HMI keeps
+Event Log (page 3, local Mega/SD data) separate from System Check (page 9,
+hopper/water/ESP32-link/target values). High-visibility actions use a consistent
+palette: green with black labels for Feed Now, Save and Refresh; navy with white
+labels for Back; red for Stop. The Home navigation and readout cards are aligned,
+and Save/Back controls use consistent sizing on Feed Target and schedule editors.
+
+Rebuilt all four edition 1.1 PDFs from the updated Markdown and rendered all 36
+pages. The automated checks passed for page counts (8/11/9/8), bookmarks,
+contents links, source hygiene, text bounds and render counts. All contact sheets
+were visually reviewed; no clipping, overflow or missing glyphs were found.
+The final byte sizes and SHA-256 values are recorded in `verification.json`.
+
+Nextion Editor compiled the saved project with **0 errors and 0 warnings** and
+exported `Nextion/ChickenFeederV1 (1).tft` (1,205,984 bytes). The Mega simulation
+passed **56/56**, including Log refresh and four SD event fields. The Nextion
+Debug simulator confirmed Home → Event Log navigation and page ID 3. The Mega
+sketch previously compiled successfully at 53,822 bytes flash and 3,848 bytes
+RAM. SHA-256 values are in `docs/firmware-build-environment.md`.
+
+No Mega, physical Nextion or SD card was connected. Therefore live Mega values,
+SD reads, EEPROM persistence, physical touchscreen, UART level compatibility,
+Stop/Reset behavior on the panel, and button feel remain unverified. HIT-12 is
+still BLOCKED pending the assembled unit and safe wiring checks. Schedule edits
+made onsite remain local EEPROM changes and can be replaced by cloud restore
+(R-54); schedule time editors still have no onsite enable/disable toggle. These
+are software compile/simulator results, not hardware acceptance.
 
 ## Password-recovery follow-up - 27 October 2026
 

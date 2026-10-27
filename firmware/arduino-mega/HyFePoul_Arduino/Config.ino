@@ -167,6 +167,7 @@ float trayWeightsGrams[TRAY_COUNT] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
 float currentFeedWeightGrams = 0.0f;
 float currentHopperLevelPercent = 0.0f;
 float activeFeedTargetGrams = 0.0f; // per tray, for the running/last cycle
+float manualFeedTargetGrams = DEFAULT_FEED_TARGET_GRAMS; // saved local HMI target, per tray
 
 // Feed cycle (Feeding.ino). feedingActive is true while a cycle runs.
 bool feedingActive = false;
@@ -254,6 +255,7 @@ void initializeSystem() {
 
   // After SD so the load result is logged.
   initializeSchedules();
+  initializeManualFeedTarget();
 
   // Today's / yesterday's totals from EEPROM (after the RTC).
   initializeDailyStats();

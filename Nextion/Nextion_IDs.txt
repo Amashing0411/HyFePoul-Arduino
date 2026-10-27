@@ -1,14 +1,94 @@
-page Logo p0 - Logo/Loading Screen
-page Home t0 - Feed in Trays Label
-page Home t1 - Water Level Label
-page Home t2 - Feed Amount
-page Home t3 - Water Level Status
-page Home t4 - Status
-page Home t5 - Time
-page Home t6 - Current Time Label
-page Home t7 - Feed Amount Unit (g)
-page Home b0 - Set Feed Schedule
-page Home b1 - Log Book
-page Home b2 - Set Feed Weight
-page Home b3 - Stop
-page Home b4 - Start
+HyFePoul Nextion project: ChickenFeederV1 (1).hmi
+Resolution: 800x480; Mega UART: Serial2, 9600 baud
+Architecture: Nextion is the onsite operator panel; Mega owns local logic and safety.
+The Android app is the away-from-device interface through Firebase; it never talks to the Mega.
+
+Pages (page ID / editor page / purpose)
+0 Logo         startup screen; uses HyFePoul app logo resource ID 2
+1 Home         onsite status, Feed Now, Stop / Reset Stop, local navigation
+2 Sched        three local feeding times; opens one editor per slot
+3 Log          newest four Mega/SD event records, newest first
+4 Grams        local manual target in grams per tray
+5 Sched1       time editor for local schedule slot 1
+6 Sched2       time editor for local schedule slot 2
+7 Sched3       time editor for local schedule slot 3
+8 keybdB       internal numeric keyboard page
+9 SystemCheck  live hopper, water, ESP32-link and target readouts
+
+Home fields (component ID / purpose / Mega behavior)
+t0  static caption "Feed in Trays:"
+t1  static caption "Water Level:"
+t2  total grams measured across the five trays
+t3  water state
+t4  status / current feed-cycle step
+t5  local clock HH:MM:SS
+t6  static caption "LOCAL TIME:"
+t7  static unit "g"
+
+Home actions
+b0  Schedule overview
+b1  Event Log
+b2  Feed Target
+b3  Stop; latches the software stop and turns actuators off; red, high-visibility control
+b4  Feed Now; becomes Reset Stop when the software stop is latched; green, high-visibility control
+b5  System Check
+The four navigation buttons form a spaced vertical stack on the left side of Home.
+Navigation and action touches are handled by the HMI; only the controls that need Mega
+handling send a touch component frame.
+
+Event Log page (p3)
+t1..t4  newest four nonempty AlertEvent entries in the current Mega SD log file;
+        t1 is newest. Each entry includes MM-DD HH:MM:SS and an event name.
+b0       Back to Home (navy with white label)
+b1       Refresh (reloads the newest SD rows; green with black label; touch ID 4)
+
+The loader scans backward through at most the last 64 KiB of the active monthly CSV
+(or HFNOTIME.CSV when the clock is unset), skips the header and periodic rows, and
+shows up to four event entries. Event names are clipped to 32 characters for a short
+UART command. It shows NO RECENT EVENTS if no events were found, or SD LOG UNAVAILABLE
+when the card/file cannot be read. This is local Mega/SD history; it may differ from
+the app's cloud history and remains available independently of cloud connectivity.
+
+System Check page (p9; editor page name SystemCheck)
+t1  hopper percentage
+t2  reservoir water state (OK or LOW - REFILL)
+t3  ESP32 link state (OK or OFF)
+t4  per-tray manual feed target in grams
+b0  Back to Home (navy with white label)
+b1  Refresh all four readouts, paced across four updates (green with black label;
+    touch ID 4)
+
+Feed Target touch IDs
+b1  ID 5  increase the draft by 10 g
+b2  ID 6  decrease the draft by 10 g
+b3  ID 4  save the local manual-feed target to EEPROM; bright green Save control
+b0        Back to Home; navy control
+
+Schedule editor touch IDs (same mapping on pages 5, 6, and 7)
+b1  ID 7   increase hour
+b2  ID 8   decrease hour
+b3  ID 9   increase minute
+b4  ID 10  decrease minute
+b5  ID 11  save schedule time to EEPROM
+
+Schedule overview display fields (one Mega update per 100 ms tick)
+Slot 1: t4 = hour with colon (HH:); t7 = minute (MM)
+Slot 2: t5 = hour with colon (HH:); t6 = minute (MM)
+Slot 3: t8 = hour with colon (HH:); t9 = minute (MM)
+Disabled slot: hour field displays OFF; minute field is blank.
+
+Branding and layout
+- Startup screen uses the HyFePoul app mark from assets/hyfepoul-logo-480.png, imported
+  as picture resource ID 2 and centered on the 800x480 canvas. The university seal was removed.
+- High-visibility green is reserved for Feed Now, Save and Refresh; navy is used for Back;
+  Stop remains red. Readout cards remain neutral so controls retain clear visual priority.
+- Home navigation controls use a four-row vertical stack with consistent spacing.
+- The Event Log and System Check use separate pages and clearly different data sources.
+
+Schedule touch changes are local EEPROM edits. Online Firebase schedule restore can
+replace them; write-back synchronization to the app is tracked as R-54. The HMI edits
+hour/minute only and has no onsite schedule enable/disable toggle.
+
+Simulation and source review confirm the IDs/page routing and Mega touch handling.
+Physical panel display, touch, UART levels, SD read path and button feel remain
+unverified until HIT-12 is completed on the assembled device.

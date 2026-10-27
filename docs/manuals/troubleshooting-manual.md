@@ -133,18 +133,19 @@ Source: Feeding.ino; ESP32Communication.ino; HyFePoul_ESP32.ino; ScheduleStorage
 
 | Symptom | Likely checks | Verify after correction |
 | --- | --- | --- |
-| Tray NOT READY | HX711 power, DOUT mapping, shared SCK, connectors. | Stable raw readings and known-mass tests for that tray. |
-| Weight negative / implausible | Tare, calibration sign/factor, mechanical load path, movement or tray contact. | Repeat known masses and reboot test; save factors in source. |
-| All trays drift or interfere | Shared wiring, mounting vibration, electrical noise, grounding and sampling. | Repeat all five channels independently and during representative operation. |
-| Hopper percentage wrong | Sensor orientation, obstructions, echo, measured full/empty distances. | Empty, full and intermediate levels; no-echo behavior. |
-| Water LOW when full | Float orientation, pin 34 wiring, active-low assumption. | Stable low/full tests including 2 s debounce and physical drinker flow. |
-| Wrong direction / overshoot | Relay polarity, motor connections, limits, travel timing. | Stop immediately; repeat actuator safety and unloaded calibration. |
-| Nextion blank / stale | Display power, TX/RX, 9600 baud, correct compiled HMI and Home page. | t2 through t5 update correctly on the actual display. |
-| Nextion buttons do nothing | Stop/Start IDs are deliberately unset; other setup pages are not implemented. | Technician verifies actual IDs with motors disconnected before enabling. |
+| Tray NOT READY | HX711 power, DOUT, shared SCK. | Stable raw value; known mass. |
+| Weight implausible | Tare, factor sign/value, load path, tray contact. | Known masses; reboot check. |
+| Tray readings drift | Vibration, shared wiring, grounding, sampling. | Test five channels separately and together. |
+| Hopper percentage wrong | Sensor aim, obstruction, measured empty/full distance. | Empty, full and mid-level readings. |
+| Water LOW when full | Float orientation, pin 34, active-low wiring. | Stable low/full tests; 2 s debounce. |
+| Wrong direction / overshoot | Relay polarity, motor wiring, limits, travel timing. | Stop; repeat unloaded safety check. |
+| Nextion blank or buttons fail | Panel power, TX/RX, ground, 9600 baud, matching TFT and IDs. | HIT-12: check live values and touch controls with actuators disconnected. |
+| Event Log empty / SD unavailable | SD ready; active CSV exists and has events. Scan covers latest 64 KiB. | HIT-12: compare p3 Refresh output with the CSV. |
+| App and Nextion schedules differ | Panel saves EEPROM; cloud restore can replace it. No write-back yet (R-54). | Use app for a schedule that must match remotely. |
 
 ### Weight changes after a feed
 
-Each tray is tared before dispensing. A later reading can change due to consumption, vibration or movement. Compare the delivered amount with an independent reference measurement during commissioning instead of using the displayed number alone to claim accuracy.
+Each tray is tared before dispensing. Later readings change with feed use, vibration or movement. During commissioning, compare delivered amounts with an independent scale.
 
 ### A stop will not reset
 
@@ -228,6 +229,6 @@ Use FAIL for an observed failed expectation and BLOCKED when hardware, credentia
 
 ### References and edition
 
-Edition 1.0, 27 October 2026; implementation baseline d623cce. Firmware filenames refer to firmware/arduino-mega/HyFePoul_Arduino/ unless the ESP32 sketch is named. App labels come from mobile-app/src/i18n/translations.ts. Detailed acceptance criteria are in docs/hardware-integration-test-plan.md and docs/hardware-commissioning-procedure.md.
+Edition 1.1, 28 October 2026. Firmware filenames refer to firmware/arduino-mega/HyFePoul_Arduino/ unless the ESP32 sketch is named. App labels come from mobile-app/src/i18n/translations.ts. Detailed acceptance criteria are in docs/hardware-integration-test-plan.md and docs/hardware-commissioning-procedure.md.
 
 Never include passwords, setup PINs, authentication tokens, private account exports or unredacted claim records in reports, screenshots or Git. Support contact details should be entered in the User's Manual handover card.

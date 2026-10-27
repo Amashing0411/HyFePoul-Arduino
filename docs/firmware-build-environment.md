@@ -102,10 +102,32 @@ Compile outputs are stored locally under `firmware/build/commissioning-2026-10-2
 
 The ESP32 images were compiled from ignored local `Config.h`, which still has Wi-Fi placeholders. Rebuild after privately entering Wi-Fi credentials before HIT-03 or any Firebase connectivity test. ESP32 firmware contains the device account credentials; keep these local and do not commit or share the binary.
 
+## Updated Mega image (2026-10-28)
+
+After the Nextion page mapping, schedule editor handling, SD Event Log and paced
+System Check readouts were added, the Mega sketch was compiled with the local
+Arduino CLI and `arduino:avr` core. The local, Git-ignored Intel HEX image is
+`firmware/build/commissioning-2026-10-28/mega/HyFePoul_Arduino.ino.hex`.
+It is 151,389 bytes (SHA-256
+`24CB39B69921B78A84ABB7D50611674D143260045F2CB3E48ED240DFBBD41018`).
+Compiler usage: 53,822 bytes flash (21%) and 3,848 bytes RAM (46%). This image
+includes the current Mega source and HMI component mapping; it has not been
+flashed or physically tested.
+
+## Nextion HMI release files (2026-10-28)
+
+The editable project is `Nextion/ChickenFeederV1 (1).hmi`. It was compiled in
+Nextion Editor with 0 errors and 0 warnings. The matching TFT output is
+`Nextion/ChickenFeederV1 (1).tft`, 1,205,984 bytes, SHA-256
+`B8BF5A7043C7A9B019BDF0B1E59D5836DE918859762AD36DF9D152195A9DAA3A`. This is
+the panel-loadable artifact for the documented 800x480 NX8048P070_011 model.
+Confirm the actual panel model before flashing. No physical upload or display
+verification has been performed.
+
 With the boards connected, identify the correct serial ports first, then upload the prepared images using the corresponding `--input-dir`:
 
 ```powershell
-arduino-cli upload --fqbn arduino:avr:mega --port COMx --input-dir firmware/build/commissioning-2026-10-27/mega
+arduino-cli upload --fqbn arduino:avr:mega --port COMx --input-dir firmware/build/commissioning-2026-10-28/mega
 arduino-cli upload --fqbn esp32:esp32:esp32 --port COMy --input-dir firmware/build/commissioning-2026-10-27/esp32
 ```
 

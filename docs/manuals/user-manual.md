@@ -2,7 +2,7 @@
 
 ## Before you operate
 
-HyFePoul moves a feed hopper along five trays, weighs the feed dispensed at each tray, and monitors the water reservoir. Use the Android app for status, schedules, commands and alerts. The Mega controller performs the feeding and safety logic locally.
+HyFePoul moves a feed hopper along five trays, weighs the feed dispensed at each tray, and monitors the water reservoir. Use the Nextion panel when you are at the feeder; it is the onsite control and status screen connected to the Mega. Use the Android app to monitor and send commands when the owner is away, through Firebase and the ESP32. The Mega performs the feeding and safety logic locally. The app does not connect directly to the Mega.
 
 :::note COMMISSIONING EDITION | This guide describes the current software. The assembled prototype must pass its wiring, safety, calibration and feeding checks before normal use. Simulator screenshots are examples, not proof that the physical device is ready.
 
@@ -10,7 +10,8 @@ HyFePoul moves a feed hopper along five trays, weighs the feed dispensed at each
 
 | Person | Responsibility |
 | --- | --- |
-| Operator | Inspect the equipment, refill feed and water, use the app, observe alerts and record problems. |
+| Onsite operator | Inspect the equipment, refill feed and water, check the Nextion, use its local controls only after commissioning, and record problems. |
+| Owner away from the feeder | Use the Android app to check device status, schedules and alerts, and send remote commands when the network path is available. |
 | Technician | Verify wiring and power, upload firmware, calibrate sensors, validate travel and test safety functions. |
 | Firebase administrator | Provision the device account, manage the private setup PIN and coordinate ownership transfer. |
 
@@ -19,7 +20,7 @@ HyFePoul moves a feed hopper along five trays, weighs the feed dispensed at each
 1. Confirm the commissioning record permits operation. Keep people and animals away from the hopper travel, chain, dispenser and pinch points.
 2. Inspect the path, tray mounting, hopper and water reservoir. Have a technician isolate power before clearing a mechanical obstruction.
 3. Make sure the physical E-stop is accessible and the approved guards and power arrangement are in place.
-4. Open the app. Check the device identity, update time, controller status and any active alerts.
+4. At the unit, check the Nextion status, local time, water state and schedule. When away, use the app to check the device identity, update time, controller status and active alerts.
 5. Check feed and water physically. A displayed value can be stale or uncalibrated. Confirm the clock and intended schedules before enabling operation.
 
 ### Stop immediately if
@@ -126,9 +127,11 @@ The monthly total describes recorded dispensing. It does not measure how much fe
 
 ### Use the local Nextion display
 
-The current Home page shows total tray grams, water state, cycle status and local time. It has no live hopper-percentage or network-status field. An older HMI caption can still say **Hopper Load** for the tray-weight value; the technician must verify the loaded display project.
+Use the Nextion beside the feeder. Home shows combined tray weight, water state, cycle status and local time. Its buttons open Schedule, Feed Target, Event Log and System Check. **System Check** shows hopper level, reservoir state, ESP32 link and target. **Event Log** reads up to four recent event rows from the Mega's current SD file; Refresh rereads it and Back returns Home. The scan is bounded, so this is not the complete app History. A missing card shows **SD LOG UNAVAILABLE**; an empty result shows **NO RECENT EVENTS**. Home does not show hopper percentage or network status. `WAITING` means no Mega value has arrived; it is not a zero reading.
 
-:::note CURRENT DISPLAY LIMITATION | Nextion Stop and Start touch actions are disabled until the real page/button IDs are verified and firmware is rebuilt. Set Feed Schedule, Log Book and Set Feed Weight pages are not connected to the Mega functions yet. Use the verified app and technician console procedures; do not depend on these touch buttons.
+- **Schedule** and **Feed Target** save local values to Mega EEPROM. The app's online schedule restore can replace an onsite time change; until R-54 is complete, change schedules in the app when they must match remotely.
+- **Feed Now** starts a local cycle with the saved target. **Stop** latches the Mega stop. **Reset Stop** is available only after the physical E-stop is released; resetting does not restart an interrupted cycle.
+- Refresh System Check after inspecting connections. Its values are sent one field at a time to keep the Mega's serial writes short.
 
 ### Settings and routine care
 
@@ -177,6 +180,6 @@ Keep passwords and the setup PIN off this public worksheet.
 
 ### Edition notes and sources
 
-Edition 1.0, 27 October 2026; source baseline d623cce. This is a precommissioning guide. All hardware HIT results remain pending in the baseline. Screenshots are historical emulator QA captures with simulated values; layout may vary slightly in the production APK.
+Edition 1.1, 28 October 2026. This is a precommissioning guide. All hardware HIT results remain pending. Screenshots are historical emulator QA captures with simulated values; layout may vary slightly in the production APK.
 
 Source paths are repository-relative. Firmware files are in firmware/arduino-mega/HyFePoul_Arduino/; app screens in mobile-app/src/screens/; labels in mobile-app/src/i18n/translations.ts. Recheck this guide whenever the firmware, app or wiring changes.

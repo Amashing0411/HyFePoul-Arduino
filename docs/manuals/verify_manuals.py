@@ -27,7 +27,7 @@ def main():
     ap.add_argument('--poppler', type=Path, required=True)
     args = ap.parse_args()
     args.render_dir.mkdir(parents=True, exist_ok=True)
-    report = {'edition': '1.0', 'baseline': 'd623cce', 'pdfs': [], 'screenshots': {}}
+    report = {'edition': '1.1', 'baseline': 'd623cce', 'pdfs': [], 'screenshots': {}}
     for name, expected in EXPECTED_SCREENSHOTS.items():
         value = sha(ROOT/'assets'/name)
         assert value == expected, f'Screenshot changed: {name}; inspect and approve new asset.'

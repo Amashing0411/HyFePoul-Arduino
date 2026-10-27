@@ -4,7 +4,7 @@
 
 :::diagram architecture
 
-The Mega 2560 is the primary controller. It reads all sensors, runs schedules and the feed state machine, applies safety checks, controls relays, updates Nextion and logs to SD. The ESP32 bridges UART to Wi-Fi and Firebase. The Android app communicates with Firebase, never directly with the Mega.
+The Mega 2560 is the primary controller. It reads all sensors, runs schedules and the feed state machine, applies safety checks, controls relays, updates the onsite Nextion panel and logs to SD. The Nextion connects locally to the Mega for onsite status and operator controls. The ESP32 bridges UART to Wi-Fi and Firebase. The owner's Android app is the away-from-device interface through Firebase; it never communicates directly with the Mega.
 
 The deployed backend path is Firebase Authentication plus Firebase Realtime Database (RTDB). The repository's older Firestore, Cloud Functions and FCM code is not the active implementation. Local app notifications are subject to app and OS execution limits.
 
@@ -19,7 +19,7 @@ The deployed backend path is Firebase Authentication plus Firebase Realtime Data
 
 :::note HOLD POINT | Do not energize motors from this document alone. Use the approved power arrangement, powered-off inspection and HIT prerequisites. This is a software pin reference and commissioning guide, not a certified electrical schematic or an as-built drawing.
 
-Source: docs/development-status.md; hardware-test-day-run-sheet.md; firmware baseline d623cce.
+Source: docs/development-status.md; hardware-test-day-run-sheet.md; firmware-robustness working tree as of 28 October 2026.
 
 <!-- page -->
 
@@ -190,31 +190,48 @@ Source: SerialConsole.ino; Config.ino; FeedLevel.ino; Hydration.ino; HIT-07 to H
 
 ## RTC, SD and Nextion commissioning
 
-### Clock and persistent schedules
+### Clock and schedules
 
-The DS3231 stores UTC. The Mega applies UTC+8 to schedule matching and the Nextion clock. The ESP32 obtains network time and sends UTC to the Mega; the Mega falls back to the RTC when network time is no longer fresh. Check Network time, Backup clock and Clock not set states in the app.
+The DS3231 stores UTC. The Mega applies UTC+8 to schedule matching and the
+Nextion clock. The ESP32 sends network time to the Mega; the Mega falls back to
+the RTC when network time is stale. Check the app's clock state. With actuator
+power controlled safely, test a near-future schedule, reboot and verify EEPROM
+persistence. Defaults are enabled 07:00, 12:00 and 18:00 at 50 g per tray, but
+stored EEPROM or cloud restore can replace them. Do not rely on schedules with
+an invalid clock.
 
-Set and verify a near-future test schedule with actuator power safely controlled, then power-cycle and confirm EEPROM persistence. Verify local behavior during Wi-Fi loss. Fresh defaults are 07:00, 12:00 and 18:00 at 50 g per tray, enabled; a cloud restore or EEPROM load can replace these. An invalid clock is a commissioning failure for unattended scheduling.
+### SD event log
 
-### SD logging
+The Mega writes periodic records and events to monthly **HFyyyymm.CSV** files;
+timestamps are UTC. Retention is 24 months, so archive required evidence before
+cleanup. With power isolated, inspect a deliberate test event and then restore
+the card and verify initialization.
 
-The Mega writes periodic rows about every 30 seconds and logs events to monthly **HFyyyymm.CSV** files. Timestamps are UTC. Retention is 24 months in the current implementation; archive required evidence before retention cleanup. With power isolated, remove and read the card and verify both regular rows and deliberate test events. Restore the card before the next run and confirm initialization succeeds.
+### Nextion onsite display
 
-### Nextion display and touch IDs
+The 800x480 panel runs at 9600 baud on Mega `Serial2`. Page IDs: p0 Logo, p1
+Home, p2 Schedule, p3 Event Log, p4 Feed Target, p5-p7 schedule editors, p8
+internal keypad, p9 System Check. The editable source is
+`Nextion/ChickenFeederV1 (1).hmi`; the compiled panel image is
+`Nextion/ChickenFeederV1 (1).tft`. The source compiles with 0 errors and 0
+warnings. Confirm the physical panel model/resolution before flashing. Full IDs
+are in `Nextion/Nextion_IDs.txt`.
 
-| Home field | Firmware value |
+| Page | Main controls and values |
 | --- | --- |
-| t2 | Total grams in five trays; an older HMI may label this Hopper Load. |
-| t3 | Water state. |
-| t4 | Cycle/status text. |
-| t5 | Local HH:MM:SS. |
-| t0 / t1 / t6 / t7 | Static captions / grams unit, not data fields. |
+| Home | Combined tray grams, water, cycle status and local time; Stop and Feed Now / Reset Stop. Hopper percentage and ESP32 link are on System Check. |
+| Event Log | Up to four newest nonempty event rows from the Mega SD CSV; Refresh rereads the local file. |
+| System Check | Hopper, water, ESP32 link and target values; Refresh sends one field per update. |
+| Feed Target | +/- adjusts the local manual target; Save stores it in Mega EEPROM. |
+| Schedule / editors | Three local times; editors adjust hour/minute and save to EEPROM. |
 
-The current Home page has no hopper-percentage or network-status field. The project is Nextion/ChickenFeederV1 (1).hmi; use the Nextion Editor and actual display model to generate a matching TFT file. A successful HMI compile does not prove the display transfer or touch wiring.
+The Log scans at most the last 64 KiB of the active CSV; it is not a complete
+cloud History view. HIT-12 remains blocked until the actual panel, SD and Mega
+are connected. Keep actuator loads disconnected first; verify model, ground,
+UART levels, page/touch mapping, live values, refresh, Save, EEPROM persistence,
+Stop and guarded Reset Stop. See the physical acceptance procedure for sequence.
 
-With actuator loads disconnected, ensure Send Component ID is enabled for the intended controls. Press Stop and Start separately and record the USB messages **Nextion touch: page P id C**. Verify both press and release behavior. Only then replace the disabled 255 constants for the Home page and the two buttons in Nextion.ino, rebuild and retest the stop/reset behavior.
-
-:::note UNFINISHED TOUCH FUNCTIONS | b3 Stop and b4 Start are disabled until verified. b0 Set Feed Schedule, b1 Log Book and b2 Set Feed Weight pages are not implemented in Mega handlers. Do not mark them functional from the HMI appearance alone.
+:::note SCHEDULE SOURCE-OF-TRUTH GAP | A Nextion schedule edit saves to local EEPROM but does not update Firebase. Online cloud restore can overwrite that edit. R-54 tracks the write-back and conflict behavior.
 
 Source: TimeManager.ino; ScheduleStorage.ino; SDLogging.ino; Nextion.ino; Nextion_IDs.txt.
 
@@ -315,4 +332,4 @@ Recheck affected safety and calibration tests after changing a relay module, sup
 - firmware/arduino-mega/HyFePoul_Arduino/: Config, Feeding, Safety, SerialConsole, TimeManager, ScheduleStorage, SDLogging and Nextion modules.
 - firmware/esp32/HyFePoul_ESP32/HyFePoul_ESP32.ino: bridge, authentication, commands and cloud writes.
 
-Edition 1.0, 27 October 2026. Source baseline d623cce. The diagrams are functional illustrations, not scale drawings. Update this edition from measured commissioning results before final client release.
+Edition 1.1, 28 October 2026. The diagrams are functional illustrations, not scale drawings. Update this edition from measured commissioning results before final client release.

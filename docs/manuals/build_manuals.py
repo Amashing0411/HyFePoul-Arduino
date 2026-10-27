@@ -240,7 +240,7 @@ def parse_page(text):
 class ManualDoc(BaseDocTemplate):
     def __init__(self,path,book,titles):
         self.book=book;self.titles=titles;self.expected_pages=len(titles)+1;self.actual_sections=[]
-        super().__init__(str(path),pagesize=A4,leftMargin=M,rightMargin=M,topMargin=62,bottomMargin=46,title='HyFePoul - '+book[2].replace('\n',' '),author='HyFePoul Project',subject='Commissioning edition 1.0; source baseline d623cce',allowSplitting=1)
+        super().__init__(str(path),pagesize=A4,leftMargin=M,rightMargin=M,topMargin=62,bottomMargin=46,title='HyFePoul - '+book[2].replace('\n',' '),author='HyFePoul Project',subject='Commissioning edition 1.1; source baseline d623cce',allowSplitting=1)
         frame=Frame(M,46,CW,H-108,id='main',leftPadding=0,rightPadding=0,topPadding=0,bottomPadding=0)
         self.addPageTemplates(PageTemplate(id='manual',frames=[frame],onPage=self.decorate))
 
@@ -250,7 +250,7 @@ class ManualDoc(BaseDocTemplate):
         c.setFont(BOLD,9);c.setFillColor(NAVY);c.drawString(M+31,H-37,'HYFEPOUL')
         c.setFont(FONT,8);c.setFillColor(MUTED);c.drawRightString(W-M,H-37,self.book[2].replace('\n',' '))
         c.setStrokeColor(LINE);c.line(M,35,W-M,35)
-        c.setFont(FONT,7.5);c.drawString(M,22,'EDITION 1.0  /  27 OCT 2026  /  COMMISSIONING')
+        c.setFont(FONT,7.5);c.drawString(M,22,'EDITION 1.1  /  28 OCT 2026  /  COMMISSIONING')
         c.drawRightString(W-M,22,f'{doc.page:02d} / {self.expected_pages:02d}')
 
     def cover(self,c):
@@ -262,7 +262,7 @@ class ManualDoc(BaseDocTemplate):
         for ln in self.book[2].split('\n'):
             c.setFont(BOLD,32);c.setFillColor(white);c.drawString(M,y,ln);y-=39
         c.setFont(FONT,12);c.setFillColor(white);c.drawString(M,H-274,self.book[3])
-        c.setFont(FONT,9);c.setFillColor(HexColor('#C6E6E9'));c.drawString(M,H-298,'EDITION 1.0  |  27 OCTOBER 2026  |  BASELINE d623cce')
+        c.setFont(FONT,9);c.setFillColor(HexColor('#C6E6E9'));c.drawString(M,H-298,'EDITION 1.1  |  28 OCTOBER 2026  |  BASELINE d623cce')
         c.setFillColor(TEAL);c.rect(M,H-355,30,3,fill=1,stroke=0)
         c.setFont(BOLD,11);c.drawString(M+40,H-357,'READERS  /  '+self.book[5][0])
         c.setFont(FONT,10);c.setFillColor(INK);c.drawString(M,H-382,self.book[5][1]+'.')

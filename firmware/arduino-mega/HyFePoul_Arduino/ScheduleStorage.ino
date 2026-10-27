@@ -108,3 +108,60 @@ void initializeSchedules() {
     logEventToSD("SCHEDULES_DEFAULTS");
   }
 }
+
+// Local manual-feed target lives in a separate EEPROM record so adding this
+// HMI setting does not invalidate the existing schedule record/version.
+const int MANUAL_TARGET_STORE_ADDRESS = 32;
+const uint16_t MANUAL_TARGET_STORE_MAGIC = 0x4D46; // "MF"
+const uint8_t MANUAL_TARGET_STORE_VERSION = 1;
+
+struct ManualTargetStore {
+  uint16_t magic;
+  uint8_t version;
+  float targetGrams;
+  uint8_t checksum;
+};
+
+static_assert(sizeof(ManualTargetStore) == 8, "ManualTargetStore layout changed");
+
+void initializeManualFeedTarget() {
+  ManualTargetStore store;
+  EEPROM.get(MANUAL_TARGET_STORE_ADDRESS, store);
+
+  uint8_t expected = scheduleChecksum(
+      (const uint8_t*)&store, offsetof(ManualTargetStore, checksum));
+
+  if (store.magic == MANUAL_TARGET_STORE_MAGIC &&
+      store.version == MANUAL_TARGET_STORE_VERSION &&
+      store.checksum == expected &&
+      !isnan(store.targetGrams) &&
+      store.targetGrams >= 1.0f &&
+      store.targetGrams <= MAX_TRAY_TARGET_GRAMS) {
+    manualFeedTargetGrams = store.targetGrams;
+    Serial.print(F("Manual feed target loaded: "));
+    Serial.print(manualFeedTargetGrams, 0);
+    Serial.println(F(" g per tray."));
+    return;
+  }
+
+  manualFeedTargetGrams = DEFAULT_FEED_TARGET_GRAMS;
+  Serial.println(F("Manual feed target: default 50 g per tray."));
+}
+
+bool saveManualFeedTarget(float targetGrams) {
+  if (isnan(targetGrams) || targetGrams < 1.0f ||
+      targetGrams > MAX_TRAY_TARGET_GRAMS) {
+    return false;
+  }
+
+  ManualTargetStore store;
+  store.magic = MANUAL_TARGET_STORE_MAGIC;
+  store.version = MANUAL_TARGET_STORE_VERSION;
+  store.targetGrams = targetGrams;
+  store.checksum = scheduleChecksum(
+      (const uint8_t*)&store, offsetof(ManualTargetStore, checksum));
+
+  EEPROM.put(MANUAL_TARGET_STORE_ADDRESS, store);
+  manualFeedTargetGrams = targetGrams;
+  return true;
+}

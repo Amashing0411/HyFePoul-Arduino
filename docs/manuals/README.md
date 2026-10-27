@@ -1,8 +1,8 @@
 # HyFePoul illustrated manuals
 
-Edition 1.0 - 27 October 2026. Prepared for supervised prototype commissioning.
-Implementation baseline: `d623cce`. These manuals do not certify the physical
-prototype; HIT-01 through HIT-16 still require hardware evidence.
+Edition 1.1 - 28 October 2026. Prepared for supervised prototype commissioning.
+Implementation baseline: `firmware-robustness` working tree. These manuals do not
+certify the physical prototype; HIT-01 through HIT-16 still require hardware evidence.
 
 **27 October 2026 follow-up:** The troubleshooting guide and its PDF now cover
 password recovery. The app's reset flow was added after the baseline above and
@@ -10,6 +10,17 @@ is included in the separately recorded APK build in `docs/development-status.md`
 A Firebase reset email reached the previously reported test-account mailbox but
 Gmail placed it in Spam; delivery to the later, differently spelled address is
 not confirmed.
+
+**28 October 2026 follow-up:** Updated onsite Nextion guidance to match the
+checked-in pages and Mega touch handlers. The phone app is described as the
+owner's away-from-device surface; the Nextion is the onsite interface. The
+manuals call out that Nextion schedule edits do not write back to Firebase and
+may be replaced by a cloud restore (R-54). The HMI now uses the HyFePoul app
+logo, has a local Mega/SD Event Log and a separate System Check page, and has a
+compiled `.tft` export. The updated Markdown is the source of truth for this
+follow-up, and all four edition 1.1 PDFs have been regenerated and visually
+reviewed; see the QA report and `verification.json` for checksums. Physical
+display/touch checks remain unverified.
 
 | Manual | Reader | Editable source | PDF |
 |---|---|---|---|

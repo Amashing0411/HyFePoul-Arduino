@@ -175,12 +175,13 @@ The Mega firmware has commissioning commands on the USB serial monitor (115200 b
 **SD**: Verify card detection. Trigger a system event, pull SD card, read on PC to confirm log integrity.
 **Nextion**: Verify boot and baud rate. Verify feed/water data mirrors Mega state. Disconnect UART, verify screen handles timeout gracefully.
 
-**Nextion buttons (R-20)**: the Stop (`b3`) and Start (`b4`) buttons are disabled in firmware until their IDs are confirmed.
-1. In the Nextion Editor, tick **Send Component ID** on the Touch Release Event of `b3` and `b4`, and upload the HMI.
-2. With the Mega USB serial monitor open (115200), press `b3` and then `b4`. Note the `Nextion touch: page P id C` lines.
-3. Set `NEXTION_HOME_PAGE_ID`, `NEXTION_STOP_BUTTON_ID` and `NEXTION_START_BUTTON_ID` at the top of `Nextion.ino` to those numbers, then re-flash.
-4. Verify that `b3` latches the stop (actuators off, `STOPPED` shown, `EMERGENCY_STOP` alert) and that `b4` shows `Status: RELEASE E-STOP` while the physical button is pressed and resets the latch once it is released.
-5. Confirm that other buttons (`b0`–`b2`) and other pages do not stop or reset anything.
+**Nextion onsite panel (R-20 / HIT-12):** the checked-in project and Mega code have page/component mappings; do not re-enter IDs unless physical evidence shows a mismatch. The phone app is for the owner when away; it does not communicate directly with the Mega.
+1. Keep actuator loads disconnected. Confirm the actual panel model, common ground, UART levels, wiring and 9600-baud setting. The current source is `Nextion/ChickenFeederV1 (1).hmi`; use the matching compiled `Nextion/ChickenFeederV1 (1).tft` only after verifying the panel model and resolution. Record the observed version before flashing.
+2. With the Mega USB serial monitor open at 115200, navigate Home, Schedule, System Check, Feed Target and all three schedule editors. Confirm the Mega reports the expected page and touch IDs from `Nextion/Nextion_IDs.txt`.
+3. Confirm Home feed, water, status and local-time fields update. On System Check, verify hopper, water, ESP32 link and target values; press Refresh and confirm the summary updates.
+4. Adjust and save the local feed target. Adjust each schedule time, save it, and confirm the value remains after a Mega power cycle. Compare app schedules only as a separate cloud state; the current HMI edit is local and can be replaced by online cloud restore (R-54).
+5. Press Stop and confirm the Mega latch and actuator-off response. If the physical E-stop is still engaged, Reset Stop must be rejected. Release the physical button, reset the software latch, and confirm an interrupted cycle does not resume.
+6. Only after HIT-11 passes, test Feed Now under direct supervision with a person beside the physical E-stop. Record video/log evidence and do not use this supervised test to tune travel timing.
 
 **Schedule persistence (Phase 3)**:
 1. Set a schedule from the app (ESP32 connected), then disconnect the ESP32 UART wires, power-cycle the Mega, and verify the serial log shows `Schedules loaded from EEPROM.` and that the schedule still fires at its set local time.
@@ -188,6 +189,7 @@ The Mega firmware has commissioning commands on the USB serial monitor (115200 b
 3. With the ESP32 connected and online, change a schedule in the app, power-cycle only the Mega, and verify the ESP32 log shows `Schedule restore complete.` and that the Mega slots match the app (including deleted slots staying disabled).
 4. Delete all schedules in the app, power-cycle the Mega, and verify that no feed happens at 07:00, 12:00 or 18:00.
 5. **UART line integrity (F26):** send 20 schedule edits from the app while the Mega is idle and 10 while feeding. Record how many `SCHEDULE_SET` commands end in `UART_TIMEOUT`, and confirm each one is followed by `Schedule restore complete.`
+6. Record the current R-54 limitation: a schedule changed onsite with the Nextion is stored in EEPROM only, and Firebase restore may replace it. Do not present local and remote schedule editing as synchronized until the approved write-back/conflict path is implemented and retested.
 
 ## 10. Software/Hardware Discrepancy Procedure
 

@@ -185,4 +185,4 @@ This is an administrator-coordinated handover, not routine troubleshooting. Agre
 
 ### Sources and edition
 
-Edition 1.0, 27 October 2026; baseline d623cce. Main sources: docs/device-provisioning-guide.md, docs/development-status.md, docs/hardware-test-day-run-sheet.md, mobile-app/src/screens/ClaimDeviceScreen.tsx, RegisterScreen.tsx and the RTDB service/rules. Account and hardware status can change after this publication; re-verify the records before edits.
+Edition 1.1, 28 October 2026. Main sources: docs/device-provisioning-guide.md, docs/development-status.md, docs/hardware-test-day-run-sheet.md, mobile-app/src/screens/ClaimDeviceScreen.tsx, RegisterScreen.tsx and the RTDB service/rules. Account and hardware status can change after this publication; re-verify the records before edits.

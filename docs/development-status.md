@@ -1,5 +1,30 @@
 # Development Status
 
+**2026-10-28 onsite HMI revision:** The Nextion is the local operator screen for
+the person beside the feeder; the Android app is the owner's away-from-device
+surface through Firebase. The HMI now uses the HyFePoul logo used by the app,
+separate Event Log and System Check pages, and clearer high-visibility controls.
+Back controls are navy with white labels; Feed Now, Save and Refresh controls are
+green with black labels; Stop remains red. Feed Target and schedule-editor
+Back/Save rows use equal 200x64 controls. Event Log reads up to four newest event
+rows from the Mega's current SD CSV; System Check shows hopper, water, ESP32 link
+and target. Mega refreshes one field per 100 ms update to keep serial writes
+short. The HMI project compiled in Nextion Editor with 0 errors and 0 warnings,
+and the generated `Nextion/ChickenFeederV1 (1).tft` is ready for physical-panel
+commissioning. Its SHA-256 is recorded in
+[`firmware-build-environment.md`](firmware-build-environment.md). The Mega
+simulation passes 56/56, including four SD event rows, refresh mapping and
+System Check pacing. The Nextion Debug simulator confirmed Home → Event Log page
+navigation and page ID 3. The Mega sketch's successful local AVR build uses
+53,822 bytes flash and 3,848 bytes RAM; its Git-ignored `.hex` is in the local
+commissioning build directory. The Mega simulator and Nextion simulator had no
+physical hardware attached, so live values, EEPROM persistence, SD reads,
+physical touch, UART levels and button feel remain unverified until HIT-12. The
+local schedule editor saves to EEPROM but does not write to Firebase; online
+restore can replace that edit (R-54). The HMI time editor has no onsite
+schedule enable/disable toggle. The manuals and Nextion ID map describe these
+boundaries.
+
 **2026-10-27 password recovery follow-up:** The Login screen in the repository
 had no password-reset control, and the Auth context did not call Firebase's
 `sendPasswordResetEmail`; editing the Firebase email template alone could not
@@ -27,7 +52,7 @@ User's Manual (8 pages), Hardware / Technical Manual (11), Troubleshooting Manua
 reviewed emulator screenshots, PDF generation/verification scripts and a QA
 record are included. The edition uses implementation baseline `d623cce` and
 distinguishes software checks from pending physical commissioning. It documents
-the disabled Nextion controls, private PIN string typing, retained-claim cleanup,
+the onsite Nextion versus away-from-device app roles, private PIN string typing, retained-claim cleanup,
 Wi-Fi rebuild requirement and separate owner/device identities. This documentation
 release does not mark any hardware HIT check passed.
 
@@ -93,7 +118,7 @@ Arduino/ESP32 hardware.
 
 **2026-10-27 pre-session recheck:** Mobile Jest passed 53/53 with local Auth and
 Realtime Database emulators; the RTDB rules suite passed 88/88; Mega simulation
-passed 51/51; the ESP32 simulator, mobile command flow, schedule restore/UART
+passed 51/51 at that checkpoint; the ESP32 simulator, mobile command flow, schedule restore/UART
 line checks, and owner-device journey passed. Arduino CLI builds for the Mega
 and ESP32 targets passed. TypeScript passed. Expo lint reported 0 errors and 3
 `react-hooks/set-state-in-effect` warnings. Emulator tests used local Firebase
@@ -143,7 +168,7 @@ user-approved sync, production REST sign-in and the authenticated RTDB binding
 read passed. Do not mark ESP32 hardware authentication ready until on-device
 sign-in, TLS, and state writes pass. The restricted Firebase API key is now present in ignored local `Config.h`; Wi-Fi settings remain placeholders.
 
-**Updated:** 2026-10-27. **Current phase:** design revision implemented in software ([`design-revision-moving-hopper.md`](design-revision-moving-hopper.md)): the hopper moves on a chain past 5 trays, each with its own load cell (50 g per tray by default), and water is gravity-fed with no pump. **Hardware commissioning has not started** (prototype not yet available). Production RTDB rules and `device-001` provisioning are complete; see the open credential and phone-test notes above.
+**Updated:** 2026-10-28. **Current phase:** design revision implemented in software ([`design-revision-moving-hopper.md`](design-revision-moving-hopper.md)): the hopper moves on a chain past 5 trays, each with its own load cell (50 g per tray by default), and water is gravity-fed with no pump. **Hardware commissioning has not started** (prototype not yet available). Production RTDB rules and `device-001` provisioning are complete; see the open credential and phone-test notes above.
 
 Read these before starting new work:
 
@@ -162,11 +187,11 @@ Read these before starting new work:
 
 | Subsystem | Status |
 |-----------|--------|
-| **Arduino Mega** (primary controller) | Logic complete: 5-tray feed cycle (chain motor with interlocked relays, home/end limit switches, timed travel, per-tray tare and target, chain/tray timeouts, empty-hopper return), reservoir water alert, latching E-stop, EEPROM schedules, SD log. Simulated (51 tests) and compile-checked. Calibration, tray travel times and pins **unverified** (R-46). |
+| **Arduino Mega** (primary controller) | Logic complete: 5-tray feed cycle (chain motor with interlocked relays, home/end limit switches, timed travel, per-tray tare and target, chain/tray timeouts, empty-hopper return), reservoir water alert, latching E-stop, EEPROM schedules, SD log. Simulated (56 tests) and compiled 2026-10-28 (53,822 bytes flash, 3,848 bytes RAM). Calibration, tray travel times and pins **unverified** (R-46). |
 | **ESP32** (communication bridge) | Firmware implements Wi-Fi reconnect, TLS certificate verification, Firebase sign-in, RTDB writes, command transport, and schedule restore. Simulator and compile checks passed; production REST sign-in and device UID match passed, but the firmware has **not been flashed** and Wi-Fi credentials remain placeholders. |
 | **Firebase** (Auth + RTDB, Spark plan) | Revised RTDB rules deployed to production on 2026-10-27; `device-001` has a dedicated Auth UID and string setup PIN. The dedicated account signs in through the production REST API, matches the device binding, and can read that binding. The record remains offline and unclaimed. Firestore and Cloud Functions are **not used**. |
 | **Mobile app** (React Native / Expo SDK 57) | Feature-complete; shows tray weights and cycle progress, reservoir status; Jest 53/53 and TypeScript pass. Expo lint reports 0 errors and 3 `react-hooks/set-state-in-effect` warnings. Revised screens and empty states were checked on Android emulators (R-49; see the QA records). **Not yet run on a physical phone against production.** Expo Go is not supported. |
-| **Nextion HMI** | HMI project in `Nextion/`. Firmware writes the real Home page fields; the Stop/Start buttons are coded but stay disabled until their IDs are read on the bench (R-20). |
+| **Nextion HMI (onsite panel)** | HyFePoul-branded HMI source and compiled `.tft` in `Nextion/`. Firmware maps Home status/time, Stop and Feed Now/Reset, local SD Event Log, four paced System Check readouts, target adjustment and local schedule editors. HMI compile and simulator touch-frame checks passed; physical UART, display, SD read and touch checks remain HIT-12. Nextion schedule edits are local only; R-54 tracks cloud write-back and conflict handling. |
 
 ## Constraints (from AGENTS.md)
 

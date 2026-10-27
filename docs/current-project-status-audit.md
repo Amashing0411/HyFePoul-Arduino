@@ -1,14 +1,13 @@
 # HyFePoul: Current Project Status Audit
 
-**Audit date:** 2026-10-21
-**Repository state:** `main` at `c0dc92b` (after PRs #1–#6). **Updated 2026-10-23** for the moving-hopper design revision (branch `design-moving-hopper`).
+**Audit baseline:** 2026-10-21 at `c0dc92b` (after PRs #1–#6); moving-hopper revision added 2026-10-23. **Current status refreshed:** 2026-10-28.
 **Scope:** firmware (Mega, ESP32), Firebase (Auth + RTDB), mobile app, documentation, build and deployment.
 
 The work history, decisions and per-phase evidence are in [`comprehensive-work-plan.md`](comprehensive-work-plan.md). This document is a snapshot of where things stand now.
 
 ## 1. Bottom line
 
-- **Software: complete for the prototype scope, and tested without hardware.** The firmware logic, database rules, app and docs are done. They were tested with JavaScript simulators that mirror the firmware, the Firebase emulators, and an Android emulator running a development build.
+- **Software: prototype path is implemented and tested without hardware, with follow-up work still open.** Firmware behavior, database rules and app flows have simulator/emulator coverage. R-54 remains open for synchronizing onsite schedule edits with Firebase. No simulator result is a physical hardware pass.
 - **Hardware: not commissioned.** Every row in [`hardware-commissioning-log.md`](hardware-commissioning-log.md) is still `PENDING – Hardware unavailable`. Nothing has been verified on the physical prototype: sensors, actuators, calibration, the E-stop circuit, the UART link, or real-world ESP32 networking.
 - **Production backend:** `hyfepoul-dev` with RTDB `hyfepoul-dev-default-rtdb` (`asia-southeast1`). The current security rules are deployed and were verified on 2026-10-21. **The app has not been run on a physical phone against production.**
 
@@ -61,7 +60,7 @@ Arduino Mega 2560 ──UART 115200 (≤63 chars/line)── ESP32 ──HTTPS (
 | Device claiming with setup PIN (wrong PIN denied, no transfer) | App, RTDB rules | Verified (emulator, rules tests) |
 | Device online status from heartbeat age (90 s) | App | Verified (emulator), 5 unit tests |
 | History (latest 50 records), alert feed, settings (language, dark mode, text size) | App | Emulator (partial; see the matrix) |
-| Local display on the Nextion Home page (`t2` feed, `t3` water, `t4` status, `t5` time); Stop/Start buttons | Mega `Nextion.ino` | Compile-checked; touch parser simulated (tests 34–35); **button IDs disabled until read on the bench** |
+| Nextion onsite UI: Home values/navigation, Stop/Feed Now, SD Event Log, System Check, Feed Target, three schedule editors | Mega `Nextion.ino`, `SDLogging.ino`, checked-in HMI and TFT | Mega simulator 56/56 covers mapped touch frames, log-field pacing and schedule/target edits; Nextion Editor compile passed with 0 errors/warnings and Home → Log simulator navigation returned page ID 3. Physical UART/touch/SD check remains HIT-12. |
 | SD CSV log | Mega `SDLogging.ino` | Compile-checked |
 | Network time to RTC (ESP32 NTP, every 30 s) | ESP32, Mega | Compile-checked |
 | HTTPS with certificate verification | ESP32 | Compile-checked |
@@ -70,7 +69,7 @@ Arduino Mega 2560 ──UART 115200 (≤63 chars/line)── ESP32 ──HTTPS (
 
 | Item | Limitation |
 |------|------------|
-| Nextion HMI (F14) | Mapped to the real Home page fields (R-20). Stop (`b3`) and Start (`b4`, local E-stop reset) are coded but **disabled until their numeric IDs are read on the bench**; every touch is logged to make that a one-press job. The Home page has no field for hopper level % or network status. `b0`–`b2` (schedule and weight entry on the HMI) are not handled. |
+| Nextion HMI (R-20) | Page 3 is a local Mega/SD Event Log (up to four newest event rows); page 9 is System Check with hopper, water, ESP32 link and target. Mega touch handling, local target edits, schedule edits and log field pacing are simulated. Home has no hopper percentage or network field. Physical UART/touch behavior remains unverified until HIT-12. Schedule edits persist to local EEPROM but do not write to Firebase; online restore can replace them (R-54). |
 | Notifications | Delivered only while the app is running (Spark plan, no server push). Alerts raised while it is closed appear in the Notifications tab later. |
 | Alert resolution (F24) | Done in software (R-23): the Mega sends clear events, the ESP32 marks the alert resolved, and the app lists active alerts first. Alerts raised while the ESP32 is offline are kept and written when it is back online. |
 | Load cell meaning | Resolved (R-16): one load cell under each tray weighs dispensed feed. The HMI caption `t0` now says "Feed in Trays:" (R-48; HMI project compile passed, physical display appearance not checked). |
@@ -107,10 +106,10 @@ Arduino Mega 2560 ──UART 115200 (≤63 chars/line)── ESP32 ──HTTPS (
 | 4 | Relay active level and NO/NC wiring unverified | High | Code assumes HIGH = ON. |
 | 5 | Timed travel to each tray is uncalibrated (R-46) | High | Placeholder 3 s per tray; wrong values spill feed between trays or hit the end switch early (`END_LIMIT_EARLY`). |
 | 6 | `systemData` unbounded growth | Medium | Retention decision needed. |
-| 7 | Revised RTDB rules are deployed, but production owner/device flows are not verified | High | R-45 deployed 2026-10-27. Flash compatible firmware before connecting the prototype; verify production claim and device writes. No saved schedules exist in production (checked 2026-10-23), so none need converting (R-50). |
+| 7 | Production owner/device flows are not fully verified | High | R-45 and R-14 provisioning completed 2026-10-27. Dedicated device-account REST sign-in and UID binding read passed; owner claim in the physical APK, flashed-device writes and recovery remain unverified. |
 | 8 | Firebase API key restriction narrowed (SEC-2) | Low | The app and ESP32 now use the approved candidate restricted to Identity Toolkit, Secure Token, and Realtime Database, with no application restriction. SDK Auth/token-refresh/RTDB and ESP32-style REST checks passed; the ESP32 compile passed after adoption. The original Firebase-created key remains active for rollback. An unrelated-service denial was not separately probed. |
 | 9 | Old `Config.h` values in git history | Low–Medium | Probably the emulator test password; rotate it if it was used for the production device account. |
-| 10 | Nextion button IDs not yet confirmed | Low | Stop/Start on the HMI do nothing until set (procedure §9). |
+| 10 | Physical Nextion ID and UART mapping not yet confirmed | High | Firmware IDs match the checked-in HMI map and parser simulation. Verify every touch, especially Stop and Reset Stop, on the panel before actuator testing (HIT-12). |
 | 11 | Stale design docs (`architecture.md`, `api-contract.md`, `firebase-backend-architecture.md`) | Low | Still describe Firestore and Cloud Functions. |
 
 ## 7. Hardware-dependent assumptions
@@ -129,7 +128,7 @@ All pins, levels and polarities are **intended, not verified** ([`hardware-assum
 |------|-----------|-------|
 | **Mobile app** | Feature-complete for scope; emulator-verified | Jest 53/53, `tsc`, Android emulator runs ([`mobile-app-completion-matrix.md`](mobile-app-completion-matrix.md)); Firebase/app QA details in [`firebase-emulator-qa-2026-10-27.md`](firebase-emulator-qa-2026-10-27.md). No physical phone against production yet. |
 | **Backend / security** | Revised rules deployed; production claim and device sign-in remain unverified | 88/88 local rules tests; R-45 deployed 2026-10-27 and R-14 provisioning completed. Sign-in with the local ESP32 password failed; owner claim and physical device writes have not been exercised in production. |
-| **Firmware (Mega)** | Logic complete; compile-checked and simulated | Mega simulator 51/51. Flash 14%, RAM 29%. Calibration and pins unverified. |
+| **Firmware (Mega)** | Logic complete; compiled and simulated | Mega simulator 56/56; current source uses 53,822 bytes flash and 3,848 bytes RAM. Calibration and pins unverified. |
 | **Firmware (ESP32)** | Logic complete; compile-checked and simulated | ESP32 simulator (commands, restore R1–R4, UART U1–U4). Flash 86% of the default partition (CA bundle). |
 | **Build** | Reproducible | `arduino-cli` builds for both boards; `npx expo run:android` development build; EAS profiles configured with the production RTDB URL. |
 | **Deployment** | Not started on hardware | Requires commissioning ([`hardware-integration-test-plan.md`](hardware-integration-test-plan.md)). |
@@ -140,8 +139,8 @@ Build and deployment levels reached so far:
 |-------|----------|
 | Local development build | Yes |
 | Emulator-tested build (against Firebase emulators) | Yes |
-| Installed on a physical phone | No |
-| Production-configured build | Configured (`eas.json` development, preview and production profiles), not yet built |
+| Installed on a physical phone | User reports a production-configured APK is installed; physical owner claim and device flow remain unverified |
+| Production-configured build | Yes; standalone release APK built and signature verified; direct install, not Play Store distribution |
 | End-to-end tested against production | No |
 
 ## 9. Cost and infrastructure constraints
