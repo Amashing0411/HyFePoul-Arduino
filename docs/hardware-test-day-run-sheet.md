@@ -11,13 +11,13 @@ Use this with the detailed [hardware commissioning procedure](hardware-commissio
 - Production RTDB rules and the `device-001` record are provisioned. The dedicated ESP32 Auth UID is bound to `device-001`; the record is expected to remain `offline` until the device connects.
 - The six-digit setup PIN is stored privately in Firebase. It is deliberately omitted here and from Git.
 - The production APK is built. A temporary test-owner account is available for production QA; the actual client account is not implemented.
-- A production Auth check confirmed the configured account UID matches the device binding, but sign-in with the current local `Config.h` credential returned `INVALID_LOGIN_CREDENTIALS`. The API key has been synchronized from the production app config. Wi-Fi SSID/password are still placeholders. Resolve both before HIT-03.
+- Production REST sign-in now passes with the dedicated device account; its UID matches the device binding and an authenticated RTDB binding read passed. This does not prove firmware sign-in, TLS, or state writes. The API key is synchronized from production app config; Wi-Fi SSID/password are still placeholders and must be filled privately before HIT-03.
 - Simulator and emulator checks have passed, but the prototype has not yet supplied physical evidence for HIT-01–HIT-16.
 
 ## Before powering anything
 
-- [ ] Reconcile the failed production sign-in: make the `FIREBASE_AUTH_PASSWORD` in ignored local ESP32 `Config.h` match the dedicated device Auth account, then verify sign-in before HIT-03. Do not put the password in chat, logs, screenshots, or Git.
-- [ ] Replace the Wi-Fi SSID/password placeholders and confirm `DEVICE_ID`, Firebase project, and device account in `Config.h`; keep ESP32 Core Debug Level at **None** so logs do not expose authentication tokens.
+- [ ] Replace the Wi-Fi SSID/password placeholders in ignored local ESP32 `Config.h` privately. Keep all network credentials out of chat, logs, screenshots, and Git.
+- [ ] Confirm `DEVICE_ID`, Firebase project, and device account in `Config.h`; keep ESP32 Core Debug Level at **None** so logs do not expose authentication tokens. Production REST sign-in passed, but repeat the sign-in from the flashed ESP32 during HIT-03.
 - [ ] Have the current Mega and ESP32 firmware, production APK, wiring/pin documents, a multimeter, and the required board/programming cables ready.
 - [ ] Have the person responsible for the Firebase test-owner account present for the phone claim. Keep the setup PIN private.
 - [ ] Set up the bench with the physical E-stop reachable. Start with actuator power disconnected. Follow the actual wiring documentation; do not infer missing pins or hardware.
