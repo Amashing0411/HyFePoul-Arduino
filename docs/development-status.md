@@ -29,6 +29,12 @@ directly into HyFePoul and a disposable sign-up reached Claim Device through the
 local Auth emulator. Physical phone testing and production Firebase remain
 pending. See the [APK and emulator QA record](firebase-emulator-qa-2026-10-27.md).
 
+**2026-10-27 production APK preparation:** Built a standalone release APK with
+the EAS preview production Firebase settings, emulator use disabled, and
+cleartext traffic false. It is ready for direct installation after provisioning;
+the device record and setup PIN remain absent, and it has not been tested on a
+physical phone. See the [device provisioning guide](device-provisioning-guide.md).
+
 **Updated:** 2026-10-27. **Current phase:** design revision implemented in software ([`design-revision-moving-hopper.md`](design-revision-moving-hopper.md), branch `design-moving-hopper`): the hopper moves on a chain past 5 trays, each with its own load cell (50 g per tray by default), and water is gravity-fed with no pump. **Hardware commissioning has not started** (prototype not yet available). The revised RTDB rules are **not deployed** (R-45).
 
 Read these before starting new work:
