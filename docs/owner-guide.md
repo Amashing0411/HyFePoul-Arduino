@@ -79,6 +79,6 @@ The debug APK in `mobile-app/android/app/build/outputs/apk/debug/` is a **develo
 - **Local:** with `mobile-app/.env.local` holding the Firebase settings, run `npx expo prebuild` if needed, then `cd android && ./gradlew assembleRelease`. The APK is `android/app/build/outputs/apk/release/app-release.apk` (signed with the debug key: fine for direct installs, not for the Play Store).
 - **EAS (cloud):** `npx eas-cli build -p android --profile preview` produces an APK download link (uses the Expo account's free build quota).
 
-The local-emulator QA APK described in [`firebase-emulator-qa-2026-10-27.md`](firebase-emulator-qa-2026-10-27.md) is for tests against localhost only. It is not the production APK and requires emulator-port forwarding when used on a phone.
+The local-emulator QA APK described in [`archive/firebase-emulator-qa-2026-10-27.md`](archive/firebase-emulator-qa-2026-10-27.md) is for tests against localhost only. It is not the production APK and requires emulator-port forwarding when used on a phone.
 
 Before handing it over: deploy the R-45 rules together with flashing both boards, and complete R-14 (device account, device record and setup PIN) in the Firebase console.

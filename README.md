@@ -6,7 +6,7 @@
 
 HyFePoul automates feeding and watering for a small poultry setup. An Arduino Mega moves a feed hopper along a chain past 5 trays and fills each tray to a target weight measured by that tray's load cell, warns when the gravity-fed water reservoir needs refilling, and enforces a physical emergency stop. An ESP32 links the device to Firebase, so the owner can monitor it and send commands from an Android app.
 
-> **Project status (October 2026):** the firmware, backend rules and mobile app are complete in software and tested with simulators, the Firebase emulators and an Android emulator. **The physical prototype has not been commissioned yet**, so sensor calibration, relay polarity, E-stop wiring and the Mega–ESP32 serial link are still unverified on hardware. See [`docs/comprehensive-work-plan.md`](docs/comprehensive-work-plan.md) for the detailed status.
+> **Project status (October 2026):** the firmware, backend rules and mobile app are complete in software and tested with simulators, the Firebase emulators and an Android emulator. **The physical prototype has not been commissioned yet**, so sensor calibration, relay polarity, E-stop wiring and the Mega–ESP32 serial link are still unverified on hardware. See [`docs/development-status.md`](docs/development-status.md) and the [roadmap](docs/remaining-work-roadmap.md) for the detailed status, and the [docs index](docs/README.md) for everything else.
 
 ## How it works
 
@@ -60,13 +60,18 @@ Pin assignments are in [`firmware/arduino-mega/HyFePoul_Arduino/Config.ino`](fir
 ```
 firmware/
   arduino-mega/HyFePoul_Arduino/   Mega sketch (multi-file .ino), see its README
+  arduino-mega/*_Calibration/      Stand-alone bench calibration sketches (inputs,
+                                   outputs, load cells, chain)
   esp32/HyFePoul_ESP32/            ESP32 bridge sketch; Config.example.h template
 mobile-app/                        React Native + Expo (TypeScript) Android app
-backend/functions/                 Legacy Cloud Functions + RTDB rules test suite
-scripts/                           Mega/ESP32 simulators and end-to-end test scripts
-Nextion/                           Nextion HMI project and component IDs
-docs/                              Design, protocol, commissioning and status documents
-database.rules.json                Realtime Database security rules (deployed)
+scripts/                           Mega/ESP32 simulators, RTDB rules tests and
+                                   end-to-end test scripts
+Nextion/                           Nextion HMI project (HyFePoul.hmi/.tft) and IDs
+docs/                              Documentation; start at docs/README.md
+  archive/                         Earlier checkpoint reports and QA notes
+archive/legacy-backend/            Earlier Cloud Functions + Firestore design
+                                   (not deployed; kept for reference)
+database.rules.json                Realtime Database security rules
 firebase.json, .firebaserc         Firebase CLI config (project: hyfepoul-dev)
 ```
 
@@ -168,12 +173,12 @@ The project is `hyfepoul-dev`, with the Realtime Database instance `hyfepoul-dev
 Most suites need the Firebase emulators. Wrap a command with `firebase emulators:exec` so the emulators start and stop around it:
 
 ```bash
-firebase emulators:exec --only auth,database --project hyfepoul-dev "node backend/functions/scripts/test-rtdb-rules.js"
+firebase emulators:exec --only auth,database --project hyfepoul-dev "node scripts/test-rtdb-rules.js"
 ```
 
 | Suite | Command (inside `emulators:exec` unless marked) |
 |-------|-----------------------------------------------|
-| RTDB security rules | `node backend/functions/scripts/test-rtdb-rules.js` |
+| RTDB security rules | `node scripts/test-rtdb-rules.js` |
 | ESP32 logic and schedule restore | `node scripts/simulate-esp32.js` |
 | Mobile command flow | `node scripts/test-mobile-commands.js` |
 | End-to-end journey | `node scripts/test-e2e-journey.js` |
@@ -194,7 +199,7 @@ The simulators are JavaScript copies of the firmware logic. They don't run the C
 
 | Document | What it covers |
 |----------|----------------|
-| [`docs/comprehensive-work-plan.md`](docs/comprehensive-work-plan.md) | **Start here.** Current status, findings, phase results and remaining work |
+| [`docs/archive/comprehensive-work-plan.md`](docs/archive/comprehensive-work-plan.md) | **Start here.** Current status, findings, phase results and remaining work |
 | [`docs/mega-esp32-protocol.md`](docs/mega-esp32-protocol.md) | Serial protocol between the Mega and the ESP32 |
 | [`database.rules.json`](database.rules.json), [`mobile-app/src/types/rtdb.ts`](mobile-app/src/types/rtdb.ts) | Current Realtime Database structure: the enforced rules and the typed paths. (`docs/database-schema.md` still describes the earlier Firestore design.) |
 | [`docs/notifications.md`](docs/notifications.md) | How alerts reach the user, and their limits |
