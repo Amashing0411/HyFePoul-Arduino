@@ -28,7 +28,17 @@
     EMPTY         record the distance with the hopper EMPTY
     FULL          record the distance with the hopper FULL
     NEXTION       find the display's baud rate
+    TOUCH         show every Nextion button press (page, button, name) and
+                  page change, at the baud found by NEXTION (or 9600);
+                  any line stops it
     RESULT        print the Config.ino lines
+
+  Nextion buttons: the navigation buttons change pages inside the display.
+  The action buttons (Stop, Feed Now / Reset Stop, Feed Target +/-/Save,
+  schedule editor +/-/Save, Refresh) have no code of their own: they have
+  "Send Component ID" ticked and the main firmware acts on the message. TOUCH
+  proves each one sends it; a button that prints nothing needs "Send
+  Component ID" ticked in the Nextion Editor (Touch Press Event).
 
   Switches: put everything in its normal state, type REST, then use WATCH
   and press each switch (and lower the float) to see it change. The pressed
@@ -57,6 +67,10 @@ float fullCm = -1.0f;
 long nextionBaud = 0;
 
 bool watching = false;
+bool touching = false;
+uint8_t touchFrame[8];
+uint8_t touchLength = 0;
+uint8_t touchEnds = 0;
 unsigned long lastDistMillis = 0;
 String inputLine = "";
 
@@ -84,6 +98,8 @@ void loop() {
       inputLine += c;
     }
   }
+
+  if (touching) readNextionTouch();
 
   if (watching) {
     for (uint8_t i = 0; i < SWITCH_COUNT; i++) {
@@ -113,6 +129,12 @@ void handleCommand(String line) {
   if (watching) {
     watching = false;
     Serial.println(F("WATCH stopped."));
+    return;
+  }
+  if (touching) {
+    touching = false;
+    Serial2.end();
+    Serial.println(F("TOUCH stopped."));
     return;
   }
 
@@ -145,6 +167,15 @@ void handleCommand(String line) {
     Serial.println();
   } else if (line == "NEXTION") {
     findNextionBaud();
+  } else if (line == "TOUCH") {
+    long baud = nextionBaud > 0 ? nextionBaud : 9600;
+    Serial2.begin(baud);
+    touchLength = 0;
+    touchEnds = 0;
+    touching = true;
+    Serial.print(F("Listening to the Nextion at "));
+    Serial.print(baud);
+    Serial.println(F(" baud. Press each button; any line stops."));
   } else if (line == "RESULT") {
     printResult();
   } else {
@@ -155,7 +186,7 @@ void handleCommand(String line) {
 }
 
 void printHelp() {
-  Serial.println(F("Commands: STATUS | WATCH | REST | DIST | EMPTY | FULL | NEXTION | RESULT | HELP"));
+  Serial.println(F("Commands: STATUS | WATCH | REST | DIST | EMPTY | FULL | NEXTION | TOUCH | RESULT | HELP"));
 }
 
 void printLevel(uint8_t i, int level) {
@@ -252,6 +283,80 @@ void findNextionBaud() {
     }
   }
   Serial.println(F("No answer at any rate: check the display's power, and TX/RX (they cross over)."));
+}
+
+// Names of the buttons the main firmware acts on (Nextion.ino), by page/ID.
+const __FlashStringHelper* touchName(uint8_t page, uint8_t id) {
+  if (page == 1 && id == 8) return F("Home b3 STOP");
+  if (page == 1 && id == 9) return F("Home b4 FEED NOW / RESET STOP");
+  if (page == 4 && id == 5) return F("Feed Target b1 +10 g");
+  if (page == 4 && id == 6) return F("Feed Target b2 -10 g");
+  if (page == 4 && id == 4) return F("Feed Target b3 SAVE");
+  if (page >= 5 && page <= 7) {
+    if (id == 7) return F("Schedule editor b1 hour +");
+    if (id == 8) return F("Schedule editor b2 hour -");
+    if (id == 9) return F("Schedule editor b3 minute +");
+    if (id == 10) return F("Schedule editor b4 minute -");
+    if (id == 11) return F("Schedule editor b5 SAVE");
+  }
+  if (page == 3 && id == 4) return F("History b1 REFRESH");
+  if (page == 9 && id == 4) return F("System Check b1 REFRESH");
+  return F("(not used by the firmware)");
+}
+
+const __FlashStringHelper* pageName(uint8_t page) {
+  switch (page) {
+    case 0: return F("Logo");
+    case 1: return F("Home");
+    case 2: return F("Schedules");
+    case 3: return F("History");
+    case 4: return F("Feed Target");
+    case 5: return F("Schedule 1 editor");
+    case 6: return F("Schedule 2 editor");
+    case 7: return F("Schedule 3 editor");
+    case 8: return F("Keyboard");
+    case 9: return F("System Check");
+    default: return F("?");
+  }
+}
+
+// Frames end with FF FF FF: 65 page id event (touch), 66 page (sendme).
+void readNextionTouch() {
+  while (Serial2.available()) {
+    uint8_t b = Serial2.read();
+    if (b == 0xFF) {
+      if (++touchEnds < 3) continue;
+      if (touchLength == 4 && touchFrame[0] == 0x65) {
+        Serial.print(F("Touch: page "));
+        Serial.print(touchFrame[1]);
+        Serial.print(F(" ("));
+        Serial.print(pageName(touchFrame[1]));
+        Serial.print(F(") button ID "));
+        Serial.print(touchFrame[2]);
+        Serial.print(touchFrame[3] == 1 ? F(" PRESS   ") : F(" release "));
+        Serial.println(touchName(touchFrame[1], touchFrame[2]));
+      } else if (touchLength == 2 && touchFrame[0] == 0x66) {
+        Serial.print(F("Page changed to "));
+        Serial.print(touchFrame[1]);
+        Serial.print(F(" ("));
+        Serial.print(pageName(touchFrame[1]));
+        Serial.println(F(")"));
+      } else if (touchLength > 0) {
+        Serial.print(F("Other message:"));
+        for (uint8_t i = 0; i < touchLength; i++) {
+          Serial.print(' ');
+          if (touchFrame[i] < 16) Serial.print('0');
+          Serial.print(touchFrame[i], HEX);
+        }
+        Serial.println();
+      }
+      touchLength = 0;
+      touchEnds = 0;
+    } else {
+      touchEnds = 0;
+      if (touchLength < sizeof(touchFrame)) touchFrame[touchLength++] = b;
+    }
+  }
 }
 
 // ---------------- result ----------------
