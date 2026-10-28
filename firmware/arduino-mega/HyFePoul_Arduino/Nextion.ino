@@ -455,7 +455,7 @@ void handleNextionTouch(uint8_t pageId, uint8_t componentId) {
     }
   }
 
-  // Log refresh reloads the newest saved SD events. System Check refresh starts
+  // Log refresh requests the newest cloud history rows from the ESP32. System Check refresh starts
   // a paced update of all four live readings.
   if (pageId == NEXTION_LOG_PAGE_ID &&
       componentId == NEXTION_LOG_REFRESH_BUTTON_ID) {
