@@ -20,6 +20,13 @@ enum CycleStep {
   CYCLE_RETURNING    // reversing to the home switch
 };
 
+// Side of the chain the hopper starts from (Config.ino HOPPER_START_SIDE),
+// as seen from the front of the device.
+enum HopperSide {
+  SIDE_LEFT,
+  SIDE_RIGHT
+};
+
 enum ChainDirection {
   CHAIN_STOPPED,
   CHAIN_FORWARD,

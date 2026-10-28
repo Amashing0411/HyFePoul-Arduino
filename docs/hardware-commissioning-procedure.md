@@ -164,7 +164,7 @@ The Mega firmware has commissioning commands on the USB serial monitor (115200 b
 
 ## 8. Sensor Commissioning
 
-**Tray Load Cells / 5 HX711**: For each tray verify wiring (E+/E-/A+/A-). Ensure zero reading is stable. Place a known weight (e.g., 50 g and 500 g). Calculate that tray's calibration factor (`LOAD_CELL_CALIBRATION_FACTORS[i]`). DO NOT use the source code placeholder (`-7050.0f`). Confirm the 5 boards on the shared SCK each read correctly.
+**Tray Load Cells / 5 HX711**: For each tray verify wiring (E+/E-/A+/A-). Ensure zero reading is stable. Place a known weight (e.g., 50 g and 500 g). Calculate that tray's calibration factor (`LOAD_CELL_CALIBRATION_FACTORS[i]`). DO NOT use the source code placeholder (`-7050.0f`). Confirm each HX711 uses its own assigned SCK and DT pair, and that all five boards read correctly without affecting another tray.
 **Ultrasonic**: Verify trigger/echo. Measure physical distances for Hopper Empty / Hopper Full. Update source code limits to match reality.
 **Reservoir Float**: Verify physical installation orientation. Determine whether a low reservoir reads LOW (assumed) or HIGH. Update `isWaterLow()` to match.
 **Limit Switches**: Decide NO or NC (NC is fail-safe: a broken wire reads as pressed). Update `isHomeSwitchPressed()` / `isEndSwitchPressed()` to match.

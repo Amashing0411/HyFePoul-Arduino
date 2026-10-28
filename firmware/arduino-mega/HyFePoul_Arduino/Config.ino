@@ -1,3 +1,4 @@
+
 /*
   Config.ino
   Central configuration and shared variables.
@@ -18,36 +19,76 @@
 // Arduino Mega pin assignments
 // -----------------------------
 
-// HX711 + load cells: one under each of the 5 trays.
-// All five HX711 boards share one SCK line; each has its own DOUT.
-// Reading one board also clocks the others, which only discards their
-// pending conversion (all run at the same gain), so they are read one at
-// a time and only when ready.
+// HX711 + load cells: one under each of the 5 trays. Every HX711 has its
+// own SCK and DT (DOUT) pins, as wired on the device; no line is shared.
 const uint8_t TRAY_COUNT = 5;
-const uint8_t HX711_DOUT_PINS[TRAY_COUNT] = {30, 40, 41, 42, 43};
-const uint8_t HX711_SCK_PIN = 31;
+
+// Tray 1 HX711
+const uint8_t TRAY1_HX711_SCK_PIN = 22;
+const uint8_t TRAY1_HX711_DT_PIN  = 24;
+
+// Tray 2 HX711
+const uint8_t TRAY2_HX711_SCK_PIN = 26;
+const uint8_t TRAY2_HX711_DT_PIN  = 28;
+
+// Tray 3 HX711
+const uint8_t TRAY3_HX711_SCK_PIN = 30;
+const uint8_t TRAY3_HX711_DT_PIN  = 32;
+
+// Tray 4 HX711
+const uint8_t TRAY4_HX711_SCK_PIN = 34;
+const uint8_t TRAY4_HX711_DT_PIN  = 36;
+
+// Tray 5 HX711
+const uint8_t TRAY5_HX711_SCK_PIN = 38;
+const uint8_t TRAY5_HX711_DT_PIN  = 40;
 
 // Ultrasonic feed-hopper sensor
-const uint8_t ULTRASONIC_TRIG_PIN = 32;
+const uint8_t ULTRASONIC_TRIG_PIN = 31; // PLACEHOLDER: free pin (32 is now tray 3 DT); confirm wiring
 const uint8_t ULTRASONIC_ECHO_PIN = 33;
 
 // Water reservoir float switch (gravity-fed drinker, no pump)
-const uint8_t WATER_LOW_PIN = 34;
+const uint8_t WATER_LOW_PIN = 35; // PLACEHOLDER: free pin (34 is now tray 4 SCK); confirm wiring
 
-// Actuators
-// The chain motor is reversed by two relays that swap its polarity:
-// forward relay ON = forward, reverse relay ON = reverse. The firmware
-// never turns both on together.
-const uint8_t CHAIN_FORWARD_RELAY_PIN = 36;
-const uint8_t CHAIN_REVERSE_RELAY_PIN = 44;
-const uint8_t DISPENSER_RELAY_PIN     = 37;
+// Chain: start side, relays and limit switches.
+// The hopper starts at the limit switch on HOPPER_START_SIDE, runs to the
+// trays one by one (TRAY_TRAVEL_MS) until the far limit switch stops it,
+// then returns to the start switch for the next feeding. Calibrate with
+// firmware/arduino-mega/Chain_Calibration (its RESULT prints these lines).
+//
+// Trays are numbered 1-5 from LEFT to RIGHT (PLACEHOLDER: confirm); each
+// keeps its own load cell whichever side the hopper starts from.
+const HopperSide HOPPER_START_SIDE = SIDE_LEFT; // PLACEHOLDER: pick on the bench
 
-// Chain limit switches (hopper position)
-const uint8_t HOME_LIMIT_PIN = 45; // start position
-const uint8_t END_LIMIT_PIN  = 46; // far end, past tray 5
+// The chain motor is reversed by two relays that swap its polarity; each is
+// named by the way it moves the hopper. The firmware never turns both on
+// together. PLACEHOLDER: confirm the directions with Chain_Calibration JOG.
+const uint8_t CHAIN_TO_RIGHT_RELAY_PIN = 10;
+const uint8_t CHAIN_TO_LEFT_RELAY_PIN  = 9;
+const uint8_t DISPENSER_RELAY_PIN      = 8;
+
+// Limit switches at each end of the chain (PLACEHOLDER: confirm sides).
+const uint8_t LEFT_LIMIT_PIN  = 45;
+const uint8_t RIGHT_LIMIT_PIN = 46;
+
+// Input/output polarity. PLACEHOLDERS: set from the RESULT lines of
+// Inputs_Calibration (switches) and Outputs_Calibration (relays).
+const uint8_t RELAY_ON  = HIGH;  // HIGH = active-HIGH relay board, LOW = active-LOW
+const uint8_t RELAY_OFF = RELAY_ON == HIGH ? LOW : HIGH;
+const uint8_t LIMIT_SWITCH_PRESSED = LOW; // LOW: closes to GND when pressed (NO); HIGH: NC
+const uint8_t WATER_LOW_LEVEL      = LOW; // float switch reading when the reservoir is low
+const uint8_t ESTOP_PRESSED        = LOW; // LOW: closes to GND (NO); HIGH: NC (fail-safe)
+
+// Derived from the start side; the feed cycle uses these. "Forward" is
+// away from the start, toward the far switch; "home" is the start switch.
+const bool START_LEFT = HOPPER_START_SIDE == SIDE_LEFT;
+const uint8_t HOME_LIMIT_PIN = START_LEFT ? LEFT_LIMIT_PIN : RIGHT_LIMIT_PIN;
+const uint8_t END_LIMIT_PIN  = START_LEFT ? RIGHT_LIMIT_PIN : LEFT_LIMIT_PIN;
+const uint8_t CHAIN_FORWARD_RELAY_PIN = START_LEFT ? CHAIN_TO_RIGHT_RELAY_PIN : CHAIN_TO_LEFT_RELAY_PIN;
+const uint8_t CHAIN_REVERSE_RELAY_PIN = START_LEFT ? CHAIN_TO_LEFT_RELAY_PIN : CHAIN_TO_RIGHT_RELAY_PIN;
 
 // Safety / alarm
-const uint8_t EMERGENCY_STOP_PIN = 38;
+const uint8_t EMERGENCY_STOP_PIN = 37; // PLACEHOLDER: free pin (38 is now tray 5 SCK); confirm wiring
 const uint8_t BUZZER_PIN         = 39;
 
 // SD card
@@ -68,7 +109,8 @@ float LOAD_CELL_CALIBRATION_FACTORS[TRAY_COUNT] = {
   -7050.0f, -7050.0f, -7050.0f, -7050.0f, -7050.0f
 };
 
-// PLACEHOLDER: measure actual empty/full hopper distances.
+// PLACEHOLDER: measure actual empty/full hopper distances (Inputs_Calibration
+// EMPTY / FULL).
 float HOPPER_EMPTY_DISTANCE_CM = 40.0f;
 float HOPPER_FULL_DISTANCE_CM  = 5.0f;
 
@@ -87,14 +129,17 @@ const unsigned long ULTRASONIC_TIMEOUT_US = 30000UL;
 const float DEFAULT_FEED_TARGET_GRAMS = 50.0f;
 const float MAX_TRAY_TARGET_GRAMS = 1000.0f;
 
-// PLACEHOLDER (open items O-1, O-4): bench-calibrate all timings below.
-// Forward run time to reach each tray, measured from the previous stop
-// (home for tray 1, the previous tray for the others). Timed travel is
-// used because there is no position sensor at each tray.
+// PLACEHOLDER (open items O-1, O-4): bench-calibrate all timings below
+// with firmware/arduino-mega/Chain_Calibration.
+// Run time to each stop, in the order the hopper reaches the trays from the
+// start side: entry 1 = start switch to the first tray, entry 2 = first to
+// second tray, and so on. Timed travel is used because there is no position
+// sensor at each tray.
 const unsigned long TRAY_TRAVEL_MS[TRAY_COUNT] = {
   3000UL, 3000UL, 3000UL, 3000UL, 3000UL
 };
 // Max dispenser run per tray; on expiry the tray is skipped (TRAY_TIMEOUT).
+// Outputs_Calibration (FLOW / GRAMS) suggests it from the measured flow.
 const unsigned long TRAY_DISPENSE_TIMEOUT_MS = 30000UL;
 // Pause after the chain stops before taring, so the tray stops swinging.
 const unsigned long TRAY_SETTLE_MS = 500UL;
@@ -172,7 +217,8 @@ float manualFeedTargetGrams = DEFAULT_FEED_TARGET_GRAMS; // saved local HMI targ
 // Feed cycle (Feeding.ino). feedingActive is true while a cycle runs.
 bool feedingActive = false;
 CycleStep cycleStep = CYCLE_IDLE;
-uint8_t currentTray = 0; // 1..TRAY_COUNT while at/heading to a tray, else 0
+uint8_t currentTray = 0; // tray number (1-5, left to right) at/heading to, else 0
+uint8_t currentStop = 0; // 1-5: how many trays into the run, in travel order; 0 = none
 unsigned long cycleStepStartMillis = 0;
 const char* cycleFailReason = NULL; // first problem in this cycle, or NULL
 bool trayTimeoutAlertSent = false;  // one TRAY_TIMEOUT alert per cycle
@@ -246,7 +292,9 @@ const unsigned long BUZZER_DURATION_MS = 500;
 void initializeSystem() {
   Serial.begin(115200);
   ESP32_SERIAL.begin(115200);
-  NEXTION_SERIAL.begin(9600); // PLACEHOLDER: confirm Nextion baud rate.
+  NEXTION_SERIAL.begin(9600); // PLACEHOLDER: confirm with Inputs_Calibration NEXTION.
+
+  checkPinConflicts();
 
   initializePins();
   initializeLoadCells();
@@ -299,6 +347,43 @@ void queueBootClears() {
   queueAlertEvent("EMERGENCY_STOP_RELEASED");
 }
 
+// Prints a warning for every pin number used by two functions in the pin
+// map above (including the serial ports and the SD card's SPI bus), so a
+// pin change on the bench cannot silently break another input or output.
+void checkPinConflicts() {
+  const uint8_t pins[] = {
+    TRAY1_HX711_SCK_PIN, TRAY1_HX711_DT_PIN,
+    TRAY2_HX711_SCK_PIN, TRAY2_HX711_DT_PIN,
+    TRAY3_HX711_SCK_PIN, TRAY3_HX711_DT_PIN,
+    TRAY4_HX711_SCK_PIN, TRAY4_HX711_DT_PIN,
+    TRAY5_HX711_SCK_PIN, TRAY5_HX711_DT_PIN,
+    ULTRASONIC_TRIG_PIN, ULTRASONIC_ECHO_PIN, WATER_LOW_PIN,
+    CHAIN_FORWARD_RELAY_PIN, CHAIN_REVERSE_RELAY_PIN, DISPENSER_RELAY_PIN,
+    HOME_LIMIT_PIN, END_LIMIT_PIN, EMERGENCY_STOP_PIN, BUZZER_PIN,
+    SD_CS_PIN, 50, 51, 52,  // SD card: CS + SPI MISO/MOSI/SCK
+    20, 21,                 // I2C (RTC) SDA/SCL
+    18, 19,                 // Serial1 (ESP32) TX/RX
+    16, 17                  // Serial2 (Nextion) TX/RX
+  };
+  const uint8_t count = sizeof(pins) / sizeof(pins[0]);
+  bool ok = true;
+
+  for (uint8_t i = 0; i < count; i++) {
+    for (uint8_t j = i + 1; j < count; j++) {
+      if (pins[i] == pins[j]) {
+        Serial.print(F("WARNING: pin "));
+        Serial.print(pins[i]);
+        Serial.println(F(" is assigned twice in Config.ino; fix the pin map before wiring that part."));
+        ok = false;
+      }
+    }
+  }
+
+  if (ok) {
+    Serial.println(F("Pin map: no pin used twice."));
+  }
+}
+
 void initializePins() {
   pinMode(ULTRASONIC_TRIG_PIN, OUTPUT);
   pinMode(ULTRASONIC_ECHO_PIN, INPUT);
@@ -313,9 +398,11 @@ void initializePins() {
   // IMPORTANT:
   // Ensure relays remain in their safe state (OFF = LOW)
   // before engaging the output drivers to prevent startup glitches.
-  digitalWrite(CHAIN_FORWARD_RELAY_PIN, LOW);
-  digitalWrite(CHAIN_REVERSE_RELAY_PIN, LOW);
-  digitalWrite(DISPENSER_RELAY_PIN, LOW);
+  // OFF level written before the pins become outputs, so an active-LOW
+  // relay board never pulses on at boot.
+  digitalWrite(CHAIN_FORWARD_RELAY_PIN, RELAY_OFF);
+  digitalWrite(CHAIN_REVERSE_RELAY_PIN, RELAY_OFF);
+  digitalWrite(DISPENSER_RELAY_PIN, RELAY_OFF);
   digitalWrite(BUZZER_PIN, LOW);
 
   pinMode(CHAIN_FORWARD_RELAY_PIN, OUTPUT);
