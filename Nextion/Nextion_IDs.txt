@@ -29,12 +29,26 @@ Home actions
 b0  Schedule overview
 b1  History
 b2  Feed Target
-b3  Stop; latches the software stop and turns actuators off; red, high-visibility control
-b4  Feed Now; becomes Reset Stop when the software stop is latched; green, high-visibility control
+b3  ID 8  Stop; latches the software stop and turns actuators off; red, high-visibility control
+b4  ID 9  Feed Now; becomes Reset Stop when the software stop is latched; green, high-visibility control
 b5  System Check
 The four navigation buttons form a spaced vertical stack on the left side of Home.
 Navigation and action touches are handled by the HMI; only the controls that need Mega
 handling send a touch component frame.
+
+WHY SOME BUTTONS HAVE NO EVENT CODE (by design)
+- Navigation buttons (Schedule, History, Feed Target, System Check, Back) carry
+  their own "page ..." code and work on the panel alone.
+- Action buttons (Stop, Feed Now / Reset Stop, Feed Target +10/-10/Save, schedule
+  editor hour/minute +/- and Save, History/System Check Refresh) have an EMPTY code
+  box on purpose. They only have "Send Component ID" ticked (Touch Press Event):
+  the press sends 65 <page> <ID> 01 FF FF FF to the Mega, and Nextion.ino does the
+  work (safety, feeding, EEPROM). On the panel alone, or in the Editor's Debug
+  window without the Mega, these buttons do nothing visible.
+- Check on the device: upload firmware/arduino-mega/Inputs_Calibration, type
+  TOUCH on the Serial Monitor (115200) and press each button; it prints the page,
+  ID and button name. A button that prints nothing needs "Send Component ID"
+  ticked in the Editor, then a new .tft.
 
 History page (p3; HMI page name remains Log)
 t1..t4  newest four valid `/systemData/{deviceId}` snapshots; t1 is newest.
