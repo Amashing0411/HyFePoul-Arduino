@@ -3,6 +3,7 @@
 #include <NetworkClientSecure.h>
 #include <ArduinoJson.h>
 #include <time.h>
+#include <esp_task_wdt.h>
 #include "Config.h"
 
 // At Debug/Verbose core debug levels, HTTPClient logs request URLs, and RTDB
@@ -63,6 +64,27 @@ unsigned long lastMegaRxMillis = 0;
 bool megaLinkOk = true;
 bool megaLinkReportPending = true;
 
+// Alerts (R-23 follow-up). An alert from the Mega (or CONTROLLER_OFFLINE)
+// is kept here until it is written, so one raised while Wi-Fi or Firebase
+// is down still reaches the app once the device is back online. The record
+// keeps the time it was raised (worked back from millis() if the clock was
+// not synced yet). A repeat of the same alert keeps only the latest time,
+// which is what the alert record holds anyway.
+const char* const ALERT_NAMES[] = {
+  "LOW_FEED", "LOW_WATER", "CHAIN_TIMEOUT", "TRAY_TIMEOUT", "EMERGENCY_STOP",
+  "DEVICE_ERROR", "CONTROLLER_OFFLINE"
+};
+const uint8_t ALERT_COUNT = 7;
+const unsigned long ALERT_RETRY_MS = 5000;
+uint8_t pendingAlertMask = 0; // bit i = ALERT_NAMES[i]
+unsigned long alertRaisedMillis[ALERT_COUNT];
+unsigned long lastAlertAttemptMillis = 0;
+
+// Task watchdog: restarts the ESP32 if loop() stops (a hung library call or
+// network stack). Fed every loop() pass and before every HTTP request, so the
+// limit applies per request, not to a whole pass with several slow requests.
+const uint32_t WATCHDOG_TIMEOUT_MS = 60000;
+
 // One parsed DATA line from the Mega (moving-hopper design: 5 trays).
 const int TRAY_COUNT = 5;
 struct DeviceStateData {
@@ -121,6 +143,10 @@ void setup() {
   MEGA_SERIAL.begin(MEGA_BAUD_RATE, SERIAL_8N1, MEGA_RX_PIN, MEGA_TX_PIN);
 
   Serial.println("HyFePoul ESP32 Bridge Starting...");
+  if (esp_reset_reason() == ESP_RST_TASK_WDT) {
+    Serial.println("Restarted by the watchdog (the program had stopped).");
+  }
+  startWatchdog();
   lastMegaRxMillis = millis();
 
   if (!FIREBASE_USE_EMULATOR) {
@@ -139,6 +165,8 @@ void setup() {
 }
 
 void loop() {
+  esp_task_wdt_reset();
+
   // 1. Keep Wi-Fi and the Firebase session alive
   maintainWiFi();
   maintainAuth();
@@ -181,12 +209,27 @@ void loop() {
   // 6. Re-send schedules to the Mega when needed
   handleScheduleRestore();
 
-  // 7. Mark recovered alerts resolved
+  // 7. Write alerts raised while offline, then mark recovered ones resolved
+  processPendingAlerts();
   processPendingResolves();
 
   // 8. Watch the Mega link and report changes
   checkMegaLink();
   reportMegaLink();
+}
+
+// The core starts the task watchdog with a 5 s limit, which one slow TLS
+// request can exceed. Set our limit and watch the loop task.
+void startWatchdog() {
+  esp_task_wdt_config_t config = {
+    .timeout_ms = WATCHDOG_TIMEOUT_MS,
+    .idle_core_mask = 1 << 0, // as the core's default: core 0's idle task
+    .trigger_panic = true,    // restart instead of only logging
+  };
+  if (esp_task_wdt_reconfigure(&config) != ESP_OK) {
+    esp_task_wdt_init(&config);
+  }
+  esp_task_wdt_add(NULL);
 }
 
 // ---------------------------------------------------------
@@ -278,11 +321,14 @@ void sendLinkStatusToMega(bool force) {
 // ---------------------------------------------------------
 // Time Helpers
 // ---------------------------------------------------------
-unsigned long getTimestampMillis() {
+// UTC epoch milliseconds (about 1.8e12): needs 64 bits, since unsigned long
+// is 32-bit on the ESP32.
+uint64_t getTimestampMillis() {
   struct timeval tv;
   gettimeofday(&tv, NULL);
   return (tv.tv_sec * 1000ULL) + (tv.tv_usec / 1000ULL);
 }
+static_assert(sizeof(getTimestampMillis()) == 8, "epoch milliseconds need 64 bits");
 
 void sendNetworkTimeToMega() {
   struct tm timeinfo;
@@ -305,16 +351,23 @@ String getAuthUrl() {
 }
 
 String getDatabaseUrl(const char* path) {
+  const String base = FIREBASE_USE_EMULATOR
+      ? String("http://") + EMULATOR_HOST + ":" + EMULATOR_RTDB_PORT + "/"
+      : String("https://") + FIREBASE_PROJECT_ID + "-default-rtdb.asia-southeast1.firebasedatabase.app/";
+  String url = base + path;
+  url += strchr(path, '?') == NULL ? "?" : "&";
   if (FIREBASE_USE_EMULATOR) {
-    return String("http://") + EMULATOR_HOST + ":" + EMULATOR_RTDB_PORT + "/" + path + "?ns=" + FIREBASE_PROJECT_ID + "-default-rtdb&auth=" + idToken;
+    url += String("ns=") + FIREBASE_PROJECT_ID + "-default-rtdb&";
   }
-  return String("https://") + FIREBASE_PROJECT_ID + "-default-rtdb.asia-southeast1.firebasedatabase.app/" + path + "?auth=" + idToken;
+  url += String("auth=") + idToken;
+  return url;
 }
 
 // Production: certificate-verified TLS. Emulator: plain HTTP on the LAN.
 // Requests must not be nested: they share secureClient, so end() one before
 // starting the next.
 bool beginRequest(HTTPClient& http, const String& url) {
+  esp_task_wdt_reset(); // each request gets the full watchdog limit
   if (FIREBASE_USE_EMULATOR) {
     return http.begin(url);
   }
@@ -446,6 +499,9 @@ void processMegaLine(String line) {
   else if (line.startsWith("SUMMARY|")) {
     sendDailySummary(line);
   }
+  else if (line == "HISTORY_REQ") {
+    sendRecentHistoryToMega();
+  }
   else if (line.startsWith("EVENT|")) {
     String eventName = line.substring(6);
 
@@ -514,7 +570,7 @@ String extractValue(String line, String key) {
 void sendHeartbeat() {
   if (idToken == "" || WiFi.status() != WL_CONNECTED) return;
 
-  unsigned long currentTimestamp = getTimestampMillis();
+  uint64_t currentTimestamp = getTimestampMillis();
   if (currentTimestamp < 1000000000000ULL) return; // NTP not synced yet
 
   HTTPClient http;
@@ -535,7 +591,7 @@ void sendHeartbeat() {
 void sendStateToFirebase(const DeviceStateData& data) {
   if (idToken == "" || WiFi.status() != WL_CONNECTED) return;
 
-  unsigned long currentTimestamp = getTimestampMillis();
+  uint64_t currentTimestamp = getTimestampMillis();
   if (currentTimestamp < 1000000000000ULL) return; // Wait for valid time
 
   StaticJsonDocument<768> doc;
@@ -619,7 +675,7 @@ void sendDailySummary(const String& line) {
   }
 
   if (!hasValidToken() || WiFi.status() != WL_CONNECTED) return;
-  unsigned long now = getTimestampMillis();
+  uint64_t now = getTimestampMillis();
   if (now < 1000000000000ULL) return;
 
   StaticJsonDocument<384> doc;
@@ -644,35 +700,64 @@ void sendDailySummary(const String& line) {
   http.end();
 }
 
-void sendEventToFirebase(String eventName) {
-  if (idToken == "" || WiFi.status() != WL_CONNECTED) return;
-
-  // Only actionable events become RTDB alerts. Informational events (like FEEDING_STARTED)
-  // are logged locally on the Mega SD card per existing architecture.
-  if (eventName != "LOW_FEED" && eventName != "LOW_WATER" &&
-      eventName != "CHAIN_TIMEOUT" && eventName != "TRAY_TIMEOUT" &&
-      eventName != "EMERGENCY_STOP" && eventName != "DEVICE_ERROR" &&
-      eventName != "CONTROLLER_OFFLINE") {
-    return;
+int alertIndex(const String& name) {
+  for (uint8_t i = 0; i < ALERT_COUNT; i++) {
+    if (name == ALERT_NAMES[i]) return i;
   }
+  return -1;
+}
 
-  unsigned long currentTimestamp = getTimestampMillis();
-  if (currentTimestamp < 1000000000000ULL) return;
+// Only actionable events become RTDB alerts. Informational events (like
+// FEEDING_STARTED) are logged on the Mega's SD card. The alert is queued and
+// written by processPendingAlerts(), at once when online.
+void sendEventToFirebase(String eventName) {
+  int i = alertIndex(eventName);
+  if (i < 0) return;
+  pendingAlertMask |= (1 << i);
+  alertRaisedMillis[i] = millis();
+  lastAlertAttemptMillis = millis() - ALERT_RETRY_MS; // try now
+  processPendingAlerts();
+}
+
+bool alertPending(const char* name) {
+  int i = alertIndex(name);
+  return i >= 0 && (pendingAlertMask & (1 << i));
+}
+
+// One pending alert per call; retried every ALERT_RETRY_MS until written.
+void processPendingAlerts() {
+  if (pendingAlertMask == 0) return;
+  if (!hasValidToken() || WiFi.status() != WL_CONNECTED) return;
+  if (millis() - lastAlertAttemptMillis < ALERT_RETRY_MS) return;
+
+  uint64_t now = getTimestampMillis();
+  if (now < 1000000000000ULL) return;
+  lastAlertAttemptMillis = millis();
+
+  uint8_t i = 0;
+  while (!(pendingAlertMask & (1 << i))) i++;
+  const char* name = ALERT_NAMES[i];
 
   StaticJsonDocument<256> doc;
-  doc["eventId"] = eventName; // Deterministic event ID ensures idempotency
-  doc["name"] = eventName;
-  doc["timestamp"] = currentTimestamp;
+  doc["eventId"] = name; // deterministic key: one record per alert type
+  doc["name"] = name;
+  doc["timestamp"] = now - (millis() - alertRaisedMillis[i]); // when it was raised
   doc["resolved"] = false;
-
   String payload;
   serializeJson(doc, payload);
 
   HTTPClient http;
-  if (!beginRequest(http, getDatabaseUrl((String("alerts/") + DEVICE_ID + "/" + eventName + ".json").c_str()))) return;
+  if (!beginRequest(http, getDatabaseUrl((String("alerts/") + DEVICE_ID + "/" + name + ".json").c_str()))) return;
   http.addHeader("Content-Type", "application/json");
-  noteHttpResult(http.PUT(payload)); // PUT (not POST) for idempotency
+  int code = http.PUT(payload); // PUT (not POST) for idempotency
   http.end();
+  noteHttpResult(code);
+
+  if (code == 200) {
+    pendingAlertMask &= ~(1 << i);
+    Serial.print("Alert written: ");
+    Serial.println(name);
+  }
 }
 
 // ---------------------------------------------------------
@@ -754,12 +839,20 @@ void processPendingResolves() {
   if (!hasValidToken() || WiFi.status() != WL_CONNECTED) return;
   if (millis() - lastResolveAttemptMillis < RESOLVE_RETRY_MS) return;
 
-  unsigned long now = getTimestampMillis();
+  uint64_t now = getTimestampMillis();
   if (now < 1000000000000ULL) return;
   lastResolveAttemptMillis = millis();
 
-  uint8_t i = 0;
-  while (!(pendingResolveMask & (1 << i))) i++;
+  // Resolve only alerts already written: an alert raised and cleared while
+  // offline is written first (so the app shows it happened), then resolved.
+  int i = -1;
+  for (uint8_t k = 0; k < RESOLVABLE_ALERT_COUNT; k++) {
+    if ((pendingResolveMask & (1 << k)) && !alertPending(RESOLVABLE_ALERTS[k])) {
+      i = k;
+      break;
+    }
+  }
+  if (i < 0) return;
   String path = String("alerts/") + DEVICE_ID + "/" + RESOLVABLE_ALERTS[i];
 
   HTTPClient http;
@@ -827,7 +920,7 @@ void pollCommands() {
   // restore, so restore and command lines never interleave on the UART).
   if (activeCommandId != "" || scheduleRestoreIndex >= 0) return;
 
-  unsigned long currentTimestamp = getTimestampMillis();
+  uint64_t currentTimestamp = getTimestampMillis();
   if (currentTimestamp < 1000000000000ULL) return; // NTP not synced
 
   // Use the indexOn "status" to fetch only queued commands efficiently
@@ -856,7 +949,7 @@ void pollCommands() {
     JsonObject cmd = kv.value().as<JsonObject>();
 
     String commandName = cmd["command"].as<String>();
-    unsigned long createdAt = cmd["createdAt"].as<unsigned long>();
+    uint64_t createdAt = cmd["createdAt"].as<uint64_t>();
     String issuedBy = cmd["issuedBy"].as<String>();
 
     // Validate
@@ -907,7 +1000,7 @@ void pollCommands() {
 bool updateCommandStatus(String cmdId, String newStatus, String errorMsg) {
   if (idToken == "" || WiFi.status() != WL_CONNECTED) return false;
 
-  unsigned long currentTimestamp = getTimestampMillis();
+  uint64_t currentTimestamp = getTimestampMillis();
   if (currentTimestamp < 1000000000000ULL) return false;
 
   StaticJsonDocument<256> doc;
@@ -958,6 +1051,99 @@ void checkCommandTimeout() {
 void requestScheduleRestore() {
   scheduleRestorePending = true;
   nextScheduleRestoreMillis = millis();
+}
+
+// The onsite HMI reads the same newest cloud snapshots as the app's History
+// screen. Fetch only four rows for the four visible HMI cards, validate their
+// fields, sort newest first, then send short UART records to the Mega.
+void sendRecentHistoryToMega() {
+  sendToMega("HIST|BEGIN");
+  if (!hasValidToken() || WiFi.status() != WL_CONNECTED) {
+    sendToMega("HIST|ERROR|OFFLINE");
+    return;
+  }
+
+  String path = String("systemData/") + DEVICE_ID +
+      ".json?orderBy=%22timestamp%22&limitToLast=4";
+  HTTPClient http;
+  if (!beginRequest(http, getDatabaseUrl(path.c_str()))) {
+    sendToMega("HIST|ERROR|HTTP");
+    return;
+  }
+  int code = http.GET();
+  String payload = code == 200 ? http.getString() : "";
+  http.end();
+  noteHttpResult(code);
+  if (code != 200) {
+    sendToMega("HIST|ERROR|HTTP");
+    return;
+  }
+  if (payload == "null" || payload.length() <= 2) {
+    sendToMega("HIST|EMPTY");
+    return;
+  }
+
+  DynamicJsonDocument doc(8192);
+  if (deserializeJson(doc, payload)) {
+    sendToMega("HIST|ERROR|PARSE");
+    return;
+  }
+
+  struct HistoryRow {
+    uint32_t timestampSeconds;
+    long feedGrams;
+    long hopperPercent;
+    bool waterLow;
+    bool feeding;
+  } rows[4];
+  uint8_t count = 0;
+  JsonObject snapshots = doc.as<JsonObject>();
+  for (JsonPair entry : snapshots) {
+    JsonObject snapshot = entry.value().as<JsonObject>();
+    if (snapshot.isNull() || !snapshot["timestamp"].is<double>() ||
+        !snapshot["feedWeightGrams"].is<double>() ||
+        !snapshot["hopperLevelPercent"].is<double>() ||
+        !snapshot["waterLow"].is<bool>() ||
+        !snapshot["feedingActive"].is<bool>()) continue;
+
+    double timestampMs = snapshot["timestamp"].as<double>();
+    double feed = snapshot["feedWeightGrams"].as<double>();
+    double hopper = snapshot["hopperLevelPercent"].as<double>();
+    if (timestampMs < 1000000000000.0 || timestampMs > 4102444800000.0 ||
+        feed < 0.0 || feed > 1000000.0 || hopper < 0.0 || hopper > 100.0) continue;
+
+    HistoryRow row;
+    row.timestampSeconds = (uint32_t)(timestampMs / 1000.0);
+    row.feedGrams = lround(feed);
+    row.hopperPercent = lround(hopper);
+    row.waterLow = snapshot["waterLow"].as<bool>();
+    row.feeding = snapshot["feedingActive"].as<bool>();
+
+    uint8_t insertAt = count;
+    while (insertAt > 0 && rows[insertAt - 1].timestampSeconds < row.timestampSeconds) {
+      if (insertAt < 4) rows[insertAt] = rows[insertAt - 1];
+      insertAt--;
+    }
+    if (insertAt < 4) {
+      rows[insertAt] = row;
+      if (count < 4) count++;
+    }
+  }
+
+  if (count == 0) {
+    sendToMega("HIST|EMPTY");
+    return;
+  }
+  for (uint8_t i = 0; i < count; i++) {
+    String line = String("HIST|ROW|IDX:") + i +
+        "|TS:" + rows[i].timestampSeconds +
+        "|FEED:" + rows[i].feedGrams +
+        "|HOP:" + rows[i].hopperPercent +
+        "|W:" + (rows[i].waterLow ? "1" : "0") +
+        "|DISP:" + (rows[i].feeding ? "1" : "0");
+    sendToMega(line);
+  }
+  sendToMega("HIST|END");
 }
 
 // Builds one SCHEDULE_SET line per slot from /schedules/{deviceId}.
@@ -1052,7 +1238,7 @@ void handleScheduleRestoreAck(const String& status, const String& reason) {
 void reportScheduleApplied(const String& line) {
   if (!hasValidToken() || WiFi.status() != WL_CONNECTED) return;
 
-  unsigned long now = getTimestampMillis();
+  uint64_t now = getTimestampMillis();
   if (now < 1000000000000ULL) return;
 
   String idx = extractValue(line, "IDX:");

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.0//EN'
+  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg width="507.27559055118115" height="158" preserveAspectRatio="xMinYMin meet" viewBox="0 0 507 158" xmlns="http://www.w3.org/2000/svg" version="1.0" fill-rule="evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<title>HyFePoul: claim</title>
+	<desc>Functional illustration for the commissioning manuals; not a construction drawing.</desc>
+	<clipPath id="clip">
+		<rect x="0" y="0" width="507.27559055118115" height="158"/>
+	</clipPath>
+	<g id="group" transform="scale(1,-1) translate(0,-158)" style="clip-path: url(#clip)">
+		<g transform="">
+			<rect x="0" y="0" width="507.27559055118115" height="158" rx="8" ry="8" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(93%,96%,96%); fill-rule: evenodd;"/>
+			<rect x="15" y="63" width="109" height="73" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="49.9560546875" y="118" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,236) scale(1,-1)">SIGN IN</text>
+			<text x="39.23486328125" y="102" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,204) scale(1,-1)">Owner account</text>
+			<path d="M 124,100 L 139,100 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="139 100, 134 97.5, 134 102.5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<rect x="139" y="63" width="109" height="73" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="169.582763671875" y="118" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,236) scale(1,-1)">IDENTIFY</text>
+			<text x="173.994873046875" y="102" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,204) scale(1,-1)">Device ID</text>
+			<path d="M 248,100 L 263,100 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="263 100, 258 97.5, 258 102.5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<rect x="263" y="63" width="109" height="73" rx="6" ry="6" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,18%,27%); fill-rule: evenodd;"/>
+			<text x="300.87841796875" y="118" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,236) scale(1,-1)">CLAIM</text>
+			<text x="294.742919921875" y="102" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,204) scale(1,-1)">Private PIN</text>
+			<path d="M 372,100 L 387,100 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="387 100, 382 97.5, 382 102.5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<rect x="387" y="63" width="109" height="73" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="422.5379638671875" y="118" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,236) scale(1,-1)">VERIFY</text>
+			<text x="414.359375" y="102" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,204) scale(1,-1)">Owner + data</text>
+			<text x="91.63828355684058" y="35" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,70) scale(1,-1)">Account ownership first. Hardware connectivity is a separate check.</text>
+			<text x="102.06382066621555" y="16" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,32) scale(1,-1)">Use the exact configured ID; never substitute an Auth UID for the Device ID.</text>
+		</g>
+	</g>
+</svg>

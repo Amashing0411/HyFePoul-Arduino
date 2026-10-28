@@ -1,6 +1,6 @@
 # Design Revision: Moving Hopper, Five Trays, Gravity Water
 
-**Status:** APPROVED 2026-10-23 (timed travel for O-1; O-3 as proposed; rules not to be deployed yet). **Implemented in software** on branch `design-moving-hopper` (Mega, ESP32, rules, app, simulators, docs). Not tested on hardware; the updated RTDB rules are **not deployed**.
+**Status:** APPROVED 2026-10-23 (timed travel for O-1; O-3 as proposed). **Implemented in software** (Mega, ESP32, rules, app, simulators, docs). The revised RTDB rules were deployed to `hyfepoul-dev` on 2026-10-27; compatible firmware and hardware behavior remain untested.
 **Source:** the updated block diagram, plus answers from the project owner in chat.
 
 ## 1. What changes

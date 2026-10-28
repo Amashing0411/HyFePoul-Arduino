@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.0//EN'
+  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg width="507.27559055118115" height="142" preserveAspectRatio="xMinYMin meet" viewBox="0 0 507 142" xmlns="http://www.w3.org/2000/svg" version="1.0" fill-rule="evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<title>HyFePoul: cycle</title>
+	<desc>Functional illustration for the commissioning manuals; not a construction drawing.</desc>
+	<clipPath id="clip">
+		<rect x="0" y="0" width="507.27559055118115" height="142"/>
+	</clipPath>
+	<g id="group" transform="scale(1,-1) translate(0,-142)" style="clip-path: url(#clip)">
+		<g transform="">
+			<rect x="0" y="0" width="507.27559055118115" height="142" rx="8" ry="8" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(93%,96%,96%); fill-rule: evenodd;"/>
+			<rect x="13" y="54" width="73" height="65" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="33.75" y="101" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,202) scale(1,-1)">HOME</text>
+			<text x="30.744140624999996" y="85" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,170) scale(1,-1)">Find start</text>
+			<path d="M 86,86 L 95,86 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="95 86, 90 83.5, 90 88.5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<rect x="95" y="54" width="73" height="65" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="116.0396728515625" y="101" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,202) scale(1,-1)">MOVE</text>
+			<text x="113.49560546875" y="85" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,170) scale(1,-1)">Next tray</text>
+			<path d="M 168,86 L 177,86 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="177 86, 172 83.5, 172 88.5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<rect x="177" y="54" width="73" height="65" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="199.2086181640625" y="101" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,202) scale(1,-1)">TARE</text>
+			<text x="196.741455078125" y="85" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,170) scale(1,-1)">Set zero</text>
+			<path d="M 250,86 L 259,86 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="259 86, 254 83.5, 254 88.5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<rect x="259" y="54" width="73" height="65" rx="6" ry="6" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,18%,27%); fill-rule: evenodd;"/>
+			<text x="268.9500732421875" y="101" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,202) scale(1,-1)">DISPENSE</text>
+			<text x="268.74169921875" y="85" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,170) scale(1,-1)">Target grams</text>
+			<path d="M 332,86 L 341,86 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="341 86, 336 83.5, 336 88.5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<rect x="341" y="54" width="73" height="65" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="366.41552734375" y="101" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,202) scale(1,-1)">END</text>
+			<text x="355.740478515625" y="85" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,170) scale(1,-1)">End switch</text>
+			<path d="M 414,86 L 423,86 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="423 86, 418 83.5, 418 88.5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<rect x="423" y="54" width="73" height="65" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="437.6258544921875" y="101" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,202) scale(1,-1)">RETURN</text>
+			<text x="433.74365234375" y="85" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,170) scale(1,-1)">Home switch</text>
+			<text x="119.16269761934058" y="30" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,60) scale(1,-1)">Repeat MOVE &gt; TARE &gt; DISPENSE for trays 1 through 5.</text>
+			<text x="118.81357652559055" y="12" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,24) scale(1,-1)">A stop, timeout or empty hopper can interrupt the normal sequence.</text>
+		</g>
+	</g>
+</svg>

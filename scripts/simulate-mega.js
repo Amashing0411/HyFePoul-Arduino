@@ -72,6 +72,7 @@ let feedSchedules = [
   { hour: 12, minute: 0, targetGrams: 50, enabled: true },
   { hour: 17, minute: 0, targetGrams: 50, enabled: true }
 ];
+let manualFeedTargetGrams = DEFAULT_FEED_TARGET_GRAMS;
 
 const pins = {
   EMERGENCY_STOP: 1, // HIGH = released, LOW = pressed
@@ -636,6 +637,7 @@ const resetMachine = () => {
   activeRemoteCommandId = "";
   alertQueue = [];
   currentHopperLevelPercent = 80;
+  manualFeedTargetGrams = DEFAULT_FEED_TARGET_GRAMS;
   lowFeedAlertSent = false;
   trayWeightsGrams = [0, 0, 0, 0, 0];
   simLocalTime = null;
@@ -660,6 +662,7 @@ const receiveESP32Line = (line) => {
   lastESP32MessageMillis = simMillis;
   if (line === "STATUS|ONLINE") esp32ReportsOnline = true;
   else if (line === "STATUS|OFFLINE") esp32ReportsOnline = false;
+  else if (line.startsWith("HIST|")) processNextionHistoryLine(line);
 };
 
 const updateLinkStatus = () => {
@@ -669,27 +672,237 @@ const updateLinkStatus = () => {
 
 // --- Nextion touch input (Nextion.ino) ---
 const NEXTION_ID_UNSET = 255;
-let nextionIds = { page: NEXTION_ID_UNSET, stop: NEXTION_ID_UNSET, start: NEXTION_ID_UNSET };
+const NEXTION_HOME_PAGE_ID = 1;
+const NEXTION_SCHEDULE_PAGE_ID = 2;
+const NEXTION_LOG_PAGE_ID = 3;
+const NEXTION_TARGET_PAGE_ID = 4;
+const NEXTION_SYSTEM_PAGE_ID = 9;
+const NEXTION_SCHEDULE_EDITOR_FIRST_PAGE_ID = 5;
+const NEXTION_SCHEDULE_EDITOR_LAST_PAGE_ID = 7;
+const NEXTION_STOP_BUTTON_ID = 8;
+const NEXTION_FEED_RESET_BUTTON_ID = 9;
+const NEXTION_TARGET_SAVE_BUTTON_ID = 4;
+const NEXTION_TARGET_PLUS_BUTTON_ID = 5;
+const NEXTION_TARGET_MINUS_BUTTON_ID = 6;
+const NEXTION_SCHEDULE_PLUS_HOUR_ID = 7;
+const NEXTION_SCHEDULE_MINUS_HOUR_ID = 8;
+const NEXTION_SCHEDULE_PLUS_MINUTE_ID = 9;
+const NEXTION_SCHEDULE_MINUS_MINUTE_ID = 10;
+const NEXTION_SCHEDULE_SAVE_BUTTON_ID = 11;
+const NEXTION_SYSTEM_REFRESH_BUTTON_ID = 4;
+const NEXTION_LOG_REFRESH_BUTTON_ID = 4;
+const NEXTION_LOG_EVENT_COUNT = 4;
+const NEXTION_SCHEDULE_TIME_FIELDS = ["t4", "t7", "t5", "t6", "t8", "t9"];
+const NEXTION_SCHEDULE_SUMMARY_FIELDS = ["t1", "t2", "t3"];
 let nextionFrame = [];
 let nextionFfCount = 0;
-let nextionLastButton = NEXTION_ID_UNSET;
-let nextionLastButtonMs = -Infinity;
-const NEXTION_BUTTON_DEBOUNCE_MS = 500;
+let nextionCurrentPageId = NEXTION_ID_UNSET;
+let nextionDraftScheduleIndex = NEXTION_ID_UNSET;
+let nextionScheduleField = 0;
+let nextionSystemField = 0;
+let nextionLogField = 0;
+let nextionLogEntries = ["NO HISTORY YET", "", "", ""];
+let nextionHistoryRowsReceived = 0;
+let nextionScheduleDraft = null;
+let nextionManualTargetDraft = DEFAULT_FEED_TARGET_GRAMS;
+let nextionLastTouchMs = 0;
+let nextionHasLastTouch = false;
+const NEXTION_BUTTON_DEBOUNCE_MS = 35;
+
+const handleNextionPageChange = (page) => {
+  nextionCurrentPageId = page;
+  nextionDraftScheduleIndex = NEXTION_ID_UNSET;
+  if (page === NEXTION_SCHEDULE_PAGE_ID) nextionScheduleField = 0;
+  if (page === NEXTION_SYSTEM_PAGE_ID) nextionSystemField = 0;
+  if (page === NEXTION_LOG_PAGE_ID) {
+    nextionLogField = 0;
+    nextionLogEntries = esp32Online
+      ? ["LOADING HISTORY", "", "", ""]
+      : ["HISTORY UNAVAILABLE", "", "", ""];
+    nextionHistoryRowsReceived = 0;
+    if (esp32Online) outputLog.push("HISTORY_REQ");
+  }
+  if (page === NEXTION_TARGET_PAGE_ID) nextionManualTargetDraft = manualFeedTargetGrams;
+  if (page >= NEXTION_SCHEDULE_EDITOR_FIRST_PAGE_ID && page <= NEXTION_SCHEDULE_EDITOR_LAST_PAGE_ID) {
+    nextionDraftScheduleIndex = page - NEXTION_SCHEDULE_EDITOR_FIRST_PAGE_ID;
+    nextionScheduleDraft = { ...feedSchedules[nextionDraftScheduleIndex] };
+  }
+};
+
+// Mirrors the Mega's one-component-per-tick schedule overview refresh. The
+// overview shows the app's time, target grams and enabled state for each slot.
+const nextionNextScheduleDisplayUpdate = () => {
+  const field = nextionScheduleField;
+  let component;
+  let value;
+  if (field < 6) {
+    const slot = Math.floor(field / 2);
+    const isHour = field % 2 === 0;
+    const schedule = feedSchedules[slot];
+    value = !schedule.enabled
+      ? (isHour ? "OFF" : "")
+      : (isHour
+        ? `${String(schedule.hour).padStart(2, "0")}:`
+        : String(schedule.minute).padStart(2, "0"));
+    component = NEXTION_SCHEDULE_TIME_FIELDS[field];
+  } else {
+    const slot = field - 6;
+    const schedule = feedSchedules[slot];
+    component = NEXTION_SCHEDULE_SUMMARY_FIELDS[slot];
+    value = `S${slot + 1} ${Math.round(schedule.targetGrams)}g ${schedule.enabled ? "ON" : "OFF"}`;
+  }
+  nextionScheduleField = (nextionScheduleField + 1) % 9;
+  return { component, value };
+};
+
+const processNextionHistoryLine = (line) => {
+  if (line === "HIST|BEGIN") {
+    nextionLogEntries = ["LOADING HISTORY", "", "", ""];
+    nextionHistoryRowsReceived = 0;
+    nextionLogField = 0;
+    return;
+  }
+  if (line === "HIST|EMPTY") {
+    nextionLogEntries = ["NO HISTORY YET", "", "", ""];
+    nextionHistoryRowsReceived = 0;
+    nextionLogField = 0;
+    return;
+  }
+  if (line.startsWith("HIST|ERROR|")) {
+    nextionLogEntries = ["HISTORY UNAVAILABLE", "", "", ""];
+    nextionHistoryRowsReceived = 0;
+    nextionLogField = 0;
+    return;
+  }
+  if (line === "HIST|END") {
+    if (!nextionHistoryRowsReceived) nextionLogEntries = ["NO HISTORY YET", "", "", ""];
+    nextionLogField = 0;
+    return;
+  }
+  if (!line.startsWith("HIST|ROW|")) return;
+  const value = (key) => {
+    const i = line.indexOf(key);
+    if (i < 0) return "";
+    const j = line.indexOf("|", i + key.length);
+    return line.substring(i + key.length, j < 0 ? line.length : j);
+  };
+  const index = Number(value("IDX:"));
+  const timestampSeconds = Number(value("TS:"));
+  const feed = Number(value("FEED:"));
+  const hopper = Number(value("HOP:"));
+  const water = Number(value("W:"));
+  const feeding = Number(value("DISP:"));
+  if (!Number.isInteger(index) || index < 0 || index >= 4 || !timestampSeconds ||
+      feed < 0 || hopper < 0 || hopper > 100 || ![0, 1].includes(water) || ![0, 1].includes(feeding)) return;
+  const local = new Date(timestampSeconds * 1000 + 8 * 60 * 60 * 1000);
+  const date = `${String(local.getUTCMonth() + 1).padStart(2, "0")}-${String(local.getUTCDate()).padStart(2, "0")}`;
+  const time = `${String(local.getUTCHours()).padStart(2, "0")}:${String(local.getUTCMinutes()).padStart(2, "0")}`;
+  nextionLogEntries[index] = `${date} ${time}  ${feed}g  ${hopper}%  W:${water ? "LOW" : "OK"} D:${feeding ? "ON" : "OFF"}`;
+  nextionHistoryRowsReceived = Math.max(nextionHistoryRowsReceived, index + 1);
+  nextionLogField = 0;
+};
+
+// Mirrors the four System Check cards and the Mega's one-component-per-tick
+// pacing, keeping each serial command small enough for Serial2's TX buffer.
+const nextionNextSystemDisplayUpdate = () => {
+  const fields = [
+    { component: "t1", value: `HOPPER ${Math.round(currentHopperLevelPercent)}%` },
+    { component: "t2", value: waterLow ? "WATER LOW - REFILL" : "WATER OK" },
+    { component: "t3", value: esp32Online ? "ESP32 LINK OK" : "ESP32 LINK OFF" },
+    { component: "t4", value: `TARGET ${Math.round(manualFeedTargetGrams)} g` }
+  ];
+  const field = fields[nextionSystemField];
+  nextionSystemField = (nextionSystemField + 1) % fields.length;
+  return field;
+};
+
+const nextionNextLogDisplayUpdate = () => {
+  const field = nextionLogField;
+  const update = { component: `t${field + 1}`, value: nextionLogEntries[field] };
+  nextionLogField = (nextionLogField + 1) % NEXTION_LOG_EVENT_COUNT;
+  return update;
+};
+
+const saveManualFeedTarget = (grams) => {
+  if (!Number.isFinite(grams) || grams < 1 || grams > MAX_TRAY_TARGET_GRAMS) return false;
+  const bytes = new Uint8Array(7);
+  const view = new DataView(bytes.buffer);
+  view.setUint16(0, 0x4D46, true);
+  bytes[2] = 1;
+  view.setFloat32(3, grams, true);
+  const checksum = scheduleChecksum(bytes);
+  const record = [...bytes, checksum];
+  record.forEach((value, i) => {
+    if (eeprom[32 + i] !== value) eepromByteWrites++;
+    eeprom[32 + i] = value;
+  });
+  manualFeedTargetGrams = grams;
+  return true;
+};
+
+const handleNextionTouch = (page, id) => {
+  if (page === NEXTION_HOME_PAGE_ID) {
+    if (id === NEXTION_STOP_BUTTON_ID) tripEmergencyStop();
+    else if (id === NEXTION_FEED_RESET_BUTTON_ID) {
+      if (emergencyStopActive) {
+        const reason = resetEmergencyStop();
+        if (reason) outputLog.push(`NEXTION_START_REJECTED:${reason}`);
+      } else {
+        const reason = startFeedCycle(manualFeedTargetGrams);
+        if (reason) outputLog.push(`NEXTION_FEED_REJECTED:${reason}`);
+        else outputLog.push(`NEXTION_FEED_STARTED:${manualFeedTargetGrams}`);
+      }
+    }
+    return;
+  }
+  if (page === NEXTION_TARGET_PAGE_ID) {
+    if (id === NEXTION_TARGET_PLUS_BUTTON_ID) nextionManualTargetDraft = Math.min(MAX_TRAY_TARGET_GRAMS, nextionManualTargetDraft + 10);
+    else if (id === NEXTION_TARGET_MINUS_BUTTON_ID) nextionManualTargetDraft = Math.max(1, nextionManualTargetDraft - 10);
+    else if (id === NEXTION_TARGET_SAVE_BUTTON_ID) {
+      if (!saveManualFeedTarget(nextionManualTargetDraft)) outputLog.push("NEXTION_TARGET_REJECTED");
+      else outputLog.push(`NEXTION_TARGET_SAVED:${manualFeedTargetGrams}`);
+    }
+    return;
+  }
+  if (page >= NEXTION_SCHEDULE_EDITOR_FIRST_PAGE_ID &&
+      page <= NEXTION_SCHEDULE_EDITOR_LAST_PAGE_ID &&
+      nextionDraftScheduleIndex < feedSchedules.length) {
+    if (id === NEXTION_SCHEDULE_PLUS_HOUR_ID) nextionScheduleDraft.hour = (nextionScheduleDraft.hour + 1) % 24;
+    else if (id === NEXTION_SCHEDULE_MINUS_HOUR_ID) nextionScheduleDraft.hour = (nextionScheduleDraft.hour + 23) % 24;
+    else if (id === NEXTION_SCHEDULE_PLUS_MINUTE_ID) nextionScheduleDraft.minute = (nextionScheduleDraft.minute + 1) % 60;
+    else if (id === NEXTION_SCHEDULE_MINUS_MINUTE_ID) nextionScheduleDraft.minute = (nextionScheduleDraft.minute + 59) % 60;
+    else if (id === NEXTION_SCHEDULE_SAVE_BUTTON_ID) {
+      feedSchedules[nextionDraftScheduleIndex].hour = nextionScheduleDraft.hour;
+      feedSchedules[nextionDraftScheduleIndex].minute = nextionScheduleDraft.minute;
+      saveSchedulesToEEPROM();
+      outputLog.push(`NEXTION_SCHEDULE_SAVED:${nextionDraftScheduleIndex}:${nextionScheduleDraft.hour}:${nextionScheduleDraft.minute}`);
+      nextionDraftScheduleIndex = NEXTION_ID_UNSET;
+    }
+  }
+  if (page === NEXTION_SYSTEM_PAGE_ID && id === NEXTION_SYSTEM_REFRESH_BUTTON_ID) {
+    nextionSystemField = 0;
+    outputLog.push("NEXTION_SYSTEM_REFRESHED");
+  }
+  if (page === NEXTION_LOG_PAGE_ID && id === NEXTION_LOG_REFRESH_BUTTON_ID) {
+    nextionLogField = 0;
+    outputLog.push("HISTORY_REQ");
+  }
+};
 
 const processNextionFrame = (frame) => {
-  if (frame.length !== 4 || frame[0] !== 0x65) return;
-  const [, page, id] = frame;
-  outputLog.push(`NEXTION_TOUCH:${page}:${id}`);
-  if (nextionIds.page === NEXTION_ID_UNSET || page !== nextionIds.page) return;
-  if (id === nextionLastButton && simMillis - nextionLastButtonMs < NEXTION_BUTTON_DEBOUNCE_MS) return;
-  if (id === nextionIds.stop) {
-    nextionLastButton = id; nextionLastButtonMs = simMillis;
-    if (!emergencyStopActive) tripEmergencyStop();
-  } else if (id === nextionIds.start) {
-    nextionLastButton = id; nextionLastButtonMs = simMillis;
-    const reason = resetEmergencyStop();
-    if (reason) outputLog.push(`NEXTION_START_REJECTED:${reason}`);
+  if (frame.length === 2 && frame[0] === 0x66) {
+    handleNextionPageChange(frame[1]);
+    return;
   }
+  if (frame.length !== 4 || frame[0] !== 0x65) return;
+  const [, page, id, event] = frame;
+  outputLog.push(`NEXTION_TOUCH:${page}:${id}:${event}`);
+  nextionCurrentPageId = page;
+  if (event !== 0x01) return;
+  if (nextionHasLastTouch && simMillis - nextionLastTouchMs < NEXTION_BUTTON_DEBOUNCE_MS) return;
+  nextionHasLastTouch = true;
+  nextionLastTouchMs = simMillis;
+  handleNextionTouch(page, id);
 };
 
 // Mirrors handleNextionInput(): frames end with FF FF FF.
@@ -1515,51 +1728,186 @@ runTest("35. online status follows ESP32 STATUS reports plus a 15 s link timeout
   if (esp32Online) throw new Error("Silent link should time out to offline");
 });
 
-runTest("36. Nextion buttons do nothing until their IDs are configured", () => {
+runTest("36. Nextion ignores noise and release edges; System Check refresh uses HMI component 4", () => {
   resetMachine();
-  nextionIds = { page: NEXTION_ID_UNSET, stop: NEXTION_ID_UNSET, start: NEXTION_ID_UNSET };
-  feedNextionBytes(touch(1, 12));
-  assertLogContains("NEXTION_TOUCH:1:12");
+  feedNextionBytes([0x66, NEXTION_HOME_PAGE_ID, 0xFF, 0xFF, 0xFF]);
+  feedNextionBytes(touch(NEXTION_HOME_PAGE_ID, 99, 0x01));
+  feedNextionBytes(touch(NEXTION_HOME_PAGE_ID, NEXTION_STOP_BUTTON_ID, 0x00));
+  feedNextionBytes([0x66, NEXTION_SYSTEM_PAGE_ID, 0xFF, 0xFF, 0xFF]);
+  feedNextionBytes(touch(NEXTION_SYSTEM_PAGE_ID, 3, 0x01)); // old, incorrect mapping
+  simMillis += 100;
+  feedNextionBytes(touch(NEXTION_SYSTEM_PAGE_ID, NEXTION_SYSTEM_REFRESH_BUTTON_ID, 0x01));
+  assertLogContains(`NEXTION_TOUCH:${NEXTION_HOME_PAGE_ID}:99:1`);
+  assertLogContains(`NEXTION_TOUCH:${NEXTION_HOME_PAGE_ID}:${NEXTION_STOP_BUTTON_ID}:0`);
+  assertLogContains("NEXTION_SYSTEM_REFRESHED");
+  if (outputLog.filter(line => line === "NEXTION_SYSTEM_REFRESHED").length !== 1) {
+    throw new Error("Refresh must fire only for the HMI's component 4");
+  }
   if (emergencyStopActive) throw new Error("Unconfigured button must not act");
 });
 
-runTest("37. Nextion b3 latches the stop (stopping a running cycle); b4 resets only with the E-stop released", () => {
+runTest("Nextion System Check streams four separate readouts one field per update", () => {
   resetMachine();
-  nextionIds = { page: 1, stop: 12, start: 13 };
+  currentHopperLevelPercent = 67;
+  waterLow = true;
+  esp32Online = true;
+  manualFeedTargetGrams = 70;
+  handleNextionPageChange(NEXTION_SYSTEM_PAGE_ID);
+  const updates = Array.from({ length: 4 }, () => nextionNextSystemDisplayUpdate());
+  const expected = [
+    { component: "t1", value: "HOPPER 67%" },
+    { component: "t2", value: "WATER LOW - REFILL" },
+    { component: "t3", value: "ESP32 LINK OK" },
+    { component: "t4", value: "TARGET 70 g" }
+  ];
+  if (JSON.stringify(updates) !== JSON.stringify(expected)) {
+    throw new Error(`System Check field mapping mismatch: ${JSON.stringify(updates)}`);
+  }
+  if (nextionSystemField !== 0) throw new Error("System Check cycle must wrap after four fields");
+});
+
+runTest("Nextion History requests cloud rows and displays the same four fields as app History", () => {
+  resetMachine();
+  esp32Online = true;
+  handleNextionPageChange(NEXTION_LOG_PAGE_ID);
+  if (NEXTION_LOG_PAGE_ID !== 3 || NEXTION_SYSTEM_PAGE_ID !== 9) {
+    throw new Error("Log and System Check page IDs must remain distinct and match the HMI");
+  }
+  if (!outputLog.includes("HISTORY_REQ")) throw new Error("Opening History must request cloud system data from ESP32");
+  const newest = Math.floor(Date.UTC(2026, 9, 28, 0, 15) / 1000);
+  receiveESP32Line("HIST|BEGIN");
+  receiveESP32Line(`HIST|ROW|IDX:0|TS:${newest}|FEED:250|HOP:65|W:0|DISP:1`);
+  receiveESP32Line(`HIST|ROW|IDX:1|TS:${newest - 300}|FEED:225|HOP:70|W:1|DISP:0`);
+  receiveESP32Line("HIST|END");
+  if (!nextionLogEntries[0].startsWith("10-28 08:15  250g  65%  W:OK D:ON")) {
+    throw new Error(`Newest app history fields/time mismatch: ${nextionLogEntries[0]}`);
+  }
+  if (!nextionLogEntries[1].startsWith("10-28 08:10  225g  70%  W:LOW D:OFF")) {
+    throw new Error(`Second newest app history row mismatch: ${nextionLogEntries[1]}`);
+  }
+  const updates = Array.from({ length: 4 }, () => nextionNextLogDisplayUpdate());
+  const expected = nextionLogEntries.map((value, index) => ({
+    component: `t${index + 1}`, value
+  }));
+  if (JSON.stringify(updates) !== JSON.stringify(expected)) {
+    throw new Error(`Log field mapping mismatch: ${JSON.stringify(updates)}`);
+  }
+  nextionLogField = 3;
+  handleNextionTouch(NEXTION_LOG_PAGE_ID, NEXTION_LOG_REFRESH_BUTTON_ID);
+  if (nextionLogField !== 0 || outputLog.filter(line => line === "HISTORY_REQ").length !== 2) {
+    throw new Error("History refresh must request cloud data again and restart the four-row update sequence");
+  }
+});
+
+runTest("37. Nextion Home Stop latches; Feed Now uses saved target; reset requires physical E-stop released", () => {
+  resetMachine();
 
   feedNextionBytes([0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x88, 0xFF, 0xFF, 0xFF, 0x1A, 0xFF, 0xFF, 0xFF]);
   feedNextionBytes([...Buffer.from('Sched.t4.txt+=":"'), 0xFF, 0xFF, 0xFF]);
   if (emergencyStopActive) throw new Error("Noise frames must be ignored");
 
-  processRemoteCommand("CMD|ID:nx1|ACTION:MANUAL_FEED|TARGET:50");
+  manualFeedTargetGrams = 80;
+  feedNextionBytes([0x66, NEXTION_HOME_PAGE_ID, 0xFF, 0xFF, 0xFF]);
+  feedNextionBytes(touch(NEXTION_HOME_PAGE_ID, NEXTION_FEED_RESET_BUTTON_ID, 0x01));
+  assertActive(true);
+  if (activeFeedTargetGrams !== 80) throw new Error("Feed Now did not use saved local per-tray target");
   runUntil(() => cycleStep === "DISPENSING");
-  feedNextionBytes(touch(1, 12, 0x01));
-  feedNextionBytes(touch(1, 12, 0x00));
+  simMillis += 100;
+  feedNextionBytes(touch(NEXTION_HOME_PAGE_ID, NEXTION_STOP_BUTTON_ID, 0x01));
+  feedNextionBytes(touch(NEXTION_HOME_PAGE_ID, NEXTION_STOP_BUTTON_ID, 0x00));
   if (!emergencyStopActive) throw new Error("b3 should latch the stop");
   assertMotorsOff();
   if (alertQueue.filter(a => a === "EMERGENCY_STOP").length !== 1) throw new Error("Stop should trigger once");
-  assertLogContains("CMD_DONE|ID:nx1|STATUS:FAILED|REASON:ESTOP_ACTIVE");
+  if (outputLog.some((line) => line.includes("CMD_DONE|ID:nx1"))) {
+    throw new Error("Local Nextion feed must not fabricate a remote command lifecycle");
+  }
 
   pins.EMERGENCY_STOP = 0;
   simMillis += 1000;
-  feedNextionBytes(touch(1, 13));
+  feedNextionBytes(touch(NEXTION_HOME_PAGE_ID, NEXTION_FEED_RESET_BUTTON_ID, 0x01));
   assertLogContains("NEXTION_START_REJECTED:PHYSICAL_ESTOP_ENGAGED");
   if (!emergencyStopActive) throw new Error("Reset must be refused while the button is pressed");
 
   pins.EMERGENCY_STOP = 1;
   simMillis += 1000;
-  feedNextionBytes(touch(1, 13));
+  feedNextionBytes(touch(NEXTION_HOME_PAGE_ID, NEXTION_FEED_RESET_BUTTON_ID, 0x01));
   if (emergencyStopActive) throw new Error("b4 should reset the latch");
 
   simMillis += 1000;
-  feedNextionBytes(touch(4, 12));
+  feedNextionBytes(touch(NEXTION_TARGET_PAGE_ID, NEXTION_STOP_BUTTON_ID, 0x01));
   if (emergencyStopActive) throw new Error("Touches on other pages must be ignored");
+  resetMachine();
+});
+
+runTest("Nextion schedule overview shows app time, target and enabled status one field at a time", () => {
+  const savedSchedules = feedSchedules;
+  feedSchedules = [
+    { hour: 7, minute: 0, targetGrams: 50, enabled: true },
+    { hour: 12, minute: 5, targetGrams: 50, enabled: true },
+    { hour: 18, minute: 30, targetGrams: 50, enabled: false }
+  ];
+  nextionScheduleField = 4;
+  feedNextionBytes([0x66, NEXTION_SCHEDULE_PAGE_ID, 0xFF, 0xFF, 0xFF]);
+  const updates = Array.from({ length: 9 }, () => nextionNextScheduleDisplayUpdate());
+  const expected = [
+    { component: "t4", value: "07:" }, { component: "t7", value: "00" },
+    { component: "t5", value: "12:" }, { component: "t6", value: "05" },
+    { component: "t8", value: "OFF" }, { component: "t9", value: "" },
+    { component: "t1", value: "S1 50g ON" }, { component: "t2", value: "S2 50g ON" },
+    { component: "t3", value: "S3 50g OFF" }
+  ];
+  if (JSON.stringify(updates) !== JSON.stringify(expected)) {
+    feedSchedules = savedSchedules;
+    throw new Error(`Unexpected schedule field mapping: ${JSON.stringify(updates)}`);
+  }
+  if (nextionNextScheduleDisplayUpdate().component !== "t4") {
+    feedSchedules = savedSchedules;
+    throw new Error("Schedule field queue did not wrap to slot 1");
+  }
+  feedSchedules = savedSchedules;
+});
+
+runTest("38. Nextion schedule editor wraps time and saves the Mega EEPROM schedule", () => {
+  resetMachine();
+  feedNextionBytes([0x66, NEXTION_SCHEDULE_EDITOR_FIRST_PAGE_ID, 0xFF, 0xFF, 0xFF]);
+  nextionScheduleDraft = { ...feedSchedules[0], hour: 23, minute: 59 };
+  simMillis += 100;
+  feedNextionBytes(touch(NEXTION_SCHEDULE_EDITOR_FIRST_PAGE_ID, NEXTION_SCHEDULE_PLUS_HOUR_ID, 0x01));
+  if (nextionScheduleDraft.hour !== 0) throw new Error("Hour did not wrap 23 to 0");
+  simMillis += 100;
+  feedNextionBytes(touch(NEXTION_SCHEDULE_EDITOR_FIRST_PAGE_ID, NEXTION_SCHEDULE_PLUS_MINUTE_ID, 0x01));
+  if (nextionScheduleDraft.minute !== 0) throw new Error("Minute did not wrap 59 to 0");
+  simMillis += 100;
+  feedNextionBytes(touch(NEXTION_SCHEDULE_EDITOR_FIRST_PAGE_ID, NEXTION_SCHEDULE_SAVE_BUTTON_ID, 0x01));
+  if (feedSchedules[0].hour !== 0 || feedSchedules[0].minute !== 0) throw new Error("Schedule save did not update the slot");
+  if (!loadSchedulesFromEEPROM() || feedSchedules[0].hour !== 0 || feedSchedules[0].minute !== 0) throw new Error("Schedule save did not survive simulated reboot");
+  resetMachine();
+});
+
+runTest("39. Nextion manual target adjusts in 10 g steps, stays bounded and persists", () => {
+  resetMachine();
+  feedNextionBytes([0x66, NEXTION_TARGET_PAGE_ID, 0xFF, 0xFF, 0xFF]);
+  nextionManualTargetDraft = 990;
+  simMillis += 100;
+  feedNextionBytes(touch(NEXTION_TARGET_PAGE_ID, NEXTION_TARGET_PLUS_BUTTON_ID, 0x01));
+  if (nextionManualTargetDraft !== 1000) throw new Error("Manual target did not cap at 1000 g");
+  simMillis += 100;
+  feedNextionBytes(touch(NEXTION_TARGET_PAGE_ID, NEXTION_TARGET_PLUS_BUTTON_ID, 0x01));
+  if (nextionManualTargetDraft !== 1000) throw new Error("Manual target exceeded 1000 g");
+  simMillis += 100;
+  feedNextionBytes(touch(NEXTION_TARGET_PAGE_ID, NEXTION_TARGET_SAVE_BUTTON_ID, 0x01));
+  if (manualFeedTargetGrams !== 1000) throw new Error("Manual target was not saved");
+  if (Math.round(new DataView(eeprom.buffer).getFloat32(35, true)) !== 1000) throw new Error("Manual target EEPROM bytes wrong");
+  nextionManualTargetDraft = 1;
+  simMillis += 100;
+  feedNextionBytes(touch(NEXTION_TARGET_PAGE_ID, NEXTION_TARGET_MINUS_BUTTON_ID, 0x01));
+  if (nextionManualTargetDraft !== 1) throw new Error("Manual target went below 1 g");
   resetMachine();
 });
 
 // ---------- Alert resolution (R-23) ----------
 
-runTest("38. hopper refilled above 25%: LOW_FEED_CLEARED once; not sent if no alert was raised", () => {
+runTest("40. hopper refilled above 25%: LOW_FEED_CLEARED once; not sent if no alert was raised", () => {
   resetMachine();
   currentHopperLevelPercent = 15; tick();
   assertLogContains("QUEUED:LOW_FEED");
@@ -1572,7 +1920,7 @@ runTest("38. hopper refilled above 25%: LOW_FEED_CLEARED once; not sent if no al
   assertLogNotContains("QUEUED:LOW_FEED_CLEARED");
 });
 
-runTest("39. reservoir refilled: LOW_WATER_CLEARED once after the debounce", () => {
+runTest("41. reservoir refilled: LOW_WATER_CLEARED once after the debounce", () => {
   resetMachine();
   waterLow = false; waterLowCandidate = false; lowWaterAlertSent = false;
   floatSwitchLow = true; runFor(3000);
@@ -1583,7 +1931,7 @@ runTest("39. reservoir refilled: LOW_WATER_CLEARED once after the debounce", () 
   if (outputLog.filter(l => l === "QUEUED:LOW_WATER_CLEARED").length !== 1) throw new Error("Expected one LOW_WATER_CLEARED");
 });
 
-runTest("40. E-stop reset sends EMERGENCY_STOP_RELEASED; a full cycle sends FEEDING_COMPLETED", () => {
+runTest("42. E-stop reset sends EMERGENCY_STOP_RELEASED; a full cycle sends FEEDING_COMPLETED", () => {
   resetMachine();
   pins.EMERGENCY_STOP = 0; tick();
   pins.EMERGENCY_STOP = 1; tick();
@@ -1594,7 +1942,7 @@ runTest("40. E-stop reset sends EMERGENCY_STOP_RELEASED; a full cycle sends FEED
   assertLogContains("QUEUED:FEEDING_COMPLETED");
 });
 
-runTest("41. boot clears: report conditions that are fine; SYSTEM_START is never dropped", () => {
+runTest("43. boot clears: report conditions that are fine; SYSTEM_START is never dropped", () => {
   resetMachine();
   alertQueue = [];
   waterLow = false; lowWaterAlertSent = false; lowFeedAlertSent = false;
@@ -1618,7 +1966,7 @@ runTest("41. boot clears: report conditions that are fine; SYSTEM_START is never
 
 // ---------- Bench console (commissioning) ----------
 
-runTest("42. bench JOG F runs the chain for the requested time, then stops", () => {
+runTest("44. bench JOG F runs the chain for the requested time, then stops", () => {
   resetMachine();
   if (benchCommand("JOG F 3000") !== null) throw new Error("JOG refused");
   runFor(4000);
@@ -1628,7 +1976,7 @@ runTest("42. bench JOG F runs the chain for the requested time, then stops", () 
   assertSafeRelays();
 });
 
-runTest("43. bench HOME reverses to the home switch and reports the time", () => {
+runTest("45. bench HOME reverses to the home switch and reports the time", () => {
   resetMachine();
   hw.chainPos = 7000;
   if (benchCommand("HOME") !== null) throw new Error("HOME refused");
@@ -1638,7 +1986,7 @@ runTest("43. bench HOME reverses to the home switch and reports the time", () =>
   assertMotorsOff();
 });
 
-runTest("44. bench JOG into the end switch is stopped by the limit, not the timer", () => {
+runTest("46. bench JOG into the end switch is stopped by the limit, not the timer", () => {
   resetMachine();
   hw.chainPos = END_POSITION - 1000;
   benchCommand("JOG F 5000");
@@ -1648,7 +1996,7 @@ runTest("44. bench JOG into the end switch is stopped by the limit, not the time
   assertMotorsOff();
 });
 
-runTest("45. bench moves are refused while the E-stop is latched or a cycle runs, and stop on E-stop", () => {
+runTest("47. bench moves are refused while the E-stop is latched or a cycle runs, and stop on E-stop", () => {
   resetMachine();
   pins.EMERGENCY_STOP = 0; tick();
   if (benchCommand("JOG F 1000") !== "ESTOP") throw new Error("JOG allowed with E-stop latched");
@@ -1666,7 +2014,7 @@ runTest("45. bench moves are refused while the E-stop is latched or a cycle runs
   pins.EMERGENCY_STOP = 1; tick(); resetEmergencyStop();
 });
 
-runTest("46. a feed cycle cannot start during a bench move; DISP times out; STOP works", () => {
+runTest("48. a feed cycle cannot start during a bench move; DISP times out; STOP works", () => {
   resetMachine();
   benchCommand("DISP 2000");
   if (pins.DISPENSER_RELAY !== 1) throw new Error("Dispenser not on");
@@ -1681,7 +2029,7 @@ runTest("46. a feed cycle cannot start during a bench move; DISP times out; STOP
   if (benchCommand("JOG F 50") !== "USAGE") throw new Error("Out-of-range duration accepted");
 });
 
-runTest("47. SD: one file per month; a new month deletes files 24+ months old, never other files", () => {
+runTest("49. SD: one file per month; a new month deletes files 24+ months old, never other files", () => {
   sdFiles = new Set(["HF202310.CSV", "HF202410.CSV", "HF202411.CSV", "HF202609.CSV", "HFNOTIME.CSV", "NOTES.TXT", "HF202413.CSV"]);
   currentLogName = "";
   simDate = "2026-10-05";
@@ -1692,7 +2040,7 @@ runTest("47. SD: one file per month; a new month deletes files 24+ months old, n
   if (currentLogName !== "HFNOTIME.CSV") throw new Error("Clock invalid should log to HFNOTIME.CSV");
 });
 
-runTest("48. SD full: the oldest month (not the current one) is deleted first", () => {
+runTest("50. SD full: the oldest month (not the current one) is deleted first", () => {
   sdFiles = new Set(["HF202501.CSV", "HF202412.CSV", "HF202610.CSV", "HFNOTIME.CSV"]);
   currentLogName = "HF202610.CSV";
   if (!pruneOldLogs(-1, true)) throw new Error("Nothing deleted");
@@ -1701,7 +2049,7 @@ runTest("48. SD full: the oldest month (not the current one) is deleted first", 
   if (pruneOldLogs(-1, true)) throw new Error("Deleted the current month");
 });
 
-runTest("49. daily stats: feed grams, completed/incomplete cycles and problems are counted; SUMMARY is sent", () => {
+runTest("51. daily stats: feed grams, completed/incomplete cycles and problems are counted; SUMMARY is sent", () => {
   resetMachine();
   eeprom.fill(0xFF, DAILY_STATS_ADDRESS, DAILY_STATS_ADDRESS + 2 * DAILY_STATS_SIZE);
   simDate = "2026-10-24";
@@ -1723,7 +2071,7 @@ runTest("49. daily stats: feed grams, completed/incomplete cycles and problems a
   if (statsToday.lowWater !== 1) throw new Error("Low water episode not counted");
 });
 
-runTest("50. daily stats survive a reboot and roll over at local midnight (yesterday re-sent)", () => {
+runTest("52. daily stats survive a reboot and roll over at local midnight (yesterday re-sent)", () => {
   const before = { ...statsToday };
   statsToday = blankStats(); statsYesterday = blankStats();
   initializeDailyStats(); // reboot, same day
@@ -1738,7 +2086,7 @@ runTest("50. daily stats survive a reboot and roll over at local midnight (yeste
   assertLogContains("SUMMARY|2026-10-24|");
 });
 
-runTest("51. daily stats: counts made before the clock is set are kept for the first valid date", () => {
+runTest("53. daily stats: counts made before the clock is set are kept for the first valid date", () => {
   eeprom.fill(0xFF, DAILY_STATS_ADDRESS, DAILY_STATS_ADDRESS + 2 * DAILY_STATS_SIZE);
   simDate = null;
   initializeDailyStats();

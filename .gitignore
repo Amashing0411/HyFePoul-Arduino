@@ -19,3 +19,7 @@ arduino-cli.zip
 
 # ESP32 deployment credentials (copy Config.example.h to Config.h)
 firmware/esp32/HyFePoul_ESP32/Config.h
+
+# Local commissioning firmware images
+/firmware/build/
+firmware/esp32/HyFePoul_ESP32/build/

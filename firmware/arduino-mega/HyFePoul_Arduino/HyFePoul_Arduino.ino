@@ -19,6 +19,9 @@ void setup() {
 }
 
 void loop() {
+  // Proves the program is still running (Watchdog.ino).
+  feedWatchdog();
+
   // Safety is checked first so an emergency stop can take priority.
   handleSafety();
   handleLocalConsole();

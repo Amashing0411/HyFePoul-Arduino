@@ -48,7 +48,7 @@ This line replaced the pump-era format (`…|waterLow|waterHigh|pump|feeding|…
 EVENT|<NAME>
 ```
 
-Events are queued on the Mega (4 slots; the oldest is dropped when full) and sent one per loop. They are not acknowledged and not retried.
+Events are queued on the Mega (8 slots; the oldest is dropped when full) and sent one per loop. The UART link does not acknowledge them; the ESP32 keeps every alert until it is written (§3.2.1).
 
 | Event | Raised when | Forwarded to RTDB `/alerts`? |
 |-------|-------------|------------------------------|
@@ -83,7 +83,7 @@ Clear events mark the matching alert record `resolved: true` with `resolvedAt`:
 - **The ESP32 keeps pending resolves** (one bit per alert type) until it is online with a valid token, because the boot clears usually arrive before Wi-Fi is up. It retries every 5 s until the write succeeds.
 - **Only existing, still-active records change:** the ESP32 first reads `/alerts/{id}/{NAME}/resolved`, then `PATCH`es `{resolved: true, resolvedAt}` only if it is `false`. A missing alert is never created. The rules also reject partial records.
 - **Order is kept:** a new occurrence of an alert (its own event) cancels a pending resolve for it, and its `PUT` replaces the record (`resolved: false`, no `resolvedAt`).
-- **Limitation:** an alert raised while the ESP32 is offline is still not written (no event retry); its clear then finds nothing to resolve.
+- **Alerts raised while offline:** the ESP32 keeps each alert (one per type, with the time it was raised) until its `PUT` succeeds, retrying every 5 s. A resolve waits until its alert is written, so an alert raised and cleared while offline still appears in the app, as resolved, with its real times. If the ESP32 itself restarts while offline, alerts it had not written are lost; the Mega's boot clears still resolve old ones.
 
 ### 3.3 `CMD_ACK` and `CMD_DONE` (command replies)
 
@@ -198,6 +198,38 @@ A `SCHEDULE_SET` that fails for any of these reasons also triggers a schedule re
   - Restore IDs are never written to `/commands`.
 - **Device confirmation (R-43).** When the Mega answers a `SCHEDULE_SET` (from the app or a restore) with `CMD_ACK ACCEPTED`, it has already saved the slot to EEPROM. The ESP32 then writes the values from that exact line to `scheduleStatus/{deviceId}/sched_<i>` (`hour`, `minute`, `targetGrams`, `enabled`, `appliedAt`). The app compares these with `/schedules` and shows each schedule as "On device" or "Waiting for device". A failed write is not retried; the next restore (on reconnect or Mega boot) writes it again.
 
+## 7a. HMI Recent History request
+
+- When the Mega opens page 3 or receives the page's Refresh touch, it sends
+  `HISTORY_REQ` to the ESP32. The ESP32 queries the device's own
+  `/systemData/{deviceId}` path ordered by `timestamp` with `limitToLast=4`.
+  The app listens to the same node, returns the latest 50, and displays them
+  newest first; the HMI shows the newest four due to its four cards.
+- The ESP32 skips records missing numeric `timestamp`, `feedWeightGrams`, or
+  `hopperLevelPercent`, or boolean `waterLow` and `feedingActive`. It sorts the
+  valid result newest first, then sends:
+
+  ```
+  HISTORY_REQ
+  HIST|BEGIN
+  HIST|ROW|IDX:<0-3>|TS:<epoch seconds>|FEED:<whole grams>|HOP:<percent>|W:<0|1>|DISP:<0|1>
+  HIST|END
+  ```
+
+- An empty result returns `HIST|EMPTY`; an unavailable Wi-Fi/Firebase read or
+  bad response returns `HIST|ERROR|...`. The Mega formats each timestamp using
+  its fixed UTC+8 display offset and updates one Nextion field at a time. This
+  is the same cloud snapshot data as app Recent History; SD event rows remain a
+  separate local record.
+- RTDB rules permit reads at only the matching device's history node to its
+  `deviceAuthUid`, as well as the existing owner read. That device read rule
+  must be deployed before this feature can read production history.
+- Schedule overview labels display each accepted slot's target and enabled
+  state alongside its time. App schedule changes already travel through
+  `/schedules` and `SCHEDULE_SET` to the Mega. The HMI editor still writes only
+  hour/minute to local EEPROM; it does not write changes back to Firebase
+  (R-54).
+
 ## 8. Timing summary
 
 | What | Interval / timeout |
@@ -219,6 +251,8 @@ A `SCHEDULE_SET` that fails for any of these reasons also triggers a schedule re
 | Gap between ESP32 → Mega lines | ≥ 50 ms |
 
 ## 9. Safety and offline behaviour
+
+- **Watchdogs:** the Mega restarts within 2 s if its program stops (`Watchdog.ino`); all relays start OFF and the next feed cycle homes first. The ESP32 restarts if `loop()` or one HTTP request stalls for 60 s.
 
 - **No network:** the Mega keeps running feeding, hydration, E-stop and SD logging from its RTC and EEPROM schedules. The ESP32 keeps the UART link and `STATUS|OFFLINE` going, and reconnects in the background.
 - **UART link down:** the Mega's local logic is unaffected; `esp32Online` goes false after 15 s.

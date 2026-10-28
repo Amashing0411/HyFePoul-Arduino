@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.0//EN'
+  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg width="507.27559055118115" height="180" preserveAspectRatio="xMinYMin meet" viewBox="0 0 507 180" xmlns="http://www.w3.org/2000/svg" version="1.0" fill-rule="evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<title>HyFePoul: diagnosis</title>
+	<desc>Functional illustration for the commissioning manuals; not a construction drawing.</desc>
+	<clipPath id="clip">
+		<rect x="0" y="0" width="507.27559055118115" height="180"/>
+	</clipPath>
+	<g id="group" transform="scale(1,-1) translate(0,-180)" style="clip-path: url(#clip)">
+		<g transform="">
+			<rect x="0" y="0" width="507.27559055118115" height="180" rx="8" ry="8" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(93%,96%,96%); fill-rule: evenodd;"/>
+			<rect x="15" y="100" width="143" height="60" rx="6" ry="6" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,18%,27%); fill-rule: evenodd;"/>
+			<text x="33.400146484375" y="142" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,284) scale(1,-1)">Make equipment safe</text>
+			<text x="36.72314453124999" y="126" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,252) scale(1,-1)">Stop / isolate for hazards</text>
+			<rect x="183" y="100" width="143" height="60" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="217.1578369140625" y="142" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,284) scale(1,-1)">Safe to inspect</text>
+			<text x="212.2333984375" y="126" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,252) scale(1,-1)">Read exact symptom</text>
+			<rect x="351" y="100" width="143" height="60" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="381.0665283203125" y="142" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,284) scale(1,-1)">Collect evidence</text>
+			<text x="382.984375" y="126" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,252) scale(1,-1)">State, time, revision</text>
+			<path d="M 158,130 L 183,130 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="183 130, 178 127.5, 178 132.5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<path d="M 326,130 L 351,130 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="351 130, 346 127.5, 346 132.5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<rect x="98" y="20" width="310" height="55" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="188.51318359375" y="57" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,114) scale(1,-1)">Diagnose &gt; repair &gt; retest</text>
+			<text x="140.18798828125" y="41" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,82) scale(1,-1)">Resume only after the affected acceptance checks pass.</text>
+			<path d="M 422,100 L 422,47 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="422 47, 419.5 52, 424.5 52" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<path d="M 422,47 L 408,47 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="408 47, 413 49.5, 413 44.5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+		</g>
+	</g>
+</svg>

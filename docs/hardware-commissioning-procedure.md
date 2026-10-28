@@ -1,6 +1,8 @@
 # HARDWARE COMMISSIONING PROCEDURE
 
-This document defines the strict sequential procedure to validate the physical prototype upon arrival (Expected: October 30, 2026).
+This document defines the strict sequential procedure to validate the physical prototype upon arrival (Expected: October 28, 2026, per the owner’s latest schedule).
+
+**Readiness note (2026-10-27):** the production APK is built for phone checks. A separate device-only Firebase Auth user exists, its UID is saved on `devices/device-001` and was verified, and local `Config.h` has its email. Its password has not been verified against the local configuration; reconcile it privately before HIT-03. Do not use the temporary app test-owner UID for ESP32 authentication. The app can use the test-owner account for owner-side QA; the client account is not implemented yet. HIT-01 electrical checks remain the first hardware gate, and actuators stay disconnected through HIT-05. Phone claim and physical hardware checks are still pending.
 
 **IMPORTANT SAFETY RULE**: DO NOT assume software pin assignments match physical wiring. DO NOT energize unverified circuits.
 
@@ -96,15 +98,16 @@ DO NOT assume voltages based on component markings without measuring.
 ## 6. Physical E-Stop Verification
 
 **Goal:** Distinguish software detection from actual electrical cutoff.
+**Safety prerequisite:** Perform energized actuator checks only with a competent supervisor, the actuator secured and unloaded, and everyone outside the chain/motor travel and pinch areas. Never jumper live relay contacts or reach into moving machinery. If there is no documented safe way to create the required relay-ON condition, mark the independent cutoff check `BLOCKED` and get a qualified technician to define the bench setup.
 1. Put system in safe idle state.
 2. Verify physical E-Stop mechanism (latching vs momentary).
-3. Start a controlled actuator test (e.g., a feed cycle with the chain unloaded).
-4. Activate the physical E-Stop.
-5. **Verify actuator de-energizes instantly** (physical cutoff confirmation).
+3. **Independently verify electrical isolation before powered movement (HIT-06):** with the E-Stop engaged and actuator secured/unloaded, use only the documented, supervised bench method to hold the relay output ON. Measure that actuator power is removed even while the Mega's relay command remains ON. Do not improvise a jumper or expose live conductors to force this condition. If unexpected actuator power is measured, isolate the upstream supply immediately and record `FAIL`. If the test cannot be done safely, record `BLOCKED`; software setting the relay output LOW is not proof of independent isolation.
+4. Set the relay output OFF and verify it is off. Only after the independent cutoff check passes, release the physical E-Stop and reset the Mega using the documented sequence. Confirm safe idle and a clear test area before starting a brief controlled actuator test (e.g., a feed cycle with the chain unloaded).
+5. Activate the physical E-Stop and **verify actuator motion and power stop**.
 6. Verify Mega detects the E-Stop state via GPIO.
 7. Verify relay driver software sets output to LOW.
 8. Verify attempting a remote `MANUAL_FEED` returns `failed` (`ESTOP_ACTIVE`).
-9. Verify sending `ESTOP_RELEASE` via software does NOT re-energize the actuator (physical unlatching required).
+9. Verify sending `ESTOP_RELEASE` via software does NOT re-energize the actuator while the physical E-Stop remains latched.
 10. Verify system recovers safely only after physical unlatch and software release.
 11. Release the physical E-Stop **without** sending a reset. Verify the Mega stays stopped (Nextion shows `STOPPED`, the chain and dispenser stay off, `MANUAL_FEED` still returns `ESTOP_ACTIVE`).
 12. With the button released, type `RESET` in the Mega USB serial monitor (115200 baud). Verify `Emergency stop reset.` is printed and automation resumes. Repeat with the button pressed and verify `RESET rejected: PHYSICAL_ESTOP_ENGAGED`.
@@ -123,8 +126,8 @@ For the chain forward relay, chain reverse relay and dispenser relay:
 Chain motor (two relays swapping polarity):
 6. Confirm the wiring cannot short the supply if both relays close (typical 2× SPDT H-bridge: both on = motor braked, not shorted). The firmware never turns both on, but the wiring should be safe anyway.
 7. With the hopper unloaded, verify forward moves toward the end switch and reverse toward home. Swap the motor leads if not.
-8. Run toward each limit switch and confirm the switch stops the motor. Request a reversal while moving and confirm both relays are off for ≥ 300 ms before the other closes.
-9. Disconnect the end switch and run a cycle: after the last tray the chain must stop within 15 s with `CHAIN_TIMEOUT` and a beep.
+8. Run toward each limit switch and confirm the switch stops the motor. Operate each switch only from outside the chain travel and pinch areas; keep hands clear. Request a reversal while moving and confirm both relays are off for ≥ 300 ms before the other closes.
+9. With actuator power isolated, disconnect the end switch. Remove hands/tools from the mechanism, then reapply power and run a cycle: after the last tray the chain must stop within 15 s with `CHAIN_TIMEOUT` and a beep. Isolate power again before restoring the switch wiring; verify the wiring is restored before the next powered test.
 10. Tune `TRAY_TRAVEL_MS` (open item O-1) so the hopper outlet stops over each tray; record the values in the commissioning log. Use the bench console (§7a).
 
 ## 7a. Bench Console (USB serial monitor)
@@ -143,6 +146,7 @@ The Mega firmware has commissioning commands on the USB serial monitor (115200 b
 | `DISP <ms>` | Runs the dispenser 100–5000 ms (flow-rate check) |
 | `FEED <grams>` | Starts a full 5-tray cycle at that many grams per tray, without the app |
 | `STOP` | Ends a bench move at once |
+| `WDTEST` | Stops the program on purpose (only while nothing moves). The Mega must restart within about 2 s and print "Restarted by the watchdog". If it keeps restarting or hangs, burn the current Arduino Mega bootloader before relying on the watchdog |
 | `RESET` | Clears a latched E-stop (button released) |
 
 **Calibrating the tray load cells (R-11, HIT-08):**
@@ -171,12 +175,13 @@ The Mega firmware has commissioning commands on the USB serial monitor (115200 b
 **SD**: Verify card detection. Trigger a system event, pull SD card, read on PC to confirm log integrity.
 **Nextion**: Verify boot and baud rate. Verify feed/water data mirrors Mega state. Disconnect UART, verify screen handles timeout gracefully.
 
-**Nextion buttons (R-20)**: the Stop (`b3`) and Start (`b4`) buttons are disabled in firmware until their IDs are confirmed.
-1. In the Nextion Editor, tick **Send Component ID** on the Touch Release Event of `b3` and `b4`, and upload the HMI.
-2. With the Mega USB serial monitor open (115200), press `b3` and then `b4`. Note the `Nextion touch: page P id C` lines.
-3. Set `NEXTION_HOME_PAGE_ID`, `NEXTION_STOP_BUTTON_ID` and `NEXTION_START_BUTTON_ID` at the top of `Nextion.ino` to those numbers, then re-flash.
-4. Verify that `b3` latches the stop (actuators off, `STOPPED` shown, `EMERGENCY_STOP` alert) and that `b4` shows `Status: RELEASE E-STOP` while the physical button is pressed and resets the latch once it is released.
-5. Confirm that other buttons (`b0`–`b2`) and other pages do not stop or reset anything.
+**Nextion onsite panel (R-20 / HIT-12):** the checked-in project and Mega code have page/component mappings; do not re-enter IDs unless physical evidence shows a mismatch. The phone app is for the owner when away; it does not communicate directly with the Mega.
+1. Keep actuator loads disconnected. Confirm the actual panel model, common ground, UART levels, wiring and 9600-baud setting. The current source is `Nextion/ChickenFeederV1 (1).hmi`; use the matching compiled `Nextion/ChickenFeederV1 (1).tft` only after verifying the panel model and resolution. Record the observed version before flashing.
+2. With the Mega USB serial monitor open at 115200, navigate Home, Schedule, Recent History (HMI page named `Log`), System Check, Feed Target and all three schedule editors. Confirm the Mega reports the expected page and touch IDs from `Nextion/Nextion_IDs.txt`.
+3. Confirm Home feed, water, status and local-time fields update. On System Check, verify hopper, water, ESP32 link and target values; press Refresh and confirm the summary updates.
+4. Connect the ESP32 to Firebase and change time, target grams and enabled state in the app. Confirm page 2 reflects all three fields. Compare the four newest p3 History rows with the app, press Refresh, and verify newest-first order. Test empty and offline states. Adjust each HMI schedule time, save it, and confirm the value remains after a Mega power cycle. The HMI edit is local and may be replaced by cloud restore (R-54).
+5. Press Stop and confirm the Mega latch and actuator-off response. If the physical E-stop is still engaged, Reset Stop must be rejected. Release the physical button, reset the software latch, and confirm an interrupted cycle does not resume.
+6. Only after HIT-11 passes, test Feed Now under direct supervision with a person beside the physical E-stop. Record video/log evidence and do not use this supervised test to tune travel timing.
 
 **Schedule persistence (Phase 3)**:
 1. Set a schedule from the app (ESP32 connected), then disconnect the ESP32 UART wires, power-cycle the Mega, and verify the serial log shows `Schedules loaded from EEPROM.` and that the schedule still fires at its set local time.
@@ -184,6 +189,7 @@ The Mega firmware has commissioning commands on the USB serial monitor (115200 b
 3. With the ESP32 connected and online, change a schedule in the app, power-cycle only the Mega, and verify the ESP32 log shows `Schedule restore complete.` and that the Mega slots match the app (including deleted slots staying disabled).
 4. Delete all schedules in the app, power-cycle the Mega, and verify that no feed happens at 07:00, 12:00 or 18:00.
 5. **UART line integrity (F26):** send 20 schedule edits from the app while the Mega is idle and 10 while feeding. Record how many `SCHEDULE_SET` commands end in `UART_TIMEOUT`, and confirm each one is followed by `Schedule restore complete.`
+6. Record the current R-54 limitation: app schedule changes appear on the Nextion, but a schedule time changed onsite is stored in EEPROM only, and Firebase restore may replace it. Do not present onsite edits as writing back to the app until the conflict-safe path is implemented and retested.
 
 ## 10. Software/Hardware Discrepancy Procedure
 

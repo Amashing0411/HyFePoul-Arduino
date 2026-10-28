@@ -90,6 +90,65 @@ arduino-cli compile --fqbn esp32:esp32:esp32 firmware/esp32/HyFePoul_ESP32
 
 ---
 
+## Local commissioning firmware images (2026-10-27)
+
+Compile outputs are stored locally under `firmware/build/commissioning-2026-10-27/` and ignored by Git. They were built with the board targets above from the current source.
+
+| Board | Artifact | Size | SHA-256 |
+|---|---|---:|---|
+| Mega 2560 | `mega/HyFePoul_Arduino.ino.hex` | 138,327 bytes | `FB951952113159D59FDA12A3729551A4AB657E0177B9F3FD54BC30CFB6262168` |
+| ESP32 | `esp32/HyFePoul_ESP32.ino.bin` (application image) | 1,147,232 bytes | `3C72A38EB78C48545C49776297A218D0A607D4A059B48AE5BEB9AED078650E3D` |
+| ESP32 | `esp32/HyFePoul_ESP32.ino.merged.bin` (full flash image) | 4,194,304 bytes | `0CE417FBF7ECCABA523AE0D3C24039F15EFF0C774B741D1E3612D18B3876FFD1` |
+
+The ESP32 images were compiled from ignored local `Config.h`, which still has Wi-Fi placeholders. Rebuild after privately entering Wi-Fi credentials before HIT-03 or any Firebase connectivity test. ESP32 firmware contains the device account credentials; keep these local and do not commit or share the binary.
+
+## Updated Mega image (2026-10-28)
+
+After the Nextion page mapping, schedule editor handling, SD Event Log and paced
+System Check readouts were added, the Mega sketch was compiled with the local
+Arduino CLI and `arduino:avr` core. The local, Git-ignored Intel HEX image is
+`firmware/build/commissioning-2026-10-28/mega/HyFePoul_Arduino.ino.hex`.
+It is 151,389 bytes (SHA-256
+`24CB39B69921B78A84ABB7D50611674D143260045F2CB3E48ED240DFBBD41018`).
+Compiler usage: 53,822 bytes flash (21%) and 3,848 bytes RAM (46%). This image
+includes the current Mega source and HMI component mapping; it has not been
+flashed or physically tested.
+
+## Nextion HMI release files (2026-10-28)
+
+The editable project is `Nextion/ChickenFeederV1 (1).hmi`. It was compiled in
+Nextion Editor with 0 errors and 0 warnings. The matching TFT output is
+`Nextion/ChickenFeederV1 (1).tft`, 1,205,984 bytes, SHA-256
+`0476E259F906D63E80935218010C6102AF110EA0080ED3262670054A2889237F`. This is
+the panel-loadable artifact for the documented 800x480 NX8048P070_011 model.
+Confirm the actual panel model before flashing. No physical upload or display
+verification has been performed.
+
+## App-History sync build (2026-10-28)
+
+These are the latest local outputs built from the app-History sync source. The
+build folder is Git-ignored; checksums let the locally held artifacts be
+identified without publishing firmware that may contain device credentials.
+
+| Board | Artifact | File size | Compiler usage | SHA-256 |
+|---|---|---:|---:|---|
+| Mega 2560 | `commissioning-2026-10-28-hmi-sync/mega/HyFePoul_Arduino.ino.hex` | 153,120 bytes | 54,434 B flash / 3,987 B RAM | `833C8EE5B8767167E3E9CD1FF6D6F08BF168179208B469D8A8D0D10DA6FF9E64` |
+| ESP32 | `commissioning-2026-10-28-hmi-sync/esp32/HyFePoul_ESP32.ino.bin` | 1,150,672 bytes | 1,150,528 B flash / 49,688 B RAM | `815DBCB190E104DBB98EA6FB04A01A36E95195BFB24A248832FAE0C49CE922D3` |
+| Nextion | `Nextion/ChickenFeederV1 (1).tft` | 1,205,984 bytes | Editor compile: 0 errors / 0 warnings | `0476E259F906D63E80935218010C6102AF110EA0080ED3262670054A2889237F` |
+
+The updated Home button is captioned **History**. The editable HMI project was
+saved, compiled and explicitly exported to the TFT file above. None of these
+firmware files has been flashed to hardware or accepted by a physical test.
+
+With the boards connected, identify the correct serial ports first, then upload the prepared images using the corresponding `--input-dir`:
+
+```powershell
+arduino-cli upload --fqbn arduino:avr:mega --port COMx --input-dir firmware/build/commissioning-2026-10-28-hmi-sync/mega
+arduino-cli upload --fqbn esp32:esp32:esp32 --port COMy --input-dir firmware/build/commissioning-2026-10-28-hmi-sync/esp32
+```
+
+Replace `COMx` and `COMy` with the actual board ports. Do not connect actuator power until the commissioning run sheet prerequisites pass.
+
 ## Verifying Toolchain & Troubleshooting
 
 ### Check Installation

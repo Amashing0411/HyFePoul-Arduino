@@ -55,7 +55,7 @@
     "systemData": {
       "$deviceId": {
         ".indexOn": ["timestamp"],
-        ".read": "auth != null && root.child('devices').child($deviceId).child('ownerId').val() === auth.uid",
+        ".read": "auth != null && (root.child('devices').child($deviceId).child('ownerId').val() === auth.uid || root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid)",
         "$pushId": {
            ".write": "auth != null && root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid"
         }

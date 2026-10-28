@@ -43,7 +43,7 @@ These came from reading the code. They are not test results. Phase 0 re-confirms
 | F14 | The Nextion code uses placeholder component names (`tFeed`…). The real IDs (`t0`–`t7`, `b0`–`b4`) are in `Nextion/Nextion_IDs.txt`, and no button events are handled. `firmware/nextion/` is empty. | `Nextion.ino`, `Nextion_IDs.txt` | Medium |
 | F15 | Physical prototype: every row in `docs/hardware-commissioning-log.md` is `PENDING – Hardware unavailable`. The current availability needs confirmation from the team. | commissioning log | Blocker (hardware) |
 | F16 | The mobile app has no `test`, `lint`, or `typecheck` npm scripts. Tests run through Jest directly. | `mobile-app/package.json` | Low |
-| F17 | A Firebase web API key is committed in `mobile-app/eas.json`. Web API keys are identifiers, not secrets, but the key should be restricted (Android package + SHA-1, allowed APIs) in Google Cloud Console. | `eas.json` | Low–Medium |
+| F17 | A Firebase web API key is committed in `mobile-app/eas.json`. Firebase API keys identify the project and are not authorization; review the API allowlist and client application restrictions without breaking the Expo Firebase JavaScript SDK or the ESP32 REST client. | `eas.json`, `mobile-app/src/services/firebase.ts`, local ESP32 config | Medium |
 
 ### 1.1 Phase 0 baseline results (run 2026-10-21, no code changes)
 
@@ -152,7 +152,7 @@ Each fix gets one commit, updates `scripts/simulate-mega.js` so it mirrors the C
 | APP-3 (F8) | Make `daysOfWeek` honest. Either the Mega honours it (FW extension: add a `DOW:` field to `SCHEDULE_SET` and a weekday check), or the app hides day selection and always writes all days. **Decision gate D3.** | `FeedingScreen.tsx`, possibly the protocol and Mega | Recommended: hide it for the prototype. That needs no protocol change. |
 | APP-4 | Make sure a `completed` command is shown with the evidence it actually has: the Mega reports `TARGET_REACHED`, but the final dispensed weight is not reported. Show the latest `feedWeightGrams` next to the completion, or label it "device reported complete". | `FeedingScreen.tsx`, possibly the `CMD_DONE` payload | Changing the `CMD_DONE` payload is a protocol change, so trace it first. |
 | SEC-1 (F11) | Untrack `Config.h` and add `Config.example.h` plus a `.gitignore` entry. Update the build doc. | `firmware/esp32/...`, `.gitignore`, `docs/firmware-build-environment.md` | Do this before any real credentials go into the file. |
-| SEC-2 (F17) | Recommend restricting the web API key in Google Cloud Console (owner action; no code). | — | Approval needed, since it is an account change. |
+| SEC-2 (F17) | Review the shared Firebase API key allowlist and application restrictions; test Auth/token-refresh/RTDB with a candidate before adoption. | — | Owner approved candidate adoption; completed 2026-10-27. |
 | HYG-1 (F12) | Untrack the root `node_modules/` (`git rm -r --cached`) and add it to `.gitignore`. | `.gitignore` | Only removes it from the index; local files stay. |
 
 **Phase 2 results (2026-10-21, branch `phase2-rules-app-config`, stacked on `phase1-firmware-fixes`):**
@@ -168,7 +168,7 @@ Each fix gets one commit, updates `scripts/simulate-mega.js` so it mirrors the C
 | APP-2 (F7) | `83bf74d` | DONE (branch `phase2b-app-honesty`). FCM token registration removed. Local notifications are raised from the RTDB alert listener while the app runs. The Notifications tab says "Last reported", and `docs/notifications.md` was rewritten. |
 | APP-3 (F8) | `7b591d3` | DONE. The app already had no day picker; the caption now says schedules run daily. Also removed a duplicate `SCHEDULE_SET` sent on delete. |
 | APP-4 | `b763f62` | DONE. Command states use plain language. A completed manual feed shows what the device reported (target reached) and the last scale reading only when that reading is newer than the completion. Manual feed is blocked while one is already running. Also fixes F23. |
-| SEC-2 (F17) | — | OWNER ACTION. Restrict the web API key in Google Cloud Console (APIs & Services → Credentials): Android app restriction for `com.hyfepoul.mobile` plus its SHA-1, and limit it to the Identity Toolkit and Firebase Realtime Database APIs. |
+| SEC-2 (F17) | — | DONE (2026-10-27). The approved candidate restricted to Identity Toolkit, Secure Token, and Realtime Database with no app restriction passed JS SDK sign-in/token refresh/RTDB read and ESP32-style RTDB REST read. It is adopted in all three EAS profiles, ignored local `.env.local`, and ignored ESP32 `Config.h`; the ESP32 compile passed afterward. The original key remains active for rollback. An unrelated-service denial was not separately probed. See the official [Firebase API key guidance](https://firebase.google.com/docs/projects/api-keys). |
 
 New findings during APP-2 to APP-4:
 

@@ -1,5 +1,12 @@
 # HyFePoul: Mobile App Completion Matrix
 
+**2026-10-26 correction:** The earlier loading/empty checks missed a provisioned
+device with no sensor state. Status, Feeding, and Water showed placeholders
+indefinitely. This is now fixed and verified with empty and populated local
+emulator data; Settings scrolling was also fixed. See the
+[verification record](mobile-empty-state-qa-2026-10-26.md). The historical matrix
+below is not evidence that every current screen behavior has been retested.
+
 **As of:** 2026-10-21, `main` at `c0dc92b`. App: React Native + Expo SDK 57, Android development build `com.hyfepoul.mobile`.
 
 **What the evidence columns mean:**

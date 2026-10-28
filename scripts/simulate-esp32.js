@@ -150,6 +150,7 @@ async function simulate() {
   await testCommands();
   await testScheduleRestore();
   await testAlertResolution();
+  await testOfflineAlerts();
   await testMegaLink();
   await testDailySummary();
   testHistoryThrottle();
@@ -258,6 +259,65 @@ async function testAlertResolution() {
   await putAlert("LOW_WATER", t0 + 2000);
   if (!(await resolveOne("LOW_WATER")) || !(await resolveOne("LOW_WATER"))) throw new Error("Repeat resolve failed");
   console.log("[R-23] Alert resolution OK");
+}
+
+// ---------------------------------------------------------
+// Alerts raised while offline, mirroring sendEventToFirebase() /
+// processPendingAlerts() and the resolve ordering in processPendingResolves()
+// ---------------------------------------------------------
+const ALERT_NAMES = ["LOW_FEED", "LOW_WATER", "CHAIN_TIMEOUT", "TRAY_TIMEOUT", "EMERGENCY_STOP", "DEVICE_ERROR", "CONTROLLER_OFFLINE"];
+
+function makeBridge() {
+  return { alerts: new Map(), resolves: new Set() }; // alert name -> raisedMillis
+}
+
+// An EVENT line from the Mega (or CONTROLLER_OFFLINE from the ESP32 itself).
+function onEvent(b, name, nowMillis) {
+  noteAlertResolution(b.resolves, name);
+  if (ALERT_NAMES.includes(name)) b.alerts.set(name, nowMillis);
+}
+
+// One processing pass while online: alerts first, then resolves of alerts
+// that are already written. Returns the names written.
+async function processPending(b, epochNow, nowMillis) {
+  const written = [];
+  for (const [name, raisedMillis] of [...b.alerts]) {
+    await putAlert(name, epochNow - (nowMillis - raisedMillis));
+    b.alerts.delete(name);
+    written.push(name);
+  }
+  for (const name of [...b.resolves]) {
+    if (b.alerts.has(name)) continue;
+    if (await resolveOne(name)) b.resolves.delete(name);
+  }
+  return written;
+}
+
+async function testOfflineAlerts() {
+  console.log("[Alerts] Raised while offline...");
+  const b = makeBridge();
+  for (const n of ["LOW_FEED", "EMERGENCY_STOP"]) {
+    await fetch(getDbUrl(`alerts/${DEVICE_ID}/${n}.json`), { method: 'DELETE' });
+  }
+
+  // Offline: LOW_FEED at t=10 s; E-stop pressed at 20 s and released at 30 s.
+  onEvent(b, "LOW_FEED", 10000);
+  onEvent(b, "EMERGENCY_STOP", 20000);
+  onEvent(b, "EMERGENCY_STOP_RELEASED", 30000);
+  onEvent(b, "FEEDING_STARTED", 31000); // informational: not an alert
+  if (b.alerts.size !== 2 || !b.resolves.has("EMERGENCY_STOP")) throw new Error("Not queued while offline");
+
+  // Back online 10 minutes later (t = 610 s).
+  const epochNow = Date.now();
+  const written = await processPending(b, epochNow, 610000);
+  if (written.join(",") !== "LOW_FEED,EMERGENCY_STOP") throw new Error(`Written: ${written}`);
+
+  const feed = await readAlert("LOW_FEED");
+  if (feed.resolved !== false || feed.timestamp !== epochNow - 600000) throw new Error(`LOW_FEED time wrong: ${JSON.stringify(feed)}`);
+  const estop = await readAlert("EMERGENCY_STOP");
+  if (estop.resolved !== true || estop.timestamp !== epochNow - 590000) throw new Error(`E-stop should show as happened and resolved: ${JSON.stringify(estop)}`);
+  if (b.alerts.size !== 0 || b.resolves.size !== 0) throw new Error("Queues not empty");
+  console.log("[Alerts] Raised while offline OK");
 }
 
 // ---------------------------------------------------------
@@ -596,6 +656,29 @@ const buildScheduleRestoreLines = (schedules) => {
   return lines;
 };
 
+// Mirrors the ESP32's HMI history projection from /systemData: newest four
+// valid snapshots, with the same fields the app's Recent History cards show.
+function buildHmiHistoryLines(snapshots) {
+  const rows = Object.values(snapshots || {})
+    .filter((row) => row && Number.isFinite(row.timestamp) && row.timestamp >= 1e12 &&
+      Number.isFinite(row.feedWeightGrams) && row.feedWeightGrams >= 0 &&
+      Number.isFinite(row.hopperLevelPercent) && row.hopperLevelPercent >= 0 && row.hopperLevelPercent <= 100 &&
+      typeof row.waterLow === 'boolean' && typeof row.feedingActive === 'boolean')
+    .map((row) => ({
+      timestampSeconds: Math.floor(row.timestamp / 1000),
+      feedGrams: Math.round(row.feedWeightGrams),
+      hopperPercent: Math.round(row.hopperLevelPercent),
+      waterLow: row.waterLow,
+      feeding: row.feedingActive,
+    }))
+    .sort((a, b) => b.timestampSeconds - a.timestampSeconds)
+    .slice(0, 4);
+  if (!rows.length) return ["HIST|BEGIN", "HIST|EMPTY"];
+  return ["HIST|BEGIN", ...rows.map((row, index) =>
+    `HIST|ROW|IDX:${index}|TS:${row.timestampSeconds}|FEED:${row.feedGrams}|HOP:${row.hopperPercent}|W:${row.waterLow ? 1 : 0}|DISP:${row.feeding ? 1 : 0}`
+  ), "HIST|END"];
+}
+
 // Mirrors reportScheduleApplied() in HyFePoul_ESP32.ino: values parsed from
 // the exact SCHEDULE_SET line the Mega accepted.
 function reportScheduleAppliedPayload(line) {
@@ -668,7 +751,32 @@ async function testScheduleRestore() {
   const back = await (await fetch(`http://${EMULATOR_HOST}:${EMULATOR_RTDB_PORT}/scheduleStatus/${DEVICE_ID}/sched_0.json?ns=${NAMESPACE}`, { headers: { 'Authorization': 'Bearer owner' } })).json();
   assert(back.hour === 9 && back.minute === 30 && back.targetGrams === 250 && back.enabled === true && typeof back.appliedAt === 'number', `Stored status wrong: ${JSON.stringify(back)}`);
 
-  console.log("\nALL SCHEDULE RESTORE TESTS PASSED.");
+  console.log("Test R6: device reads its own newest app History snapshots; another device's rows are denied");
+  const baseTimestamp = Date.now();
+  const historyRows = Object.fromEntries(Array.from({ length: 6 }, (_, i) => [`row_${i}`, {
+    timestamp: baseTimestamp - (5 - i) * 60000,
+    feedWeightGrams: 200 + i,
+    targetFeedGrams: 50,
+    hopperLevelPercent: 60 + i,
+    trayWeightsGrams: [40, 40, 40, 40, 40],
+    waterLow: i === 5,
+    feedingActive: i === 4,
+    cycleStep: i === 4 ? "DISPENSING" : "IDLE",
+    currentTray: i === 4 ? 3 : 0,
+    emergencyStopActive: false,
+  }]));
+  await adminPut(`systemData/${DEVICE_ID}`, historyRows);
+  const historyUrl = `http://${EMULATOR_HOST}:${EMULATOR_RTDB_PORT}/systemData/${DEVICE_ID}.json?orderBy=%22timestamp%22&limitToLast=4&ns=${NAMESPACE}&auth=${idToken}`;
+  const historyRes = await fetch(historyUrl);
+  assert(historyRes.status === 200, `Device cannot read its own systemData (HTTP ${historyRes.status})`);
+  const history = await historyRes.json();
+  const historyLines = buildHmiHistoryLines(history);
+  assert(historyLines.length === 6 && historyLines[1].includes(`TS:${Math.floor(baseTimestamp / 1000)}`), `HMI did not receive the newest four rows first: ${historyLines.join("; ")}`);
+  assert(historyLines[1].includes("FEED:205|HOP:65|W:1|DISP:0"), `Newest row fields differ from app History: ${historyLines[1]}`);
+  const otherHistoryRes = await fetch(`http://${EMULATOR_HOST}:${EMULATOR_RTDB_PORT}/systemData/device-001.json?ns=${NAMESPACE}&auth=${idToken}`);
+  assert(otherHistoryRes.status === 401 || otherHistoryRes.status === 403, `Device should not read another device's history (HTTP ${otherHistoryRes.status})`);
+
+  console.log("\nALL SCHEDULE RESTORE AND HISTORY TESTS PASSED.");
 }
 
 // ---------------------------------------------------------

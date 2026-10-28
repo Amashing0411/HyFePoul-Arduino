@@ -1,14 +1,102 @@
-page Logo p0 - Logo/Loading Screen
-page Home t0 - Hopper Load Label
-page Home t1 - Water Level Label
-page Home t2 - Feed Amount
-page Home t3 - Water Level Status
-page Home t4 - Status
-page Home t5 - Time
-page Home t6 - Current Time Label
-page Home t7 - Feed Amount Unit (g)
-page Home b0 - Set Feed Schedule
-page Home b1 - Log Book
-page Home b2 - Set Feed Weight
-page Home b3 - Stop
-page Home b4 - Start
+HyFePoul Nextion project: ChickenFeederV1 (1).hmi
+Resolution: 800x480; Mega UART: Serial2, 9600 baud
+Architecture: Nextion is the onsite operator panel; Mega owns local logic and safety.
+The Android app is the away-from-device interface through Firebase; it never talks to the Mega.
+
+Pages (page ID / editor page / purpose)
+0 Logo         startup screen; uses HyFePoul app logo resource ID 2
+1 Home         onsite status, Feed Now, Stop / Reset Stop, local navigation
+2 Sched        three app-synchronized feeding schedules; opens one editor per slot
+3 Log          newest four cloud system-data snapshots, newest first (same records as app History)
+4 Grams        local manual target in grams per tray
+5 Sched1       time editor for local schedule slot 1
+6 Sched2       time editor for local schedule slot 2
+7 Sched3       time editor for local schedule slot 3
+8 keybdB       internal numeric keyboard page
+9 SystemCheck  live hopper, water, ESP32-link and target readouts
+
+Home fields (component ID / purpose / Mega behavior)
+t0  static caption "Feed in Trays:"
+t1  static caption "Water Level:"
+t2  total grams measured across the five trays
+t3  water state
+t4  status / current feed-cycle step
+t5  local clock HH:MM:SS
+t6  static caption "LOCAL TIME:"
+t7  static unit "g"
+
+Home actions
+b0  Schedule overview
+b1  History
+b2  Feed Target
+b3  Stop; latches the software stop and turns actuators off; red, high-visibility control
+b4  Feed Now; becomes Reset Stop when the software stop is latched; green, high-visibility control
+b5  System Check
+The four navigation buttons form a spaced vertical stack on the left side of Home.
+Navigation and action touches are handled by the HMI; only the controls that need Mega
+handling send a touch component frame.
+
+History page (p3; HMI page name remains Log)
+t1..t4  newest four valid `/systemData/{deviceId}` snapshots; t1 is newest.
+        Each card shows MM-DD HH:MM, total tray feed grams, hopper percentage,
+        reservoir water state and dispenser state, matching the app's Recent
+        History fields. These are the same cloud snapshots, not the SD CSV.
+b0       Back to Home (navy with white label)
+b1       Refresh (requests the newest cloud rows from the ESP32; green with black
+         label; touch ID 4)
+
+The ESP32 reads the latest four snapshots ordered by `timestamp`, validates the
+History fields and sends them newest first. The Mega applies the project's fixed
+UTC+8 offset when formatting the timestamp, matching the intended phone timezone.
+When the cloud history is empty the HMI shows NO HISTORY YET; when the ESP32 or
+Firebase read fails it shows HISTORY UNAVAILABLE. SD event logging continues
+locally but is not the source for this History page. An opened page requests a new
+snapshot set; Refresh repeats that request.
+
+System Check page (p9; editor page name SystemCheck)
+t1  hopper percentage
+t2  reservoir water state (OK or LOW - REFILL)
+t3  ESP32 link state (OK or OFF)
+t4  per-tray manual feed target in grams
+b0  Back to Home (navy with white label)
+b1  Refresh all four readouts, paced across four updates (green with black label;
+    touch ID 4)
+
+Feed Target touch IDs
+b1  ID 5  increase the draft by 10 g
+b2  ID 6  decrease the draft by 10 g
+b3  ID 4  save the local manual-feed target to EEPROM; bright green Save control
+b0        Back to Home; navy control
+
+Schedule editor touch IDs (same mapping on pages 5, 6, and 7)
+b1  ID 7   increase hour
+b2  ID 8   decrease hour
+b3  ID 9   increase minute
+b4  ID 10  decrease minute
+b5  ID 11  save schedule time to EEPROM
+
+Schedule overview display fields (one Mega update per 100 ms tick)
+Slot labels t1/t2/t3 show S1/S2/S3, the target grams and ON/OFF state from
+the Mega schedule array, which is updated from the app by ESP32 `SCHEDULE_SET`.
+Slot 1: t4 = hour with colon (HH:); t7 = minute (MM)
+Slot 2: t5 = hour with colon (HH:); t6 = minute (MM)
+Slot 3: t8 = hour with colon (HH:); t9 = minute (MM)
+Disabled slot: hour field displays OFF; minute field is blank.
+
+Branding and layout
+- Startup screen uses the HyFePoul app mark from assets/hyfepoul-logo-480.png, imported
+  as picture resource ID 2 and centered on the 800x480 canvas. The university seal was removed.
+- High-visibility green is reserved for Feed Now, Save and Refresh; navy is used for Back;
+  Stop remains red. Readout cards remain neutral so controls retain clear visual priority.
+- Home navigation controls use a four-row vertical stack with consistent spacing.
+- Recent History shows cloud snapshots also displayed in the app; System Check shows current Mega readings.
+
+Schedule values set in the app reach the Mega through the existing cloud
+`SCHEDULE_SET` flow and are displayed on this page (time, target and enabled state).
+Onsite schedule-editor Save still changes hour/minute in Mega EEPROM only; it does
+not write back to Firebase and a later cloud restore can replace it (R-54). The HMI
+editor has no onsite schedule target or enable/disable control.
+
+Simulation and source review confirm the IDs/page routing and Mega touch handling.
+Physical panel display, touch, UART levels, SD read path and button feel remain
+unverified until HIT-12 is completed on the assembled device.

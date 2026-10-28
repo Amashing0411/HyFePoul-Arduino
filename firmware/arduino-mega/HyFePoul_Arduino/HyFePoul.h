@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <RTClib.h>
+#include <avr/wdt.h>
 
 // Ensure constants defined in Config.ino are visible to HyFePoul_Arduino.ino
 extern const unsigned long MAIN_LOOP_DELAY_MS;
@@ -42,6 +43,11 @@ struct DailyStats {
   uint16_t estops;
   uint8_t checksum;
 };
+
+// Watchdog.ino: runs in .init3, before main(), to read the reset cause and
+// switch off a watchdog left running by a watchdog reset. naked: no
+// prologue/epilogue, as required for the .initN sections.
+void captureResetFlags(void) __attribute__((naked, used, section(".init3")));
 
 void enterCycleStep(CycleStep step);
 bool setChainDirection(ChainDirection direction);

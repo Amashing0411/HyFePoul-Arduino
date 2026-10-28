@@ -108,6 +108,7 @@ bool pruneOldLogs(long currentIndex, bool oldestOnly) {
   bool deleted = false;
 
   while (true) {
+    feedWatchdog(); // a card full of files can take a while to list
     File entry = root.openNextFile();
     if (!entry) break;
     char name[13];

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.0//EN'
+  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg width="507.27559055118115" height="152" preserveAspectRatio="xMinYMin meet" viewBox="0 0 507 152" xmlns="http://www.w3.org/2000/svg" version="1.0" fill-rule="evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<title>HyFePoul: command</title>
+	<desc>Functional illustration for the commissioning manuals; not a construction drawing.</desc>
+	<clipPath id="clip">
+		<rect x="0" y="0" width="507.27559055118115" height="152"/>
+	</clipPath>
+	<g id="group" transform="scale(1,-1) translate(0,-152)" style="clip-path: url(#clip)">
+		<g transform="">
+			<rect x="0" y="0" width="507.27559055118115" height="152" rx="8" ry="8" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(93%,96%,96%); fill-rule: evenodd;"/>
+			<rect x="14" y="65" width="109" height="64" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="46.038818359375" y="111" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,222) scale(1,-1)">QUEUED</text>
+			<text x="45.989013671875" y="95" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,190) scale(1,-1)">In Firebase</text>
+			<path d="M 123,96 L 138,96 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="138 96, 133 93.5, 133 98.5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<rect x="138" y="65" width="109" height="64" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="146.4189453125" y="111" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,222) scale(1,-1)">ACKNOWLEDGED</text>
+			<text x="162.984130859375" y="95" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,190) scale(1,-1)">Mega received</text>
+			<path d="M 247,96 L 262,96 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="262 96, 257 93.5, 257 98.5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<rect x="262" y="65" width="109" height="64" rx="6" ry="6" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,18%,27%); fill-rule: evenodd;"/>
+			<text x="285.87158203125" y="111" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,222) scale(1,-1)">EXECUTING</text>
+			<text x="288.98583984375" y="95" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,190) scale(1,-1)">Cycle running</text>
+			<path d="M 371,96 L 386,96 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="386 96, 381 93.5, 381 98.5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<rect x="386" y="65" width="109" height="64" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="407.5413818359375" y="111" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,222) scale(1,-1)">COMPLETED</text>
+			<text x="409.485595703125" y="95" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,190) scale(1,-1)">Result received</text>
+			<text x="85.30527574434055" y="38" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,76) scale(1,-1)">FAILED can replace the success path when a command is rejected or a fault occurs.</text>
+			<text x="102.80429918184055" y="19" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,38) scale(1,-1)">A cloud status is evidence to investigate alongside the physical mechanism.</text>
+		</g>
+	</g>
+</svg>

@@ -72,6 +72,14 @@ firebase.json, .firebaserc         Firebase CLI config (project: hyfepoul-dev)
 
 ## Getting started
 
+### Illustrated manuals
+
+The [four-manual set](docs/manuals/README.md) includes printable PDFs and editable
+Markdown for daily use, hardware/technical work, troubleshooting, and account/device
+setup. Edition 1.0 contains 36 pages with diagrams, simulator screenshots and
+commissioning worksheets. It describes the current implementation and identifies
+the physical checks still required before client handover.
+
 ### Prerequisites
 
 - Node.js 22 and npm

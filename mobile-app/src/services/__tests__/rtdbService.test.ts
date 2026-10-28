@@ -1,4 +1,5 @@
 import { describe, it, expect, jest, beforeAll, afterAll } from '@jest/globals';
+import { deleteApp } from 'firebase/app';
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(),
@@ -141,6 +142,7 @@ describe('rtdbService - owner data access (emulator)', () => {
 
   afterAll(async () => {
     await signOut(auth);
+    await deleteApp(auth.app);
   });
 
   it('getDevicesByOwner returns only the signed-in owner\'s devices', async () => {

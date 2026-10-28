@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.0//EN'
+  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg width="507.27559055118115" height="192" preserveAspectRatio="xMinYMin meet" viewBox="0 0 507 192" xmlns="http://www.w3.org/2000/svg" version="1.0" fill-rule="evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<title>HyFePoul: uart</title>
+	<desc>Functional illustration for the commissioning manuals; not a construction drawing.</desc>
+	<clipPath id="clip">
+		<rect x="0" y="0" width="507.27559055118115" height="192"/>
+	</clipPath>
+	<g id="group" transform="scale(1,-1) translate(0,-192)" style="clip-path: url(#clip)">
+		<g transform="">
+			<rect x="0" y="0" width="507.27559055118115" height="192" rx="8" ry="8" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(93%,96%,96%); fill-rule: evenodd;"/>
+			<rect x="16" y="63" width="128" height="100" rx="6" ry="6" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,18%,27%); fill-rule: evenodd;"/>
+			<text x="53.4423828125" y="145" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,290) scale(1,-1)">Mega 2560</text>
+			<text x="37.21484374999999" y="129" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,258) scale(1,-1)">Serial1: 115200 baud</text>
+			<rect x="364" y="63" width="128" height="100" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="411.6552734375" y="145" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,290) scale(1,-1)">ESP32</text>
+			<text x="385.21484375" y="129" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,258) scale(1,-1)">Serial2: 115200 baud</text>
+			<text x="46.73120117187499" y="85" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,170) scale(1,-1)">TX1 18 / RX1 19</text>
+			<text x="394.731201171875" y="85" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,170) scale(1,-1)">RX2 16 / TX2 17</text>
+			<rect x="174" y="111" width="160" height="48" rx="6" ry="6" style="stroke: rgb(83%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="225.9888916015625" y="141" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10.5px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,282) scale(1,-1)">5 V to 3.3 V</text>
+			<text x="209.727294921875" y="125" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,250) scale(1,-1)">Verified level interface</text>
+			<path d="M 144,135 L 174,135 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="174 135, 169 132.5, 169 137.5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<path d="M 334,135 L 364,135 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="364 135, 359 132.5, 359 137.5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<path d="M 364,76 L 144,76 Z" style="stroke: rgb(3%,49%,51%); stroke-linecap: butt; stroke-width: 1.7;"/>
+			<polygon points="144 76, 149 78.5, 149 73.5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,49%,51%); fill-rule: evenodd;"/>
+			<text x="213.091796875" y="83.0" style="font-family: Arial, sans-serif; font-size: 8px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,166) scale(1,-1)">ESP32 TX to Mega RX</text>
+			<text x="123.07407457246555" y="39" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,78) scale(1,-1)">Cross TX to RX; verify grounds and signal voltages before power.</text>
+			<text x="105.04770738496555" y="21" style="font-family: Arial, sans-serif; font-size: 9px;fill: rgb(13%,22%,29%); stroke:none;" transform="translate(0,42) scale(1,-1)">Nextion uses the separate Mega Serial2 port: TX 16 / RX 17 at 9600 baud.</text>
+		</g>
+	</g>
+</svg>
