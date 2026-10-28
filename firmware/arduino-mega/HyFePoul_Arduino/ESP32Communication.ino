@@ -23,6 +23,9 @@ String esp32ReceiveBuffer = "";
 void handleESP32Communication() {
   receiveESP32Messages();
 
+  // R-54: resend panel schedule edits until the cloud has them.
+  handleScheduleSync();
+
   // Send periodic sensor/status data.
   static unsigned long lastDataSendMillis = 0;
 
@@ -101,6 +104,12 @@ void processESP32Line(String line) {
   if (line.startsWith("HIST|")) {
     processNextionHistoryLine(line);
     if (line == "HIST|END") finishNextionHistory();
+    return;
+  }
+
+  // R-54: the cloud now holds a schedule edited on the panel.
+  if (line.startsWith("SCHED_SYNCED|")) {
+    handleScheduleSynced(line);
     return;
   }
 
@@ -283,6 +292,15 @@ void processRemoteCommand(String line) {
       sendCmdAck(cmdId, "REJECTED", "INVALID_TARGET");
       return;
     }
+
+    // R-54: a restore (IDs R0-R2) carries the older cloud copy; it must not
+    // undo a panel edit that has not reached the cloud yet. An app edit
+    // (any other ID) is newer and replaces it.
+    if (cmdId.startsWith("R") && scheduleEditPending(idx)) {
+      sendCmdAck(cmdId, "REJECTED", "LOCAL_EDIT_PENDING");
+      return;
+    }
+    clearScheduleEdit(idx);
 
     feedSchedules[idx].hour = hr;
     feedSchedules[idx].minute = mn;

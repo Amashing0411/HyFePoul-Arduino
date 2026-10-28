@@ -303,6 +303,9 @@ void initializeSystem() {
 
   // After SD so the load result is logged.
   initializeSchedules();
+
+  // Panel schedule edits still waiting for the cloud (R-54).
+  initializeScheduleSync();
   initializeManualFeedTarget();
 
   // Today's / yesterday's totals from EEPROM (after the RTC).

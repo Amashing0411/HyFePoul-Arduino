@@ -11,8 +11,8 @@ each app-synchronized slot's time, target grams and enabled state. The source
 RTDB rules grant the matching device Auth account read access only to its own
 history node; this additional rule has not yet been deployed to production.
 The HMI source, protocol and simulator are updated; `docs/nextion-app-history-sync-2026-10-28.md`
-records behavior, tests and the deployment gate. Local schedule time edits still
-save only to Mega EEPROM; write-back/conflict handling remains R-54. Physical
+records behavior, tests and the deployment gate. Local schedule time edits are written
+back to Firebase and win over older cloud copies until synced (R-54, rules change ships with R-45). Physical
 Firebase reads, panel UART, touch, display wrap and values remain unverified
 until HIT-12.
 

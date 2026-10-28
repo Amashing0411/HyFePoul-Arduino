@@ -443,6 +443,8 @@ void handleNextionTouch(uint8_t pageId, uint8_t componentId) {
       saved.hour = nextionScheduleDraft.hour;
       saved.minute = nextionScheduleDraft.minute;
       saveSchedulesToEEPROM();
+      // R-54: send it to the cloud so the app shows the same schedule.
+      markScheduleEditedLocally(nextionDraftScheduleIndex);
       refreshScheduleOverview();
       logEventToSD("NEXTION_SCHEDULE_SAVED");
       Serial.print(F("Nextion schedule saved: slot "));

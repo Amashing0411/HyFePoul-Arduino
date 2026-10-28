@@ -93,9 +93,10 @@ Branding and layout
 
 Schedule values set in the app reach the Mega through the existing cloud
 `SCHEDULE_SET` flow and are displayed on this page (time, target and enabled state).
-Onsite schedule-editor Save still changes hour/minute in Mega EEPROM only; it does
-not write back to Firebase and a later cloud restore can replace it (R-54). The HMI
-editor has no onsite schedule target or enable/disable control.
+Onsite schedule-editor Save changes hour/minute in Mega EEPROM and is sent to the
+cloud (R-54): the ESP32 writes it to /schedules, so the app shows the same time.
+Until the cloud confirms, a schedule restore cannot replace it; an app edit made
+after it wins. The HMI editor has no onsite schedule target or enable/disable control.
 
 Simulation and source review confirm the IDs/page routing and Mega touch handling.
 Physical panel display, touch, UART levels, SD read path and button feel remain

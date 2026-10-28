@@ -138,6 +138,19 @@ unsigned long scheduleRestoreSentMillis = 0;
 unsigned long nextScheduleRestoreMillis = 0;
 String scheduleRestoreLines[SCHEDULE_SLOT_COUNT];
 
+// R-54: schedule times saved on the Nextion. The Mega sends
+// SCHED_LOCAL|IDX|HR|MIN|TGT|EN (and resends every 30 s); the ESP32 writes the
+// slot to /schedules/{deviceId}/sched_N (updatedBy "panel"), records it in
+// scheduleStatus, and answers SCHED_SYNCED|IDX:n. If an app edit for the same
+// slot reaches the Mega after a panel edit was written, the cloud is set to
+// the app edit again, so /schedules always matches what the Mega runs.
+const unsigned long SCHEDULE_WRITEBACK_RETRY_MS = 5000;
+const unsigned long PANEL_EDIT_WINDOW_MS = 600000; // 10 min
+String scheduleWritebackLines[SCHEDULE_SLOT_COUNT];
+uint8_t scheduleWritebackMask = 0; // bit i = slot i waiting to be written
+unsigned long lastScheduleWritebackMillis = 0;
+unsigned long panelEditWrittenMillis[SCHEDULE_SLOT_COUNT] = {0, 0, 0};
+
 void setup() {
   Serial.begin(115200);
   MEGA_SERIAL.begin(MEGA_BAUD_RATE, SERIAL_8N1, MEGA_RX_PIN, MEGA_TX_PIN);
@@ -208,6 +221,7 @@ void loop() {
 
   // 6. Re-send schedules to the Mega when needed
   handleScheduleRestore();
+  processScheduleWritebacks();
 
   // 7. Write alerts raised while offline, then mark recovered ones resolved
   processPendingAlerts();
@@ -496,6 +510,10 @@ void processMegaLine(String line) {
     }
   }
   // SUMMARY|YYYY-MM-DD|feedG|done|incomplete|trayTimeouts|chainFaults|lowWater|lowFeed|estops
+  // SCHED_LOCAL|IDX:n|HR:h|MIN:m|TGT:g|EN:e  (R-54, schedule saved on the panel)
+  else if (line.startsWith("SCHED_LOCAL|")) {
+    noteScheduleWriteback(line);
+  }
   else if (line.startsWith("SUMMARY|")) {
     sendDailySummary(line);
   }
@@ -530,7 +548,10 @@ void processMegaLine(String line) {
       if (status == "ACCEPTED") {
         activeCommandStatus = "executing";
         updateCommandStatus(activeCommandId, "executing", "");
-        if (activeCommandName == "SCHEDULE_SET") reportScheduleApplied(activeCommandLine);
+        if (activeCommandName == "SCHEDULE_SET") {
+          reportScheduleApplied(activeCommandLine);
+          appScheduleAccepted(activeCommandLine);
+        }
       } else if (status == "REJECTED") {
         updateCommandStatus(activeCommandId, "failed", reason.length() > 0 ? reason : "REJECTED_BY_MEGA");
         if (activeCommandName == "SCHEDULE_SET") requestScheduleRestore();
@@ -1209,6 +1230,23 @@ void abortScheduleRestore() {
 }
 
 void handleScheduleRestoreAck(const String& status, const String& reason) {
+  if (status == "REJECTED" && reason == "LOCAL_EDIT_PENDING") {
+    // R-54: the panel edit for this slot is newer than the cloud copy; it is
+    // on its way to the cloud. Skip the slot and restore the others.
+    Serial.print("Schedule restore: slot ");
+    Serial.print(scheduleRestoreIndex);
+    Serial.println(" kept (panel edit pending).");
+    scheduleRestoreIndex++;
+    if (scheduleRestoreIndex >= SCHEDULE_SLOT_COUNT) {
+      scheduleRestoreIndex = -1;
+      scheduleRestorePending = false;
+      Serial.println("Schedule restore complete.");
+      return;
+    }
+    sendScheduleRestoreLine();
+    return;
+  }
+
   if (status != "ACCEPTED") {
     Serial.print("Schedule restore: slot rejected by Mega (");
     Serial.print(reason);
@@ -1259,6 +1297,96 @@ void reportScheduleApplied(const String& line) {
   http.addHeader("Content-Type", "application/json");
   noteHttpResult(http.PUT(payload));
   http.end();
+}
+
+// ---------------------------------------------------------
+// R-54: panel schedule edits -> /schedules
+// ---------------------------------------------------------
+int scheduleIndexOf(const String& line) {
+  String idx = extractValue(line, "IDX:");
+  if (idx.length() == 0) return -1;
+  int i = idx.toInt();
+  return (i >= 0 && i < SCHEDULE_SLOT_COUNT) ? i : -1;
+}
+
+// Validates a SCHED_LOCAL line and queues it (a newer one replaces it).
+void noteScheduleWriteback(const String& line) {
+  int i = scheduleIndexOf(line);
+  int hour = extractValue(line, "HR:").toInt();
+  int minute = extractValue(line, "MIN:").toInt();
+  long grams = extractValue(line, "TGT:").toInt();
+  String en = extractValue(line, "EN:");
+  if (i < 0 || hour < 0 || hour > 23 || minute < 0 || minute > 59 ||
+      grams < 1 || grams > 1000 || (en != "0" && en != "1")) {
+    Serial.println("SCHED_LOCAL ignored: invalid values");
+    return;
+  }
+  scheduleWritebackLines[i] = line;
+  scheduleWritebackMask |= (1 << i);
+  lastScheduleWritebackMillis = millis() - SCHEDULE_WRITEBACK_RETRY_MS; // try now
+}
+
+// PUTs one slot of /schedules from a line with IDX/HR/MIN/TGT/EN fields.
+bool writeScheduleDoc(const String& line, const char* updatedBy) {
+  int i = scheduleIndexOf(line);
+  uint64_t now = getTimestampMillis();
+  if (i < 0 || now < 1000000000000ULL) return false;
+
+  StaticJsonDocument<320> doc;
+  doc["scheduleId"] = String("sched_") + i;
+  doc["hour"] = extractValue(line, "HR:").toInt();
+  doc["minute"] = extractValue(line, "MIN:").toInt();
+  doc["targetGrams"] = extractValue(line, "TGT:").toInt();
+  doc["enabled"] = extractValue(line, "EN:") == "1";
+  JsonArray days = doc.createNestedArray("daysOfWeek");
+  for (int d = 1; d <= 7; d++) days.add(d); // the Mega runs schedules daily
+  doc["updatedBy"] = updatedBy;
+  doc["updatedAt"] = now;
+  String payload;
+  serializeJson(doc, payload);
+
+  HTTPClient http;
+  String path = String("schedules/") + DEVICE_ID + "/sched_" + i + ".json";
+  if (!beginRequest(http, getDatabaseUrl(path.c_str()))) return false;
+  http.addHeader("Content-Type", "application/json");
+  int code = http.PUT(payload);
+  http.end();
+  noteHttpResult(code);
+  return code == 200;
+}
+
+// One pending slot per call, retried every SCHEDULE_WRITEBACK_RETRY_MS.
+void processScheduleWritebacks() {
+  if (scheduleWritebackMask == 0) return;
+  if (!hasValidToken() || WiFi.status() != WL_CONNECTED) return;
+  if (millis() - lastScheduleWritebackMillis < SCHEDULE_WRITEBACK_RETRY_MS) return;
+  lastScheduleWritebackMillis = millis();
+
+  int i = 0;
+  while (!(scheduleWritebackMask & (1 << i))) i++;
+  const String& line = scheduleWritebackLines[i];
+  if (!writeScheduleDoc(line, "panel")) return; // retry later
+
+  scheduleWritebackMask &= ~(1 << i);
+  panelEditWrittenMillis[i] = millis();
+  reportScheduleApplied(line); // the Mega already runs it
+  sendToMega(String("SCHED_SYNCED|IDX:") + i);
+  Serial.print("Panel schedule edit written to the cloud: slot ");
+  Serial.println(i);
+}
+
+// The Mega accepted an app SCHEDULE_SET: that is the newest change for the
+// slot. Drop a panel edit still queued for it, and if a panel edit was
+// written in the last few minutes (it may have landed after the app's own
+// write), write the app's values again so /schedules matches the Mega.
+void appScheduleAccepted(const String& commandLine) {
+  int i = scheduleIndexOf(commandLine);
+  if (i < 0) return;
+  scheduleWritebackMask &= ~(1 << i);
+  if (panelEditWrittenMillis[i] != 0 &&
+      millis() - panelEditWrittenMillis[i] < PANEL_EDIT_WINDOW_MS) {
+    if (writeScheduleDoc(commandLine, "app")) panelEditWrittenMillis[i] = 0;
+  }
 }
 
 void handleScheduleRestore() {
