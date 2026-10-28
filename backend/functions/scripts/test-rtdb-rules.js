@@ -395,15 +395,31 @@ async function runTests() {
     }));
   });
 
-  await test("Schedules: device cannot modify schedules", async () => {
-    await assertFails(esp32_3Db.ref("schedules/dev3/sched_0").set({
-      scheduleId: "sched_0",
-      hour: 10,
-      minute: 0,
-      targetGrams: 250,
-      enabled: true,
-      daysOfWeek: [1]
-    }));
+  // R-54: the device writes a schedule edited on the onsite panel.
+  const panelEdit = (extra = {}) => ({
+    scheduleId: "sched_0", hour: 10, minute: 30, targetGrams: 50, enabled: true,
+    daysOfWeek: [1, 2, 3, 4, 5, 6, 7], updatedBy: "panel", updatedAt: 1790000000000, ...extra,
+  });
+
+  await test("Schedules: device writes its own schedule edited on the panel (R-54)", async () => {
+    await assertSucceeds(esp32_3Db.ref("schedules/dev3/sched_0").set(panelEdit()));
+  });
+
+  await test("Schedules: device writes are validated like the owner's", async () => {
+    await assertFails(esp32_3Db.ref("schedules/dev3/sched_0").set(panelEdit({ hour: 25 })));
+    await assertFails(esp32_3Db.ref("schedules/dev3/sched_0").set(panelEdit({ targetGrams: 1500 })));
+    await assertFails(esp32_3Db.ref("schedules/dev3/sched_0").set(panelEdit({ updatedBy: "hacker" })));
+    await assertFails(esp32_3Db.ref("schedules/dev3/sched_0").set(panelEdit({ updatedAt: "now" })));
+    await assertFails(esp32_3Db.ref("schedules/dev3/sched_0").set({ hour: 10, minute: 30 }));
+  });
+
+  await test("Schedules: another device cannot write this device's schedules", async () => {
+    await assertFails(esp32Db.ref("schedules/dev3/sched_0").set(panelEdit()));
+  });
+
+  await test("Schedules: the owner can still save over a panel edit", async () => {
+    const { updatedBy, updatedAt, ...ownerSave } = panelEdit({ hour: 11 });
+    await assertSucceeds(owner3Db.ref("schedules/dev3/sched_0").set(ownerSave));
   });
 
   await test("Schedules: unauthenticated cannot read schedules", async () => {

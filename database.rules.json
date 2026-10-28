@@ -110,8 +110,14 @@
       "$deviceId": {
         ".read": "auth != null && (root.child('devices').child($deviceId).child('ownerId').val() === auth.uid || root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid)",
         "$scheduleId": {
-          ".write": "auth != null && root.child('devices').child($deviceId).child('ownerId').val() === auth.uid",
+          ".write": "auth != null && (root.child('devices').child($deviceId).child('ownerId').val() === auth.uid || root.child('devices').child($deviceId).child('deviceAuthUid').val() === auth.uid)",
           ".validate": "newData.hasChildren(['scheduleId', 'hour', 'minute', 'targetGrams', 'enabled', 'daysOfWeek'])",
+          "updatedBy": {
+            ".validate": "newData.isString() && newData.val().matches(/^(panel|app)$/)"
+          },
+          "updatedAt": {
+            ".validate": "newData.isNumber()"
+          },
           "scheduleId": {
             ".validate": "newData.isString() && newData.val() === $scheduleId"
           },

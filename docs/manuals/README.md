@@ -17,8 +17,8 @@ owner's away-from-device surface; the Nextion is the onsite interface. The
 HMI's Home button is captioned **History**; it opens the Recent History page
 showing the newest four cloud snapshots from the same RTDB source as the app.
 The schedule overview reflects app-synchronized time, target and enabled state.
-The manuals call out that onsite schedule edits remain local EEPROM changes and
-may be replaced by a cloud restore (R-54). The HMI uses the HyFePoul logo,
+Onsite schedule time edits are sent to the cloud and shown in the app (R-54);
+the PDFs predate this and are updated at the next manual rebuild. The HMI uses the HyFePoul logo,
 retains SD event logging locally, and has a separate System Check page. The four
 PDFs have been rebuilt and visually inspected page by page. The device-scoped
 RTDB permission needed by HMI History is in source but still requires production

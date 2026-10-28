@@ -196,6 +196,17 @@ A `SCHEDULE_SET` that fails for any of these reasons also triggers a schedule re
   - If a line is rejected (for example `SYSTEM_BUSY` during a feed) or gets no ACK within 3 s, the restore is retried after 30 s.
   - Command polling pauses during a restore.
   - Restore IDs are never written to `/commands`.
+- **Panel edits reach the cloud (R-54).** A schedule time saved in the Nextion editor is written to EEPROM, marked pending (EEPROM address 121, so a restart keeps it) and sent to the ESP32:
+
+  ```
+  Mega  -> ESP32: SCHED_LOCAL|IDX:<i>|HR:<h>|MIN:<m>|TGT:<whole grams>|EN:<0|1>
+  ESP32 -> Mega:  SCHED_SYNCED|IDX:<i>
+  ```
+
+  The ESP32 writes the slot to `/schedules/{deviceId}/sched_<i>` (with `updatedBy: "panel"`, `updatedAt`), records it in `scheduleStatus`, then answers `SCHED_SYNCED`, which clears the pending mark. The Mega resends pending slots every 30 s (covering an ESP32 restart or a lost reply); the ESP32 retries a failed write every 5 s.
+- **Conflicts: the latest change to reach the Mega wins, and the cloud follows it.**
+  - While a slot is pending, a restore line (`R<i>`, the older cloud copy) is answered `CMD_ACK|ID:R<i>|STATUS:REJECTED|REASON:LOCAL_EDIT_PENDING`; the ESP32 skips that slot and restores the others.
+  - An app `SCHEDULE_SET` that reaches the Mega after the panel save is newer: the Mega applies it and clears the pending mark, and the ESP32 drops a queued panel write for that slot. If a panel write landed in the last 10 minutes (possibly after the app's own save), the ESP32 writes the app's values to `/schedules` again (`updatedBy: "app"`), so the cloud always matches what the Mega runs.
 - **Device confirmation (R-43).** When the Mega answers a `SCHEDULE_SET` (from the app or a restore) with `CMD_ACK ACCEPTED`, it has already saved the slot to EEPROM. The ESP32 then writes the values from that exact line to `scheduleStatus/{deviceId}/sched_<i>` (`hour`, `minute`, `targetGrams`, `enabled`, `appliedAt`). The app compares these with `/schedules` and shows each schedule as "On device" or "Waiting for device". A failed write is not retried; the next restore (on reconnect or Mega boot) writes it again.
 
 ## 7a. HMI Recent History request
@@ -225,10 +236,9 @@ A `SCHEDULE_SET` that fails for any of these reasons also triggers a schedule re
   `deviceAuthUid`, as well as the existing owner read. That device read rule
   must be deployed before this feature can read production history.
 - Schedule overview labels display each accepted slot's target and enabled
-  state alongside its time. App schedule changes already travel through
-  `/schedules` and `SCHEDULE_SET` to the Mega. The HMI editor still writes only
-  hour/minute to local EEPROM; it does not write changes back to Firebase
-  (R-54).
+  state alongside its time. App schedule changes travel through
+  `/schedules` and `SCHEDULE_SET` to the Mega, and HMI editor saves travel back
+  to `/schedules` through `SCHED_LOCAL` (§7, R-54).
 
 ## 8. Timing summary
 

@@ -149,6 +149,7 @@ async function simulate() {
 
   await testCommands();
   await testScheduleRestore();
+  await testScheduleWriteback();
   await testAlertResolution();
   await testOfflineAlerts();
   await testMegaLink();
@@ -692,6 +693,88 @@ function reportScheduleAppliedPayload(line) {
     hour: parseInt(v("HR:"), 10), minute: parseInt(v("MIN:"), 10),
     targetGrams: parseInt(v("TGT:"), 10), enabled: v("EN:") === "1", appliedAt: Date.now(),
   };
+}
+
+// ---------------------------------------------------------
+// R-54: panel schedule edits -> /schedules, mirroring noteScheduleWriteback(),
+// writeScheduleDoc(), processScheduleWritebacks(), appScheduleAccepted() and
+// the LOCAL_EDIT_PENDING skip in handleScheduleRestoreAck()
+// ---------------------------------------------------------
+function scheduleDocFromLine(line, updatedBy) {
+  const v = reportScheduleAppliedPayload(line);
+  const idx = parseInt(line.match(/IDX:(\d)/)[1], 10);
+  return {
+    idx,
+    doc: {
+      scheduleId: `sched_${idx}`, hour: v.hour, minute: v.minute, targetGrams: v.targetGrams,
+      enabled: v.enabled, daysOfWeek: [1, 2, 3, 4, 5, 6, 7], updatedBy, updatedAt: Date.now(),
+    },
+  };
+}
+
+async function writeScheduleDoc(line, updatedBy) {
+  const { idx, doc } = scheduleDocFromLine(line, updatedBy);
+  const res = await fetch(getDbUrl(`schedules/${DEVICE_ID}/sched_${idx}.json`), {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(doc),
+  });
+  return res.status === 200;
+}
+
+async function readSchedule(idx) {
+  const res = await fetch(`http://${EMULATOR_HOST}:${EMULATOR_RTDB_PORT}/schedules/${DEVICE_ID}/sched_${idx}.json?ns=${NAMESPACE}`, {
+    headers: { 'Authorization': 'Bearer owner' },
+  });
+  return res.json();
+}
+
+// Restore walk: returns which slots were applied and which kept (panel edit pending).
+function restoreWalk(acks) {
+  const applied = [], kept = [];
+  for (let i = 0; i < acks.length; i++) {
+    const { status, reason } = acks[i];
+    if (status === 'REJECTED' && reason === 'LOCAL_EDIT_PENDING') { kept.push(i); continue; }
+    if (status !== 'ACCEPTED') return { applied, kept, aborted: true };
+    applied.push(i);
+  }
+  return { applied, kept, aborted: false };
+}
+
+async function testScheduleWriteback() {
+  console.log("[R-54] Panel schedule write-back...");
+  const toMega = [];
+  // The Mega sends a panel edit for slot 0; the ESP32 writes it as the device.
+  const panelLine = "SCHED_LOCAL|IDX:0|HR:9|MIN:15|TGT:50|EN:1";
+  if (!(await writeScheduleDoc(panelLine, 'panel'))) throw new Error("Device could not write its schedule");
+  toMega.push("SCHED_SYNCED|IDX:0");
+  let s0 = await readSchedule(0);
+  if (s0.hour !== 9 || s0.minute !== 15 || s0.updatedBy !== 'panel' || s0.daysOfWeek.length !== 7) {
+    throw new Error(`Cloud schedule not updated from the panel: ${JSON.stringify(s0)}`);
+  }
+  if (toMega[0] !== "SCHED_SYNCED|IDX:0") throw new Error("No confirmation to the Mega");
+
+  // A newer app edit accepted by the Mega after the panel write: the cloud is set to it.
+  const appLine = "CMD|ID:C2|ACTION:SCHEDULE_SET|IDX:0|HR:8|MIN:30|TGT:60|EN:1";
+  if (!(await writeScheduleDoc(appLine, 'app'))) throw new Error("App values not written back");
+  s0 = await readSchedule(0);
+  if (s0.hour !== 8 || s0.minute !== 30 || s0.targetGrams !== 60 || s0.updatedBy !== 'app') {
+    throw new Error(`Cloud does not match the app edit: ${JSON.stringify(s0)}`);
+  }
+
+  // A restore that meets a pending panel edit skips that slot and continues.
+  const walk = restoreWalk([
+    { status: 'ACCEPTED' }, { status: 'REJECTED', reason: 'LOCAL_EDIT_PENDING' }, { status: 'ACCEPTED' },
+  ]);
+  if (walk.aborted || walk.kept.join() !== '1' || walk.applied.join() !== '0,2') throw new Error(JSON.stringify(walk));
+  const aborted = restoreWalk([{ status: 'REJECTED', reason: 'INVALID_TIME' }]);
+  if (!aborted.aborted) throw new Error("Other rejections must still retry the restore");
+
+  // Invalid panel values are refused by the rules (and by the ESP32 first).
+  const bad = await fetch(getDbUrl(`schedules/${DEVICE_ID}/sched_1.json`), {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(scheduleDocFromLine("SCHED_LOCAL|IDX:1|HR:25|MIN:0|TGT:50|EN:1", 'panel').doc),
+  });
+  if (bad.status === 200) throw new Error("Rules accepted hour 25");
+  console.log("[R-54] Panel schedule write-back OK");
 }
 
 async function testScheduleRestore() {
