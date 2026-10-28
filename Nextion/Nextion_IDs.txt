@@ -1,4 +1,4 @@
-HyFePoul Nextion project: ChickenFeederV1 (1).hmi
+HyFePoul Nextion project: HyFePoul.hmi
 Resolution: 800x480; Mega UART: Serial2, 9600 baud
 Architecture: Nextion is the onsite operator panel; Mega owns local logic and safety.
 The Android app is the away-from-device interface through Firebase; it never talks to the Mega.

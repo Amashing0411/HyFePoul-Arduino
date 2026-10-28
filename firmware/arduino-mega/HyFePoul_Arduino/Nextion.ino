@@ -1,7 +1,7 @@
 /*
   Nextion.ino
 
-  7-inch Nextion HMI (project: Nextion/ChickenFeederV1 (1).hmi, IDs in
+  7-inch Nextion HMI (project: Nextion/HyFePoul.hmi, IDs in
   Nextion/Nextion_IDs.txt). The HMI's Program.s sets baud=9600 and starts
   on page 0 (Logo).
 

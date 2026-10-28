@@ -10,7 +10,7 @@ shows up to 50 snapshots from that same node. Schedule overview now displays
 each app-synchronized slot's time, target grams and enabled state. The source
 RTDB rules grant the matching device Auth account read access only to its own
 history node; this additional rule has not yet been deployed to production.
-The HMI source, protocol and simulator are updated; `docs/nextion-app-history-sync-2026-10-28.md`
+The HMI source, protocol and simulator are updated; `docs/archive/nextion-app-history-sync-2026-10-28.md`
 records behavior, tests and the deployment gate. Local schedule time edits still
 save only to Mega EEPROM; write-back/conflict handling remains R-54. Physical
 Firebase reads, panel UART, touch, display wrap and values remain unverified
@@ -88,7 +88,7 @@ until hardware is available.
 that has not sent its first sensor update, and inaccessible Settings controls.
 Verified empty and populated Status/Feeding/Water views on the Android emulator
 using local Firebase, with temporary simulated readings. See the
-[verification record](mobile-empty-state-qa-2026-10-26.md) for scope and limitations.
+[verification record](archive/mobile-empty-state-qa-2026-10-26.md) for scope and limitations.
 
 **2026-10-27 HMI follow-up:** Renamed the Nextion Home page `t0` caption to
 "Feed in Trays:" to match the five-tray load-cell reading. Nextion compile passed
@@ -97,7 +97,7 @@ with 0 errors and 0 warnings; physical display appearance remains unverified.
 **2026-10-27 Firebase/app follow-up:** Local emulator verification passed: RTDB
 rules 88/88, mobile Jest 53/53 (8 suites, no open handles), ESP32 simulator,
 mobile command flow, and owner-to-device end-to-end journey. See the
-[QA record](firebase-emulator-qa-2026-10-27.md). Production provisioning and
+[QA record](archive/firebase-emulator-qa-2026-10-27.md). Production provisioning and
 physical hardware checks remain unverified.
 
 The same QA record now includes a visible Android 15 emulator walkthrough using
@@ -120,7 +120,7 @@ phone, or hardware.
 APK with an embedded app bundle and local-emulator-only HTTP access. It launched
 directly into HyFePoul and a disposable sign-up reached Claim Device through the
 local Auth emulator. Physical phone testing and production Firebase remain
-pending. See the [APK and emulator QA record](firebase-emulator-qa-2026-10-27.md).
+pending. See the [APK and emulator QA record](archive/firebase-emulator-qa-2026-10-27.md).
 
 **2026-10-27 commissioning firmware images:** The Mega and ESP32 compile outputs are saved locally under `firmware/build/commissioning-2026-10-27/`; the files are ignored by Git. The Mega build passed at 49,176 bytes flash and 3,191 bytes RAM. The ESP32 build passed at 1,147,088 bytes flash and 49,688 bytes RAM. Its local `Config.h` still has Wi-Fi placeholders, so rebuild after privately setting them before network testing. See [`firmware-build-environment.md`](firmware-build-environment.md) for paths and checksums.
 
@@ -165,14 +165,14 @@ Read these before starting new work:
 
 | Document | Use it for |
 |----------|-----------|
-| [`current-project-status-audit.md`](current-project-status-audit.md) | What works, what is only simulated, known defects, readiness by area |
+| [`archive/current-project-status-audit.md`](archive/current-project-status-audit.md) | What works, what is only simulated, known defects, readiness by area |
 | [`remaining-work-roadmap.md`](remaining-work-roadmap.md) | Prioritised open tasks (IDs `R-xx`), with files, tests and acceptance criteria |
 | [`device-provisioning-guide.md`](device-provisioning-guide.md) | Admin steps for the ESP32 Firebase account, device record, private setup PIN, app claim, and transfer |
 | [`mobile-app-completion-matrix.md`](mobile-app-completion-matrix.md) | Screen-by-screen app status and test evidence |
 | [`hardware-integration-test-plan.md`](hardware-integration-test-plan.md) | Physical tests `HIT-01`–`HIT-16`, all currently `BLOCKED` |
 | [`hardware-test-day-run-sheet.md`](hardware-test-day-run-sheet.md) | One ordered session plan for the 2026-10-28 prototype checks, with stop gates and completion criteria |
-| [`checkpoint-current-status-report.md`](checkpoint-current-status-report.md) | What was changed in the audit, commands run, results |
-| [`comprehensive-work-plan.md`](comprehensive-work-plan.md) | Full history: findings F1–F27, decisions D1–D6, per-phase evidence |
+| [`archive/checkpoint-current-status-report.md`](archive/checkpoint-current-status-report.md) | What was changed in the audit, commands run, results |
+| [`archive/comprehensive-work-plan.md`](archive/comprehensive-work-plan.md) | Full history: findings F1–F27, decisions D1–D6, per-phase evidence |
 
 ## Subsystems at a glance
 

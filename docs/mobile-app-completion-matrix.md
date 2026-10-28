@@ -4,7 +4,7 @@
 device with no sensor state. Status, Feeding, and Water showed placeholders
 indefinitely. This is now fixed and verified with empty and populated local
 emulator data; Settings scrolling was also fixed. See the
-[verification record](mobile-empty-state-qa-2026-10-26.md). The historical matrix
+[verification record](archive/mobile-empty-state-qa-2026-10-26.md). The historical matrix
 below is not evidence that every current screen behavior has been retested.
 
 **As of:** 2026-10-21, `main` at `c0dc92b`. App: React Native + Expo SDK 57, Android development build `com.hyfepoul.mobile`.
@@ -14,7 +14,7 @@ below is not evidence that every current screen behavior has been retested.
   - `rtdbIntegration.test.ts` (18 tests): auth, claiming, owner/device authorization, filtering, sign-out.
   - `rtdbService.test.ts` (7 tests): validators, owned-device query, history/alert ordering.
   - `deviceStatus.test.ts` (5 tests): online rule.
-- **Emulator:** manually exercised in the dev build on Android emulator `Medium_Phone_API_36.0` (Android 16) against the **local** Firebase emulators, with throwaway accounts and simulated device replies (sessions on 2026-10-21; evidence in `comprehensive-work-plan.md`).
+- **Emulator:** manually exercised in the dev build on Android emulator `Medium_Phone_API_36.0` (Android 16) against the **local** Firebase emulators, with throwaway accounts and simulated device replies (sessions on 2026-10-21; evidence in `archive/comprehensive-work-plan.md`).
 - **Phone:** a physical Android phone against production `hyfepoul-dev`. **Not done for any screen.**
 
 ✅ done / passed · ⚠️ partial or with a known issue · ❌ missing / not done · — not applicable

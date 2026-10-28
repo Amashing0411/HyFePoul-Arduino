@@ -77,4 +77,4 @@ Hardware block diagram (moving-hopper revision): [`diagrams/hyfepoul-block-diagr
 
 ## 6. Replaced design (not deployed)
 
-The original plan used Firebase Cloud Functions (HTTP endpoints for the ESP32 with header-based device secrets), Cloud Firestore and FCM push. It needs the Blaze plan, was never deployed, and the app no longer calls it. The code remains in `backend/functions` for reference, and the design is described in [`firebase-backend-architecture.md`](firebase-backend-architecture.md) and [`api-contract.md`](api-contract.md), both marked historical.
+The original plan used Firebase Cloud Functions (HTTP endpoints for the ESP32 with header-based device secrets), Cloud Firestore and FCM push. It needs the Blaze plan, was never deployed, and the app no longer calls it. The code remains in `archive/legacy-backend/functions` for reference, and the design is described in [`firebase-backend-architecture.md`](firebase-backend-architecture.md) and [`api-contract.md`](api-contract.md), both marked historical.
