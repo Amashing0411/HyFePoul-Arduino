@@ -1,6 +1,6 @@
 # HyFePoul: Remaining Work Roadmap
 
-**As of:** 2026-10-28. Updated for the moving-hopper design revision ([`design-revision-moving-hopper.md`](design-revision-moving-hopper.md)): chain motor, 5 tray load cells, gravity water, no pump. Earlier baseline: `main` at `c0dc92b`. See [`current-project-status-audit.md`](current-project-status-audit.md) for the current state and [`comprehensive-work-plan.md`](comprehensive-work-plan.md) for history.
+**As of:** 2026-10-28. Updated for the moving-hopper design revision ([`design-revision-moving-hopper.md`](design-revision-moving-hopper.md)): chain motor, 5 tray load cells, gravity water, no pump. Earlier baseline: `main` at `c0dc92b`. See [`archive/current-project-status-audit.md`](archive/current-project-status-audit.md) for the current state and [`archive/comprehensive-work-plan.md`](archive/comprehensive-work-plan.md) for history.
 
 Tasks are ordered by priority: **P1** safety and security, **P2** blockers for a working system, **P3** integration quality, **P4** usability and docs, **P5** optional. Status is one of `DONE`, `IN PROGRESS`, `BLOCKED` or `NOT STARTED`. **HW** = needs the physical prototype.
 

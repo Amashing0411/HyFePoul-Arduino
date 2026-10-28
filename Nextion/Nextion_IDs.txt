@@ -1,4 +1,4 @@
-HyFePoul Nextion project: ChickenFeederV1 (1).hmi
+HyFePoul Nextion project: HyFePoul.hmi
 Resolution: 800x480; Mega UART: Serial2, 9600 baud
 Architecture: Nextion is the onsite operator panel; Mega owns local logic and safety.
 The Android app is the away-from-device interface through Firebase; it never talks to the Mega.
@@ -42,7 +42,7 @@ t1..t4  newest four valid `/systemData/{deviceId}` snapshots; t1 is newest.
         reservoir water state and dispenser state, matching the app's Recent
         History fields. These are the same cloud snapshots, not the SD CSV.
 b0       Back to Home (navy with white label)
-b1       Refresh (requests the newest cloud rows from the ESP32; green with black
+b1       Refresh (requests the newest cloud rows from the ESP32; green with white
          label; touch ID 4)
 
 The ESP32 reads the latest four snapshots ordered by `timestamp`, validates the
@@ -59,7 +59,7 @@ t2  reservoir water state (OK or LOW - REFILL)
 t3  ESP32 link state (OK or OFF)
 t4  per-tray manual feed target in grams
 b0  Back to Home (navy with white label)
-b1  Refresh all four readouts, paced across four updates (green with black label;
+b1  Refresh all four readouts, paced across four updates (green with white label;
     touch ID 4)
 
 Feed Target touch IDs

@@ -1,0 +1,1127 @@
+[
+  {
+    "id": 0,
+    "page": "Logo",
+    "components": [
+      {
+        "name": "p0",
+        "id": 2,
+        "kind": "picture",
+        "x": 160,
+        "y": 0,
+        "w": 480,
+        "h": 480,
+        "note": "Set pic to the splash centre image (04_Logo_center.png)."
+      }
+    ],
+    "pic_normal": [
+      3,
+      "03_Logo_normal.png"
+    ],
+    "pic_center": [
+      4,
+      "04_Logo_center.png"
+    ]
+  },
+  {
+    "id": 1,
+    "page": "Home",
+    "components": [
+      {
+        "name": "t0",
+        "id": 1,
+        "kind": "text",
+        "x": 48,
+        "y": 176,
+        "w": 200,
+        "h": 24,
+        "caption": true
+      },
+      {
+        "name": "t1",
+        "id": 2,
+        "kind": "text",
+        "x": 432,
+        "y": 176,
+        "w": 200,
+        "h": 24,
+        "caption": true
+      },
+      {
+        "name": "t2",
+        "id": 3,
+        "kind": "text",
+        "x": 48,
+        "y": 206,
+        "w": 150,
+        "h": 48,
+        "live": true,
+        "sample": "250",
+        "pco": "#1E293B",
+        "xcen": 2
+      },
+      {
+        "name": "t3",
+        "id": 4,
+        "kind": "text",
+        "x": 432,
+        "y": 206,
+        "w": 320,
+        "h": 48,
+        "live": true,
+        "sample": "OK",
+        "pco": "#1E293B",
+        "xcen": 0
+      },
+      {
+        "name": "b0",
+        "id": 5,
+        "kind": "button",
+        "x": 24,
+        "y": 284,
+        "w": 260,
+        "h": 86,
+        "style": "nav",
+        "label": "Schedule",
+        "icon": "calendar"
+      },
+      {
+        "name": "b1",
+        "id": 6,
+        "kind": "button",
+        "x": 24,
+        "y": 382,
+        "w": 260,
+        "h": 86,
+        "style": "nav",
+        "label": "History",
+        "icon": "list"
+      },
+      {
+        "name": "b2",
+        "id": 7,
+        "kind": "button",
+        "x": 300,
+        "y": 284,
+        "w": 260,
+        "h": 86,
+        "style": "nav",
+        "label": "Feed Target",
+        "icon": "target"
+      },
+      {
+        "name": "b3",
+        "id": 8,
+        "kind": "button",
+        "x": 576,
+        "y": 382,
+        "w": 200,
+        "h": 86,
+        "style": "danger",
+        "label": "STOP",
+        "icon": "stop"
+      },
+      {
+        "name": "b4",
+        "id": 9,
+        "kind": "button",
+        "x": 576,
+        "y": 284,
+        "w": 200,
+        "h": 86,
+        "style": "success",
+        "live": true,
+        "sample": "FEED NOW",
+        "pco": "#FFFFFF",
+        "xcen": 1
+      },
+      {
+        "name": "t4",
+        "id": 10,
+        "kind": "text",
+        "x": 40,
+        "y": 96,
+        "w": 720,
+        "h": 52,
+        "live": true,
+        "sample": "Status: IDLE",
+        "pco": "#13306B",
+        "xcen": 0
+      },
+      {
+        "name": "t5",
+        "id": 11,
+        "kind": "text",
+        "x": 620,
+        "y": 26,
+        "w": 160,
+        "h": 40,
+        "live": true,
+        "sample": "07:30:15",
+        "pco": "#FFFFFF",
+        "xcen": 2
+      },
+      {
+        "name": "t6",
+        "id": 12,
+        "kind": "text",
+        "x": 620,
+        "y": 6,
+        "w": 160,
+        "h": 20,
+        "caption": true
+      },
+      {
+        "name": "t7",
+        "id": 13,
+        "kind": "text",
+        "x": 200,
+        "y": 212,
+        "w": 40,
+        "h": 40,
+        "caption": true
+      },
+      {
+        "name": "b5",
+        "id": 14,
+        "kind": "button",
+        "x": 300,
+        "y": 382,
+        "w": 260,
+        "h": 86,
+        "style": "nav",
+        "label": "System Check",
+        "icon": "gauge"
+      }
+    ],
+    "pic_normal": [
+      5,
+      "05_Home_normal.png"
+    ],
+    "pic_pressed": [
+      6,
+      "06_Home_pressed.png"
+    ]
+  },
+  {
+    "id": 2,
+    "page": "Sched",
+    "components": [
+      {
+        "name": "b0",
+        "id": 1,
+        "kind": "button",
+        "x": 24,
+        "y": 396,
+        "w": 200,
+        "h": 68,
+        "style": "navy",
+        "label": "Back",
+        "icon": "back"
+      },
+      {
+        "name": "t0",
+        "id": 2,
+        "kind": "text",
+        "x": 0,
+        "y": 0,
+        "w": 800,
+        "h": 72,
+        "caption": true
+      },
+      {
+        "name": "t1",
+        "id": 3,
+        "kind": "text",
+        "x": 104,
+        "y": 130,
+        "w": 300,
+        "h": 40,
+        "live": true,
+        "sample": "S1 50g ON",
+        "pco": "#1E293B",
+        "xcen": 0
+      },
+      {
+        "name": "t2",
+        "id": 4,
+        "kind": "text",
+        "x": 104,
+        "y": 222,
+        "w": 300,
+        "h": 40,
+        "live": true,
+        "sample": "S2 50g ON",
+        "pco": "#1E293B",
+        "xcen": 0
+      },
+      {
+        "name": "t3",
+        "id": 5,
+        "kind": "text",
+        "x": 104,
+        "y": 314,
+        "w": 300,
+        "h": 40,
+        "live": true,
+        "sample": "S3 50g OFF",
+        "pco": "#1E293B",
+        "xcen": 0
+      },
+      {
+        "name": "b1",
+        "id": 6,
+        "kind": "button",
+        "x": 640,
+        "y": 122,
+        "w": 120,
+        "h": 56,
+        "style": "primary",
+        "label": "Edit"
+      },
+      {
+        "name": "b3",
+        "id": 7,
+        "kind": "button",
+        "x": 640,
+        "y": 306,
+        "w": 120,
+        "h": 56,
+        "style": "primary",
+        "label": "Edit"
+      },
+      {
+        "name": "t4",
+        "id": 8,
+        "kind": "text",
+        "x": 430,
+        "y": 126,
+        "w": 90,
+        "h": 48,
+        "live": true,
+        "sample": "07:",
+        "pco": "#1552B0",
+        "xcen": 2
+      },
+      {
+        "name": "b4",
+        "id": 9,
+        "kind": "button",
+        "x": 576,
+        "y": 396,
+        "w": 200,
+        "h": 68,
+        "style": "success",
+        "label": "Done",
+        "icon": "check"
+      },
+      {
+        "name": "t7",
+        "id": 10,
+        "kind": "text",
+        "x": 520,
+        "y": 126,
+        "w": 70,
+        "h": 48,
+        "live": true,
+        "sample": "00",
+        "pco": "#1552B0",
+        "xcen": 0
+      },
+      {
+        "name": "t5",
+        "id": 11,
+        "kind": "text",
+        "x": 430,
+        "y": 218,
+        "w": 90,
+        "h": 48,
+        "live": true,
+        "sample": "12:",
+        "pco": "#1552B0",
+        "xcen": 2
+      },
+      {
+        "name": "t6",
+        "id": 12,
+        "kind": "text",
+        "x": 520,
+        "y": 218,
+        "w": 70,
+        "h": 48,
+        "live": true,
+        "sample": "00",
+        "pco": "#1552B0",
+        "xcen": 0
+      },
+      {
+        "name": "t8",
+        "id": 13,
+        "kind": "text",
+        "x": 430,
+        "y": 310,
+        "w": 90,
+        "h": 48,
+        "live": true,
+        "sample": "OFF",
+        "pco": "#64748B",
+        "xcen": 2
+      },
+      {
+        "name": "t9",
+        "id": 14,
+        "kind": "text",
+        "x": 520,
+        "y": 310,
+        "w": 70,
+        "h": 48,
+        "live": true,
+        "sample": "",
+        "pco": "#1552B0",
+        "xcen": 0
+      },
+      {
+        "name": "b2",
+        "id": 15,
+        "kind": "button",
+        "x": 640,
+        "y": 214,
+        "w": 120,
+        "h": 56,
+        "style": "primary",
+        "label": "Edit"
+      }
+    ],
+    "pic_normal": [
+      7,
+      "07_Sched_normal.png"
+    ],
+    "pic_pressed": [
+      8,
+      "08_Sched_pressed.png"
+    ]
+  },
+  {
+    "id": 3,
+    "page": "Log",
+    "components": [
+      {
+        "name": "b0",
+        "id": 1,
+        "kind": "button",
+        "x": 24,
+        "y": 396,
+        "w": 200,
+        "h": 68,
+        "style": "navy",
+        "label": "Back",
+        "icon": "back"
+      },
+      {
+        "name": "t0",
+        "id": 2,
+        "kind": "text",
+        "x": 0,
+        "y": 0,
+        "w": 800,
+        "h": 72,
+        "caption": true
+      },
+      {
+        "name": "t1",
+        "id": 3,
+        "kind": "text",
+        "x": 48,
+        "y": 118,
+        "w": 712,
+        "h": 46,
+        "live": true,
+        "sample": "10-24 07:00  250g  64%  W:OK D:OFF",
+        "pco": "#1E293B",
+        "xcen": 0
+      },
+      {
+        "name": "b1",
+        "id": 4,
+        "kind": "button",
+        "x": 576,
+        "y": 396,
+        "w": 200,
+        "h": 68,
+        "style": "success",
+        "label": "Refresh",
+        "icon": "refresh"
+      },
+      {
+        "name": "t2",
+        "id": 5,
+        "kind": "text",
+        "x": 48,
+        "y": 190,
+        "w": 712,
+        "h": 46,
+        "live": true,
+        "sample": "10-24 06:55  250g  64%  W:OK D:OFF",
+        "pco": "#1E293B",
+        "xcen": 0
+      },
+      {
+        "name": "t3",
+        "id": 6,
+        "kind": "text",
+        "x": 48,
+        "y": 262,
+        "w": 712,
+        "h": 46,
+        "live": true,
+        "sample": "10-24 06:50  248g  65%  W:OK D:OFF",
+        "pco": "#1E293B",
+        "xcen": 0
+      },
+      {
+        "name": "t4",
+        "id": 7,
+        "kind": "text",
+        "x": 48,
+        "y": 334,
+        "w": 712,
+        "h": 46,
+        "live": true,
+        "sample": "10-24 06:45  248g  65%  W:OK D:OFF",
+        "pco": "#1E293B",
+        "xcen": 0
+      }
+    ],
+    "pic_normal": [
+      9,
+      "09_Log_normal.png"
+    ],
+    "pic_pressed": [
+      10,
+      "10_Log_pressed.png"
+    ]
+  },
+  {
+    "id": 4,
+    "page": "Grams",
+    "components": [
+      {
+        "name": "b0",
+        "id": 1,
+        "kind": "button",
+        "x": 24,
+        "y": 396,
+        "w": 200,
+        "h": 68,
+        "style": "navy",
+        "label": "Back",
+        "icon": "back"
+      },
+      {
+        "name": "t0",
+        "id": 2,
+        "kind": "text",
+        "x": 0,
+        "y": 0,
+        "w": 800,
+        "h": 72,
+        "caption": true
+      },
+      {
+        "name": "n0",
+        "id": 3,
+        "kind": "number",
+        "x": 300,
+        "y": 170,
+        "w": 200,
+        "h": 90,
+        "live": true,
+        "sample": "50",
+        "pco": "#1E293B",
+        "xcen": 1,
+        "big": true
+      },
+      {
+        "name": "b3",
+        "id": 4,
+        "kind": "button",
+        "x": 576,
+        "y": 396,
+        "w": 200,
+        "h": 68,
+        "style": "success",
+        "label": "Save",
+        "icon": "check"
+      },
+      {
+        "name": "b1",
+        "id": 5,
+        "kind": "button",
+        "x": 540,
+        "y": 170,
+        "w": 160,
+        "h": 90,
+        "style": "stepper",
+        "label": "+10",
+        "big_label": true
+      },
+      {
+        "name": "b2",
+        "id": 6,
+        "kind": "button",
+        "x": 100,
+        "y": 170,
+        "w": 160,
+        "h": 90,
+        "style": "stepper",
+        "label": "\u221210",
+        "big_label": true
+      }
+    ],
+    "pic_normal": [
+      11,
+      "11_Grams_normal.png"
+    ],
+    "pic_pressed": [
+      12,
+      "12_Grams_pressed.png"
+    ]
+  },
+  {
+    "id": 5,
+    "page": "Sched1",
+    "components": [
+      {
+        "name": "b0",
+        "id": 1,
+        "kind": "button",
+        "x": 24,
+        "y": 396,
+        "w": 200,
+        "h": 68,
+        "style": "navy",
+        "label": "Back",
+        "icon": "back"
+      },
+      {
+        "name": "t0",
+        "id": 2,
+        "kind": "text",
+        "x": 0,
+        "y": 0,
+        "w": 800,
+        "h": 72,
+        "caption": true
+      },
+      {
+        "name": "n0",
+        "id": 3,
+        "kind": "number",
+        "x": 133,
+        "y": 160,
+        "w": 150,
+        "h": 80,
+        "live": true,
+        "sample": "07",
+        "pco": "#1E293B",
+        "xcen": 1,
+        "big": true
+      },
+      {
+        "name": "n1",
+        "id": 4,
+        "kind": "number",
+        "x": 517,
+        "y": 160,
+        "w": 150,
+        "h": 80,
+        "live": true,
+        "sample": "30",
+        "pco": "#1E293B",
+        "xcen": 1,
+        "big": true
+      },
+      {
+        "name": "t1",
+        "id": 5,
+        "kind": "text",
+        "x": 48,
+        "y": 122,
+        "w": 150,
+        "h": 30,
+        "caption": true
+      },
+      {
+        "name": "t2",
+        "id": 6,
+        "kind": "text",
+        "x": 432,
+        "y": 122,
+        "w": 150,
+        "h": 30,
+        "caption": true
+      },
+      {
+        "name": "b1",
+        "id": 7,
+        "kind": "button",
+        "x": 218,
+        "y": 276,
+        "w": 150,
+        "h": 84,
+        "style": "stepper",
+        "label": "+",
+        "big_label": true
+      },
+      {
+        "name": "b2",
+        "id": 8,
+        "kind": "button",
+        "x": 48,
+        "y": 276,
+        "w": 150,
+        "h": 84,
+        "style": "stepper",
+        "label": "\u2212",
+        "big_label": true
+      },
+      {
+        "name": "b3",
+        "id": 9,
+        "kind": "button",
+        "x": 602,
+        "y": 276,
+        "w": 150,
+        "h": 84,
+        "style": "stepper",
+        "label": "+",
+        "big_label": true
+      },
+      {
+        "name": "b4",
+        "id": 10,
+        "kind": "button",
+        "x": 432,
+        "y": 276,
+        "w": 150,
+        "h": 84,
+        "style": "stepper",
+        "label": "\u2212",
+        "big_label": true
+      },
+      {
+        "name": "b5",
+        "id": 11,
+        "kind": "button",
+        "x": 576,
+        "y": 396,
+        "w": 200,
+        "h": 68,
+        "style": "success",
+        "label": "Save",
+        "icon": "check"
+      }
+    ],
+    "pic_normal": [
+      13,
+      "13_Sched1_normal.png"
+    ],
+    "pic_pressed": [
+      14,
+      "14_Sched1_pressed.png"
+    ]
+  },
+  {
+    "id": 6,
+    "page": "Sched2",
+    "components": [
+      {
+        "name": "b0",
+        "id": 1,
+        "kind": "button",
+        "x": 24,
+        "y": 396,
+        "w": 200,
+        "h": 68,
+        "style": "navy",
+        "label": "Back",
+        "icon": "back"
+      },
+      {
+        "name": "t0",
+        "id": 2,
+        "kind": "text",
+        "x": 0,
+        "y": 0,
+        "w": 800,
+        "h": 72,
+        "caption": true
+      },
+      {
+        "name": "n0",
+        "id": 3,
+        "kind": "number",
+        "x": 133,
+        "y": 160,
+        "w": 150,
+        "h": 80,
+        "live": true,
+        "sample": "07",
+        "pco": "#1E293B",
+        "xcen": 1,
+        "big": true
+      },
+      {
+        "name": "n1",
+        "id": 4,
+        "kind": "number",
+        "x": 517,
+        "y": 160,
+        "w": 150,
+        "h": 80,
+        "live": true,
+        "sample": "30",
+        "pco": "#1E293B",
+        "xcen": 1,
+        "big": true
+      },
+      {
+        "name": "t1",
+        "id": 5,
+        "kind": "text",
+        "x": 48,
+        "y": 122,
+        "w": 150,
+        "h": 30,
+        "caption": true
+      },
+      {
+        "name": "t2",
+        "id": 6,
+        "kind": "text",
+        "x": 432,
+        "y": 122,
+        "w": 150,
+        "h": 30,
+        "caption": true
+      },
+      {
+        "name": "b1",
+        "id": 7,
+        "kind": "button",
+        "x": 218,
+        "y": 276,
+        "w": 150,
+        "h": 84,
+        "style": "stepper",
+        "label": "+",
+        "big_label": true
+      },
+      {
+        "name": "b2",
+        "id": 8,
+        "kind": "button",
+        "x": 48,
+        "y": 276,
+        "w": 150,
+        "h": 84,
+        "style": "stepper",
+        "label": "\u2212",
+        "big_label": true
+      },
+      {
+        "name": "b3",
+        "id": 9,
+        "kind": "button",
+        "x": 602,
+        "y": 276,
+        "w": 150,
+        "h": 84,
+        "style": "stepper",
+        "label": "+",
+        "big_label": true
+      },
+      {
+        "name": "b4",
+        "id": 10,
+        "kind": "button",
+        "x": 432,
+        "y": 276,
+        "w": 150,
+        "h": 84,
+        "style": "stepper",
+        "label": "\u2212",
+        "big_label": true
+      },
+      {
+        "name": "b5",
+        "id": 11,
+        "kind": "button",
+        "x": 576,
+        "y": 396,
+        "w": 200,
+        "h": 68,
+        "style": "success",
+        "label": "Save",
+        "icon": "check"
+      }
+    ],
+    "pic_normal": [
+      15,
+      "15_Sched2_normal.png"
+    ],
+    "pic_pressed": [
+      16,
+      "16_Sched2_pressed.png"
+    ]
+  },
+  {
+    "id": 7,
+    "page": "Sched3",
+    "components": [
+      {
+        "name": "b0",
+        "id": 1,
+        "kind": "button",
+        "x": 24,
+        "y": 396,
+        "w": 200,
+        "h": 68,
+        "style": "navy",
+        "label": "Back",
+        "icon": "back"
+      },
+      {
+        "name": "t0",
+        "id": 2,
+        "kind": "text",
+        "x": 0,
+        "y": 0,
+        "w": 800,
+        "h": 72,
+        "caption": true
+      },
+      {
+        "name": "n0",
+        "id": 3,
+        "kind": "number",
+        "x": 133,
+        "y": 160,
+        "w": 150,
+        "h": 80,
+        "live": true,
+        "sample": "07",
+        "pco": "#1E293B",
+        "xcen": 1,
+        "big": true
+      },
+      {
+        "name": "n1",
+        "id": 4,
+        "kind": "number",
+        "x": 517,
+        "y": 160,
+        "w": 150,
+        "h": 80,
+        "live": true,
+        "sample": "30",
+        "pco": "#1E293B",
+        "xcen": 1,
+        "big": true
+      },
+      {
+        "name": "t1",
+        "id": 5,
+        "kind": "text",
+        "x": 48,
+        "y": 122,
+        "w": 150,
+        "h": 30,
+        "caption": true
+      },
+      {
+        "name": "t2",
+        "id": 6,
+        "kind": "text",
+        "x": 432,
+        "y": 122,
+        "w": 150,
+        "h": 30,
+        "caption": true
+      },
+      {
+        "name": "b1",
+        "id": 7,
+        "kind": "button",
+        "x": 218,
+        "y": 276,
+        "w": 150,
+        "h": 84,
+        "style": "stepper",
+        "label": "+",
+        "big_label": true
+      },
+      {
+        "name": "b2",
+        "id": 8,
+        "kind": "button",
+        "x": 48,
+        "y": 276,
+        "w": 150,
+        "h": 84,
+        "style": "stepper",
+        "label": "\u2212",
+        "big_label": true
+      },
+      {
+        "name": "b3",
+        "id": 9,
+        "kind": "button",
+        "x": 602,
+        "y": 276,
+        "w": 150,
+        "h": 84,
+        "style": "stepper",
+        "label": "+",
+        "big_label": true
+      },
+      {
+        "name": "b4",
+        "id": 10,
+        "kind": "button",
+        "x": 432,
+        "y": 276,
+        "w": 150,
+        "h": 84,
+        "style": "stepper",
+        "label": "\u2212",
+        "big_label": true
+      },
+      {
+        "name": "b5",
+        "id": 11,
+        "kind": "button",
+        "x": 576,
+        "y": 396,
+        "w": 200,
+        "h": 68,
+        "style": "success",
+        "label": "Save",
+        "icon": "check"
+      }
+    ],
+    "pic_normal": [
+      17,
+      "17_Sched3_normal.png"
+    ],
+    "pic_pressed": [
+      18,
+      "18_Sched3_pressed.png"
+    ]
+  },
+  {
+    "id": 8,
+    "page": "keybdB",
+    "unchanged": true
+  },
+  {
+    "id": 9,
+    "page": "SystemCheck",
+    "components": [
+      {
+        "name": "b0",
+        "id": 1,
+        "kind": "button",
+        "x": 24,
+        "y": 396,
+        "w": 200,
+        "h": 68,
+        "style": "navy",
+        "label": "Back",
+        "icon": "back"
+      },
+      {
+        "name": "t0",
+        "id": 2,
+        "kind": "text",
+        "x": 0,
+        "y": 0,
+        "w": 800,
+        "h": 72,
+        "caption": true
+      },
+      {
+        "name": "t1",
+        "id": 3,
+        "kind": "text",
+        "x": 112,
+        "y": 148,
+        "w": 264,
+        "h": 50,
+        "live": true,
+        "sample": "HOPPER 64%",
+        "pco": "#1E293B",
+        "xcen": 0
+      },
+      {
+        "name": "b1",
+        "id": 4,
+        "kind": "button",
+        "x": 576,
+        "y": 396,
+        "w": 200,
+        "h": 68,
+        "style": "success",
+        "label": "Refresh",
+        "icon": "refresh"
+      },
+      {
+        "name": "t2",
+        "id": 5,
+        "kind": "text",
+        "x": 496,
+        "y": 148,
+        "w": 264,
+        "h": 50,
+        "live": true,
+        "sample": "WATER OK",
+        "pco": "#1E293B",
+        "xcen": 0
+      },
+      {
+        "name": "t3",
+        "id": 6,
+        "kind": "text",
+        "x": 112,
+        "y": 292,
+        "w": 264,
+        "h": 50,
+        "live": true,
+        "sample": "ESP32 LINK OK",
+        "pco": "#1E293B",
+        "xcen": 0
+      },
+      {
+        "name": "t4",
+        "id": 7,
+        "kind": "text",
+        "x": 496,
+        "y": 292,
+        "w": 264,
+        "h": 50,
+        "live": true,
+        "sample": "TARGET 50 g",
+        "pco": "#1E293B",
+        "xcen": 0
+      }
+    ],
+    "pic_normal": [
+      19,
+      "19_SystemCheck_normal.png"
+    ],
+    "pic_pressed": [
+      20,
+      "20_SystemCheck_pressed.png"
+    ]
+  }
+]
