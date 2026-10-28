@@ -69,6 +69,17 @@ Mega → ESP32:
 - `CMD_ACK|ID:<id>|STATUS:ACCEPTED|REJECTED[|REASON:…]` and `CMD_DONE|ID:<id>|STATUS:SUCCESS|FAILED[|REASON:…]`
 - `SUMMARY|YYYY-MM-DD|feedG|done|incomplete|trayTimeouts|chainFaults|lowWater|lowFeed|estops` (today and yesterday, after each feed cycle, at the day change and every 30 min)
 
+## Calibration sketches
+
+Four small stand-alone sketches sit next to this one, for the bench. Upload one instead of the full firmware; each prints `RESULT` lines to paste into `Config.ino`. Then upload `HyFePoul_Arduino` again. Run them in this order:
+
+1. `../Inputs_Calibration/` — no motors driven. Switch polarity (`REST`, `WATCH`): limit switches, float switch, E-stop; ultrasonic `EMPTY` / `FULL` hopper distances; `NEXTION` finds the display's baud rate. Results: `LIMIT_SWITCH_PRESSED`, `WATER_LOW_LEVEL`, `ESTOP_PRESSED`, `HOPPER_EMPTY/FULL_DISTANCE_CM`, Nextion baud.
+2. `../Outputs_Calibration/` — motor power off first. `LEVEL HIGH|LOW` (relay board polarity), `PULSE` each relay, `FLOW` + `GRAMS` (dispenser grams per second), `BUZZ`/`TONE`. Results: `RELAY_ON`, `TRAY_DISPENSE_TIMEOUT_MS`, buzzer type.
+3. `../HX711_Calibration/` — the 5 tray load cells: `TARE`, `CAL <tray> <grams>`, `READ`, `WATCH`, `CHAN <tray> <A|B>`; `FACTORS` prints the `LOAD_CELL_CALIBRATION_FACTORS` line.
+4. `../Chain_Calibration/` — chain direction and timing (copy `RELAY_ON`, `LIMIT_SWITCH_PRESSED`, `ESTOP_PRESSED` into it first): `SIDE <L|R>` (start side), `JOG`/`SWAP` (which relay moves which way), `HOME`, then `GO` and `M` at each tray, `NEXT` to the far limit switch; `PLAY` replays the times; `RESULT` prints `HOPPER_START_SIDE`, the relay pins, `TRAY_TRAVEL_MS` and the chain timeouts.
+
+Chain setup in `Config.ino`: `HOPPER_START_SIDE` (left or right) picks which limit switch is the start ("home") and which relay moves the hopper away from it. Trays keep their numbers (1-5, left to right) and their own load cells whichever side the hopper starts from; from the right, the cycle visits tray 5 first. `TRAY_TRAVEL_MS` is in travel order from the start side.
+
 ## CSV log
 
 The Mega writes one file per local month (UTC+8): `HFyyyymm.CSV`, for example `HF202610.CSV` for October 2026, each with its own header. Rows written while the clock is not set go to `HFNOTIME.CSV`.

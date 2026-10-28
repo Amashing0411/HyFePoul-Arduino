@@ -23,7 +23,7 @@
 */
 
 void handleSafety() {
-  bool pressed = digitalRead(EMERGENCY_STOP_PIN) == LOW;
+  bool pressed = digitalRead(EMERGENCY_STOP_PIN) == ESTOP_PRESSED;
 
   if (pressed && !emergencyButtonPressed) {
     emergencyButtonPressed = true;
@@ -42,7 +42,7 @@ void handleSafety() {
 
   // While latched, keep every actuator commanded OFF every loop.
   if (emergencyStopActive) {
-    digitalWrite(DISPENSER_RELAY_PIN, LOW);
+    digitalWrite(DISPENSER_RELAY_PIN, RELAY_OFF);
     stopChain();
   }
 
@@ -71,7 +71,7 @@ void tripEmergencyStop() {
 // Clears the E-stop latch. Returns NULL on success, otherwise the
 // rejection reason (used directly as the CMD_ACK reason).
 const char* resetEmergencyStop(const char* logEvent) {
-  if (digitalRead(EMERGENCY_STOP_PIN) == LOW) {
+  if (digitalRead(EMERGENCY_STOP_PIN) == ESTOP_PRESSED) {
     return "PHYSICAL_ESTOP_ENGAGED";
   }
 

@@ -8,14 +8,14 @@ The Mega 2560 is the primary controller. It reads all sensors, runs schedules an
 
 The deployed backend path is Firebase Authentication plus Firebase Realtime Database (RTDB). The repository's older Firestore, Cloud Functions and FCM code is not the active implementation. Local app notifications are subject to app and OS execution limits.
 
-### Baseline as of 27 October 2026
+### Baseline as of 28 October 2026
 
 | Evidence | Status |
 | --- | --- |
 | Mega and ESP32 compilation | Passed; local commissioning images prepared. |
-| Simulated device, rules and Android emulator checks | Recorded in the repository; do not establish physical safety or accuracy. |
+| Simulated device, rules and Android emulator checks | Mega simulator 56/56; firmware and Nextion compile results are recorded in the repository. The new History device-read rule has not passed emulator validation or production deployment. |
 | Dedicated device Auth account, binding and private PIN | Provisioned; REST sign-in and binding read verified. |
-| Actual Wi-Fi, firmware sign-in, UART, sensors, actuators and phone claim | Physical commissioning still required. Wi-Fi placeholders require a private edit and ESP32 rebuild. |
+| Actual Wi-Fi, firmware sign-in, UART, sensors, actuators and phone claim | Physical commissioning still required. Wi-Fi placeholders require a private edit and ESP32 rebuild; HMI History production access is pending the scoped RTDB rule deployment. |
 
 :::note HOLD POINT | Do not energize motors from this document alone. Use the approved power arrangement, powered-off inspection and HIT prerequisites. This is a software pin reference and commissioning guide, not a certified electrical schematic or an as-built drawing.
 
@@ -29,13 +29,13 @@ Source: docs/development-status.md; hardware-test-day-run-sheet.md; firmware-rob
 
 | Component / signal | Mega pin or port | Software expectation |
 | --- | --- | --- |
-| HX711 DOUT, trays 1 / 2 / 3 / 4 / 5 | 30 / 40 / 41 / 42 / 43 | Five independent tray load cells. |
-| All HX711 SCK | 31 | Shared clock; boards sampled sequentially. |
-| Hopper ultrasonic TRIG / ECHO | 32 / 33 | Distance converted to hopper fill estimate. |
-| Reservoir float | 34 | INPUT_PULLUP; LOW means low water. |
-| Chain forward / reverse relay | 36 / 44 | HIGH active in code; mutually exclusive. |
-| Dispenser relay | 37 | HIGH active in code. |
-| E-stop sense / buzzer | 38 / 39 | E-stop LOW active; buzzer HIGH active. |
+| HX711 SCK, trays 1 / 2 / 3 / 4 / 5 | 22 / 26 / 30 / 34 / 38 | Each board has its own clock; pair with the corresponding DT pin below. |
+| HX711 DT, trays 1 / 2 / 3 / 4 / 5 | 24 / 28 / 32 / 36 / 40 | One independent SCK/DT pair per tray. |
+| Hopper ultrasonic TRIG / ECHO | 31 (placeholder) / 33 | Distance converted to hopper fill estimate; verify the placeholder against actual wiring. |
+| Reservoir float | 35 (placeholder) | INPUT_PULLUP; LOW means low water. Confirm actual wiring before connection. |
+| Chain forward / reverse relay | 10 / 9 | HIGH active in code; mutually exclusive. |
+| Dispenser relay | 8 | HIGH active in code. |
+| E-stop sense / buzzer | 37 (placeholder) / 39 | E-stop LOW active; buzzer HIGH active. Confirm the E-stop input wiring before connection. |
 | Home / end limit | 45 / 46 | INPUT_PULLUP; LOW means switch pressed. |
 | SD CS / SPI | 53 / hardware SPI | Mega SPI: 50 MISO, 51 MOSI, 52 SCK. |
 | DS3231 RTC / I2C | 20 SDA / 21 SCL | UTC storage, local conversion in firmware. |
@@ -182,7 +182,7 @@ Measure incremental travel from home to tray 1, then tray 1 to 2, 2 to 3, 3 to 4
 
 Measure the ultrasonic distance at the actual empty and full hopper levels. Replace HOPPER_EMPTY_DISTANCE_CM (40) and HOPPER_FULL_DISTANCE_CM (5) with measured values, then rebuild. Check intermediate levels and no-echo behavior. Do not fill beyond the mechanically approved level just to obtain a sensor endpoint.
 
-Move the float through actual safe low and filled states. LOW on pin 34 means low reservoir; the firmware debounces for 2 s. Verify installation orientation and wiring rather than silently accepting reversed indications. This sensor does not confirm that water is flowing to every drinker.
+Move the float through actual safe low and filled states. LOW on the configured pin 35 (placeholder) means low reservoir; the firmware debounces for 2 s. Confirm the pin assignment and installation orientation against actual wiring before connection rather than silently accepting reversed indications. This sensor does not confirm that water is flowing to every drinker.
 
 Source: SerialConsole.ino; Config.ino; FeedLevel.ino; Hydration.ino; HIT-07 to HIT-10.
 

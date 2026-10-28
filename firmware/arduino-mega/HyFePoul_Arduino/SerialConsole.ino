@@ -13,6 +13,7 @@
                          that tray's calibration factor (RAM only)
     FACTORS              print the factors as a Config.ino line to paste
     JOG <F|R> <ms>       run the chain 100-5000 ms; reports how long it ran
+                         (F = away from the start side, R = toward it)
     HOME                 reverse to the home switch (30 s timeout)
     DISP <ms>            run the dispenser 100-5000 ms
     FEED <grams>         start a full 5-tray cycle at <grams> per tray
@@ -138,7 +139,7 @@ int benchParseTray(const String& s) {
 void benchStatus() {
   Serial.println(F("--- STATUS ---"));
   Serial.print(F("E-stop button: "));
-  Serial.print(digitalRead(EMERGENCY_STOP_PIN) == LOW ? F("PRESSED") : F("released"));
+  Serial.print(digitalRead(EMERGENCY_STOP_PIN) == ESTOP_PRESSED ? F("PRESSED") : F("released"));
   Serial.print(F("  latch: "));
   Serial.println(emergencyStopActive ? F("LATCHED") : F("clear"));
   Serial.print(F("Home switch: "));
@@ -161,7 +162,7 @@ void benchStatus() {
   Serial.print(F("Chain: "));
   Serial.print(chainDirection == CHAIN_FORWARD ? F("FORWARD") : chainDirection == CHAIN_REVERSE ? F("REVERSE") : F("stopped"));
   Serial.print(F("  Dispenser: "));
-  Serial.println(digitalRead(DISPENSER_RELAY_PIN) == HIGH ? F("ON") : F("off"));
+  Serial.println(digitalRead(DISPENSER_RELAY_PIN) == RELAY_ON ? F("ON") : F("off"));
   Serial.print(F("Cycle: "));
   Serial.print(getCycleStepName(cycleStep));
   Serial.print(F("  tray "));
@@ -311,7 +312,7 @@ void benchStartDispense(const String& args) {
   benchDurationMs = ms;
   benchStartMillis = millis();
   benchMove = BENCH_DISPENSE;
-  digitalWrite(DISPENSER_RELAY_PIN, HIGH); // PLACEHOLDER: relay logic.
+  digitalWrite(DISPENSER_RELAY_PIN, RELAY_ON);
   Serial.print(F("DISP "));
   Serial.print(ms);
   Serial.println(F(" ms..."));
@@ -338,7 +339,7 @@ void benchStartFeed(const String& args) {
 
 void benchStop(const char* why) {
   if (benchMove == BENCH_DISPENSE) {
-    digitalWrite(DISPENSER_RELAY_PIN, LOW);
+    digitalWrite(DISPENSER_RELAY_PIN, RELAY_OFF);
   } else if (benchMove != BENCH_IDLE) {
     stopChain();
   }

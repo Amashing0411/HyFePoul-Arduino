@@ -44,14 +44,14 @@ R-16 is resolved: the load cells weigh feed **in the trays**. This means dispens
 
 | Signal | Pin |
 |---|---|
-| HX711 tray 1–5 DOUT | 30, 40, 41, 42, 43 |
-| HX711 shared SCK | 31 |
-| Float switch (reservoir low) | 34 |
-| Chain motor forward relay | 36 (was the pump relay) |
-| Chain motor reverse relay | 44 |
-| Dispenser relay | 37 |
+| HX711 tray 1–5 SCK | 22, 26, 30, 34, 38 (one SCK per tray; updated 2026-10-28 to the real wiring) |
+| HX711 tray 1–5 DT (DOUT) | 24, 28, 32, 36, 40 |
+| Float switch (reservoir low) | 35 (placeholder; 34 is now tray 4 SCK) |
+| Chain motor forward relay | 10 |
+| Chain motor reverse relay | 9 |
+| Dispenser relay | 8 |
 | Home / end limit switches | 45 / 46 (`INPUT_PULLUP`) |
-| E-stop, buzzer, ultrasonic, SD, Nextion, ESP32 | unchanged |
+| E-stop, buzzer, ultrasonic, SD, Nextion, ESP32 | unchanged, except placeholders E-stop 37 (was 38) and ultrasonic TRIG 31 (was 32), moved off the HX711 pins |
 
 ## 5. Work breakdown
 

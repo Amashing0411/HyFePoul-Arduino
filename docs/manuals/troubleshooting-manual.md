@@ -133,11 +133,11 @@ Source: Feeding.ino; ESP32Communication.ino; HyFePoul_ESP32.ino; ScheduleStorage
 
 | Symptom | Likely checks | Verify after correction |
 | --- | --- | --- |
-| Tray NOT READY | HX711 power, DOUT, shared SCK. | Stable raw value; known mass. |
+| Tray NOT READY | HX711 power, that tray's SCK and DT pins. | Stable raw value; known mass. |
 | Weight implausible | Tare, factor sign/value, load path, tray contact. | Known masses; reboot check. |
-| Tray readings drift | Vibration, shared wiring, grounding, sampling. | Test five channels separately and together. |
+| Tray readings drift | Vibration, independent SCK/DT wiring, grounding, sampling. | Test all five independent channels separately and together. |
 | Hopper percentage wrong | Sensor aim, obstruction, measured empty/full distance. | Empty, full and mid-level readings. |
-| Water LOW when full | Float orientation, pin 34, active-low wiring. | Stable low/full tests; 2 s debounce. |
+| Water LOW when full | Float orientation, configured pin 35 (placeholder), active-low wiring. | Confirm the pin against actual wiring; test stable low/full states and 2 s debounce. |
 | Wrong direction / overshoot | Relay polarity, motor wiring, limits, travel timing. | Stop; repeat unloaded safety check. |
 | Nextion blank or buttons fail | Panel power, TX/RX, ground, 9600 baud, matching TFT and IDs. | HIT-12: check live values and touch controls with actuators disconnected. |
 | Recent History empty / unavailable | History requires the ESP32 Wi-Fi/Firebase link and at least one valid `/systemData` snapshot; the page shows the latest four. | HIT-12: compare p3 values and ordering with the app's Recent History screen; test Refresh online and offline. SD CSV events are logged separately and are not shown here. |

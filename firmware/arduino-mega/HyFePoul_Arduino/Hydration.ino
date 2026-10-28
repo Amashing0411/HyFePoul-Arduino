@@ -62,7 +62,6 @@ void checkLowWaterAlert() {
 }
 
 bool isWaterLow() {
-  // INPUT_PULLUP means the switch is assumed active LOW.
-  // PLACEHOLDER: invert if actual switch wiring is different.
-  return digitalRead(WATER_LOW_PIN) == LOW;
+  // INPUT_PULLUP; WATER_LOW_LEVEL (Config.ino) is the reading when low.
+  return digitalRead(WATER_LOW_PIN) == WATER_LOW_LEVEL;
 }

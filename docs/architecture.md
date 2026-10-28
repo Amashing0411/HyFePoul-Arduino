@@ -17,7 +17,7 @@ Hardware block diagram (moving-hopper revision): [`diagrams/hyfepoul-block-diagr
 
 ### 1. Arduino Mega 2560 (primary controller and safety authority)
 `firmware/arduino-mega/HyFePoul_Arduino/`
-- Reads the 5 tray load cells (HX711, shared SCK), the ultrasonic hopper sensor, the home/end limit switches, the reservoir float switch and the E-stop input.
+- Reads the 5 tray load cells (HX711, one SCK/DT pair per tray), the ultrasonic hopper sensor, the home/end limit switches, the reservoir float switch and the E-stop input.
 - Drives the chain motor (two interlocked polarity relays) that moves the hopper past the 5 trays, and the dispenser motor. Water is gravity-fed; there is no pump.
 - Runs up to 3 daily feeding schedules in **local time** (UTC+8). The schedules are stored in **EEPROM**, so they survive power loss.
 - Applies the safety logic:

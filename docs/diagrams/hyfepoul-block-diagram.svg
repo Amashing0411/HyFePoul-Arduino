@@ -21,7 +21,7 @@
 <text x="98.0" y="751.0">(one under each tray)</text>
 <rect x="4" y="905" width="188" height="188" fill="#fff" stroke="#111" stroke-width="3"/>
 <text x="98.0" y="994.0">5 × HX711</text>
-<text x="98.0" y="1016.0">(shared SCK)</text>
+<text x="98.0" y="1016.0">(SCK/DT per tray)</text>
 <rect x="4" y="1115" width="188" height="160" fill="#fff" stroke="#111" stroke-width="3"/>
 <text x="98.0" y="1190.0">Float Switch</text>
 <text x="98.0" y="1212.0">(water reservoir)</text>

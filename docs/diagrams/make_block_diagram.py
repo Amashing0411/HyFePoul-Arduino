@@ -29,7 +29,7 @@ BOXES = {
     "buck2":   (710, 640, 188, 188, ["DC - DC Buck", "Converter"], False),
 
     "cells":   (4, 640, 188, 188, ["5 Load Cells", "(one under each tray)"], False),
-    "hx711":   (4, 905, 188, 188, ["5 × HX711", "(shared SCK)"], False),
+    "hx711":   (4, 905, 188, 188, ["5 × HX711", "(SCK/DT per tray)"], False),
     "float":   (4, 1115, 188, 160, ["Float Switch", "(water reservoir)"], False),
     "home":    (4, 1295, 188, 145, ["Home Limit Switch"], False),
     "end":     (4, 1460, 188, 145, ["End Limit Switch"], False),
