@@ -217,7 +217,12 @@ describe('Checkpoint 5B.3 - Authenticated RTDB Integration', () => {
       expect(ownHistory.exists()).toBe(true);
       expect(ownHistory.child('hmi-history-row/feedWeightGrams').val()).toBe(250);
 
-      await expect(get(ref(rtdb, 'systemData/device-002'))).rejects.toThrow(/permission_denied/i);
+      // A denied get() rejects with "Permission denied" (a denied set() says
+      // "PERMISSION_DENIED"), so match the word, as the other read tests do.
+      await expect(get(ref(rtdb, 'systemData/device-002'))).rejects.toThrow(/permission/i);
+
+      // Remove the seeded row so later tests see only the history they write.
+      await adminPut('systemData/device-001/hmi-history-row', null);
     });
 
     it('prevents Device A from modifying ownerId', async () => {
