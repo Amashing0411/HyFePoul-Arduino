@@ -29,8 +29,8 @@ Source: docs/development-status.md; hardware-test-day-run-sheet.md; firmware-rob
 
 | Component / signal | Mega pin or port | Software expectation |
 | --- | --- | --- |
-| HX711 SCK, trays 1 / 2 / 3 / 4 / 5 | 22 / 26 / 30 / 34 / 38 | Each board has its own clock; pair with the corresponding DT pin below. |
-| HX711 DT, trays 1 / 2 / 3 / 4 / 5 | 24 / 28 / 32 / 36 / 40 | One independent SCK/DT pair per tray. |
+| HX711 SCK, trays 1 / 2 / 3 / 4 / 5 | 34 / 38 / 32 / 26 / 22 | Each board has its own clock; pair with the corresponding DT pin below. |
+| HX711 DT, trays 1 / 2 / 3 / 4 / 5 | 36 / 40 / 30 / 28 / 24 | One independent SCK/DT pair per tray; tray numbers follow the physical tray order. |
 | Hopper ultrasonic TRIG / ECHO | 31 (placeholder) / 33 | Distance converted to hopper fill estimate; verify the placeholder against actual wiring. |
 | Reservoir float | 35 (placeholder) | INPUT_PULLUP; LOW means low water. Confirm actual wiring before connection. |
 | Chain forward / reverse relay | 10 / 9 | HIGH active in code; mutually exclusive. |

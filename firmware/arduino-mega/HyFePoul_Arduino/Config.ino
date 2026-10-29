@@ -23,28 +23,32 @@
 // own SCK and DT (DOUT) pins, as wired on the device; no line is shared.
 const uint8_t TRAY_COUNT = 5;
 
+// Tray numbers follow the physical order of the trays (tray 1 = first
+// position). The HX711 boards are wired out of that order: positions 1-5
+// use the pin pairs 34/36, 38/40, 32/30, 26/28, 22/24.
+
 // Tray 1 HX711
-const uint8_t TRAY1_HX711_SCK_PIN = 22;
-const uint8_t TRAY1_HX711_DT_PIN  = 24;
+const uint8_t TRAY1_HX711_SCK_PIN = 34;
+const uint8_t TRAY1_HX711_DT_PIN  = 36;
 
 // Tray 2 HX711
-const uint8_t TRAY2_HX711_SCK_PIN = 26;
-const uint8_t TRAY2_HX711_DT_PIN  = 28;
+const uint8_t TRAY2_HX711_SCK_PIN = 38;
+const uint8_t TRAY2_HX711_DT_PIN  = 40;
 
 // Tray 3 HX711
-const uint8_t TRAY3_HX711_SCK_PIN = 30;
-const uint8_t TRAY3_HX711_DT_PIN  = 32;
+const uint8_t TRAY3_HX711_SCK_PIN = 32;
+const uint8_t TRAY3_HX711_DT_PIN  = 30;
 
 // Tray 4 HX711
-const uint8_t TRAY4_HX711_SCK_PIN = 34;
-const uint8_t TRAY4_HX711_DT_PIN  = 36;
+const uint8_t TRAY4_HX711_SCK_PIN = 26;
+const uint8_t TRAY4_HX711_DT_PIN  = 28;
 
 // Tray 5 HX711
-const uint8_t TRAY5_HX711_SCK_PIN = 38;
-const uint8_t TRAY5_HX711_DT_PIN  = 40;
+const uint8_t TRAY5_HX711_SCK_PIN = 22;
+const uint8_t TRAY5_HX711_DT_PIN  = 24;
 
 // Ultrasonic feed-hopper sensor
-const uint8_t ULTRASONIC_TRIG_PIN = 31; // PLACEHOLDER: free pin (32 is now tray 3 DT); confirm wiring
+const uint8_t ULTRASONIC_TRIG_PIN = 31; // PLACEHOLDER: free pin (32 is now tray 3 SCK); confirm wiring
 const uint8_t ULTRASONIC_ECHO_PIN = 33;
 
 // Water reservoir float switch (gravity-fed drinker, no pump)
