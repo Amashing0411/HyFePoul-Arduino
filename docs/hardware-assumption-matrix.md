@@ -10,7 +10,7 @@
 
 | Component | Expected Role | Expected Interface | Expected Mega Pin | Expected ESP32 Pin | Expected Logic Level | Software Dependency | Verification Status | Physical Verification Required |
 |---|---|---|---|---|---|---|---|---|
-| ESP32 Co-processor | Wi-Fi/RTDB Bridge | UART (Serial1) | RX: 19, TX: 18 | RX: GPIO16, TX: GPIO17 | **3.3V (ESP32) vs 5V (Mega)** | `<Arduino.h>` HardwareSerial | Unverified | Level-shifting / common ground |
+| ESP32 Co-processor | Wi-Fi/RTDB Bridge | UART (Serial3) | RX: 15, TX: 14 | RX: GPIO16, TX: GPIO17 | **3.3V (ESP32) vs 5V (Mega)** | `<Arduino.h>` HardwareSerial | Unverified | Level-shifting / common ground |
 | Nextion HMI | Local Display | UART (Serial2) | RX: 17, TX: 16 | N/A | **5V** | `<Arduino.h>` HardwareSerial | Unverified | Baud rate matching (9600), Logic levels |
 | RTC (DS3231) | Fallback Clock | I2C | SDA: 20, SCL: 21 | N/A | **5V** (I2C) | `RTClib` | Unverified | I2C pullups, Address |
 | SD Card Reader | Data Logging | SPI | CS: 53, MOSI: 51, MISO: 50, SCK: 52 | N/A | **5V** (or 3.3V w/ onboard reg) | `<SD.h>`, `<SPI.h>` | Unverified | SPI logic level compatibility |
@@ -23,7 +23,7 @@
 | Chain Forward Relay | Chain motor forward polarity | Digital Output | 10 (as wired, 2026-10-28) | N/A | **5V** | `<Arduino.h>` digitalWrite | Unverified | Active-HIGH vs Active-LOW; polarity-swap wiring |
 | Chain Reverse Relay | Chain motor reverse polarity | Digital Output | 9 (as wired, 2026-10-28) | N/A | **5V** | `<Arduino.h>` digitalWrite | Unverified | Never on with the forward relay (firmware interlock + 300 ms dead time) |
 | Dispenser Relay | Feed Motor Control | Digital Output | 8 (as wired, 2026-10-28) | N/A | **5V** | `<Arduino.h>` digitalWrite | Unverified | Active-HIGH vs Active-LOW |
-| Buzzer | Audible Alarm | Digital Output | 39 | N/A | **5V** | `<Arduino.h>` digitalWrite | Unverified | Passive vs Active buzzer |
+| Buzzer | Audible Alarm | Digital Output | 11 | N/A | **5V** | `<Arduino.h>` digitalWrite | Unverified | Passive vs Active buzzer |
 
 ## Calibration Assumptions (Must be established physically)
 | Component | Metric | Assumed Placeholder Value |

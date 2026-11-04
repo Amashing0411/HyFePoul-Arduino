@@ -61,7 +61,7 @@ uint8_t relayToRightPin = 10;
 uint8_t relayToLeftPin  = 9;
 const uint8_t LEFT_LIMIT_PIN  = 45;
 const uint8_t RIGHT_LIMIT_PIN = 46;
-const uint8_t EMERGENCY_STOP_PIN = 37;
+const uint8_t EMERGENCY_STOP_PIN = 37;   // not fitted: leave unconnected
 const uint8_t DISPENSER_RELAY_PIN = 8;   // held off, never switched on here
 
 // Polarity: copy from Config.ino (set there from Inputs_Calibration and

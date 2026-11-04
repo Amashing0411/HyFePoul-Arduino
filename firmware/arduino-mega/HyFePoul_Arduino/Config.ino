@@ -47,11 +47,11 @@ const uint8_t TRAY5_HX711_SCK_PIN = A9;
 const uint8_t TRAY5_HX711_DT_PIN  = A8;
 
 // Ultrasonic feed-hopper sensor
-const uint8_t ULTRASONIC_TRIG_PIN = 31; // PLACEHOLDER: free pin; confirm wiring
-const uint8_t ULTRASONIC_ECHO_PIN = 33;
+const uint8_t ULTRASONIC_TRIG_PIN = 50;
+const uint8_t ULTRASONIC_ECHO_PIN = 48;
 
 // Water reservoir float switch (gravity-fed drinker, no pump)
-const uint8_t WATER_LOW_PIN = 35; // PLACEHOLDER: free pin (34 is now tray 4 SCK); confirm wiring
+const uint8_t WATER_LOW_PIN = 49;
 
 // Chain: start side, relays and limit switches.
 // The hopper starts at the limit switch on HOPPER_START_SIDE, runs to the
@@ -91,16 +91,19 @@ const uint8_t CHAIN_FORWARD_RELAY_PIN = START_LEFT ? CHAIN_TO_RIGHT_RELAY_PIN : 
 const uint8_t CHAIN_REVERSE_RELAY_PIN = START_LEFT ? CHAIN_TO_LEFT_RELAY_PIN : CHAIN_TO_RIGHT_RELAY_PIN;
 
 // Safety / alarm
-const uint8_t EMERGENCY_STOP_PIN = 37; // PLACEHOLDER: free pin (38 is now tray 5 SCK); confirm wiring
-const uint8_t BUZZER_PIN         = 39;
+const uint8_t EMERGENCY_STOP_PIN = 37; // Not fitted: leave unconnected; the pull-up reads as not pressed
+const uint8_t BUZZER_PIN         = 11;
 
-// SD card
+// SD card: no module is fitted, and pins 50, 51 and 53 are used by other
+// inputs and outputs. Starting the SD library would drive those pins, so keep
+// this false unless they are moved and a module is added.
+const bool SD_LOGGING_ENABLED = false;
 const uint8_t SD_CS_PIN = 53;
 
 // Serial ports
-// Serial1: Mega <-> ESP32
+// Serial3: Mega <-> ESP32
 // Serial2: Mega <-> Nextion
-#define ESP32_SERIAL Serial1
+#define ESP32_SERIAL Serial3
 #define NEXTION_SERIAL Serial2
 
 // -----------------------------
@@ -355,6 +358,7 @@ void queueBootClears() {
 // map above (including the serial ports and the SD card's SPI bus), so a
 // pin change on the bench cannot silently break another input or output.
 void checkPinConflicts() {
+  const uint8_t PIN_NOT_USED = 255;
   const uint8_t pins[] = {
     TRAY1_HX711_SCK_PIN, TRAY1_HX711_DT_PIN,
     TRAY2_HX711_SCK_PIN, TRAY2_HX711_DT_PIN,
@@ -364,9 +368,12 @@ void checkPinConflicts() {
     ULTRASONIC_TRIG_PIN, ULTRASONIC_ECHO_PIN, WATER_LOW_PIN,
     CHAIN_FORWARD_RELAY_PIN, CHAIN_REVERSE_RELAY_PIN, DISPENSER_RELAY_PIN,
     HOME_LIMIT_PIN, END_LIMIT_PIN, EMERGENCY_STOP_PIN, BUZZER_PIN,
-    SD_CS_PIN, 50, 51, 52,  // SD card: CS + SPI MISO/MOSI/SCK
+    SD_LOGGING_ENABLED ? SD_CS_PIN : PIN_NOT_USED,   // SD card: CS
+    SD_LOGGING_ENABLED ? 50 : PIN_NOT_USED,          // SPI MISO
+    SD_LOGGING_ENABLED ? 51 : PIN_NOT_USED,          // SPI MOSI
+    SD_LOGGING_ENABLED ? 52 : PIN_NOT_USED,          // SPI SCK
     20, 21,                 // I2C (RTC) SDA/SCL
-    18, 19,                 // Serial1 (ESP32) TX/RX
+    14, 15,                 // Serial3 (ESP32) TX/RX
     16, 17                  // Serial2 (Nextion) TX/RX
   };
   const uint8_t count = sizeof(pins) / sizeof(pins[0]);
@@ -374,7 +381,7 @@ void checkPinConflicts() {
 
   for (uint8_t i = 0; i < count; i++) {
     for (uint8_t j = i + 1; j < count; j++) {
-      if (pins[i] == pins[j]) {
+      if (pins[i] != PIN_NOT_USED && pins[i] == pins[j]) {
         Serial.print(F("WARNING: pin "));
         Serial.print(pins[i]);
         Serial.println(F(" is assigned twice in Config.ino; fix the pin map before wiring that part."));

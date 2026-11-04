@@ -58,7 +58,7 @@ Install the required libraries through Arduino IDE's Library Manager where neces
 
 The full, current specification is [`docs/mega-esp32-protocol.md`](../../../docs/mega-esp32-protocol.md). In short:
 
-ESP32 → Mega (each line at most 63 characters + `\n`, because `Serial1` has a 64-byte receive buffer):
+ESP32 → Mega (each line at most 63 characters + `\n`, because `Serial3` has a 64-byte receive buffer):
 - `TIME|YYYY-MM-DD|HH:MM:SS` (UTC)
 - `STATUS|ONLINE` / `STATUS|OFFLINE` (every 10 s; also the link heartbeat)
 - `CMD|ID:<C0-C9 or R0-R2>|ACTION:<action>|…`

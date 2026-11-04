@@ -12,7 +12,7 @@
   and prints the matching lines for HyFePoul_Arduino/Config.ino.
 
   Pins (same as Config.ino): chain relay to RIGHT 10, chain relay to LEFT 9,
-  dispenser relay 8, buzzer 39, E-stop 37 (INPUT_PULLUP, closes to GND;
+  dispenser relay 8, buzzer 11, E-stop 37 (INPUT_PULLUP, closes to GND;
   pressing it switches every output off).
 
   Serial Monitor: 115200 baud, line ending "New Line".
@@ -45,8 +45,8 @@
 const uint8_t RELAY_TO_RIGHT_PIN = 10;
 const uint8_t RELAY_TO_LEFT_PIN  = 9;
 const uint8_t DISPENSER_RELAY_PIN = 8;
-const uint8_t BUZZER_PIN = 39;
-const uint8_t EMERGENCY_STOP_PIN = 37;
+const uint8_t BUZZER_PIN = 11;
+const uint8_t EMERGENCY_STOP_PIN = 37;   // not fitted: leave unconnected
 
 int relayOnLevel = -1;            // -1 = not chosen yet (relay pins undriven)
 unsigned long pulseEndMillis = 0;

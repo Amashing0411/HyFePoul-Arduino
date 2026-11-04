@@ -1,7 +1,7 @@
 /*
   ESP32Communication.ino
 
-  The Mega's side of the UART link to the ESP32 (Serial1, 115200 baud).
+  The Mega's side of the UART link to the ESP32 (Serial3, 115200 baud).
   Wi-Fi, Firebase and notifications are all on the ESP32; the Mega only
   exchanges lines with it. Full protocol: docs/mega-esp32-protocol.md.
 
@@ -57,7 +57,7 @@ void receiveESP32Messages() {
   }
 }
 
-// Idle wait that keeps draining the ESP32 UART. Serial1 has only a 64-byte
+// Idle wait that keeps draining the ESP32 UART. Serial3 has only a 64-byte
 // receive buffer, which cannot hold a full command line (up to ~82 bytes)
 // across a plain delay().
 void waitServicingESP32(unsigned long durationMs) {

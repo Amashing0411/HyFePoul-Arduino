@@ -35,7 +35,7 @@ Source: docs/development-status.md; hardware-test-day-run-sheet.md; firmware-rob
 | Reservoir float | 35 (placeholder) | INPUT_PULLUP; LOW means low water. Confirm actual wiring before connection. |
 | Chain forward / reverse relay | 10 / 9 | HIGH active in code; mutually exclusive. |
 | Dispenser relay | 8 | HIGH active in code. |
-| E-stop sense / buzzer | 37 (placeholder) / 39 | E-stop LOW active; buzzer HIGH active. Confirm the E-stop input wiring before connection. |
+| E-stop sense / buzzer | 37 (placeholder) / 11 | E-stop LOW active; buzzer HIGH active. Confirm the E-stop input wiring before connection. |
 | Home / end limit | 45 / 46 | INPUT_PULLUP; LOW means switch pressed. |
 | SD CS / SPI | 53 / hardware SPI | Mega SPI: 50 MISO, 51 MOSI, 52 SCK. |
 | DS3231 RTC / I2C | 20 SDA / 21 SCL | UTC storage, local conversion in firmware. |
@@ -54,8 +54,8 @@ Source: Config.ino; Hydration.ino; Feeding.ino; design-revision-moving-hopper.md
 
 | Link | Pins | Settings |
 | --- | --- | --- |
-| Mega to ESP32 | Mega TX1 18 to ESP32 RX2 16, through suitable 5 V to 3.3 V protection | 115200 baud, 8N1, newline ASCII |
-| ESP32 to Mega | ESP32 TX2 17 to Mega RX1 19 | Verify logic levels on the actual interface |
+| Mega to ESP32 | Mega TX3 14 to ESP32 RX2 16, through suitable 5 V to 3.3 V protection | 115200 baud, 8N1, newline ASCII |
+| ESP32 to Mega | ESP32 TX2 17 to Mega RX3 15 | Verify logic levels on the actual interface |
 | Mega to Nextion | Mega TX2 16 to Nextion RX; Nextion TX to Mega RX2 17 | 9600 baud; confirm actual HMI settings |
 | PC to Mega | USB serial | 115200 baud, newline for commands |
 

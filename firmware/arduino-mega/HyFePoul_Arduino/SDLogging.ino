@@ -38,6 +38,12 @@ const uint8_t LOG_KEEP_MONTHS = 24;
 char currentLogName[13] = "";  // "HFyyyymm.CSV"
 
 void initializeSD() {
+  if (!SD_LOGGING_ENABLED) {
+    sdAvailable = false;
+    Serial.println(F("SD logging is off (no module fitted)."));
+    return;
+  }
+
   if (!SD.begin(SD_CS_PIN)) {
     sdAvailable = false;
     Serial.println(F("WARNING: SD card initialization failed."));

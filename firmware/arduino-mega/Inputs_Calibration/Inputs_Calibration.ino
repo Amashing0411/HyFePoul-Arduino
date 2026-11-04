@@ -2,62 +2,69 @@
   Inputs_Calibration.ino
 
   Stand-alone calibration of the HyFePoul inputs. Upload this instead of the
-  full firmware; it drives NO relay or motor (relay pins are held off), so
-  motor power can stay connected or not.
+  full firmware; it only reads inputs and drives NO relay or motor (relay
+  pins are held off), so motor power can stay connected or not.
 
-  It finds:
-    - switch polarity: what each switch reads when pressed / active
-        LEFT and RIGHT chain limit switches, reservoir float switch, E-stop
-    - ultrasonic hopper distances: hopper EMPTY and hopper FULL
-    - the Nextion display's baud rate
-  and prints the matching lines for HyFePoul_Arduino/Config.ino.
+  It finds which limit switch is on which pin, what each switch reads when
+  pressed, the hopper's empty and full distances and the Nextion's baud
+  rate, and prints the matching lines for HyFePoul_Arduino/Config.ino.
 
   Pins (same as Config.ino; PLACEHOLDERS where marked there):
-    LEFT limit 45, RIGHT limit 46, float 35, E-stop 37   (INPUT_PULLUP)
-    ultrasonic TRIG 31, ECHO 33;  Nextion on Serial2 (TX2 16, RX2 17)
+    limit switches 53, 51, float 49   (INPUT_PULLUP)
+    ultrasonic TRIG 50, ECHO 48;  Nextion on Serial2 (TX2 16, RX2 17)
+    No E-stop input is wired on the bench, so this sketch does not read one.
 
   Serial Monitor: 115200 baud, line ending "New Line".
 
     HELP          list the commands
-    STATUS        every input once (levels and distance)
-    WATCH         print each switch change as it happens, plus the distance
-                  every 2 s; any line stops it
-    REST          record the "normal" state: limit switches NOT pressed,
-                  E-stop released, reservoir FULL (float up)
+    GUIDE         print the procedure below
+    STATUS        every input once, with its meaning
+    REST          record the normal state: limit switches NOT pressed,
+                  reservoir FULL (float up)
+    MAP           press each limit switch when asked; finds the tray 1 side
+                  and the tray 5 side
+    WATCH         print every switch change as it happens; any line stops it
     DIST          hopper distance now (median of 7 readings)
     EMPTY         record the distance with the hopper EMPTY
     FULL          record the distance with the hopper FULL
     NEXTION       find the display's baud rate
-    RESULT        print the Config.ino lines
+    RESULT        print the map and the Config.ino lines, and what is left
 
-  Switches: put everything in its normal state, type REST, then use WATCH
-  and press each switch (and lower the float) to see it change. The pressed
-  level is the opposite of the REST level.
+  Procedure:
+    1. Put everything in its normal state.        REST
+    2. Identify the limit switches.                MAP
+    3. Lower the float.                            WATCH, then any line
+    4. Hopper empty, then full.                    EMPTY, FULL
+    5. Display connected.                          NEXTION
+    6. Paste the printed lines into Config.ino.    RESULT
 */
 
-const uint8_t LEFT_LIMIT_PIN  = 45;
-const uint8_t RIGHT_LIMIT_PIN = 46;
-const uint8_t WATER_LOW_PIN   = 35;
-const uint8_t EMERGENCY_STOP_PIN = 37;
-const uint8_t ULTRASONIC_TRIG_PIN = 31;
-const uint8_t ULTRASONIC_ECHO_PIN = 33;
+// Sides not assigned yet: find them with MAP, then update Config.ino.
+const uint8_t LIMIT_A_PIN = 53;
+const uint8_t LIMIT_B_PIN = 51;
+const uint8_t WATER_LOW_PIN = 49;
+const uint8_t ULTRASONIC_TRIG_PIN = 50;
+const uint8_t ULTRASONIC_ECHO_PIN = 48;
 const unsigned long ULTRASONIC_TIMEOUT_US = 30000UL;
 
 // Relay pins: never driven here (left as inputs = off for typical boards).
 const uint8_t RELAY_PINS[] = {10, 9, 8};
 
-const uint8_t SWITCH_COUNT = 4;
-const uint8_t SWITCH_PINS[SWITCH_COUNT] = {LEFT_LIMIT_PIN, RIGHT_LIMIT_PIN, WATER_LOW_PIN, EMERGENCY_STOP_PIN};
-const char* const SWITCH_NAMES[SWITCH_COUNT] = {"LEFT limit", "RIGHT limit", "Float (water)", "E-stop"};
+const uint8_t SWITCH_COUNT = 3;
+const uint8_t SWITCH_PINS[SWITCH_COUNT] = {LIMIT_A_PIN, LIMIT_B_PIN, WATER_LOW_PIN};
+const char* const SWITCH_NAMES[SWITCH_COUNT] = {"Limit switch", "Limit switch", "Float (water)"};
+const uint8_t LIMIT_COUNT = 2;                    // the first entries above
 
-int restLevel[SWITCH_COUNT] = {-1, -1, -1, -1};   // -1 = REST not done
+int restLevel[SWITCH_COUNT] = {-1, -1, -1};   // -1 = REST not done
 int lastLevel[SWITCH_COUNT];
 float emptyCm = -1.0f;
 float fullCm = -1.0f;
 long nextionBaud = 0;
 
 bool watching = false;
-unsigned long lastDistMillis = 0;
+int8_t mapStep = -1;                               // -1 = MAP not running
+int8_t mapHeld = -1;                               // switch waiting to be released
+int8_t mapChoice[LIMIT_COUNT] = {-1, -1};          // tray 1 side, tray 5 side
 String inputLine = "";
 
 void setup() {
@@ -71,7 +78,7 @@ void setup() {
   Serial.println(F("HyFePoul inputs calibration (switches, ultrasonic, Nextion)"));
   Serial.println(F("No relay or motor is driven by this sketch."));
   printStatus();
-  printHelp();
+  printGuide();
 }
 
 void loop() {
@@ -85,22 +92,18 @@ void loop() {
     }
   }
 
+  if (mapStep >= 0) runMap();
+
   if (watching) {
     for (uint8_t i = 0; i < SWITCH_COUNT; i++) {
       int level = digitalRead(SWITCH_PINS[i]);
       if (level != lastLevel[i]) {
         lastLevel[i] = level;
-        Serial.print(SWITCH_NAMES[i]);
-        Serial.print(F(" -> "));
+        printSwitchName(i);
+        Serial.print(F(": "));
         printLevel(i, level);
         Serial.println();
       }
-    }
-    if (millis() - lastDistMillis >= 2000) {
-      lastDistMillis = millis();
-      Serial.print(F("Hopper distance: "));
-      printCm(readDistanceCm());
-      Serial.println();
     }
   }
 }
@@ -112,27 +115,43 @@ void handleCommand(String line) {
 
   if (watching) {
     watching = false;
-    Serial.println(F("WATCH stopped."));
+    Serial.println(F("WATCH stopped. Send RESULT to see what is left."));
+    return;
+  }
+
+  if (mapStep >= 0) {
+    if (line == "STOP") {
+      mapStep = -1;
+      Serial.println(F("MAP stopped."));
+    } else {
+      printMapPrompt();
+    }
     return;
   }
 
   if (line == "HELP") {
     printHelp();
+  } else if (line == "GUIDE") {
+    printGuide();
   } else if (line == "STATUS") {
     printStatus();
+  } else if (line == "MAP") {
+    startMap();
   } else if (line == "WATCH") {
     for (uint8_t i = 0; i < SWITCH_COUNT; i++) lastLevel[i] = -1;
     watching = true;
-    lastDistMillis = 0;
-    Serial.println(F("Watching; press switches, move the float. Any line stops."));
+    Serial.println(F("Watching; press switches, move the float. Any line stops. Current states:"));
   } else if (line == "REST") {
     for (uint8_t i = 0; i < SWITCH_COUNT; i++) restLevel[i] = digitalRead(SWITCH_PINS[i]);
     Serial.println(F("Normal state recorded:"));
     printStatus();
+    Serial.println(F("Next: send MAP to identify the limit switches."));
   } else if (line == "DIST") {
+    float cm = readDistanceCm();
     Serial.print(F("Hopper distance: "));
-    printCm(readDistanceCm());
+    printCm(cm);
     Serial.println();
+    if (cm < 0) Serial.println(F("No echo: check TRIG/ECHO wiring and that nothing blocks the sensor."));
   } else if (line == "EMPTY" || line == "FULL") {
     float cm = readDistanceCm();
     if (cm < 0) {
@@ -155,13 +174,117 @@ void handleCommand(String line) {
 }
 
 void printHelp() {
-  Serial.println(F("Commands: STATUS | WATCH | REST | DIST | EMPTY | FULL | NEXTION | RESULT | HELP"));
+  Serial.println(F("Commands: REST | MAP | WATCH | STATUS | DIST | EMPTY | FULL | NEXTION | RESULT | GUIDE | HELP"));
+}
+
+void printGuide() {
+  Serial.println(F("Procedure:"));
+  Serial.println(F("  1. Limit switches not pressed, reservoir full: REST"));
+  Serial.println(F("  2. Identify the limit switches: MAP, then press each one when asked"));
+  Serial.println(F("  3. Check the float: WATCH, lower the float, any line stops"));
+  Serial.println(F("  4. Hopper empty: EMPTY. Hopper full: FULL"));
+  Serial.println(F("  5. Display connected: NEXTION"));
+  Serial.println(F("  6. RESULT: shows the lines for Config.ino and what is left"));
+  printHelp();
+}
+
+void printSwitchName(uint8_t i) {
+  Serial.print(SWITCH_NAMES[i]);
+  Serial.print(F(" (pin "));
+  Serial.print(SWITCH_PINS[i]);
+  Serial.print(')');
+}
+
+// ---------------- limit switch map ----------------
+
+void startMap() {
+  if (restLevel[0] < 0) {
+    Serial.println(F("Send REST first, with no switch pressed."));
+    return;
+  }
+  for (uint8_t i = 0; i < LIMIT_COUNT; i++) {
+    mapChoice[i] = -1;
+    if (digitalRead(SWITCH_PINS[i]) != restLevel[i]) {
+      printSwitchName(i);
+      Serial.println(F(" is not in its normal state. Release it and send MAP again."));
+      return;
+    }
+  }
+  mapStep = 0;
+  mapHeld = -1;
+  Serial.println(F("MAP started. STOP cancels."));
+  printMapPrompt();
+}
+
+void printMapPrompt() {
+  if (mapStep == 0) Serial.println(F("Press and release the limit switch on the TRAY 1 side."));
+  else Serial.println(F("Press and release the limit switch on the TRAY 5 side."));
+}
+
+void runMap() {
+  if (mapHeld >= 0) {
+    if (digitalRead(SWITCH_PINS[mapHeld]) == restLevel[mapHeld]) {
+      delay(30);
+      if (digitalRead(SWITCH_PINS[mapHeld]) == restLevel[mapHeld]) {
+        mapHeld = -1;
+        if (mapStep >= (int8_t)LIMIT_COUNT) finishMap();
+        else printMapPrompt();
+      }
+    }
+    return;
+  }
+
+  for (uint8_t i = 0; i < LIMIT_COUNT; i++) {
+    if (digitalRead(SWITCH_PINS[i]) == restLevel[i]) continue;
+    delay(30);
+    if (digitalRead(SWITCH_PINS[i]) == restLevel[i]) continue;
+    mapHeld = i;
+    printSwitchName(i);
+    bool used = false;
+    for (int8_t step = 0; step < mapStep; step++) {
+      if (mapChoice[step] == (int8_t)i) used = true;
+    }
+    if (used) {
+      Serial.println(F(" was already used. Release it and press a different switch."));
+    } else {
+      mapChoice[mapStep] = i;
+      Serial.println(F(" detected. Release it."));
+      mapStep++;
+    }
+    return;
+  }
+}
+
+void finishMap() {
+  mapStep = -1;
+  printMapResult();
+  Serial.println(F("Next: send WATCH and lower the float."));
+}
+
+void printMapLine(const __FlashStringHelper* label, int8_t choice) {
+  Serial.print(F("  "));
+  Serial.print(label);
+  Serial.print(F(": "));
+  if (choice < 0) {
+    Serial.println(F("not mapped"));
+  } else {
+    Serial.print(F("pin "));
+    Serial.println(SWITCH_PINS[choice]);
+  }
+}
+
+void printMapResult() {
+  Serial.println(F("Limit switch map:"));
+  printMapLine(F("Tray 1 side"), mapChoice[0]);
+  printMapLine(F("Tray 5 side"), mapChoice[1]);
 }
 
 void printLevel(uint8_t i, int level) {
   Serial.print(level == LOW ? F("LOW") : F("HIGH"));
   if (restLevel[i] >= 0) {
     Serial.print(level == restLevel[i] ? F(" (normal)") : F(" (PRESSED / ACTIVE)"));
+  } else {
+    Serial.print(F(" (send REST to label this)"));
   }
 }
 
@@ -176,10 +299,8 @@ void printCm(float cm) {
 
 void printStatus() {
   for (uint8_t i = 0; i < SWITCH_COUNT; i++) {
-    Serial.print(SWITCH_NAMES[i]);
-    Serial.print(F(" (pin "));
-    Serial.print(SWITCH_PINS[i]);
-    Serial.print(F("): "));
+    printSwitchName(i);
+    Serial.print(F(": "));
     printLevel(i, digitalRead(SWITCH_PINS[i]));
     Serial.println();
   }
@@ -274,9 +395,17 @@ void printResult() {
     Serial.print(F("const uint8_t WATER_LOW_LEVEL      = "));
     Serial.print(pressedLevelText(2));
     Serial.println(F(";   // float reading when the reservoir is low"));
-    Serial.print(F("const uint8_t ESTOP_PRESSED        = "));
-    Serial.print(pressedLevelText(3));
-    Serial.println(restLevel[3] == HIGH ? F(";   // closes to GND when pressed (NO)") : F(";   // opens when pressed (NC, fail-safe)"));
+    printMapResult();
+    if (mapChoice[0] >= 0 && mapChoice[1] >= 0) {
+      Serial.print(F("const uint8_t LEFT_LIMIT_PIN  = "));
+      Serial.print(SWITCH_PINS[mapChoice[0]]);
+      Serial.println(F(";   // tray 1 side (Config.ino numbers trays from the left)"));
+      Serial.print(F("const uint8_t RIGHT_LIMIT_PIN = "));
+      Serial.print(SWITCH_PINS[mapChoice[1]]);
+      Serial.println(F(";   // tray 5 side"));
+    } else {
+      Serial.println(F("(Limit switch pins: send MAP.)"));
+    }
   }
   if (emptyCm > 0) {
     Serial.print(F("float HOPPER_EMPTY_DISTANCE_CM = "));
