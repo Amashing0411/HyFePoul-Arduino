@@ -38,32 +38,31 @@
 const uint8_t TRAY_COUNT = 5;
 
 // Tray numbers follow the physical order of the trays (tray 1 = first
-// position). The HX711 boards are wired out of that order: positions 1-5
-// use the pin pairs 34/36, 38/40, 32/30, 26/28, 22/24.
+// position). Each HX711 uses two analog pins as plain digital pins.
 
 // Tray 1 HX711
-const uint8_t TRAY1_HX711_SCK_PIN = 34;
-const uint8_t TRAY1_HX711_DT_PIN  = 36;
+const uint8_t TRAY1_HX711_SCK_PIN = A1;
+const uint8_t TRAY1_HX711_DT_PIN  = A0;
 
 // Tray 2 HX711
-const uint8_t TRAY2_HX711_SCK_PIN = 38;
-const uint8_t TRAY2_HX711_DT_PIN  = 40;
+const uint8_t TRAY2_HX711_SCK_PIN = A3;
+const uint8_t TRAY2_HX711_DT_PIN  = A2;
 
 // Tray 3 HX711
-const uint8_t TRAY3_HX711_SCK_PIN = 32;
-const uint8_t TRAY3_HX711_DT_PIN  = 30;
+const uint8_t TRAY3_HX711_SCK_PIN = A5;
+const uint8_t TRAY3_HX711_DT_PIN  = A4;
 
 // Tray 4 HX711
-const uint8_t TRAY4_HX711_SCK_PIN = 26;
-const uint8_t TRAY4_HX711_DT_PIN  = 28;
+const uint8_t TRAY4_HX711_SCK_PIN = A7;
+const uint8_t TRAY4_HX711_DT_PIN  = A6;
 
 // Tray 5 HX711
-const uint8_t TRAY5_HX711_SCK_PIN = 22;
-const uint8_t TRAY5_HX711_DT_PIN  = 24;
+const uint8_t TRAY5_HX711_SCK_PIN = A9;
+const uint8_t TRAY5_HX711_DT_PIN  = A8;
 
 // Starting factors: 1.0 = not calibrated yet, so "g" shows counts above zero
 // until CAL sets the real factor. Never 0: grams = counts / factor.
-float factors[TRAY_COUNT] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
+float factors[TRAY_COUNT] = { 1795.652f, 1973.592f, 1.0f, 1958.184f, 1866.02f };
 
 const uint8_t SAMPLES = 10;            // readings averaged for TARE / CAL / READ
 const unsigned long READY_TIMEOUT_MS = 1000;
