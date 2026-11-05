@@ -2022,6 +2022,10 @@ runTest("36. Nextion ignores noise and release edges; System Check refresh uses 
     throw new Error("Refresh must fire only for the HMI's component 4");
   }
   assertActive(false); // a release edge or unknown button must not start a feed
+  feedNextionBytes([0x86, 0xFF, 0xFF, 0xFF]); // panel went to sleep
+  feedNextionBytes([0x87, 0xFF, 0xFF, 0xFF]); // panel woke up
+  assertActive(false);
+  if (nextionCurrentPageId !== NEXTION_SYSTEM_PAGE_ID) throw new Error("Sleep and wake must not change the page");
 });
 
 runTest("Nextion System Check streams four separate readouts one field per update", () => {

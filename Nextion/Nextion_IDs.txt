@@ -3,6 +3,10 @@ Resolution: 800x480; Mega UART: Serial2, 9600 baud
 Architecture: Nextion is the onsite operator panel; Mega owns local logic and safety.
 The Android app is the away-from-device interface through Firebase; it never talks to the Mega.
 
+Sleep: Program.s sets thsp=300 and thup=1, so the screen sleeps after 5 minutes with no
+touch and the next touch wakes it. Nextion's documentation says that first touch sends no
+touch event, so it cannot press a button. The Mega keeps running and feeding during sleep.
+
 Pages (page ID / editor page / purpose)
 0 Logo         startup screen; uses HyFePoul app logo resource ID 2
 1 Home         onsite status, Feed Now, local navigation
