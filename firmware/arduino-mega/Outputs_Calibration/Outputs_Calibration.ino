@@ -34,14 +34,13 @@
     RESULT             print the Config.ino lines
 
   Order:
-    1. MOTOR POWER OFF (relay board powered, motors not). The relay pins
-       start undriven. Type LEVEL HIGH. If any relay clicks on or its LED
-       lights now, type LEVEL LOW instead: that board is active LOW.
-    2. PULSE R 500, PULSE L 500, PULSE D 500: each should click once and
-       its LED light for half a second.
-    3. Motor power on for the dispenser only, a container under the outlet:
-       FLOW 5000, weigh what came out, GRAMS <weight>. Repeat 2-3 times.
-    4. BUZZ (and TONE if BUZZ was silent). RESULT.
+    1. Hopper mid-chain, a container under the outlet, a hand on the motor
+       power switch. The relay pins start undriven. PROBE LOW, then PROBE HIGH
+       if there was no click, then LEVEL with the one that clicked.
+    2. PULSE D 500, PULSE R 200, PULSE L 200. R moves the hopper right and L
+       left, seen from the front. This sketch does not watch the limit switches.
+    3. FLOW 3000, weigh what came out, GRAMS <weight>. Repeat 2-3 times.
+    4. BUZZ OK (or TONE OK if only TONE sounded). RESULT.
   The two chain relays are never on together.
 */
 

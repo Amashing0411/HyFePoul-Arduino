@@ -7,6 +7,7 @@
 
 // Ensure constants defined in Config.ino are visible to HyFePoul_Arduino.ino
 extern const unsigned long MAIN_LOOP_DELAY_MS;
+extern const unsigned long MOTOR_LOOP_DELAY_MS;
 
 // Feed cycle steps (Feeding.ino). Declared here, before the builder's
 // generated prototypes, because functions take these types.
@@ -15,7 +16,8 @@ enum CycleStep {
   CYCLE_HOMING,      // reversing to the home switch before tray 1
   CYCLE_TO_TRAY,     // timed forward run to currentTray
   CYCLE_TARING,      // settling, then taring currentTray's load cell
-  CYCLE_DISPENSING,  // dispenser on until currentTray reaches the target
+  CYCLE_DISPENSING,  // dispenser on until this spot's share of the target
+  CYCLE_TO_SPOT,     // short timed move to the tray's next feed spot
   CYCLE_TO_END,      // forward to the end switch after the last tray
   CYCLE_RETURNING    // reversing to the home switch
 };

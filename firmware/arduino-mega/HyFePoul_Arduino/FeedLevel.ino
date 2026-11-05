@@ -1,17 +1,83 @@
 /*
   FeedLevel.ino
   Ultrasonic measurement of feed level inside the hopper.
+
+  One ping every HOPPER_PING_INTERVAL_MS, never more, because the main loop
+  also times chain moves. The level uses the median of the last few good
+  pings, so one stray echo does not change it. If no echo comes back for
+  HOPPER_FAULT_PINGS pings in a row, the level is stale: hopperSensorFault is
+  set and no new feed cycle starts until the sensor answers again.
 */
 
+float hopperSamples[HOPPER_SAMPLE_COUNT];
+uint8_t hopperSampleCount = 0;
+uint8_t hopperSampleNext = 0;
+uint8_t hopperFailedPings = 0;
+unsigned long lastHopperPingMillis = 0;
+
+// Fills the sample buffer at boot, so the first level is already a median.
+void initializeFeedLevel() {
+  for (uint8_t i = 0; i < HOPPER_SAMPLE_COUNT; i++) {
+    pingHopper();
+    delay(40);
+  }
+  lastHopperPingMillis = millis();
+}
+
 void updateFeedLevel() {
+  if (millis() - lastHopperPingMillis < HOPPER_PING_INTERVAL_MS) {
+    return;
+  }
+  lastHopperPingMillis = millis();
+  pingHopper();
+}
+
+// Median of the good pings kept so far (at least one).
+float medianHopperDistanceCm() {
+  float sorted[HOPPER_SAMPLE_COUNT];
+  for (uint8_t i = 0; i < hopperSampleCount; i++) {
+    float x = hopperSamples[i];
+    int8_t j = i - 1;
+    while (j >= 0 && sorted[j] > x) {
+      sorted[j + 1] = sorted[j];
+      j--;
+    }
+    sorted[j + 1] = x;
+  }
+  return sorted[hopperSampleCount / 2];
+}
+
+void pingHopper() {
   float distanceCm = readUltrasonicDistanceCm();
 
   if (distanceCm <= 0.0f) {
-    // Sensor failure / timeout.
+    if (hopperFailedPings < HOPPER_FAULT_PINGS) {
+      hopperFailedPings++;
+    }
+    if (hopperFailedPings >= HOPPER_FAULT_PINGS && !hopperSensorFault) {
+      hopperSensorFault = true;
+      Serial.println(F("WARNING: hopper sensor not answering; feed cycles will not start."));
+      logEventToSD("HOPPER_SENSOR_FAULT");
+      triggerAlarm();
+    }
     return;
   }
 
-  currentHopperLevelPercent = calculateHopperLevelPercent(distanceCm);
+  hopperFailedPings = 0;
+  if (hopperSensorFault) {
+    hopperSensorFault = false;
+    Serial.println(F("Hopper sensor answering again."));
+    logEventToSD("HOPPER_SENSOR_OK");
+  }
+
+  hopperSamples[hopperSampleNext] = distanceCm;
+  hopperSampleNext = (hopperSampleNext + 1) % HOPPER_SAMPLE_COUNT;
+  if (hopperSampleCount < HOPPER_SAMPLE_COUNT) {
+    hopperSampleCount++;
+  }
+
+  currentHopperLevelPercent =
+      calculateHopperLevelPercent(medianHopperDistanceCm());
 
   // Low-feed detection with hysteresis.
   if (currentHopperLevelPercent <= LOW_FEED_THRESHOLD_PERCENT) {

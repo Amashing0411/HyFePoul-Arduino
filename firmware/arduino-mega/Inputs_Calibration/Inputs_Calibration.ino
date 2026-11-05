@@ -11,7 +11,7 @@
 
   Pins (same as Config.ino; PLACEHOLDERS where marked there):
     limit switches 53, 51, float 49   (INPUT_PULLUP)
-    ultrasonic TRIG 50, ECHO 48;  Nextion on Serial2 (TX2 16, RX2 17)
+    ultrasonic TRIG 52, ECHO 50;  Nextion on Serial2 (TX2 16, RX2 17)
 
   Serial Monitor: 115200 baud, line ending "New Line".
 
@@ -21,7 +21,7 @@
     REST          record the normal state: limit switches NOT pressed,
                   reservoir FULL (float up)
     MAP           press each limit switch when asked; finds the tray 1 side
-                  and the tray 5 side
+                  (right, from the front) and the tray 4 side (left)
     WATCH         print every switch change as it happens; any line stops it
     DIST          hopper distance now (median of 7 readings)
     EMPTY         record the distance with the hopper EMPTY
@@ -63,7 +63,7 @@ long nextionBaud = 0;
 bool watching = false;
 int8_t mapStep = -1;                               // -1 = MAP not running
 int8_t mapHeld = -1;                               // switch waiting to be released
-int8_t mapChoice[LIMIT_COUNT] = {-1, -1};          // tray 1 side, tray 5 side
+int8_t mapChoice[LIMIT_COUNT] = {-1, -1};          // tray 1 side, tray 4 side
 String inputLine = "";
 
 void setup() {
@@ -221,7 +221,7 @@ void startMap() {
 
 void printMapPrompt() {
   if (mapStep == 0) Serial.println(F("Press and release the limit switch on the TRAY 1 side."));
-  else Serial.println(F("Press and release the limit switch on the TRAY 5 side."));
+  else Serial.println(F("Press and release the limit switch on the TRAY 4 side."));
 }
 
 void runMap() {
@@ -279,7 +279,7 @@ void printMapLine(const __FlashStringHelper* label, int8_t choice) {
 void printMapResult() {
   Serial.println(F("Limit switch map:"));
   printMapLine(F("Tray 1 side"), mapChoice[0]);
-  printMapLine(F("Tray 5 side"), mapChoice[1]);
+  printMapLine(F("Tray 4 side"), mapChoice[1]);
 }
 
 void printLevel(uint8_t i, int level) {
@@ -401,11 +401,11 @@ void printResult() {
     printMapResult();
     if (mapChoice[0] >= 0 && mapChoice[1] >= 0) {
       Serial.print(F("const uint8_t LEFT_LIMIT_PIN  = "));
-      Serial.print(SWITCH_PINS[mapChoice[0]]);
-      Serial.println(F(";   // tray 1 side (Config.ino numbers trays from the left)"));
-      Serial.print(F("const uint8_t RIGHT_LIMIT_PIN = "));
       Serial.print(SWITCH_PINS[mapChoice[1]]);
-      Serial.println(F(";   // tray 5 side"));
+      Serial.println(F("; // tray 4 side"));
+      Serial.print(F("const uint8_t RIGHT_LIMIT_PIN = "));
+      Serial.print(SWITCH_PINS[mapChoice[0]]);
+      Serial.println(F("; // tray 1 side"));
     } else {
       Serial.println(F("(Limit switch pins: send MAP.)"));
     }

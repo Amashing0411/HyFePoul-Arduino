@@ -23,8 +23,8 @@
 // own SCK and DT (DOUT) pins, as wired on the device; no line is shared.
 const uint8_t TRAY_COUNT = 5;
 
-// Tray numbers follow the physical order of the trays (tray 1 = first
-// position). Each HX711 uses two analog pins as plain digital pins.
+// Tray numbers are the trays' own labels, not their positions (see
+// TRAY_AT_POSITION). Each HX711 uses two analog pins as plain digital pins.
 
 // Tray 1 HX711
 const uint8_t TRAY1_HX711_SCK_PIN = A1;
@@ -59,9 +59,11 @@ const uint8_t WATER_LOW_PIN = 49;
 // then returns to the start switch for the next feeding. Calibrate with
 // firmware/arduino-mega/Chain_Calibration (its RESULT prints these lines).
 //
-// Trays are numbered 1-5 from LEFT to RIGHT (PLACEHOLDER: confirm); each
-// keeps its own load cell whichever side the hopper starts from.
-const HopperSide HOPPER_START_SIDE = SIDE_LEFT; // PLACEHOLDER: pick on the bench
+// Standing in front of the device, the trays from left to right are 4, 5, 3,
+// 2, 1. Each keeps its own load cell whichever side the hopper starts from.
+const uint8_t TRAY_AT_POSITION[TRAY_COUNT] = {4, 5, 3, 2, 1};
+// From the right (tray 1 side) the hopper visits trays 1, 2, 3, 5, 4.
+const HopperSide HOPPER_START_SIDE = SIDE_RIGHT; // PLACEHOLDER: pick on the bench
 
 // The chain motor is reversed by two relays that swap its polarity; each is
 // named by the way it moves the hopper. The firmware never turns both on
@@ -71,9 +73,9 @@ const uint8_t CHAIN_TO_LEFT_RELAY_PIN  = 9;
 const uint8_t DISPENSER_RELAY_PIN      = 8;
 
 // Limit switches at each end of the chain, mapped with Inputs_Calibration.
-// "Left" is the tray 1 side and "right" is the tray 5 side.
-const uint8_t LEFT_LIMIT_PIN  = 53;
-const uint8_t RIGHT_LIMIT_PIN = 51;
+// Left and right are as seen from the front of the device.
+const uint8_t LEFT_LIMIT_PIN  = 51; // tray 4 side
+const uint8_t RIGHT_LIMIT_PIN = 53; // tray 1 side
 
 // Input/output polarity. PLACEHOLDERS: set from the RESULT lines of
 // Inputs_Calibration (switches) and Outputs_Calibration (relays).
@@ -118,6 +120,12 @@ float LOAD_CELL_CALIBRATION_FACTORS[TRAY_COUNT] = {
   1787.856f, 1960.0f, 384.628f, 1959.096f, 1866.02f
 };
 
+// Ultrasonic pings: one per interval, levels use the median of the last few.
+const unsigned long HOPPER_PING_INTERVAL_MS = 500UL;
+const uint8_t HOPPER_SAMPLE_COUNT = 5;
+// This many failed pings in a row (about 5 s) count as a sensor fault.
+const uint8_t HOPPER_FAULT_PINGS = 10;
+
 // PLACEHOLDER: measure actual empty/full hopper distances (Inputs_Calibration
 // EMPTY / FULL).
 // TEMPORARY FULL value: measured with the feed on hand, not a full hopper, so
@@ -142,14 +150,25 @@ const float MAX_TRAY_TARGET_GRAMS = 1000.0f;
 
 // PLACEHOLDER (open items O-1, O-4): bench-calibrate all timings below
 // with firmware/arduino-mega/Chain_Calibration.
-// Run time to each stop, in the order the hopper reaches the trays from the
-// start side: entry 1 = start switch to the first tray, entry 2 = first to
-// second tray, and so on. Timed travel is used because there is no position
-// sensor at each tray.
+// Run time to each tray's FIRST feed spot, in the order the hopper reaches
+// the trays from the start side: entry 1 = start switch to the first tray,
+// entry 2 = last spot of the first tray to first spot of the second, and so
+// on. Timed travel is used because there is no position sensor at each tray.
 const unsigned long TRAY_TRAVEL_MS[TRAY_COUNT] = {
   3000UL, 3000UL, 3000UL, 3000UL, 3000UL
 };
-// Max dispenser run per tray; on expiry the tray is skipped (TRAY_TIMEOUT).
+// Feed is spread along each tray: the hopper stops at this many spots and
+// drops an equal share of the target at each one.
+const uint8_t TRAY_SPOT_COUNT = 5;
+// Run time from a tray's first spot to its last spot, in the same travel
+// order, split into equal steps. PLACEHOLDER: set with Chain_Calibration.
+const unsigned long TRAY_SPAN_MS[TRAY_COUNT] = {
+  1000UL, 1000UL, 1000UL, 1000UL, 1000UL
+};
+// Pause after each step, so feed still falling is on the scale before the
+// next share is judged.
+const unsigned long TRAY_SPOT_SETTLE_MS = 300UL;
+// Max total dispenser run per tray; on expiry the rest is skipped (TRAY_TIMEOUT).
 // Outputs_Calibration (FLOW / GRAMS) suggests it from the measured flow.
 const unsigned long TRAY_DISPENSE_TIMEOUT_MS = 10000UL; // 25.30 g/s measured; 50 g takes about 2 s
 // Pause after the chain stops before taring, so the tray stops swinging.
@@ -183,6 +202,8 @@ const unsigned long SD_LOG_INTERVAL_MS = 30000UL;
 // For a more responsive final system, this can later be replaced
 // by non-blocking millis()-based scheduling.
 const unsigned long MAIN_LOOP_DELAY_MS = 100UL;
+// Loop delay while a motor runs, so timed moves and weight stops stay accurate.
+const unsigned long MOTOR_LOOP_DELAY_MS = 2UL;
 
 // -----------------------------
 // Feeding schedule
@@ -222,18 +243,28 @@ RTC_DS3231 rtc;
 float trayWeightsGrams[TRAY_COUNT] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
 float currentFeedWeightGrams = 0.0f;
 float currentHopperLevelPercent = 0.0f;
+bool hopperSensorFault = false; // no usable echo; the level above is stale
 float activeFeedTargetGrams = 0.0f; // per tray, for the running/last cycle
 float manualFeedTargetGrams = DEFAULT_FEED_TARGET_GRAMS; // saved local HMI target, per tray
 
 // Feed cycle (Feeding.ino). feedingActive is true while a cycle runs.
 bool feedingActive = false;
 CycleStep cycleStep = CYCLE_IDLE;
-uint8_t currentTray = 0; // tray number (1-5, left to right) at/heading to, else 0
+uint8_t currentTray = 0; // tray number (its label, 1-5) at/heading to, else 0
 uint8_t currentStop = 0; // 1-5: how many trays into the run, in travel order; 0 = none
 unsigned long cycleStepStartMillis = 0;
 const char* cycleFailReason = NULL; // first problem in this cycle, or NULL
 bool trayTimeoutAlertSent = false;  // one TRAY_TIMEOUT alert per cycle
 int lastExecutedFeedIndex = -1;
+
+// Feed spots on the current tray (CYCLE_DISPENSING, CYCLE_TO_SPOT)
+uint8_t currentSpot = 0;              // 0 = first spot
+bool spotMoveDone = false;            // chain has stopped at the next spot
+unsigned long spotArrivedMillis = 0;
+unsigned long dispenseStartMillis = 0;
+unsigned long trayDispenseUsedMs = 0; // dispenser run so far on this tray
+bool trayAborted = false;             // tray failed: pass the spots without feed
+bool trayFeedCounted = false;         // this tray's grams are in the day totals
 
 // Tray tare in progress (CYCLE_TARING)
 long tareSum = 0;
@@ -314,7 +345,7 @@ void initializeSystem() {
   initializeDailyStats();
 
   // Initial sensor reads.
-  updateFeedLevel();
+  initializeFeedLevel();
   initializeHydration();
 
   Serial.println(F("================================"));

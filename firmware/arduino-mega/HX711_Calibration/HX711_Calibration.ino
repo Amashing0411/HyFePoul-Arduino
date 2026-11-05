@@ -37,8 +37,9 @@
 
 const uint8_t TRAY_COUNT = 5;
 
-// Tray numbers follow the physical order of the trays (tray 1 = first
-// position). Each HX711 uses two analog pins as plain digital pins.
+// Tray numbers are the trays' own labels. From the front of the device, left
+// to right, they are 4, 5, 3, 2, 1. Each HX711 uses two analog pins as plain
+// digital pins.
 
 // Tray 1 HX711
 const uint8_t TRAY1_HX711_SCK_PIN = A1;

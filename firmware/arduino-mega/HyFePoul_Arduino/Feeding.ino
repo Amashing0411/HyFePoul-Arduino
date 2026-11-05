@@ -5,11 +5,18 @@
   The hopper rides a chain driven by the chain motor. One cycle:
     1. HOMING      reverse to the start-side switch (skipped if already there)
     2. per tray, in the order reached from the start side
-     (HOPPER_START_SIDE in Config.ino; trays numbered 1-5 left to right):
-       TO_TRAY     timed forward run (TRAY_TRAVEL_MS) to the tray
+     (HOPPER_START_SIDE in Config.ino; TRAY_AT_POSITION gives the order):
+       TO_TRAY     timed forward run (TRAY_TRAVEL_MS) to the tray's first spot
        TARING      settle, then tare that tray's load cell
-       DISPENSING  dispenser on until the tray reads the per-tray target,
-                   or TRAY_DISPENSE_TIMEOUT_MS (tray skipped, TRAY_TIMEOUT)
+       DISPENSING  dispenser on until the tray reads this spot's running
+                   target: with 5 spots and 50 g, 10, 20, 30, 40, then 50 g.
+                   An overshoot is taken off the next spot's share.
+       TO_SPOT     short timed move to the next spot, then a short settle;
+                   a spot already at its running target gets no feed
+       The last spot dispenses until the full target. TRAY_DISPENSE_TIMEOUT_MS
+       limits the total dispenser run per tray (rest of tray skipped,
+       TRAY_TIMEOUT). A failed tray still passes its spots without feed, so
+       the hopper is where the next tray's timing expects it.
     3. TO_END      forward to the far-side limit switch
     4. RETURNING   reverse to the home switch; cycle done
 
@@ -247,6 +254,10 @@ const char* startFeedCycle(float targetGrams) {
     return "BENCH_ACTIVE";
   }
 
+  if (hopperSensorFault) {
+    return "HOPPER_SENSOR_FAULT";
+  }
+
   if (currentHopperLevelPercent <= HOPPER_EMPTY_PERCENT) {
     return "HOPPER_LOW";
   }
@@ -282,6 +293,14 @@ void enterCycleStep(CycleStep step) {
   if (step == CYCLE_TARING) {
     tareSum = 0;
     tareCount = 0;
+    currentSpot = 0;
+    trayDispenseUsedMs = 0;
+    trayAborted = false;
+    trayFeedCounted = false;
+  }
+
+  if (step == CYCLE_TO_SPOT) {
+    spotMoveDone = false;
   }
 
   Serial.print(F("FEED STEP: "));
@@ -289,6 +308,10 @@ void enterCycleStep(CycleStep step) {
   if (currentTray > 0 && step != CYCLE_TO_END && step != CYCLE_RETURNING) {
     Serial.print(F(" tray "));
     Serial.print(currentTray);
+    if (step == CYCLE_DISPENSING || step == CYCLE_TO_SPOT) {
+      Serial.print(F(" spot "));
+      Serial.print(currentSpot + 1);
+    }
   }
   Serial.println();
 }
@@ -298,11 +321,11 @@ void runFeedCycle() {
 
   // O-3: hopper ran empty while trays are still being filled.
   if ((cycleStep == CYCLE_TO_TRAY || cycleStep == CYCLE_TARING ||
-       cycleStep == CYCLE_DISPENSING) &&
+       cycleStep == CYCLE_DISPENSING || cycleStep == CYCLE_TO_SPOT) &&
       currentHopperLevelPercent <= HOPPER_EMPTY_PERCENT) {
     digitalWrite(DISPENSER_RELAY_PIN, RELAY_OFF);
-    if (cycleStep == CYCLE_DISPENSING) {
-      statAddFeed(trayWeightsGrams[currentTray - 1]);
+    if (cycleStep == CYCLE_DISPENSING || cycleStep == CYCLE_TO_SPOT) {
+      countTrayFeed();
     }
     queueAlertEvent("LOW_FEED");
     triggerAlarm();
@@ -332,7 +355,11 @@ void runFeedCycle() {
       break;
 
     case CYCLE_DISPENSING:
-      runDispensing(elapsed);
+      runDispensing();
+      break;
+
+    case CYCLE_TO_SPOT:
+      runToSpot();
       break;
 
     case CYCLE_TO_END:
@@ -387,6 +414,17 @@ void runToTray() {
 void runTaring(unsigned long elapsed) {
   uint8_t trayIndex = currentTray - 1;
 
+  // A factor of about 1 means this tray was never calibrated, so its readings
+  // are raw counts and it would stop dispensing almost at once.
+  if (fabs(LOAD_CELL_CALIBRATION_FACTORS[trayIndex]) <= 1.0f) {
+    Serial.print(F("Tray "));
+    Serial.print(currentTray);
+    Serial.println(F(" load cell not calibrated; tray skipped."));
+    logEventToSD("LOAD_CELL_NOT_CALIBRATED");
+    trayFailed();
+    return;
+  }
+
   if (elapsed < TRAY_SETTLE_MS) {
     return;
   }
@@ -413,26 +451,41 @@ void runTaring(unsigned long elapsed) {
     trayWeightsGrams[trayIndex] = 0.0f;
     readTrayWeight(trayIndex); // refresh the total with this tray at 0
 
-    digitalWrite(DISPENSER_RELAY_PIN, RELAY_ON);
-    enterCycleStep(CYCLE_DISPENSING);
+    startSpotDispense();
   }
 }
 
-void runDispensing(unsigned long elapsed) {
+// Grams this tray should read when the current spot is finished.
+float spotRunningTarget() {
+  if (currentSpot + 1 >= TRAY_SPOT_COUNT) {
+    return activeFeedTargetGrams;
+  }
+  return activeFeedTargetGrams * (currentSpot + 1) / TRAY_SPOT_COUNT;
+}
+
+void startSpotDispense() {
+  dispenseStartMillis = millis();
+  digitalWrite(DISPENSER_RELAY_PIN, RELAY_ON);
+  enterCycleStep(CYCLE_DISPENSING);
+}
+
+void runDispensing() {
   uint8_t trayIndex = currentTray - 1;
 
   readTrayWeight(trayIndex);
 
-  if (trayWeightsGrams[trayIndex] >= activeFeedTargetGrams) {
+  unsigned long ranMs = millis() - dispenseStartMillis;
+
+  if (trayWeightsGrams[trayIndex] >= spotRunningTarget()) {
     digitalWrite(DISPENSER_RELAY_PIN, RELAY_OFF);
-    statAddFeed(trayWeightsGrams[trayIndex]);
-    nextTray();
+    trayDispenseUsedMs += ranMs;
+    leaveSpot();
     return;
   }
 
-  if (elapsed >= TRAY_DISPENSE_TIMEOUT_MS) {
+  if (trayDispenseUsedMs + ranMs >= TRAY_DISPENSE_TIMEOUT_MS) {
     digitalWrite(DISPENSER_RELAY_PIN, RELAY_OFF);
-    statAddFeed(trayWeightsGrams[trayIndex]); // what did reach the tray
+    countTrayFeed(); // what did reach the tray
     Serial.print(F("Tray "));
     Serial.print(currentTray);
     Serial.println(F(" dispense timeout; tray skipped."));
@@ -440,8 +493,86 @@ void runDispensing(unsigned long elapsed) {
   }
 }
 
-// The current tray was not filled (dispense timeout or no load cell).
+// Goes on to the next spot, or the next tray after the last spot.
+void leaveSpot() {
+  if (currentSpot + 1 >= TRAY_SPOT_COUNT) {
+    if (!trayAborted) {
+      // Feed still falling is not on the scale yet; the day total only needs
+      // this reading, the tray itself has already reached its target.
+      countTrayFeed();
+    }
+    nextTray();
+    return;
+  }
+
+  currentSpot++;
+  enterCycleStep(CYCLE_TO_SPOT);
+}
+
+// Timed move to the next spot, a short settle, then dispense unless the tray
+// is already at this spot's running target.
+void runToSpot() {
+  uint8_t trayIndex = currentTray - 1;
+
+  if (isEndSwitchPressed()) {
+    // Reached the far end inside a tray: spot timings are too long.
+    stopChain();
+    if (!trayAborted) {
+      countTrayFeed();
+    }
+    logEventToSD("END_LIMIT_EARLY");
+    returnHome("END_LIMIT_EARLY");
+    return;
+  }
+
+  if (!spotMoveDone) {
+    if (!setChainDirection(CHAIN_FORWARD)) {
+      return;
+    }
+    unsigned long stepMs = TRAY_SPAN_MS[currentStop - 1] / (TRAY_SPOT_COUNT - 1);
+    if (millis() - chainRunStartMillis >= stepMs) {
+      stopChain();
+      spotMoveDone = true;
+      spotArrivedMillis = millis();
+    }
+    return;
+  }
+
+  // A failed tray only passes through.
+  if (trayAborted) {
+    leaveSpot();
+    return;
+  }
+
+  readTrayWeight(trayIndex);
+
+  if (millis() - spotArrivedMillis < TRAY_SPOT_SETTLE_MS) {
+    return;
+  }
+
+  if (trayWeightsGrams[trayIndex] >= spotRunningTarget()) {
+    leaveSpot();
+  } else {
+    startSpotDispense();
+  }
+}
+
+// Adds this tray's reading to the day total, once per tray.
+void countTrayFeed() {
+  if (trayFeedCounted || currentTray == 0) {
+    return;
+  }
+  trayFeedCounted = true;
+  statAddFeed(trayWeightsGrams[currentTray - 1]);
+}
+
+// The current tray was not filled (dispense timeout or no load cell). The
+// hopper still passes the remaining spots, because the next tray's travel time
+// is measured from this tray's last spot.
 void trayFailed() {
+  trayAborted = true;
+  trayFeedCounted = true;
+
   logEventToSD("TRAY_TIMEOUT");
   statTrayTimeout();
 
@@ -456,7 +587,7 @@ void trayFailed() {
     triggerAlarm();
   }
 
-  nextTray();
+  leaveSpot();
 }
 
 void nextTray() {
@@ -469,9 +600,16 @@ void nextTray() {
   }
 }
 
-// Tray number (1-5, left to right) at a stop (1-5, in travel order).
+// Tray number at a stop (1-5, in travel order).
 uint8_t trayAtStop(uint8_t stop) {
-  return START_LEFT ? stop : (uint8_t)(TRAY_COUNT + 1 - stop);
+  return START_LEFT ? TRAY_AT_POSITION[stop - 1]
+                    : TRAY_AT_POSITION[TRAY_COUNT - stop];
+}
+
+// True while the chain or the dispenser is running.
+bool motorRunning() {
+  return chainDirection != CHAIN_STOPPED ||
+         digitalRead(DISPENSER_RELAY_PIN) == RELAY_ON;
 }
 
 // Moves the cycle to a stop (0 = not at a tray).
@@ -535,8 +673,9 @@ void stopFeedCycle(const char* reason) {
   digitalWrite(DISPENSER_RELAY_PIN, RELAY_OFF);
   stopChain();
 
-  if (feedingActive && cycleStep == CYCLE_DISPENSING && currentTray > 0) {
-    statAddFeed(trayWeightsGrams[currentTray - 1]);
+  if (feedingActive &&
+      (cycleStep == CYCLE_DISPENSING || cycleStep == CYCLE_TO_SPOT)) {
+    countTrayFeed();
   }
 
   bool wasActive = feedingActive;
@@ -557,7 +696,10 @@ const char* getCycleStepName(CycleStep step) {
     case CYCLE_HOMING:     return "HOMING";
     case CYCLE_TO_TRAY:    return "TO_TRAY";
     case CYCLE_TARING:     return "TARING";
+    // Reported as DISPENSING: the database rules and the app know these names,
+    // and moving between spots is part of dispensing a tray.
     case CYCLE_DISPENSING: return "DISPENSING";
+    case CYCLE_TO_SPOT:    return "DISPENSING";
     case CYCLE_TO_END:     return "TO_END";
     case CYCLE_RETURNING:  return "RETURNING";
     default:               return "IDLE";
