@@ -3,15 +3,18 @@
  *
  * Simulates the parsing and state-machine logic implemented in the Arduino
  * Mega firmware (ESP32Communication.ino, Feeding.ino, Hydration.ino,
- * Safety.ino, ScheduleStorage.ino, Nextion.ino) against a simple model of
+ * Safety.ino, ScheduleStorage.ino, Nextion.ino, FeedLevel.ino) against a simple model of
  * the moving-hopper hardware: a chain position with home/end limit
  * switches, five tray load cells, the dispenser, the hopper level and the
  * reservoir float switch.
  *
  * It verifies the command validation, the 5-tray feed cycle, its safety
- * rules (relay interlock, dead time, limit switches, timeouts, E-stop) and
+ * rules (relay interlock, dead time, limit switches, timeouts) and
  * the water alert. It is a logic check only: it does not replace the
  * hardware integration tests (docs/hardware-integration-test-plan.md).
+ *
+ * It runs on fixed 100 ms ticks, while the firmware loops every 2 ms when a
+ * motor runs, so spot moves here are whole multiples of a tick.
  *
  * Run: node scripts/simulate-mega.js
  */
@@ -20,8 +23,15 @@
 const TRAY_COUNT = 5;
 const DEFAULT_FEED_TARGET_GRAMS = 50;
 const MAX_TRAY_TARGET_GRAMS = 1000;
+// Tray numbers from left to right, seen from the front of the device.
+const TRAY_AT_POSITION = [4, 5, 3, 2, 1];
+let startLeft = false; // HOPPER_START_SIDE = SIDE_RIGHT
 const TRAY_TRAVEL_MS = [3000, 3000, 3000, 3000, 3000];
-const TRAY_DISPENSE_TIMEOUT_MS = 30000;
+const TRAY_SPOT_COUNT = 5;
+const TRAY_SPAN_MS = [800, 800, 800, 800, 800]; // 200 ms per step
+const TRAY_SPOT_SETTLE_MS = 300;
+const LOAD_CELL_CALIBRATION_FACTORS = [1787.856, 1960.0, 384.628, 1959.096, 1866.02];
+const TRAY_DISPENSE_TIMEOUT_MS = 10000;
 const TRAY_SETTLE_MS = 500;
 const TRAY_TARE_SAMPLES = 5;
 const TRAY_TARE_TIMEOUT_MS = 3000;
@@ -31,19 +41,27 @@ const CHAIN_DEAD_TIME_MS = 300;
 const HOPPER_EMPTY_PERCENT = 5;
 const LOW_FEED_THRESHOLD_PERCENT = 20;
 const LOW_FEED_CLEAR_PERCENT = 25;
+const HOPPER_PING_INTERVAL_MS = 500;
+const HOPPER_FAULT_PINGS = 10;
 const WATER_DEBOUNCE_MS = 2000;
 const LOOP_MS = 100;
 
 // --- Mega state ---
 let simMillis = 0;
-let emergencyStopActive = false;
-let emergencyButtonPressed = false;
 let activeRemoteCommandId = "";
 let outputLog = [];
 
 let feedingActive = false;
 let cycleStep = "IDLE";
 let currentTray = 0;
+let currentStop = 0;
+let currentSpot = 0;
+let spotMoveDone = false;
+let spotArrivedMillis = 0;
+let dispenseStartMillis = 0;
+let trayDispenseUsedMs = 0;
+let trayAborted = false;
+let trayFeedCounted = false;
 let cycleStepStartMillis = 0;
 let cycleFailReason = null;
 let trayTimeoutAlertSent = false;
@@ -59,6 +77,9 @@ let chainRunStartMillis = 0;
 
 let currentHopperLevelPercent = 80;
 let lowFeedAlertSent = false;
+let hopperSensorFault = false;
+let hopperFailedPings = 0;
+let lastHopperPingMillis = 0;
 
 let waterLow = false;
 let waterLowCandidate = false;
@@ -75,7 +96,6 @@ let feedSchedules = [
 let manualFeedTargetGrams = DEFAULT_FEED_TARGET_GRAMS;
 
 const pins = {
-  EMERGENCY_STOP: 1, // HIGH = released, LOW = pressed
   DISPENSER_RELAY: 0,
   CHAIN_FORWARD_RELAY: 0,
   CHAIN_REVERSE_RELAY: 0
@@ -83,9 +103,13 @@ const pins = {
 
 // --- Hardware model ---
 // Chain position in "ms of forward travel" from home. The home switch is
-// pressed at <= 0, the end switch at >= END_POSITION.
-const trayPosition = (tray) => TRAY_TRAVEL_MS.slice(0, tray).reduce((a, b) => a + b, 0);
-const END_POSITION = trayPosition(TRAY_COUNT) + 4000;
+// pressed at <= 0, the end switch at >= END_POSITION. Stops count from 1 in
+// travel order.
+const sum = (values) => values.reduce((a, b) => a + b, 0);
+const stopFirstSpot = (stop) => sum(TRAY_TRAVEL_MS.slice(0, stop)) + sum(TRAY_SPAN_MS.slice(0, stop - 1));
+const stopLastSpot = (stop) => stopFirstSpot(stop) + TRAY_SPAN_MS[stop - 1];
+const END_POSITION = stopLastSpot(TRAY_COUNT) + 4000;
+const trayAtStop = (stop) => (startLeft ? TRAY_AT_POSITION[stop - 1] : TRAY_AT_POSITION[TRAY_COUNT - stop]);
 const hw = {
   chainPos: 0,
   trayGrams: [0, 0, 0, 0, 0],   // physical feed in each tray
@@ -95,6 +119,8 @@ const hw = {
   dispenserJammed: false,
   gramsPerTick: 5,
   hopperPercentPerGram: 0.02,
+  hopperEchoDead: false,
+  drops: {},                    // "tray:position" -> grams dropped there
   endSwitchBroken: false,
   homeSwitchBroken: false,
   spilledGrams: 0
@@ -113,6 +139,9 @@ const resetHardware = () => {
   hw.endSwitchBroken = false;
   hw.homeSwitchBroken = false;
   hw.spilledGrams = 0;
+  hw.gramsPerTick = 5;
+  hw.hopperEchoDead = false;
+  hw.drops = {};
   interlockViolations = 0;
   deadTimeViolations = 0;
   lastActiveRelay = null;
@@ -144,8 +173,15 @@ const stepHardware = () => {
   if (pins.DISPENSER_RELAY === 1 && !hw.dispenserJammed && currentHopperLevelPercent > 0) {
     const g = hw.gramsPerTick;
     currentHopperLevelPercent = Math.max(0, currentHopperLevelPercent - g * hw.hopperPercentPerGram);
-    const tray = [1, 2, 3, 4, 5].find(t => Math.abs(hw.chainPos - trayPosition(t)) < 500);
-    if (tray) hw.trayGrams[tray - 1] += g; else hw.spilledGrams += g;
+    const stop = [1, 2, 3, 4, 5].find(n => hw.chainPos > stopFirstSpot(n) - 500 && hw.chainPos < stopLastSpot(n) + 500);
+    if (stop) {
+      const tray = trayAtStop(stop);
+      hw.trayGrams[tray - 1] += g;
+      const key = `${tray}:${hw.chainPos}`;
+      hw.drops[key] = (hw.drops[key] || 0) + g;
+    } else {
+      hw.spilledGrams += g;
+    }
   }
 };
 
@@ -189,8 +225,38 @@ const finishRemoteCommand = (status, reason = "") => {
   activeRemoteCommandId = "";
 };
 
-// --- FeedLevel.ino (low-feed alert only; the level comes from the model) ---
+// --- FeedLevel.ino: the level comes from the model. The low-feed check runs
+// every tick here (the firmware runs it after each ping); the sensor fault
+// follows the firmware's ping timing.
+const medianOf = (samples) => {
+  const sorted = [...samples].sort((a, b) => a - b);
+  return sorted[Math.floor(sorted.length / 2)];
+};
+
+const pingHopper = () => {
+  if (hw.hopperEchoDead) {
+    if (hopperFailedPings < HOPPER_FAULT_PINGS) hopperFailedPings++;
+    if (hopperFailedPings >= HOPPER_FAULT_PINGS && !hopperSensorFault) {
+      hopperSensorFault = true;
+      logEventToSD("HOPPER_SENSOR_FAULT");
+      queueAlertEvent("HOPPER_SENSOR_FAULT");
+      triggerAlarm();
+    }
+    return;
+  }
+  hopperFailedPings = 0;
+  if (hopperSensorFault) {
+    hopperSensorFault = false;
+    logEventToSD("HOPPER_SENSOR_OK");
+    queueAlertEvent("HOPPER_SENSOR_OK");
+  }
+};
+
 const updateFeedLevel = () => {
+  if (simMillis - lastHopperPingMillis >= HOPPER_PING_INTERVAL_MS) {
+    lastHopperPingMillis = simMillis;
+    pingHopper();
+  }
   if (currentHopperLevelPercent <= LOW_FEED_THRESHOLD_PERCENT) {
     if (!lowFeedAlertSent) {
       lowFeedAlertSent = true;
@@ -224,7 +290,7 @@ const checkLowWaterAlert = () => {
 const queueBootClears = () => {
   if (!lowFeedAlertSent && currentHopperLevelPercent >= LOW_FEED_CLEAR_PERCENT) queueAlertEvent("LOW_FEED_CLEARED");
   if (!waterLow) queueAlertEvent("LOW_WATER_CLEARED");
-  queueAlertEvent("EMERGENCY_STOP_RELEASED");
+  if (!hopperSensorFault) queueAlertEvent("HOPPER_SENSOR_OK");
 };
 
 const updateHydration = () => {
@@ -250,7 +316,7 @@ const stopChain = () => {
 };
 
 const setChainDirection = (direction) => {
-  if (direction === "STOPPED" || emergencyStopActive) {
+  if (direction === "STOPPED") {
     stopChain();
     return direction === "STOPPED";
   }
@@ -296,24 +362,47 @@ const refreshIdleTrayWeights = () => {
 const enterCycleStep = (step) => {
   cycleStep = step;
   cycleStepStartMillis = simMillis;
-  if (step === "TARING") { tareSum = 0; tareCount = 0; }
-  outputLog.push(`STEP:${step}${currentTray ? ":" + currentTray : ""}`);
+  if (step === "TARING") {
+    tareSum = 0;
+    tareCount = 0;
+    currentSpot = 0;
+    trayDispenseUsedMs = 0;
+    trayAborted = false;
+    trayFeedCounted = false;
+  }
+  if (step === "TO_SPOT") spotMoveDone = false;
+  const spot = step === "DISPENSING" || step === "TO_SPOT" ? `:${currentSpot + 1}` : "";
+  outputLog.push(`STEP:${step}${currentTray ? ":" + currentTray : ""}${spot}`);
+};
+
+const setStop = (stop) => {
+  currentStop = stop;
+  currentTray = stop === 0 ? 0 : trayAtStop(stop);
+};
+
+// Spot moves report as DISPENSING: the rules and the app only know these names.
+const getCycleStepName = (step) => (step === "TO_SPOT" ? "DISPENSING" : step);
+
+const countTrayFeed = () => {
+  if (trayFeedCounted || currentTray === 0) return;
+  trayFeedCounted = true;
+  statAddFeed(trayWeightsGrams[currentTray - 1]);
 };
 
 const startFeedCycle = (targetGrams) => {
-  if (emergencyStopActive) return "ESTOP_ACTIVE";
   if (feedingActive) return "FEEDING_ACTIVE";
   if (benchMove !== "IDLE") return "BENCH_ACTIVE";
+  if (hopperSensorFault) return "HOPPER_SENSOR_FAULT";
   if (currentHopperLevelPercent <= HOPPER_EMPTY_PERCENT) return "HOPPER_LOW";
 
   activeFeedTargetGrams = targetGrams;
   feedingActive = true;
   cycleFailReason = null;
   trayTimeoutAlertSent = false;
-  currentTray = 0;
+  setStop(0);
 
   if (isHomeSwitchPressed()) {
-    currentTray = 1;
+    setStop(1);
     enterCycleStep("TO_TRAY");
   } else {
     enterCycleStep("HOMING");
@@ -324,10 +413,10 @@ const startFeedCycle = (targetGrams) => {
 const stopFeedCycle = (reason) => {
   pins.DISPENSER_RELAY = 0;
   stopChain();
-  if (feedingActive && cycleStep === "DISPENSING" && currentTray > 0) statAddFeed(trayWeightsGrams[currentTray - 1]);
+  if (feedingActive && (cycleStep === "DISPENSING" || cycleStep === "TO_SPOT")) countTrayFeed();
   const wasActive = feedingActive;
   feedingActive = false;
-  currentTray = 0;
+  setStop(0);
   cycleStep = "IDLE";
   if (wasActive) { logEventToSD(reason); statCycleEnded(false); }
 };
@@ -336,7 +425,7 @@ const finishFeedCycle = () => {
   pins.DISPENSER_RELAY = 0;
   stopChain();
   feedingActive = false;
-  currentTray = 0;
+  setStop(0);
   enterCycleStep("IDLE");
   if (cycleFailReason === null) {
     logEventToSD("FEEDING_COMPLETED");
@@ -361,21 +450,33 @@ const chainFault = () => {
 const returnHome = (reason) => {
   pins.DISPENSER_RELAY = 0;
   if (cycleFailReason === null) cycleFailReason = reason;
-  currentTray = 0;
+  setStop(0);
   enterCycleStep("RETURNING");
 };
 
 const nextTray = () => {
-  if (currentTray < TRAY_COUNT) {
-    currentTray++;
+  if (currentStop < TRAY_COUNT) {
+    setStop(currentStop + 1);
     enterCycleStep("TO_TRAY");
   } else {
-    currentTray = 0;
+    setStop(0);
     enterCycleStep("TO_END");
   }
 };
 
+const leaveSpot = () => {
+  if (currentSpot + 1 >= TRAY_SPOT_COUNT) {
+    if (!trayAborted) countTrayFeed();
+    nextTray();
+    return;
+  }
+  currentSpot++;
+  enterCycleStep("TO_SPOT");
+};
+
 const trayFailed = () => {
+  trayAborted = true;
+  trayFeedCounted = true;
   logEventToSD("TRAY_TIMEOUT");
   statTrayTimeout();
   if (cycleFailReason === null) cycleFailReason = "TRAY_TIMEOUT";
@@ -384,7 +485,7 @@ const trayFailed = () => {
     queueAlertEvent("TRAY_TIMEOUT");
     triggerAlarm();
   }
-  nextTray();
+  leaveSpot();
 };
 
 const runToTray = () => {
@@ -395,7 +496,7 @@ const runToTray = () => {
     return;
   }
   if (!setChainDirection("FORWARD")) return;
-  if (simMillis - chainRunStartMillis >= TRAY_TRAVEL_MS[currentTray - 1]) {
+  if (simMillis - chainRunStartMillis >= TRAY_TRAVEL_MS[currentStop - 1]) {
     stopChain();
     enterCycleStep("TARING");
   }
@@ -403,6 +504,11 @@ const runToTray = () => {
 
 const runTaring = (elapsed) => {
   const i = currentTray - 1;
+  if (Math.abs(LOAD_CELL_CALIBRATION_FACTORS[i]) <= 1) {
+    logEventToSD("LOAD_CELL_NOT_CALIBRATED");
+    trayFailed();
+    return;
+  }
   if (elapsed < TRAY_SETTLE_MS) return;
   if (elapsed >= TRAY_SETTLE_MS + TRAY_TARE_TIMEOUT_MS) {
     logEventToSD("LOAD_CELL_NOT_READY");
@@ -416,34 +522,72 @@ const runTaring = (elapsed) => {
     hw.scaleOffset[i] = tareSum / tareCount;
     trayWeightsGrams[i] = 0;
     readTrayWeight(i);
-    pins.DISPENSER_RELAY = 1;
-    enterCycleStep("DISPENSING");
+    startSpotDispense();
   }
 };
 
-const runDispensing = (elapsed) => {
+const spotRunningTarget = () => (currentSpot + 1 >= TRAY_SPOT_COUNT
+  ? activeFeedTargetGrams
+  : activeFeedTargetGrams * (currentSpot + 1) / TRAY_SPOT_COUNT);
+
+const startSpotDispense = () => {
+  dispenseStartMillis = simMillis;
+  pins.DISPENSER_RELAY = 1;
+  enterCycleStep("DISPENSING");
+};
+
+const runDispensing = () => {
   const i = currentTray - 1;
   readTrayWeight(i);
-  if (trayWeightsGrams[i] >= activeFeedTargetGrams) {
+  const ranMs = simMillis - dispenseStartMillis;
+  if (trayWeightsGrams[i] >= spotRunningTarget()) {
     pins.DISPENSER_RELAY = 0;
-    statAddFeed(trayWeightsGrams[i]);
-    nextTray();
+    trayDispenseUsedMs += ranMs;
+    leaveSpot();
     return;
   }
-  if (elapsed >= TRAY_DISPENSE_TIMEOUT_MS) {
+  if (trayDispenseUsedMs + ranMs >= TRAY_DISPENSE_TIMEOUT_MS) {
     pins.DISPENSER_RELAY = 0;
-    statAddFeed(trayWeightsGrams[i]);
+    countTrayFeed();
     trayFailed();
   }
+};
+
+const runToSpot = () => {
+  const i = currentTray - 1;
+  if (isEndSwitchPressed()) {
+    stopChain();
+    if (!trayAborted) countTrayFeed();
+    logEventToSD("END_LIMIT_EARLY");
+    returnHome("END_LIMIT_EARLY");
+    return;
+  }
+  if (!spotMoveDone) {
+    if (!setChainDirection("FORWARD")) return;
+    if (simMillis - chainRunStartMillis >= TRAY_SPAN_MS[currentStop - 1] / (TRAY_SPOT_COUNT - 1)) {
+      stopChain();
+      spotMoveDone = true;
+      spotArrivedMillis = simMillis;
+    }
+    return;
+  }
+  if (trayAborted) {
+    leaveSpot();
+    return;
+  }
+  readTrayWeight(i);
+  if (simMillis - spotArrivedMillis < TRAY_SPOT_SETTLE_MS) return;
+  if (trayWeightsGrams[i] >= spotRunningTarget()) leaveSpot();
+  else startSpotDispense();
 };
 
 const runFeedCycle = () => {
   const elapsed = simMillis - cycleStepStartMillis;
 
-  if ((cycleStep === "TO_TRAY" || cycleStep === "TARING" || cycleStep === "DISPENSING") &&
+  if ((cycleStep === "TO_TRAY" || cycleStep === "TARING" || cycleStep === "DISPENSING" || cycleStep === "TO_SPOT") &&
       currentHopperLevelPercent <= HOPPER_EMPTY_PERCENT) {
     pins.DISPENSER_RELAY = 0;
-    if (cycleStep === "DISPENSING") statAddFeed(trayWeightsGrams[currentTray - 1]);
+    if (cycleStep === "DISPENSING" || cycleStep === "TO_SPOT") countTrayFeed();
     queueAlertEvent("LOW_FEED");
     triggerAlarm();
     returnHome("HOPPER_EMPTY");
@@ -452,15 +596,16 @@ const runFeedCycle = () => {
 
   switch (cycleStep) {
     case "HOMING":
-      if (isHomeSwitchPressed()) { stopChain(); currentTray = 1; enterCycleStep("TO_TRAY"); }
+      if (isHomeSwitchPressed()) { stopChain(); setStop(1); enterCycleStep("TO_TRAY"); }
       else if (elapsed >= CHAIN_HOME_TIMEOUT_MS) chainFault();
       else setChainDirection("REVERSE");
       break;
     case "TO_TRAY": runToTray(); break;
     case "TARING": runTaring(elapsed); break;
-    case "DISPENSING": runDispensing(elapsed); break;
+    case "DISPENSING": runDispensing(); break;
+    case "TO_SPOT": runToSpot(); break;
     case "TO_END":
-      if (isEndSwitchPressed()) { stopChain(); currentTray = 0; enterCycleStep("RETURNING"); }
+      if (isEndSwitchPressed()) { stopChain(); setStop(0); enterCycleStep("RETURNING"); }
       else if (elapsed >= CHAIN_END_TIMEOUT_MS) chainFault();
       else setChainDirection("FORWARD");
       break;
@@ -496,45 +641,13 @@ const startFeeding = (index) => {
 };
 
 const handleFeeding = () => {
-  if (emergencyStopActive) {
-    if (feedingActive) stopFeedCycle("FEEDING_STOPPED_ESTOP");
-    return;
-  }
   if (simLocalTime) checkScheduledFeeding(simLocalTime.hour, simLocalTime.minute);
   if (feedingActive) runFeedCycle(); else refreshIdleTrayWeights();
 };
 
 // --- Safety.ino ---
-const tripEmergencyStop = () => {
-  emergencyStopActive = true;
-  stopFeedCycle("FEEDING_STOPPED_ESTOP");
-  finishRemoteCommand("FAILED", "ESTOP_ACTIVE");
-  statEmergencyStop();
-  queueAlertEvent("EMERGENCY_STOP");
-  triggerAlarm();
-};
-
 const handleSafety = () => {
-  const pressed = pins.EMERGENCY_STOP === 0;
-  if (pressed && !emergencyButtonPressed) {
-    emergencyButtonPressed = true;
-    if (!emergencyStopActive) tripEmergencyStop();
-  }
-  if (!pressed && emergencyButtonPressed) emergencyButtonPressed = false;
-  if (emergencyStopActive) {
-    pins.DISPENSER_RELAY = 0;
-    stopChain();
-  }
   enforceChainLimits();
-};
-
-// Returns null on success, otherwise the rejection reason.
-const resetEmergencyStop = () => {
-  if (pins.EMERGENCY_STOP === 0) return "PHYSICAL_ESTOP_ENGAGED";
-  if (!emergencyStopActive) return "ESTOP_NOT_ACTIVE";
-  emergencyStopActive = false;
-  queueAlertEvent("EMERGENCY_STOP_RELEASED");
-  return null;
 };
 
 // One main loop: same order as loop() in HyFePoul_Arduino.ino.
@@ -547,7 +660,6 @@ let benchStarted = false;
 const benchLog = (m) => outputLog.push(`BENCH:${m}`);
 
 const benchBlocked = () => {
-  if (emergencyStopActive) return "ESTOP";
   if (feedingActive) return "FEEDING";
   if (benchMove !== "IDLE") return "BUSY";
   return null;
@@ -589,7 +701,6 @@ const benchCommand = (line) => {
 // Mirrors updateBench().
 const updateBench = () => {
   if (benchMove === "IDLE") return;
-  if (emergencyStopActive) { benchStop("ESTOP"); return; }
   if (benchMove === "DISPENSE") {
     if (simMillis - benchStart >= benchMs) benchStop("time");
     return;
@@ -632,14 +743,14 @@ const runUntil = (cond, maxMs = 300000) => {
 const resetMachine = () => {
   stopFeedCycle("TEST_RESET");
   resetHardware();
-  emergencyStopActive = false;
-  emergencyButtonPressed = false;
-  pins.EMERGENCY_STOP = 1;
   activeRemoteCommandId = "";
   alertQueue = [];
   currentHopperLevelPercent = 80;
   manualFeedTargetGrams = DEFAULT_FEED_TARGET_GRAMS;
   lowFeedAlertSent = false;
+  hopperSensorFault = false;
+  hopperFailedPings = 0;
+  startLeft = false;
   trayWeightsGrams = [0, 0, 0, 0, 0];
   simLocalTime = null;
   buzzerCount = 0;
@@ -650,8 +761,8 @@ const resetMachine = () => {
 const buildDataLine = () =>
   "DATA|" + trayWeightsGrams.map(g => g.toFixed(1)).join("|") +
   `|${activeFeedTargetGrams.toFixed(1)}|${currentHopperLevelPercent.toFixed(1)}` +
-  `|${waterLow ? 1 : 0}|${feedingActive ? 1 : 0}|${cycleStep}|${currentTray}` +
-  `|${emergencyStopActive ? 1 : 0}|NETWORK`;
+  `|${waterLow ? 1 : 0}|${feedingActive ? 1 : 0}|${getCycleStepName(cycleStep)}|${currentTray}` +
+  "|NETWORK";
 
 // --- ESP32 link status (ESP32Communication.ino / TimeManager.ino) ---
 const ESP32_TIMEOUT_MS = 15000;
@@ -681,9 +792,10 @@ const NEXTION_TARGET_PAGE_ID = 4;
 const NEXTION_SYSTEM_PAGE_ID = 9;
 const NEXTION_SCHEDULE_EDITOR_FIRST_PAGE_ID = 5;
 const NEXTION_SCHEDULE_EDITOR_LAST_PAGE_ID = 7;
-const NEXTION_STOP_BUTTON_ID = 8;
-const NEXTION_FEED_RESET_BUTTON_ID = 9;
+const NEXTION_FEED_BUTTON_ID = 8;
 const NEXTION_TARGET_SAVE_BUTTON_ID = 4;
+const NEXTION_TARGET_STEP_BUTTON_ID = 7;
+const NEXTION_TARGET_STEPS = [1, 5, 10];
 const NEXTION_TARGET_PLUS_BUTTON_ID = 5;
 const NEXTION_TARGET_MINUS_BUTTON_ID = 6;
 const NEXTION_SCHEDULE_PLUS_HOUR_ID = 7;
@@ -705,6 +817,8 @@ let nextionSystemField = 0;
 let nextionLogField = 0;
 let nextionLogEntries = ["NO HISTORY YET", "", "", ""];
 let nextionHistoryRowsReceived = 0;
+let nextionHistoryRowsShown = 0;
+let nextionTargetStepIndex = NEXTION_TARGET_STEPS.length - 1;
 let nextionScheduleDraft = null;
 let nextionManualTargetDraft = DEFAULT_FEED_TARGET_GRAMS;
 let nextionLastTouchMs = 0;
@@ -716,14 +830,7 @@ const handleNextionPageChange = (page) => {
   nextionDraftScheduleIndex = NEXTION_ID_UNSET;
   if (page === NEXTION_SCHEDULE_PAGE_ID) nextionScheduleField = 0;
   if (page === NEXTION_SYSTEM_PAGE_ID) nextionSystemField = 0;
-  if (page === NEXTION_LOG_PAGE_ID) {
-    nextionLogField = 0;
-    nextionLogEntries = esp32Online
-      ? ["LOADING HISTORY", "", "", ""]
-      : ["HISTORY UNAVAILABLE", "", "", ""];
-    nextionHistoryRowsReceived = 0;
-    if (esp32Online) outputLog.push("HISTORY_REQ");
-  }
+  if (page === NEXTION_LOG_PAGE_ID) requestNextionHistory();
   if (page === NEXTION_TARGET_PAGE_ID) nextionManualTargetDraft = manualFeedTargetGrams;
   if (page >= NEXTION_SCHEDULE_EDITOR_FIRST_PAGE_ID && page <= NEXTION_SCHEDULE_EDITOR_LAST_PAGE_ID) {
     nextionDraftScheduleIndex = page - NEXTION_SCHEDULE_EDITOR_FIRST_PAGE_ID;
@@ -757,28 +864,51 @@ const nextionNextScheduleDisplayUpdate = () => {
   return { component, value };
 };
 
+const setNextionHistoryMessage = (message) => {
+  nextionLogEntries = [message, "", "", ""];
+  nextionHistoryRowsShown = 0;
+  nextionHistoryRowsReceived = 0;
+  nextionLogField = 0;
+};
+
+// Rows on screen stay until new ones replace them.
+const requestNextionHistory = () => {
+  nextionHistoryRowsReceived = 0;
+  nextionLogField = 0;
+  if (!esp32Online) {
+    if (nextionHistoryRowsShown === 0) setNextionHistoryMessage("HISTORY UNAVAILABLE");
+    return;
+  }
+  if (nextionHistoryRowsShown === 0) setNextionHistoryMessage("LOADING HISTORY");
+  outputLog.push("HISTORY_REQ");
+};
+
+const finishNextionHistory = () => {
+  if (nextionHistoryRowsReceived === 0) {
+    if (nextionHistoryRowsShown === 0) setNextionHistoryMessage("NO HISTORY YET");
+    return;
+  }
+  for (let i = nextionHistoryRowsReceived; i < NEXTION_LOG_EVENT_COUNT; i++) nextionLogEntries[i] = "";
+  nextionHistoryRowsShown = nextionHistoryRowsReceived;
+  nextionLogField = 0;
+};
+
 const processNextionHistoryLine = (line) => {
   if (line === "HIST|BEGIN") {
-    nextionLogEntries = ["LOADING HISTORY", "", "", ""];
     nextionHistoryRowsReceived = 0;
-    nextionLogField = 0;
     return;
   }
   if (line === "HIST|EMPTY") {
-    nextionLogEntries = ["NO HISTORY YET", "", "", ""];
-    nextionHistoryRowsReceived = 0;
-    nextionLogField = 0;
+    setNextionHistoryMessage("NO HISTORY YET");
     return;
   }
   if (line.startsWith("HIST|ERROR|")) {
-    nextionLogEntries = ["HISTORY UNAVAILABLE", "", "", ""];
+    if (nextionHistoryRowsShown === 0) setNextionHistoryMessage("HISTORY UNAVAILABLE");
     nextionHistoryRowsReceived = 0;
-    nextionLogField = 0;
     return;
   }
   if (line === "HIST|END") {
-    if (!nextionHistoryRowsReceived) nextionLogEntries = ["NO HISTORY YET", "", "", ""];
-    nextionLogField = 0;
+    finishNextionHistory();
     return;
   }
   if (!line.startsWith("HIST|ROW|")) return;
@@ -825,6 +955,17 @@ const nextionNextLogDisplayUpdate = () => {
   return update;
 };
 
+// getSystemStatusText(), worded for the HMI. The Home t4 field holds 30 characters.
+const getNextionStatusText = () => {
+  if (!feedingActive) return "IDLE";
+  if (cycleStep === "HOMING") return "HOMING";
+  if (cycleStep === "TO_END" || cycleStep === "RETURNING") return "RETURNING";
+  if (cycleStep === "DISPENSING" || cycleStep === "TO_SPOT") return `FEEDING TRAY ${currentTray} SPOT ${currentSpot + 1}`;
+  return `FEEDING TRAY ${currentTray}`;
+};
+
+const nextionTargetStepLabel = () => `Step: ${NEXTION_TARGET_STEPS[nextionTargetStepIndex]} g`;
+
 const saveManualFeedTarget = (grams) => {
   if (!Number.isFinite(grams) || grams < 1 || grams > MAX_TRAY_TARGET_GRAMS) return false;
   const bytes = new Uint8Array(7);
@@ -844,22 +985,18 @@ const saveManualFeedTarget = (grams) => {
 
 const handleNextionTouch = (page, id) => {
   if (page === NEXTION_HOME_PAGE_ID) {
-    if (id === NEXTION_STOP_BUTTON_ID) tripEmergencyStop();
-    else if (id === NEXTION_FEED_RESET_BUTTON_ID) {
-      if (emergencyStopActive) {
-        const reason = resetEmergencyStop();
-        if (reason) outputLog.push(`NEXTION_START_REJECTED:${reason}`);
-      } else {
-        const reason = startFeedCycle(manualFeedTargetGrams);
-        if (reason) outputLog.push(`NEXTION_FEED_REJECTED:${reason}`);
-        else outputLog.push(`NEXTION_FEED_STARTED:${manualFeedTargetGrams}`);
-      }
+    if (id === NEXTION_FEED_BUTTON_ID) {
+      const reason = startFeedCycle(manualFeedTargetGrams);
+      if (reason) outputLog.push(`NEXTION_FEED_REJECTED:${reason}`);
+      else outputLog.push(`NEXTION_FEED_STARTED:${manualFeedTargetGrams}`);
     }
     return;
   }
   if (page === NEXTION_TARGET_PAGE_ID) {
-    if (id === NEXTION_TARGET_PLUS_BUTTON_ID) nextionManualTargetDraft = Math.min(MAX_TRAY_TARGET_GRAMS, nextionManualTargetDraft + 10);
-    else if (id === NEXTION_TARGET_MINUS_BUTTON_ID) nextionManualTargetDraft = Math.max(1, nextionManualTargetDraft - 10);
+    const step = NEXTION_TARGET_STEPS[nextionTargetStepIndex];
+    if (id === NEXTION_TARGET_PLUS_BUTTON_ID) nextionManualTargetDraft = Math.min(MAX_TRAY_TARGET_GRAMS, nextionManualTargetDraft + step);
+    else if (id === NEXTION_TARGET_MINUS_BUTTON_ID) nextionManualTargetDraft = Math.max(1, nextionManualTargetDraft - step);
+    else if (id === NEXTION_TARGET_STEP_BUTTON_ID) nextionTargetStepIndex = (nextionTargetStepIndex + 1) % NEXTION_TARGET_STEPS.length;
     else if (id === NEXTION_TARGET_SAVE_BUTTON_ID) {
       if (!saveManualFeedTarget(nextionManualTargetDraft)) outputLog.push("NEXTION_TARGET_REJECTED");
       else outputLog.push(`NEXTION_TARGET_SAVED:${manualFeedTargetGrams}`);
@@ -886,10 +1023,7 @@ const handleNextionTouch = (page, id) => {
     nextionSystemField = 0;
     outputLog.push("NEXTION_SYSTEM_REFRESHED");
   }
-  if (page === NEXTION_LOG_PAGE_ID && id === NEXTION_LOG_REFRESH_BUTTON_ID) {
-    nextionLogField = 0;
-    outputLog.push("HISTORY_REQ");
-  }
+  if (page === NEXTION_LOG_PAGE_ID && id === NEXTION_LOG_REFRESH_BUTTON_ID) requestNextionHistory();
 };
 
 const processNextionFrame = (frame) => {
@@ -1046,15 +1180,6 @@ const processRemoteCommand = (line) => {
     activeRemoteCommandId = cmdId;
     sendCmdAck(cmdId, "ACCEPTED");
   }
-  else if (action === "ESTOP_RELEASE") {
-    const rejectReason = resetEmergencyStop();
-    if (rejectReason !== null) {
-      sendCmdAck(cmdId, "REJECTED", rejectReason);
-      return;
-    }
-    sendCmdAck(cmdId, "ACCEPTED");
-    sendCmdDone(cmdId, "SUCCESS");
-  }
   else if (action === "SYSTEM_RESTART") {
     sendCmdAck(cmdId, "REJECTED", "NOT_IMPLEMENTED_SAFELY");
   }
@@ -1119,7 +1244,8 @@ let simDate = null;
 const DAILY_STATS_ADDRESS = 64;
 const DAILY_STATS_SIZE = 26; // static_assert in the firmware
 const DAILY_SUMMARY_INTERVAL_MS = 30 * 60 * 1000;
-const STAT_COUNTERS = ["cyclesCompleted", "cyclesIncomplete", "trayTimeouts", "chainFaults", "lowWater", "lowFeed", "estops"];
+const STAT_COUNTERS = ["cyclesCompleted", "cyclesIncomplete", "trayTimeouts", "chainFaults", "lowWater", "lowFeed", "reserved"];
+const SUMMARY_COUNTERS = STAT_COUNTERS.filter(k => k !== "reserved");
 const blankStats = () => ({ year: 0, month: 0, day: 0, feedGrams: 0, ...Object.fromEntries(STAT_COUNTERS.map(k => [k, 0])) });
 let statsToday = blankStats();
 let statsYesterday = blankStats();
@@ -1161,7 +1287,7 @@ const initializeDailyStats = () => {
 const statsDate = (st) => `${String(st.year).padStart(4, "0")}-${String(st.month).padStart(2, "0")}-${String(st.day).padStart(2, "0")}`;
 const sendDailySummaryLine = (st) => {
   if (st.year === 0) return;
-  outputLog.push(`SUMMARY|${statsDate(st)}|${st.feedGrams.toFixed(0)}|` + STAT_COUNTERS.map(k => st[k]).join("|"));
+  outputLog.push(`SUMMARY|${statsDate(st)}|${st.feedGrams.toFixed(0)}|` + SUMMARY_COUNTERS.map(k => st[k]).join("|"));
 };
 const sendDailySummaries = () => {
   lastSummarySentMillis = simMillis;
@@ -1193,7 +1319,6 @@ const statTrayTimeout = () => statCount("trayTimeouts");
 const statChainFault = () => statCount("chainFaults");
 const statLowWater = () => statCount("lowWater");
 const statLowFeed = () => statCount("lowFeed");
-const statEmergencyStop = () => statCount("estops");
 
 // --- SDLogging.ino: monthly files and cleanup (file names only) ---
 const LOG_KEEP_MONTHS = 24;
@@ -1347,25 +1472,36 @@ runTest("4. invalid targets: NaN, zero/negative, above 1000 g per tray, missing"
   assertActive(false);
 });
 
-runTest("5. E-stop latched: MANUAL_FEED rejected; ESTOP_RELEASE refused while pressed", () => {
+runTest("5. the retired ESTOP_RELEASE command is unknown, and nothing latches", () => {
   resetMachine();
-  pins.EMERGENCY_STOP = 0;
-  tick();
-  processRemoteCommand("CMD|ID:es1|ACTION:MANUAL_FEED|TARGET:50");
-  assertLogContains("CMD_ACK|ID:es1|STATUS:REJECTED|REASON:ESTOP_ACTIVE");
-  processRemoteCommand("CMD|ID:es2|ACTION:ESTOP_RELEASE");
-  assertLogContains("CMD_ACK|ID:es2|STATUS:REJECTED|REASON:PHYSICAL_ESTOP_ENGAGED");
+  processRemoteCommand("CMD|ID:es1|ACTION:ESTOP_RELEASE");
+  assertLogContains("CMD_ACK|ID:es1|STATUS:REJECTED|REASON:UNKNOWN_COMMAND");
+  processRemoteCommand("CMD|ID:es2|ACTION:MANUAL_FEED|TARGET:50");
+  assertLogContains("CMD_ACK|ID:es2|STATUS:ACCEPTED");
+  stopFeedCycle("TEST");
+  activeRemoteCommandId = "";
 });
 
-runTest("6. button released but latch still set: feed rejected until ESTOP_RELEASE", () => {
-  pins.EMERGENCY_STOP = 1;
-  tick();
-  processRemoteCommand("CMD|ID:es3|ACTION:MANUAL_FEED|TARGET:50");
-  assertLogContains("CMD_ACK|ID:es3|STATUS:REJECTED|REASON:ESTOP_ACTIVE");
-  processRemoteCommand("CMD|ID:es4|ACTION:ESTOP_RELEASE");
-  assertLogContains("CMD_ACK|ID:es4|STATUS:ACCEPTED");
-  assertLogContains("CMD_DONE|ID:es4|STATUS:SUCCESS");
-  if (emergencyStopActive) throw new Error("E-stop should be cleared");
+runTest("6. a hopper sensor fault raises one alert, refuses new feeds and clears when it answers", () => {
+  resetMachine();
+  hw.hopperEchoDead = true;
+  runFor(HOPPER_PING_INTERVAL_MS * (HOPPER_FAULT_PINGS - 2));
+  if (hopperSensorFault) throw new Error("Fault raised too early");
+  runFor(HOPPER_PING_INTERVAL_MS * 4);
+  if (!hopperSensorFault) throw new Error("Fault not raised");
+  if (outputLog.filter(l => l === "QUEUED:HOPPER_SENSOR_FAULT").length !== 1) throw new Error("Expected one alert");
+  processRemoteCommand("CMD|ID:hs1|ACTION:MANUAL_FEED|TARGET:50");
+  assertLogContains("CMD_ACK|ID:hs1|STATUS:REJECTED|REASON:HOPPER_SENSOR_FAULT");
+  assertActive(false);
+  hw.hopperEchoDead = false;
+  runFor(HOPPER_PING_INTERVAL_MS * 2);
+  if (hopperSensorFault) throw new Error("Fault not cleared");
+  assertLogContains("QUEUED:HOPPER_SENSOR_OK");
+  processRemoteCommand("CMD|ID:hs2|ACTION:MANUAL_FEED|TARGET:50");
+  assertLogContains("CMD_ACK|ID:hs2|STATUS:ACCEPTED");
+  stopFeedCycle("TEST");
+  activeRemoteCommandId = "";
+  if (medianOf([15, 15, 90, 15, 16]) !== 15) throw new Error("One stray echo must not change the median");
 });
 
 runTest("7. unknown, malformed, SYSTEM_RESTART", () => {
@@ -1378,13 +1514,13 @@ runTest("7. unknown, malformed, SYSTEM_RESTART", () => {
   if (outputLog.length > 0) throw new Error("Command without ID should be silently ignored");
 });
 
-runTest("8. STATUS_REQ returns a 14-field DATA line", () => {
+runTest("8. STATUS_REQ returns a 13-field DATA line", () => {
   resetMachine();
   processRemoteCommand("CMD|ID:cmd11|ACTION:STATUS_REQ");
   assertLogContains("CMD_ACK|ID:cmd11|STATUS:ACCEPTED");
   assertLogContains("CMD_DONE|ID:cmd11|STATUS:SUCCESS");
   const data = outputLog.find(l => l.startsWith("DATA|"));
-  if (!data || data.split("|").length !== 14) throw new Error(`Bad DATA line: ${data}`);
+  if (!data || data.split("|").length !== 13) throw new Error(`Bad DATA line: ${data}`);
 });
 
 runTest("9. SCHEDULE_SET valid / missing params / bad index / target above 1000 g", () => {
@@ -1400,17 +1536,23 @@ runTest("9. SCHEDULE_SET valid / missing params / bad index / target above 1000 
 
 // ---------- Feed cycle ----------
 
-runTest("10. full cycle: trays 1-5 in order to 50 g each, end switch, home; CMD_DONE SUCCESS", () => {
+runTest("10. full cycle: trays 1, 2, 3, 5, 4 to 50 g each across 5 spots, end switch, home; CMD_DONE SUCCESS", () => {
   resetMachine();
   processRemoteCommand("CMD|ID:fc1|ACTION:MANUAL_FEED|TARGET:50");
   runUntil(() => !feedingActive);
 
-  const trayOrder = outputLog.filter(l => l.startsWith("STEP:DISPENSING")).map(l => l.split(":")[2]);
-  if (trayOrder.join(",") !== "1,2,3,4,5") throw new Error(`Tray order: ${trayOrder}`);
+  const trayOrder = [...new Set(outputLog.filter(l => l.startsWith("STEP:DISPENSING")).map(l => l.split(":")[2]))];
+  if (trayOrder.join(",") !== "1,2,3,5,4") throw new Error(`Tray order: ${trayOrder}`);
   hw.trayGrams.forEach((g, i) => {
     if (g < 50 || g > 50 + hw.gramsPerTick) throw new Error(`Tray ${i + 1} has ${g} g`);
   });
+  [1, 2, 3, 4, 5].forEach((tray) => {
+    const spots = Object.entries(hw.drops).filter(([k]) => k.startsWith(`${tray}:`));
+    if (spots.length !== TRAY_SPOT_COUNT) throw new Error(`Tray ${tray} fed at ${spots.length} spots`);
+    if (spots.some(([, g]) => g > 20)) throw new Error(`Tray ${tray} is uneven: ${JSON.stringify(spots)}`);
+  });
   if (hw.spilledGrams !== 0) throw new Error(`Spilled ${hw.spilledGrams} g between trays`);
+  assertLogContains("STEP:TO_SPOT:1:2");
   assertLogContains("STEP:TO_END");
   assertLogContains("STEP:RETURNING");
   assertLogContains("CMD_DONE|ID:fc1|STATUS:SUCCESS");
@@ -1421,7 +1563,55 @@ runTest("10. full cycle: trays 1-5 in order to 50 g each, end switch, home; CMD_
   if (activeRemoteCommandId !== "") throw new Error("Command slot not freed");
 });
 
+runTest("10a. starting from the left visits trays 4, 5, 3, 2, 1", () => {
+  resetMachine();
+  startLeft = true;
+  processRemoteCommand("CMD|ID:fl1|ACTION:MANUAL_FEED|TARGET:10");
+  runUntil(() => !feedingActive);
+  const trayOrder = [...new Set(outputLog.filter(l => l.startsWith("STEP:DISPENSING")).map(l => l.split(":")[2]))];
+  startLeft = false;
+  if (trayOrder.join(",") !== "4,5,3,2,1") throw new Error(`Tray order: ${trayOrder}`);
+});
+
+runTest("10b. a big overshoot comes off later spots; the hopper still walks every spot", () => {
+  resetMachine();
+  hw.gramsPerTick = 25;
+  processRemoteCommand("CMD|ID:ov1|ACTION:MANUAL_FEED|TARGET:50");
+  runUntil(() => !feedingActive);
+  hw.trayGrams.forEach((g, i) => {
+    if (g < 50 || g > 75) throw new Error(`Tray ${i + 1} has ${g} g`);
+  });
+  if (outputLog.filter(l => l.startsWith("STEP:TO_SPOT")).length !== TRAY_COUNT * (TRAY_SPOT_COUNT - 1)) throw new Error("A spot move was skipped");
+  if (hw.spilledGrams !== 0) throw new Error(`Spilled ${hw.spilledGrams} g`);
+  assertLogContains("CMD_DONE|ID:ov1|STATUS:SUCCESS");
+  assertSafeRelays();
+});
+
+runTest("10c. target smaller than one drop still ends at the last spot and reaches the next tray", () => {
+  resetMachine();
+  processRemoteCommand("CMD|ID:sm1|ACTION:MANUAL_FEED|TARGET:3");
+  runUntil(() => cycleStep === "TO_TRAY" && currentStop === 2);
+  if (hw.chainPos !== stopLastSpot(1)) throw new Error(`Left tray 1 at ${hw.chainPos}, not ${stopLastSpot(1)}`);
+  runUntil(() => !feedingActive);
+  if (hw.spilledGrams !== 0) throw new Error(`Spilled ${hw.spilledGrams} g`);
+  assertLogContains("CMD_DONE|ID:sm1|STATUS:SUCCESS");
+});
+
+runTest("10d. spot moves report as DISPENSING in DATA, and the status text fits the HMI field", () => {
+  resetMachine();
+  processRemoteCommand("CMD|ID:dt1|ACTION:MANUAL_FEED|TARGET:50");
+  runUntil(() => cycleStep === "TO_SPOT");
+  if (buildDataLine().split("|")[10] !== "DISPENSING") throw new Error(buildDataLine());
+  const status = `Status: ${getNextionStatusText()}`;
+  if (status !== "Status: FEEDING TRAY 1 SPOT 2" || status.length > 30) throw new Error(status);
+  stopFeedCycle("TEST");
+  activeRemoteCommandId = "";
+});
+
 runTest("11. tray weights are reported in DATA (and total in the dashboard sum)", () => {
+  resetMachine();
+  processRemoteCommand("CMD|ID:fc1b|ACTION:MANUAL_FEED|TARGET:50");
+  runUntil(() => !feedingActive);
   const fields = buildDataLine().split("|");
   const trays = fields.slice(1, 6).map(Number);
   if (trays.some(g => g < 50)) throw new Error(`DATA tray weights: ${trays}`);
@@ -1440,21 +1630,36 @@ runTest("12. cycle away from home homes first (reverse to the home switch)", () 
   assertSafeRelays();
 });
 
-runTest("13. dispenser jam at tray 3: TRAY_TIMEOUT once, cycle continues, CMD_DONE FAILED", () => {
+runTest("13. dispenser jam at tray 3: TRAY_TIMEOUT once, passes its spots, cycle continues, CMD_DONE FAILED", () => {
   resetMachine();
   processRemoteCommand("CMD|ID:fc3|ACTION:MANUAL_FEED|TARGET:50");
   runUntil(() => cycleStep === "DISPENSING" && currentTray === 3);
   hw.dispenserJammed = true;
-  runUntil(() => currentTray === 4);
+  runUntil(() => currentTray === 5);
+  if (hw.chainPos !== stopLastSpot(3)) throw new Error(`Left tray 3 at ${hw.chainPos}, not its last spot ${stopLastSpot(3)}`);
   hw.dispenserJammed = false;
   runUntil(() => !feedingActive);
   const alerts = outputLog.filter(l => l === "QUEUED:TRAY_TIMEOUT").length;
   if (alerts !== 1) throw new Error(`Expected 1 TRAY_TIMEOUT alert, got ${alerts}`);
   if (hw.trayGrams[3] < 50 || hw.trayGrams[4] < 50) throw new Error("Trays 4-5 not filled after the timeout");
+  if (hw.spilledGrams !== 0) throw new Error(`Spilled ${hw.spilledGrams} g`);
   assertLogContains("CMD_DONE|ID:fc3|STATUS:FAILED|REASON:TRAY_TIMEOUT");
   assertLogNotContains("QUEUED:FEEDING_COMPLETED");
   if (!isHomeSwitchPressed()) throw new Error("Did not return home");
   assertMotorsOff();
+});
+
+runTest("13a. the dispense limit adds up across spots on one tray", () => {
+  resetMachine();
+  processRemoteCommand("CMD|ID:lim|ACTION:MANUAL_FEED|TARGET:50");
+  runUntil(() => cycleStep === "DISPENSING" && currentTray === 1 && currentSpot === 2);
+  trayDispenseUsedMs = TRAY_DISPENSE_TIMEOUT_MS - 200;
+  hw.dispenserJammed = true;
+  runFor(400);
+  assertLogContains("QUEUED:TRAY_TIMEOUT");
+  if (pins.DISPENSER_RELAY) throw new Error("Dispenser left on");
+  stopFeedCycle("TEST");
+  activeRemoteCommandId = "";
 });
 
 runTest("14. dead load cell: tray skipped without dispensing blind", () => {
@@ -1463,8 +1668,23 @@ runTest("14. dead load cell: tray skipped without dispensing blind", () => {
   processRemoteCommand("CMD|ID:fc4|ACTION:MANUAL_FEED|TARGET:50");
   runUntil(() => !feedingActive);
   if (hw.trayGrams[1] !== 0) throw new Error("Dispensed into a tray with no load cell");
+  if (hw.spilledGrams !== 0) throw new Error(`Spilled ${hw.spilledGrams} g`);
   assertLogContains("SD:LOAD_CELL_NOT_READY");
   assertLogContains("CMD_DONE|ID:fc4|STATUS:FAILED|REASON:TRAY_TIMEOUT");
+});
+
+runTest("14a. uncalibrated tray is skipped; the others still fill", () => {
+  resetMachine();
+  const saved = LOAD_CELL_CALIBRATION_FACTORS[2];
+  LOAD_CELL_CALIBRATION_FACTORS[2] = 1;
+  processRemoteCommand("CMD|ID:un1|ACTION:MANUAL_FEED|TARGET:20");
+  runUntil(() => !feedingActive);
+  LOAD_CELL_CALIBRATION_FACTORS[2] = saved;
+  if (hw.trayGrams[2] !== 0) throw new Error("Dispensed into an uncalibrated tray");
+  if (hw.trayGrams[0] < 20 || hw.trayGrams[4] < 20) throw new Error(`Trays: ${hw.trayGrams}`);
+  if (hw.spilledGrams !== 0) throw new Error(`Spilled ${hw.spilledGrams} g`);
+  assertLogContains("SD:LOAD_CELL_NOT_CALIBRATED");
+  assertLogContains("CMD_DONE|ID:un1|STATUS:FAILED|REASON:TRAY_TIMEOUT");
 });
 
 runTest("15. end switch never reached: CHAIN_TIMEOUT, motors off, CMD_DONE FAILED", () => {
@@ -1510,27 +1730,32 @@ runTest("18. hopper already low: cycle does not start (HOPPER_LOW)", () => {
   assertActive(false);
 });
 
-runTest("19. E-stop mid-cycle: everything off at once, CMD_DONE FAILED; next cycle homes", () => {
+runTest("19. Mega restart mid-cycle: everything off; the next cycle homes first", () => {
   resetMachine();
   processRemoteCommand("CMD|ID:fc9|ACTION:MANUAL_FEED|TARGET:50");
-  runUntil(() => cycleStep === "TO_TRAY" && currentTray === 2 && pins.CHAIN_FORWARD_RELAY === 1);
-  pins.EMERGENCY_STOP = 0;
-  tick();
+  runUntil(() => cycleStep === "TO_TRAY" && currentStop === 2 && pins.CHAIN_FORWARD_RELAY === 1);
+  rebootMega();
   assertMotorsOff();
   assertActive(false);
-  assertLogContains("CMD_DONE|ID:fc9|STATUS:FAILED|REASON:ESTOP_ACTIVE");
-  assertLogContains("QUEUED:EMERGENCY_STOP");
-
-  // Released and reset: the hopper is mid-track, so the next cycle homes.
-  pins.EMERGENCY_STOP = 1;
   runFor(500);
-  if (resetEmergencyStop() !== null) throw new Error("Reset refused");
   outputLog = [];
   processRemoteCommand("CMD|ID:fc10|ACTION:MANUAL_FEED|TARGET:20");
   assertLogContains("STEP:HOMING");
   runUntil(() => !feedingActive);
   assertLogContains("CMD_DONE|ID:fc10|STATUS:SUCCESS");
   assertSafeRelays();
+});
+
+runTest("19a. end switch reached between spots returns home (END_LIMIT_EARLY)", () => {
+  resetMachine();
+  processRemoteCommand("CMD|ID:es9|ACTION:MANUAL_FEED|TARGET:50");
+  runUntil(() => cycleStep === "TO_SPOT" && currentStop === 2 && !spotMoveDone && pins.CHAIN_FORWARD_RELAY === 1);
+  hw.chainPos = END_POSITION;
+  runUntil(() => !feedingActive);
+  assertLogContains("SD:END_LIMIT_EARLY");
+  assertLogContains("CMD_DONE|ID:es9|STATUS:FAILED|REASON:END_LIMIT_EARLY");
+  if (!isHomeSwitchPressed()) throw new Error("Did not return home");
+  assertMotorsOff();
 });
 
 runTest("20. tray timings too long: end switch before tray 5 returns home (END_LIMIT_EARLY)", () => {
@@ -1785,18 +2010,18 @@ runTest("36. Nextion ignores noise and release edges; System Check refresh uses 
   resetMachine();
   feedNextionBytes([0x66, NEXTION_HOME_PAGE_ID, 0xFF, 0xFF, 0xFF]);
   feedNextionBytes(touch(NEXTION_HOME_PAGE_ID, 99, 0x01));
-  feedNextionBytes(touch(NEXTION_HOME_PAGE_ID, NEXTION_STOP_BUTTON_ID, 0x00));
+  feedNextionBytes(touch(NEXTION_HOME_PAGE_ID, NEXTION_FEED_BUTTON_ID, 0x00));
   feedNextionBytes([0x66, NEXTION_SYSTEM_PAGE_ID, 0xFF, 0xFF, 0xFF]);
   feedNextionBytes(touch(NEXTION_SYSTEM_PAGE_ID, 3, 0x01)); // old, incorrect mapping
   simMillis += 100;
   feedNextionBytes(touch(NEXTION_SYSTEM_PAGE_ID, NEXTION_SYSTEM_REFRESH_BUTTON_ID, 0x01));
   assertLogContains(`NEXTION_TOUCH:${NEXTION_HOME_PAGE_ID}:99:1`);
-  assertLogContains(`NEXTION_TOUCH:${NEXTION_HOME_PAGE_ID}:${NEXTION_STOP_BUTTON_ID}:0`);
+  assertLogContains(`NEXTION_TOUCH:${NEXTION_HOME_PAGE_ID}:${NEXTION_FEED_BUTTON_ID}:0`);
   assertLogContains("NEXTION_SYSTEM_REFRESHED");
   if (outputLog.filter(line => line === "NEXTION_SYSTEM_REFRESHED").length !== 1) {
     throw new Error("Refresh must fire only for the HMI's component 4");
   }
-  if (emergencyStopActive) throw new Error("Unconfigured button must not act");
+  assertActive(false); // a release edge or unknown button must not start a feed
 });
 
 runTest("Nextion System Check streams four separate readouts one field per update", () => {
@@ -1822,6 +2047,7 @@ runTest("Nextion System Check streams four separate readouts one field per updat
 runTest("Nextion History requests cloud rows and displays the same four fields as app History", () => {
   resetMachine();
   esp32Online = true;
+  nextionHistoryRowsShown = 0;
   handleNextionPageChange(NEXTION_LOG_PAGE_ID);
   if (NEXTION_LOG_PAGE_ID !== 3 || NEXTION_SYSTEM_PAGE_ID !== 9) {
     throw new Error("Log and System Check page IDs must remain distinct and match the HMI");
@@ -1852,43 +2078,68 @@ runTest("Nextion History requests cloud rows and displays the same four fields a
   }
 });
 
-runTest("37. Nextion Home Stop latches; Feed Now uses saved target; reset requires physical E-stop released", () => {
+runTest("37. Nextion Feed Now uses the saved target and old Stop's ID is not a stop", () => {
   resetMachine();
 
   feedNextionBytes([0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x88, 0xFF, 0xFF, 0xFF, 0x1A, 0xFF, 0xFF, 0xFF]);
   feedNextionBytes([...Buffer.from('Sched.t4.txt+=":"'), 0xFF, 0xFF, 0xFF]);
-  if (emergencyStopActive) throw new Error("Noise frames must be ignored");
+  assertActive(false);
 
   manualFeedTargetGrams = 80;
   feedNextionBytes([0x66, NEXTION_HOME_PAGE_ID, 0xFF, 0xFF, 0xFF]);
-  feedNextionBytes(touch(NEXTION_HOME_PAGE_ID, NEXTION_FEED_RESET_BUTTON_ID, 0x01));
+  simMillis += 100;
+  feedNextionBytes(touch(NEXTION_HOME_PAGE_ID, 9, 0x01)); // old Feed Now ID, now t4
+  assertActive(false);
+  simMillis += 100;
+  feedNextionBytes(touch(NEXTION_HOME_PAGE_ID, NEXTION_FEED_BUTTON_ID, 0x01));
   assertActive(true);
   if (activeFeedTargetGrams !== 80) throw new Error("Feed Now did not use saved local per-tray target");
-  runUntil(() => cycleStep === "DISPENSING");
-  simMillis += 100;
-  feedNextionBytes(touch(NEXTION_HOME_PAGE_ID, NEXTION_STOP_BUTTON_ID, 0x01));
-  feedNextionBytes(touch(NEXTION_HOME_PAGE_ID, NEXTION_STOP_BUTTON_ID, 0x00));
-  if (!emergencyStopActive) throw new Error("b3 should latch the stop");
-  assertMotorsOff();
-  if (alertQueue.filter(a => a === "EMERGENCY_STOP").length !== 1) throw new Error("Stop should trigger once");
   if (outputLog.some((line) => line.includes("CMD_DONE|ID:nx1"))) {
     throw new Error("Local Nextion feed must not fabricate a remote command lifecycle");
   }
-
-  pins.EMERGENCY_STOP = 0;
   simMillis += 1000;
-  feedNextionBytes(touch(NEXTION_HOME_PAGE_ID, NEXTION_FEED_RESET_BUTTON_ID, 0x01));
-  assertLogContains("NEXTION_START_REJECTED:PHYSICAL_ESTOP_ENGAGED");
-  if (!emergencyStopActive) throw new Error("Reset must be refused while the button is pressed");
+  feedNextionBytes(touch(NEXTION_TARGET_PAGE_ID, NEXTION_FEED_BUTTON_ID, 0x01));
+  assertActive(true); // touches on other pages do not affect the cycle
+  resetMachine();
+});
 
-  pins.EMERGENCY_STOP = 1;
-  simMillis += 1000;
-  feedNextionBytes(touch(NEXTION_HOME_PAGE_ID, NEXTION_FEED_RESET_BUTTON_ID, 0x01));
-  if (emergencyStopActive) throw new Error("b4 should reset the latch");
+runTest("37a. History refresh keeps the rows on screen until new ones arrive, and after a failure", () => {
+  resetMachine();
+  esp32Online = true;
+  nextionHistoryRowsShown = 0;
+  handleNextionPageChange(NEXTION_LOG_PAGE_ID);
+  if (nextionLogEntries[0] !== "LOADING HISTORY") throw new Error("First open should show LOADING");
+  const ts = Math.floor(Date.UTC(2026, 9, 28, 0, 15) / 1000);
+  receiveESP32Line("HIST|BEGIN");
+  [0, 1, 2, 3].forEach(i => receiveESP32Line(`HIST|ROW|IDX:${i}|TS:${ts - i * 300}|FEED:250|HOP:65|W:0|DISP:0`));
+  receiveESP32Line("HIST|END");
+  const shown = [...nextionLogEntries];
+  if (shown.some(r => r === "")) throw new Error(`Rows: ${shown}`);
 
-  simMillis += 1000;
-  feedNextionBytes(touch(NEXTION_TARGET_PAGE_ID, NEXTION_STOP_BUTTON_ID, 0x01));
-  if (emergencyStopActive) throw new Error("Touches on other pages must be ignored");
+  handleNextionTouch(NEXTION_LOG_PAGE_ID, NEXTION_LOG_REFRESH_BUTTON_ID);
+  receiveESP32Line("HIST|BEGIN");
+  if (nextionLogEntries.join() !== shown.join()) throw new Error("Refresh wiped the rows");
+  receiveESP32Line("HIST|ERROR|HTTP");
+  if (nextionLogEntries.join() !== shown.join()) throw new Error("A failed refresh wiped the rows");
+
+  esp32Online = false;
+  handleNextionTouch(NEXTION_LOG_PAGE_ID, NEXTION_LOG_REFRESH_BUTTON_ID);
+  if (nextionLogEntries.join() !== shown.join()) throw new Error("Offline refresh wiped the rows");
+
+  esp32Online = true;
+  handleNextionTouch(NEXTION_LOG_PAGE_ID, NEXTION_LOG_REFRESH_BUTTON_ID);
+  receiveESP32Line("HIST|BEGIN");
+  receiveESP32Line(`HIST|ROW|IDX:0|TS:${ts}|FEED:100|HOP:50|W:0|DISP:0`);
+  receiveESP32Line("HIST|END");
+  if (!nextionLogEntries[0].includes("100g") || nextionLogEntries.slice(1).some(r => r !== "")) {
+    throw new Error(`Old rows left behind: ${nextionLogEntries}`);
+  }
+
+  receiveESP32Line("HIST|EMPTY");
+  if (nextionLogEntries[0] !== "NO HISTORY YET") throw new Error("Empty cloud should clear the page");
+  esp32Online = false;
+  handleNextionPageChange(NEXTION_LOG_PAGE_ID);
+  if (nextionLogEntries[0] !== "HISTORY UNAVAILABLE") throw new Error("No rows and offline should say so");
   resetMachine();
 });
 
@@ -1937,23 +2188,35 @@ runTest("38. Nextion schedule editor wraps time and saves the Mega EEPROM schedu
   resetMachine();
 });
 
-runTest("39. Nextion manual target adjusts in 10 g steps, stays bounded and persists", () => {
+runTest("39. Nextion manual target adjusts by the chosen step, stays bounded and persists", () => {
   resetMachine();
+  nextionTargetStepIndex = NEXTION_TARGET_STEPS.length - 1;
+  const press = (id) => { simMillis += 100; feedNextionBytes(touch(NEXTION_TARGET_PAGE_ID, id, 0x01)); };
   feedNextionBytes([0x66, NEXTION_TARGET_PAGE_ID, 0xFF, 0xFF, 0xFF]);
+  if (nextionTargetStepLabel() !== "Step: 10 g") throw new Error(nextionTargetStepLabel());
   nextionManualTargetDraft = 990;
-  simMillis += 100;
-  feedNextionBytes(touch(NEXTION_TARGET_PAGE_ID, NEXTION_TARGET_PLUS_BUTTON_ID, 0x01));
-  if (nextionManualTargetDraft !== 1000) throw new Error("Manual target did not cap at 1000 g");
-  simMillis += 100;
-  feedNextionBytes(touch(NEXTION_TARGET_PAGE_ID, NEXTION_TARGET_PLUS_BUTTON_ID, 0x01));
+  press(NEXTION_TARGET_PLUS_BUTTON_ID);
+  if (nextionManualTargetDraft !== 1000) throw new Error("Manual target did not reach 1000 g");
+  press(NEXTION_TARGET_PLUS_BUTTON_ID);
   if (nextionManualTargetDraft !== 1000) throw new Error("Manual target exceeded 1000 g");
-  simMillis += 100;
-  feedNextionBytes(touch(NEXTION_TARGET_PAGE_ID, NEXTION_TARGET_SAVE_BUTTON_ID, 0x01));
+  press(NEXTION_TARGET_SAVE_BUTTON_ID);
   if (manualFeedTargetGrams !== 1000) throw new Error("Manual target was not saved");
   if (Math.round(new DataView(eeprom.buffer).getFloat32(35, true)) !== 1000) throw new Error("Manual target EEPROM bytes wrong");
-  nextionManualTargetDraft = 1;
-  simMillis += 100;
-  feedNextionBytes(touch(NEXTION_TARGET_PAGE_ID, NEXTION_TARGET_MINUS_BUTTON_ID, 0x01));
+
+  // The Step button cycles 1, 5, 10 g, and + and - follow it.
+  nextionManualTargetDraft = 50;
+  press(NEXTION_TARGET_STEP_BUTTON_ID);
+  if (nextionTargetStepLabel() !== "Step: 1 g") throw new Error(nextionTargetStepLabel());
+  press(NEXTION_TARGET_PLUS_BUTTON_ID);
+  if (nextionManualTargetDraft !== 51) throw new Error(`Step 1: ${nextionManualTargetDraft}`);
+  press(NEXTION_TARGET_STEP_BUTTON_ID);
+  if (nextionTargetStepLabel() !== "Step: 5 g") throw new Error(nextionTargetStepLabel());
+  press(NEXTION_TARGET_MINUS_BUTTON_ID);
+  if (nextionManualTargetDraft !== 46) throw new Error(`Step 5: ${nextionManualTargetDraft}`);
+  press(NEXTION_TARGET_STEP_BUTTON_ID);
+  if (nextionTargetStepLabel() !== "Step: 10 g") throw new Error(nextionTargetStepLabel());
+  nextionManualTargetDraft = 3;
+  press(NEXTION_TARGET_MINUS_BUTTON_ID);
   if (nextionManualTargetDraft !== 1) throw new Error("Manual target went below 1 g");
   resetMachine();
 });
@@ -1984,12 +2247,8 @@ runTest("41. reservoir refilled: LOW_WATER_CLEARED once after the debounce", () 
   if (outputLog.filter(l => l === "QUEUED:LOW_WATER_CLEARED").length !== 1) throw new Error("Expected one LOW_WATER_CLEARED");
 });
 
-runTest("42. E-stop reset sends EMERGENCY_STOP_RELEASED; a full cycle sends FEEDING_COMPLETED", () => {
+runTest("42. a full cycle sends FEEDING_COMPLETED", () => {
   resetMachine();
-  pins.EMERGENCY_STOP = 0; tick();
-  pins.EMERGENCY_STOP = 1; tick();
-  processRemoteCommand("CMD|ID:r23a|ACTION:ESTOP_RELEASE");
-  assertLogContains("QUEUED:EMERGENCY_STOP_RELEASED");
   processRemoteCommand("CMD|ID:r23b|ACTION:MANUAL_FEED|TARGET:10");
   runUntil(() => !feedingActive);
   assertLogContains("QUEUED:FEEDING_COMPLETED");
@@ -2002,7 +2261,7 @@ runTest("43. boot clears: report conditions that are fine; SYSTEM_START is never
   currentHopperLevelPercent = 70;
   queueAlertEvent("SYSTEM_START");
   queueBootClears();
-  if (alertQueue.join(",") !== "SYSTEM_START,LOW_FEED_CLEARED,LOW_WATER_CLEARED,EMERGENCY_STOP_RELEASED") {
+  if (alertQueue.join(",") !== "SYSTEM_START,LOW_FEED_CLEARED,LOW_WATER_CLEARED,HOPPER_SENSOR_OK") {
     throw new Error("Boot queue: " + alertQueue.join(","));
   }
   // Low hopper and low water at boot: their alerts instead of clears.
@@ -2024,7 +2283,7 @@ runTest("44. bench JOG F runs the chain for the requested time, then stops", () 
   if (benchCommand("JOG F 3000") !== null) throw new Error("JOG refused");
   runFor(4000);
   assertLogContains("BENCH:jog:3000");
-  if (hw.chainPos !== trayPosition(1)) throw new Error(`Chain at ${hw.chainPos}, expected tray 1 at ${trayPosition(1)}`);
+  if (hw.chainPos !== stopFirstSpot(1)) throw new Error(`Chain at ${hw.chainPos}, expected the first stop at ${stopFirstSpot(1)}`);
   assertMotorsOff();
   assertSafeRelays();
 });
@@ -2049,22 +2308,13 @@ runTest("46. bench JOG into the end switch is stopped by the limit, not the time
   assertMotorsOff();
 });
 
-runTest("47. bench moves are refused while the E-stop is latched or a cycle runs, and stop on E-stop", () => {
+runTest("47. bench moves are refused while a cycle runs", () => {
   resetMachine();
-  pins.EMERGENCY_STOP = 0; tick();
-  if (benchCommand("JOG F 1000") !== "ESTOP") throw new Error("JOG allowed with E-stop latched");
-  pins.EMERGENCY_STOP = 1; tick();
-  resetEmergencyStop();
   processRemoteCommand("CMD|ID:b1|ACTION:MANUAL_FEED|TARGET:20");
   if (benchCommand("DISP 1000") !== "FEEDING") throw new Error("DISP allowed during a cycle");
+  if (benchCommand("JOG F 1000") !== "FEEDING") throw new Error("JOG allowed during a cycle");
   stopFeedCycle("TEST");
   activeRemoteCommandId = "";
-  benchCommand("JOG F 5000");
-  runFor(1000);
-  pins.EMERGENCY_STOP = 0; tick();
-  assertMotorsOff();
-  if (benchMove !== "IDLE") throw new Error("Bench move not cancelled by E-stop");
-  pins.EMERGENCY_STOP = 1; tick(); resetEmergencyStop();
 });
 
 runTest("48. a feed cycle cannot start during a bench move; DISP times out; STOP works", () => {
@@ -2112,14 +2362,15 @@ runTest("51. daily stats: feed grams, completed/incomplete cycles and problems a
   runUntil(() => !feedingActive);
   if (statsToday.cyclesCompleted !== 1) throw new Error("Cycle not counted");
   if (statsToday.feedGrams < 250 || statsToday.feedGrams > 300) throw new Error(`Feed ${statsToday.feedGrams}`);
-  assertLogContains(`SUMMARY|2026-10-24|${statsToday.feedGrams.toFixed(0)}|1|0|0|0|0|0|0`);
+  assertLogContains(`SUMMARY|2026-10-24|${statsToday.feedGrams.toFixed(0)}|1|0|0|0|0|0`);
+  if (outputLog.find(l => l.startsWith("SUMMARY|")).split("|").length !== 9) throw new Error("SUMMARY must have 9 fields");
   processRemoteCommand("CMD|ID:s2|ACTION:MANUAL_FEED|TARGET:50");
-  runUntil(() => cycleStep === "DISPENSING");
-  runFor(500);
-  pins.EMERGENCY_STOP = 0; tick();
-  if (statsToday.cyclesIncomplete !== 1 || statsToday.estops !== 1) throw new Error(JSON.stringify(statsToday));
-  if (!(statsToday.feedGrams > 250)) throw new Error("Partial tray not added on E-stop");
-  pins.EMERGENCY_STOP = 1; tick(); resetEmergencyStop();
+  runUntil(() => cycleStep === "TO_SPOT" && !spotMoveDone);
+  currentHopperLevelPercent = 4; // hopper runs empty part-way through a tray
+  runUntil(() => !feedingActive);
+  if (statsToday.cyclesIncomplete !== 1) throw new Error(JSON.stringify(statsToday));
+  if (!(statsToday.feedGrams > 250)) throw new Error("Partial tray not added when the hopper ran empty");
+  currentHopperLevelPercent = 80;
   floatSwitchLow = true; runFor(3000); floatSwitchLow = false; runFor(3000);
   if (statsToday.lowWater !== 1) throw new Error("Low water episode not counted");
 });
@@ -2133,7 +2384,7 @@ runTest("52. daily stats survive a reboot and roll over at local midnight (yeste
   simDate = "2026-10-25"; tick();
   if (statsYesterday.day !== 24 || statsToday.day !== 25 || statsToday.cyclesCompleted !== 0) throw new Error("No rollover");
   assertLogContains("SUMMARY|2026-10-24|");
-  assertLogContains("SUMMARY|2026-10-25|0|0|0|0|0|0|0|0");
+  assertLogContains("SUMMARY|2026-10-25|0|0|0|0|0|0|0");
   outputLog = [];
   runFor(DAILY_SUMMARY_INTERVAL_MS);
   assertLogContains("SUMMARY|2026-10-24|");
