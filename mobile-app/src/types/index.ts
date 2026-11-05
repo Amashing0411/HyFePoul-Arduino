@@ -41,7 +41,7 @@ export interface FeedSchedule {
   enabled: boolean;
 }
 
-export type AlertType = 'LOW_FEED' | 'LOW_WATER' | 'CHAIN_TIMEOUT' | 'TRAY_TIMEOUT' | 'CONTROLLER_OFFLINE' | 'DEVICE_OFFLINE';
+export type AlertType = 'LOW_FEED' | 'LOW_WATER' | 'CHAIN_TIMEOUT' | 'TRAY_TIMEOUT' | 'HOPPER_SENSOR_FAULT' | 'CONTROLLER_OFFLINE' | 'DEVICE_OFFLINE';
 
 export interface Alert {
   id: string;

@@ -58,6 +58,7 @@ void pingHopper() {
       hopperSensorFault = true;
       Serial.println(F("WARNING: hopper sensor not answering; feed cycles will not start."));
       logEventToSD("HOPPER_SENSOR_FAULT");
+      queueAlertEvent("HOPPER_SENSOR_FAULT");
       triggerAlarm();
     }
     return;
@@ -68,6 +69,7 @@ void pingHopper() {
     hopperSensorFault = false;
     Serial.println(F("Hopper sensor answering again."));
     logEventToSD("HOPPER_SENSOR_OK");
+    queueAlertEvent("HOPPER_SENSOR_OK");
   }
 
   hopperSamples[hopperSampleNext] = distanceCm;

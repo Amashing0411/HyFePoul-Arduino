@@ -377,6 +377,10 @@ void queueBootClears() {
   if (!waterLow) {
     queueAlertEvent("LOW_WATER_CLEARED");
   }
+
+  if (!hopperSensorFault) {
+    queueAlertEvent("HOPPER_SENSOR_OK");
+  }
 }
 
 // Prints a warning for every pin number used by two functions in the pin

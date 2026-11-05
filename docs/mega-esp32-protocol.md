@@ -99,8 +99,8 @@ CMD_DONE|ID:<id>|STATUS:FAILED|REASON:<reason>
 ### 3.4 `SUMMARY` (daily totals, R-22)
 
 ```
-SUMMARY|YYYY-MM-DD|feedG|done|incomplete|trayTimeouts|chainFaults|lowWater|lowFeed|estops
-SUMMARY|2026-10-24|1490|3|0|0|0|1|0|0
+SUMMARY|YYYY-MM-DD|feedG|done|incomplete|trayTimeouts|chainFaults|lowWater|lowFeed
+SUMMARY|2026-10-24|1490|3|0|0|0|1|0
 ```
 
 - Local date (UTC+8). Whole grams; the rest are counts for that day.

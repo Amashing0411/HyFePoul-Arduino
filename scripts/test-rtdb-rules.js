@@ -164,7 +164,6 @@ async function runTests() {
     feedingActive: true,
     cycleStep: "DISPENSING",
     currentTray: 3,
-    emergencyStopActive: false,
     timestamp: 1690000000
   });
 
@@ -241,6 +240,12 @@ async function runTests() {
       ...validCommandPayload,
       commandId: "cmd4",
       issuedBy: "otherUser"
+    }));
+  });
+
+  await test("Owner cannot issue the retired ESTOP_RELEASE command", async () => {
+    await assertFails(owner3Db.ref("commands/dev3/cmd_estop").set({
+      commandId: "cmd_estop", command: "ESTOP_RELEASE", issuedBy: "owner3", createdAt: Date.now(), status: "queued",
     }));
   });
 
@@ -583,7 +588,7 @@ async function runTests() {
   // ==========================================
   const summary = (extra = {}) => ({
     date: "2026-10-24", feedGrams: 1500, cyclesCompleted: 3, cyclesIncomplete: 0,
-    trayTimeouts: 0, chainFaults: 0, lowWaterAlerts: 1, lowFeedAlerts: 0, emergencyStops: 0,
+    trayTimeouts: 0, chainFaults: 0, lowWaterAlerts: 1, lowFeedAlerts: 0,
     updatedAt: 1790000000000, ...extra,
   });
 

@@ -14,9 +14,7 @@
 
   The Mega sends both records to the ESP32 after every feed cycle, at the
   day change, and every 30 minutes:
-    SUMMARY|YYYY-MM-DD|feedG|done|incomplete|trayTimeouts|chainFaults|lowWater|lowFeed|estops
-  (estops is no longer counted; the field stays until the ESP32, database
-  rules and backend are updated together.)
+    SUMMARY|YYYY-MM-DD|feedG|done|incomplete|trayTimeouts|chainFaults|lowWater|lowFeed
   The ESP32 writes each to dailySummary/{deviceId}/{YYYY-MM-DD} with PUT, so
   repeats are harmless and yesterday's final numbers still arrive if the
   ESP32 was offline at midnight.
@@ -119,9 +117,7 @@ void sendDailySummaryLine(const DailyStats& s) {
   ESP32_SERIAL.print('|');
   ESP32_SERIAL.print(s.lowWater);
   ESP32_SERIAL.print('|');
-  ESP32_SERIAL.print(s.lowFeed);
-  ESP32_SERIAL.print('|');
-  ESP32_SERIAL.println(s.estops);
+  ESP32_SERIAL.println(s.lowFeed);
 }
 
 void sendDailySummaries() {

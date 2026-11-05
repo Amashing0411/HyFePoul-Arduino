@@ -49,7 +49,7 @@ struct DailyStats {
   uint16_t chainFaults;
   uint16_t lowWater;
   uint16_t lowFeed;
-  uint16_t estops;
+  uint16_t reserved; // unused; keeps the saved EEPROM layout
   uint8_t checksum;
 };
 

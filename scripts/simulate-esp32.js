@@ -93,7 +93,6 @@ async function simulate() {
     cycleStep: "IDLE",
     currentTray: 0,
     feedingActive: false,
-    emergencyStopActive: false,
     timeSource: "NETWORK", // R-44: last DATA field, stored by the ESP32
     timestamp: timestamp
   };
@@ -165,11 +164,11 @@ async function simulate() {
 // Alert resolution (R-23), mirroring noteAlertResolution() and
 // processPendingResolves() in HyFePoul_ESP32.ino
 // ---------------------------------------------------------
-const RESOLVABLE_ALERTS = ["LOW_FEED", "LOW_WATER", "EMERGENCY_STOP", "CHAIN_TIMEOUT", "TRAY_TIMEOUT", "CONTROLLER_OFFLINE"];
+const RESOLVABLE_ALERTS = ["LOW_FEED", "LOW_WATER", "HOPPER_SENSOR_FAULT", "CHAIN_TIMEOUT", "TRAY_TIMEOUT", "CONTROLLER_OFFLINE"];
 const CLEAR_EVENTS = {
   LOW_FEED_CLEARED: ["LOW_FEED"],
   LOW_WATER_CLEARED: ["LOW_WATER"],
-  EMERGENCY_STOP_RELEASED: ["EMERGENCY_STOP"],
+  HOPPER_SENSOR_OK: ["HOPPER_SENSOR_FAULT"],
   FEEDING_COMPLETED: ["CHAIN_TIMEOUT", "TRAY_TIMEOUT"],
 };
 
@@ -217,12 +216,12 @@ async function testAlertResolution() {
   await putAlert("TRAY_TIMEOUT", t0);
 
   // Boot-style burst received while "offline": resolves are only queued.
-  ["LOW_WATER_CLEARED", "LOW_FEED_CLEARED", "EMERGENCY_STOP_RELEASED"].forEach(e => noteAlertResolution(pending, e));
-  if (!pending.has("LOW_WATER") || !pending.has("EMERGENCY_STOP")) throw new Error("Resolves not queued");
+  ["LOW_WATER_CLEARED", "LOW_FEED_CLEARED", "HOPPER_SENSOR_OK"].forEach(e => noteAlertResolution(pending, e));
+  if (!pending.has("LOW_WATER") || !pending.has("HOPPER_SENSOR_FAULT")) throw new Error("Resolves not queued");
 
   // A new occurrence after a clear cancels the pending resolve.
-  noteAlertResolution(pending, "EMERGENCY_STOP");
-  if (pending.has("EMERGENCY_STOP")) throw new Error("New occurrence should cancel the pending resolve");
+  noteAlertResolution(pending, "HOPPER_SENSOR_FAULT");
+  if (pending.has("HOPPER_SENSOR_FAULT")) throw new Error("New occurrence should cancel the pending resolve");
 
   // "Online": process every pending resolve.
   for (const name of [...pending]) {
@@ -238,8 +237,8 @@ async function testAlertResolution() {
   // earlier part of this run wrote LOW_FEED; then it is resolved instead.
   const feed = await readAlert("LOW_FEED");
   if (feed !== null && feed.resolved !== true) throw new Error("Existing LOW_FEED should be resolved");
-  const estop = await readAlert("EMERGENCY_STOP");
-  if (estop !== null && estop.name !== "EMERGENCY_STOP") throw new Error("Partial EMERGENCY_STOP record created");
+  const sensorAlert = await readAlert("HOPPER_SENSOR_FAULT");
+  if (sensorAlert !== null && sensorAlert.name !== "HOPPER_SENSOR_FAULT") throw new Error("Partial HOPPER_SENSOR_FAULT record created");
 
   // Tray timeout clears only on a fully successful cycle.
   noteAlertResolution(pending, "FEEDING_COMPLETED");
@@ -265,7 +264,7 @@ async function testAlertResolution() {
 // Alerts raised while offline, mirroring sendEventToFirebase() /
 // processPendingAlerts() and the resolve ordering in processPendingResolves()
 // ---------------------------------------------------------
-const ALERT_NAMES = ["LOW_FEED", "LOW_WATER", "CHAIN_TIMEOUT", "TRAY_TIMEOUT", "EMERGENCY_STOP", "DEVICE_ERROR", "CONTROLLER_OFFLINE"];
+const ALERT_NAMES = ["LOW_FEED", "LOW_WATER", "CHAIN_TIMEOUT", "TRAY_TIMEOUT", "HOPPER_SENSOR_FAULT", "DEVICE_ERROR", "CONTROLLER_OFFLINE"];
 
 function makeBridge() {
   return { alerts: new Map(), resolves: new Set() }; // alert name -> raisedMillis
@@ -296,26 +295,26 @@ async function processPending(b, epochNow, nowMillis) {
 async function testOfflineAlerts() {
   console.log("[Alerts] Raised while offline...");
   const b = makeBridge();
-  for (const n of ["LOW_FEED", "EMERGENCY_STOP"]) {
+  for (const n of ["LOW_FEED", "HOPPER_SENSOR_FAULT"]) {
     await fetch(getDbUrl(`alerts/${DEVICE_ID}/${n}.json`), { method: 'DELETE' });
   }
 
   // Offline: LOW_FEED at t=10 s; E-stop pressed at 20 s and released at 30 s.
   onEvent(b, "LOW_FEED", 10000);
-  onEvent(b, "EMERGENCY_STOP", 20000);
-  onEvent(b, "EMERGENCY_STOP_RELEASED", 30000);
+  onEvent(b, "HOPPER_SENSOR_FAULT", 20000);
+  onEvent(b, "HOPPER_SENSOR_OK", 30000);
   onEvent(b, "FEEDING_STARTED", 31000); // informational: not an alert
-  if (b.alerts.size !== 2 || !b.resolves.has("EMERGENCY_STOP")) throw new Error("Not queued while offline");
+  if (b.alerts.size !== 2 || !b.resolves.has("HOPPER_SENSOR_FAULT")) throw new Error("Not queued while offline");
 
   // Back online 10 minutes later (t = 610 s).
   const epochNow = Date.now();
   const written = await processPending(b, epochNow, 610000);
-  if (written.join(",") !== "LOW_FEED,EMERGENCY_STOP") throw new Error(`Written: ${written}`);
+  if (written.join(",") !== "LOW_FEED,HOPPER_SENSOR_FAULT") throw new Error(`Written: ${written}`);
 
   const feed = await readAlert("LOW_FEED");
   if (feed.resolved !== false || feed.timestamp !== epochNow - 600000) throw new Error(`LOW_FEED time wrong: ${JSON.stringify(feed)}`);
-  const estop = await readAlert("EMERGENCY_STOP");
-  if (estop.resolved !== true || estop.timestamp !== epochNow - 590000) throw new Error(`E-stop should show as happened and resolved: ${JSON.stringify(estop)}`);
+  const sensorAlert = await readAlert("HOPPER_SENSOR_FAULT");
+  if (sensorAlert.resolved !== true || sensorAlert.timestamp !== epochNow - 590000) throw new Error(`Sensor fault should show as happened and resolved: ${JSON.stringify(sensorAlert)}`);
   if (b.alerts.size !== 0 || b.resolves.size !== 0) throw new Error("Queues not empty");
   console.log("[Alerts] Raised while offline OK");
 }
@@ -391,12 +390,12 @@ async function testMegaLink() {
 // ---------------------------------------------------------
 // Daily summary (R-22), mirroring sendDailySummary() in HyFePoul_ESP32.ino
 // ---------------------------------------------------------
-const SUMMARY_FIELDS = ["feedGrams", "cyclesCompleted", "cyclesIncomplete", "trayTimeouts", "chainFaults", "lowWaterAlerts", "lowFeedAlerts", "emergencyStops"];
+const SUMMARY_FIELDS = ["feedGrams", "cyclesCompleted", "cyclesIncomplete", "trayTimeouts", "chainFaults", "lowWaterAlerts", "lowFeedAlerts"];
 
 // Returns { date, payload } or null when the line is malformed.
 function parseSummaryLine(line, now) {
   const f = line.split("|");
-  if (f.length !== 10 || f[0] !== "SUMMARY") return null;
+  if (f.length !== 9 || f[0] !== "SUMMARY") return null;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(f[1])) return null;
   const payload = { date: f[1] };
   SUMMARY_FIELDS.forEach((k, i) => { payload[k] = Math.max(0, parseInt(f[i + 2], 10) || 0); });
@@ -419,12 +418,12 @@ async function putSummary(line) {
 async function testDailySummary() {
   console.log("[R-22] Daily summary...");
   if (parseSummaryLine("SUMMARY|2026-10-24|100|1", 1) !== null) throw new Error("Short line accepted");
-  if (parseSummaryLine("SUMMARY|24/10/2026|100|1|0|0|0|0|0|0", 1) !== null) throw new Error("Bad date accepted");
+  if (parseSummaryLine("SUMMARY|24/10/2026|100|1|0|0|0|0|0", 1) !== null) throw new Error("Bad date accepted");
 
-  await putSummary("SUMMARY|2026-10-23|1480|3|0|0|0|1|0|0");
-  await putSummary("SUMMARY|2026-10-24|500|1|0|0|0|0|0|0");
+  await putSummary("SUMMARY|2026-10-23|1480|3|0|0|0|1|0");
+  await putSummary("SUMMARY|2026-10-24|500|1|0|0|0|0|0");
   // Later the same day: the PUT replaces the day.
-  await putSummary("SUMMARY|2026-10-24|1010|2|1|1|0|0|1|1");
+  await putSummary("SUMMARY|2026-10-24|1010|2|1|1|0|0|1");
 
   const res = await fetch(`http://${EMULATOR_HOST}:${EMULATOR_RTDB_PORT}/dailySummary/${DEVICE_ID}.json?ns=${NAMESPACE}`, {
     headers: { 'Authorization': 'Bearer owner' },
@@ -432,7 +431,7 @@ async function testDailySummary() {
   const days = await res.json();
   if (!days["2026-10-23"] || days["2026-10-23"].feedGrams !== 1480) throw new Error("Yesterday missing");
   const today = days["2026-10-24"];
-  if (today.feedGrams !== 1010 || today.cyclesIncomplete !== 1 || today.emergencyStops !== 1) throw new Error(`Today not replaced: ${JSON.stringify(today)}`);
+  if (today.feedGrams !== 1010 || today.cyclesIncomplete !== 1 || today.lowFeedAlerts !== 1) throw new Error(`Today not replaced: ${JSON.stringify(today)}`);
   console.log("[R-22] Daily summary OK");
 }
 
@@ -553,7 +552,7 @@ async function testCommands() {
   });
   queued = await esp32PollCommands();
   if (queued && queued["cmd_unknown"]) {
-    if (queued["cmd_unknown"].command !== "MANUAL_FEED" && queued["cmd_unknown"].command !== "ESTOP_RELEASE" && queued["cmd_unknown"].command !== "SYSTEM_RESTART" && queued["cmd_unknown"].command !== "STATUS_REQ") {
+    if (queued["cmd_unknown"].command !== "MANUAL_FEED" && queued["cmd_unknown"].command !== "SYSTEM_RESTART" && queued["cmd_unknown"].command !== "STATUS_REQ") {
        console.log("  -> Unknown command correctly filtered by ESP32 C++ logic");
     } else throw new Error("Failed to filter unknown command");
   }
@@ -763,7 +762,6 @@ async function testScheduleRestore() {
     feedingActive: i === 4,
     cycleStep: i === 4 ? "DISPENSING" : "IDLE",
     currentTray: i === 4 ? 3 : 0,
-    emergencyStopActive: false,
   }]));
   await adminPut(`systemData/${DEVICE_ID}`, historyRows);
   const historyUrl = `http://${EMULATOR_HOST}:${EMULATOR_RTDB_PORT}/systemData/${DEVICE_ID}.json?orderBy=%22timestamp%22&limitToLast=4&ns=${NAMESPACE}&auth=${idToken}`;
@@ -816,7 +814,7 @@ function testUartCommandLines() {
   assert(worst.length <= MEGA_MAX_LINE_LENGTH, `SCHEDULE_SET line is ${worst.length + 1} bytes`);
 
   console.log("Test U3: every whitelisted command fits at its longest");
-  for (const cmd of ["ESTOP_RELEASE", "SYSTEM_RESTART", "STATUS_REQ"]) {
+  for (const cmd of ["SYSTEM_RESTART", "STATUS_REQ"]) {
     assert(buildCommandLine("C9", cmd, {}).length <= MEGA_MAX_LINE_LENGTH, `${cmd} too long`);
   }
   assert(buildCommandLine("C9", "MANUAL_FEED", { parameters: { targetGrams: 1999.99 } }).length <= MEGA_MAX_LINE_LENGTH, "MANUAL_FEED too long");

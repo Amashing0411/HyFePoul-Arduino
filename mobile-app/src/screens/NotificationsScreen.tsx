@@ -21,6 +21,7 @@ export default function NotificationsScreen() {
       case 'LOW_WATER': return 'water';
       case 'CHAIN_TIMEOUT': return 'warning';
       case 'TRAY_TIMEOUT': return 'timer-outline';
+      case 'HOPPER_SENSOR_FAULT': return 'pulse-outline';
       case 'CONTROLLER_OFFLINE': return 'hardware-chip-outline';
       case 'DEVICE_OFFLINE': return 'cloud-offline';
       default: return 'notifications';

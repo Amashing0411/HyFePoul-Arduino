@@ -45,7 +45,7 @@ String megaReceiveBuffer = "";
 // Requests are kept here until the ESP32 is online (the Mega's boot clears
 // usually arrive before Wi-Fi is up) and retried until they succeed.
 const char* const RESOLVABLE_ALERTS[] = {
-  "LOW_FEED", "LOW_WATER", "EMERGENCY_STOP", "CHAIN_TIMEOUT", "TRAY_TIMEOUT",
+  "LOW_FEED", "LOW_WATER", "HOPPER_SENSOR_FAULT", "CHAIN_TIMEOUT", "TRAY_TIMEOUT",
   "CONTROLLER_OFFLINE"
 };
 const uint8_t RESOLVABLE_ALERT_COUNT = 6;
@@ -71,7 +71,7 @@ bool megaLinkReportPending = true;
 // not synced yet). A repeat of the same alert keeps only the latest time,
 // which is what the alert record holds anyway.
 const char* const ALERT_NAMES[] = {
-  "LOW_FEED", "LOW_WATER", "CHAIN_TIMEOUT", "TRAY_TIMEOUT", "EMERGENCY_STOP",
+  "LOW_FEED", "LOW_WATER", "CHAIN_TIMEOUT", "TRAY_TIMEOUT", "HOPPER_SENSOR_FAULT",
   "DEVICE_ERROR", "CONTROLLER_OFFLINE"
 };
 const uint8_t ALERT_COUNT = 7;
@@ -95,7 +95,6 @@ struct DeviceStateData {
   bool feeding;
   String cycleStep;
   int currentTray;
-  bool estop;
   String timeSource; // NETWORK, RTC or INVALID (the Mega's clock source)
 };
 
@@ -462,10 +461,10 @@ void processMegaLine(String line) {
   Serial.print("Mega TX: ");
   Serial.println(line);
 
-  // DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|estop|timeSource
+  // DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|timeSource
   if (line.startsWith("DATA|")) {
-    // 14 fields -> 13 separators; fields[i] is the text after separator i.
-    const int SEPARATORS = 13;
+    // 13 fields -> 12 separators; fields[i] is the text after separator i.
+    const int SEPARATORS = 12;
     int indices[SEPARATORS + 1];
     int count = 0;
     int pos = line.indexOf('|');
@@ -486,8 +485,7 @@ void processMegaLine(String line) {
       data.feeding = line.substring(indices[8] + 1, indices[9]).toInt() == 1;
       data.cycleStep = line.substring(indices[9] + 1, indices[10]);
       data.currentTray = line.substring(indices[10] + 1, indices[11]).toInt();
-      data.estop = line.substring(indices[11] + 1, indices[12]).toInt() == 1;
-      data.timeSource = line.substring(indices[12] + 1, indices[13]);
+      data.timeSource = line.substring(indices[11] + 1, indices[12]);
       data.timeSource.trim();
 
       sendStateToFirebase(data);
@@ -495,7 +493,7 @@ void processMegaLine(String line) {
       Serial.println("DATA line ignored: wrong field count");
     }
   }
-  // SUMMARY|YYYY-MM-DD|feedG|done|incomplete|trayTimeouts|chainFaults|lowWater|lowFeed|estops
+  // SUMMARY|YYYY-MM-DD|feedG|done|incomplete|trayTimeouts|chainFaults|lowWater|lowFeed
   else if (line.startsWith("SUMMARY|")) {
     sendDailySummary(line);
   }
@@ -608,7 +606,6 @@ void sendStateToFirebase(const DeviceStateData& data) {
   doc["feedingActive"] = data.feeding;
   doc["cycleStep"] = data.cycleStep;
   doc["currentTray"] = data.currentTray;
-  doc["emergencyStopActive"] = data.estop;
   if (data.timeSource == "NETWORK" || data.timeSource == "RTC" || data.timeSource == "INVALID") {
     doc["timeSource"] = data.timeSource;
   }
@@ -651,7 +648,7 @@ void sendStateToFirebase(const DeviceStateData& data) {
 // PUT replaces the day, so the Mega's repeats are harmless. Dropped while
 // offline: the Mega re-sends today and yesterday every 30 minutes.
 void sendDailySummary(const String& line) {
-  const int FIELDS = 10;
+  const int FIELDS = 9;
   String fields[FIELDS];
   int start = 0;
   for (int i = 0; i < FIELDS; i++) {
@@ -687,7 +684,6 @@ void sendDailySummary(const String& line) {
   doc["chainFaults"] = max(0L, fields[6].toInt());
   doc["lowWaterAlerts"] = max(0L, fields[7].toInt());
   doc["lowFeedAlerts"] = max(0L, fields[8].toInt());
-  doc["emergencyStops"] = max(0L, fields[9].toInt());
   doc["updatedAt"] = now;
   String payload;
   serializeJson(doc, payload);
@@ -820,8 +816,8 @@ void noteAlertResolution(const String& eventName) {
     requestResolve("LOW_FEED");
   } else if (eventName == "LOW_WATER_CLEARED") {
     requestResolve("LOW_WATER");
-  } else if (eventName == "EMERGENCY_STOP_RELEASED") {
-    requestResolve("EMERGENCY_STOP");
+  } else if (eventName == "HOPPER_SENSOR_OK") {
+    requestResolve("HOPPER_SENSOR_FAULT");
   } else if (eventName == "FEEDING_COMPLETED") {
     // A cycle that filled every tray and returned home clears both.
     requestResolve("CHAIN_TIMEOUT");
@@ -958,7 +954,7 @@ void pollCommands() {
       continue;
     }
 
-    if (commandName != "MANUAL_FEED" && commandName != "ESTOP_RELEASE" &&
+    if (commandName != "MANUAL_FEED" &&
         commandName != "SYSTEM_RESTART" && commandName != "STATUS_REQ" && commandName != "SCHEDULE_SET") {
       continue; // Not whitelisted
     }

@@ -8,7 +8,7 @@
     Architecture: Mega -> ESP32 -> Wi-Fi -> Firebase -> app
 
   Mega -> ESP32:
-    DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|estop|timeSource   (every 10 s)
+    DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|timeSource   (every 10 s)
     EVENT|<name>                     (alert queue, one per loop)
     CMD_ACK / CMD_DONE               (replies to CMD)
     SUMMARY|...                      (daily totals, DailyStats.ino)
@@ -122,7 +122,7 @@ void processESP32Line(String line) {
   // Anything else is ignored (an unknown or garbled line).
 }
 
-// DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|estop|timeSource
+// DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|timeSource
 // t1..t5 = grams in each tray, target = grams per tray, step = cycle step
 // name, tray = tray the hopper is at/heading to (0 = none).
 void sendCurrentDataToESP32() {
@@ -142,10 +142,6 @@ void sendCurrentDataToESP32() {
   ESP32_SERIAL.print(getCycleStepName(cycleStep));
   ESP32_SERIAL.print('|');
   ESP32_SERIAL.print(currentTray);
-  ESP32_SERIAL.print('|');
-  // estop field: always 0. Kept because the ESP32, database rules and backend
-  // still expect it; it goes when they are updated together.
-  ESP32_SERIAL.print(0);
   ESP32_SERIAL.print('|');
   ESP32_SERIAL.print(getTimeSourceString());
   ESP32_SERIAL.println();

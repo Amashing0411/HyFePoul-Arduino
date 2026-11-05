@@ -64,10 +64,10 @@ ESP32 → Mega (each line at most 63 characters + `\n`, because `Serial3` has a 
 - `CMD|ID:<C0-C9 or R0-R2>|ACTION:<action>|…`
 
 Mega → ESP32:
-- `DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|estop|timeSource` (every 10 s; tray grams, target per tray, cycle step and tray)
+- `DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|timeSource` (every 10 s; tray grams, target per tray, cycle step and tray)
 - `EVENT|<name>` (including `SYSTEM_START` at boot)
 - `CMD_ACK|ID:<id>|STATUS:ACCEPTED|REJECTED[|REASON:…]` and `CMD_DONE|ID:<id>|STATUS:SUCCESS|FAILED[|REASON:…]`
-- `SUMMARY|YYYY-MM-DD|feedG|done|incomplete|trayTimeouts|chainFaults|lowWater|lowFeed|estops` (today and yesterday, after each feed cycle, at the day change and every 30 min)
+- `SUMMARY|YYYY-MM-DD|feedG|done|incomplete|trayTimeouts|chainFaults|lowWater|lowFeed` (today and yesterday, after each feed cycle, at the day change and every 30 min)
 
 ## Calibration sketches
 
