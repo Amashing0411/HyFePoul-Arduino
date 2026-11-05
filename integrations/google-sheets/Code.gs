@@ -27,6 +27,7 @@ const TAB_DAILY = 'Daily Summary';
 const TAB_ALERTS = 'Alerts';
 const TAB_STATUS = 'Sync Status';
 const READINGS_PREFIX = 'Readings ';
+const TIME_FORMAT = 'yyyy-mm-dd hh:mm:ss'; // otherwise the sheet shows only the date
 
 const READING_HEADERS = ['Time', 'Tray 1 (g)', 'Tray 2 (g)', 'Tray 3 (g)', 'Tray 4 (g)', 'Tray 5 (g)',
   'Total (g)', 'Target per tray (g)', 'Hopper (%)', 'Water', 'Feeding', 'Cycle step', 'At tray', 'Clock source'];
@@ -216,8 +217,11 @@ function getOrCreateTab_(name, headers) {
   return sheet;
 }
 
+// Reading rows hold their time in the first column.
 function appendRows_(sheet, rows) {
-  sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+  const first = sheet.getLastRow() + 1;
+  sheet.getRange(first, 1, rows.length, rows[0].length).setValues(rows);
+  sheet.getRange(first, 1, rows.length, 1).setNumberFormat(TIME_FORMAT);
 }
 
 // Updates the row whose key column holds `key`, or adds one. Keys are stored as
@@ -232,6 +236,9 @@ function upsertRow_(sheet, keyColumn, key, row) {
   if (target === -1) target = sheet.getLastRow() + 1;
   sheet.getRange(target, keyColumn, 1, 1).setNumberFormat('@');
   sheet.getRange(target, 1, 1, row.length).setValues([row]);
+  row.forEach(function (cell, i) {
+    if (cell instanceof Date) sheet.getRange(target, i + 1, 1, 1).setNumberFormat(TIME_FORMAT);
+  });
 }
 
 function writeStatus_(result, added) {
@@ -245,4 +252,6 @@ function writeStatus_(result, added) {
     ['Newest reading', lastMs > 0 ? new Date(lastMs) : 'None yet'],
   ];
   sheet.getRange(2, 1, rows.length, 2).setValues(rows);
+  sheet.getRange(3, 2, 1, 1).setNumberFormat(TIME_FORMAT);
+  if (lastMs > 0) sheet.getRange(6, 2, 1, 1).setNumberFormat(TIME_FORMAT);
 }

@@ -40,12 +40,17 @@ class Range {
     }
     return out;
   }
-  setNumberFormat() { return this; }
+  setNumberFormat(format) {
+    for (let r = 0; r < this.rows; r++) {
+      for (let c = 0; c < this.cols; c++) this.sheet.formats[`${this.row + r}:${this.col + c}`] = format;
+    }
+    return this;
+  }
   setFontWeight() { return this; }
 }
 
 class Sheet {
-  constructor(name) { this.name = name; this.data = []; }
+  constructor(name) { this.name = name; this.data = []; this.formats = {}; }
   getLastRow() { return this.data.length; }
   getRange(row, col, rows, cols) {
     if (row < 1) throw new Error('Rows start at 1');
@@ -147,6 +152,8 @@ test('2. readings land in tray-number columns, in time order, with plain values'
   assert(rows[1].slice(1, 6).join() === '10,20,30,40,150', `Trays ${rows[1].slice(1, 6)}`);
   assert(rows[1][9] === 'OK' && rows[1][10] === 'YES' && rows[1][11] === 'DISPENSING' && rows[1][12] === 3, 'Row 1 values');
   assert(rows[2][9] === 'LOW' && rows[2][10] === 'NO', 'Row 2 values');
+  const timeFormat = 'yyyy-mm-dd hh:mm:ss';
+  assert(t.tabs['Readings 2026-11'].formats['2:1'] === timeFormat && t.tabs['Readings 2026-11'].formats['3:1'] === timeFormat, 'Time column shows only the date');
 });
 
 test('3. the next run only adds new readings', () => {
@@ -204,6 +211,8 @@ test('7. daily totals update the same row, and a new day adds one', () => {
   assert(rows[1][0] === '2026-11-05' && rows[2][0] === '2026-11-06', 'Dates');
   assert(rows[2][1] === 750, `Feed ${rows[2][1]}`);
   assert(rows[2].slice(2, 8).join() === '2,1,1,0,0,1', `Counts ${rows[2].slice(2, 8)}`);
+  assert(t.tabs['Daily Summary'].formats['3:1'] === '@', 'The date key should stay text');
+  assert(t.tabs['Daily Summary'].formats['3:9'] === 'yyyy-mm-dd hh:mm:ss', 'Updated time format');
   adminPut(`dailySummary/${DEV}/2026-11-07`, day('2026-11-07', 100));
   t.ctx.syncToSheet();
   assert(t.tabs['Daily Summary'].data.length === 4, 'New day not added');
@@ -222,6 +231,7 @@ test('8. an alert resolves on its own row; a repeat gets a new row; old stop rec
   t.ctx.syncToSheet();
   assert(t.tabs.Alerts.data.length === 2, 'Resolving added a row');
   assert(t.tabs.Alerts.data[1][2] === 'RESOLVED' && t.tabs.Alerts.data[1][3].getTime() === NOV_6 + 5000, 'Not resolved');
+  assert(t.tabs.Alerts.formats['2:1'] === 'yyyy-mm-dd hh:mm:ss' && t.tabs.Alerts.formats['2:4'] === 'yyyy-mm-dd hh:mm:ss', 'Alert time formats');
 
   adminPut(`alerts/${DEV}/LOW_FEED`, alert(NOV_6 + 60000));
   t.ctx.syncToSheet();
