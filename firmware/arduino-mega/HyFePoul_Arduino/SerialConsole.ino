@@ -26,7 +26,7 @@
   are non-blocking (the loop and the ESP32 link keep running) and go through the
   normal chain driver, so the relay interlock, dead time and limit switches
   still apply. A feed cycle cannot start during a bench move.
-  WEIGH, TARE and CAL block for about a second while they average readings.
+  WEIGH, TARE and CAL block for a few seconds while they average readings.
 */
 
 enum BenchMove { BENCH_IDLE, BENCH_JOG, BENCH_HOME, BENCH_DISPENSE };
@@ -174,6 +174,7 @@ void benchStatus() {
 void benchWeigh() {
   Serial.println(F("--- WEIGH (5 samples per tray) ---"));
   for (uint8_t i = 0; i < TRAY_COUNT; i++) {
+    feedWatchdog(); // all 5 trays together take longer than the watchdog limit
     Serial.print(F("Tray "));
     Serial.print(i + 1);
     Serial.print(F(": "));
@@ -203,6 +204,7 @@ void benchTare(const String& args) {
     first = last = t;
   }
   for (uint8_t i = first; i <= last; i++) {
+    feedWatchdog(); // TARE ALL takes longer than the watchdog limit
     Serial.print(F("Tare tray "));
     Serial.print(i + 1);
     if (trayScales[i].wait_ready_timeout(500)) {
