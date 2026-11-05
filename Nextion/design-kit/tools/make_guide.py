@@ -26,9 +26,9 @@ def main():
     out = []
     w = out.append
     w('# Applying the HyFePoul design in Nextion Editor\n')
-    w('This restyles the panel without changing how it works. **No component is added, deleted or renamed**, '
-      'so every page ID and component ID the Mega uses (`Nextion_IDs.txt`) stays the same. Only positions, sizes, '
-      'colours and backgrounds change.\n')
+    w('`Nextion/HyFePoul.hmi` already has this design applied. This guide records every value, for rebuilding '
+      'it from an older project. The tables match the current project, where Home has no Stop button and Feed '
+      'Target has a Step button (`b4`, ID 7). `Nextion_IDs.txt` lists the IDs the Mega uses.\n')
     w('Time: about 45-60 minutes. Panel: NX8048P070 (800x480).\n')
     w('## 0. Before you start\n')
     w('1. **Back up** `Nextion/HyFePoul.hmi` (copy it as `HyFePoul_before-design.hmi`).')
