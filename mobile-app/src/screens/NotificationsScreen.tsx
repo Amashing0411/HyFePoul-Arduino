@@ -22,7 +22,6 @@ export default function NotificationsScreen() {
       case 'CHAIN_TIMEOUT': return 'warning';
       case 'TRAY_TIMEOUT': return 'timer-outline';
       case 'CONTROLLER_OFFLINE': return 'hardware-chip-outline';
-      case 'EMERGENCY_STOP': return 'alert-circle';
       case 'DEVICE_OFFLINE': return 'cloud-offline';
       default: return 'notifications';
     }
@@ -30,7 +29,7 @@ export default function NotificationsScreen() {
 
   const getAlertColor = (type: string, resolved: boolean) => {
     if (resolved) return colors.neutral;
-    if (type === 'EMERGENCY_STOP' || type === 'CONTROLLER_OFFLINE') return colors.error;
+    if (type === 'CONTROLLER_OFFLINE') return colors.error;
     if (type === 'DEVICE_OFFLINE') return colors.warning;
     return colors.primary;
   };
@@ -56,8 +55,7 @@ export default function NotificationsScreen() {
           </Text>
           <Text style={[typography.caption, { marginTop: spacing.xs }]}>{new Date(item.timestamp).toLocaleString()}</Text>
           {/* The device keeps one record per alert type and marks it resolved
-              when the condition clears (refilled, E-stop released, a full
-              feed cycle). */}
+              when the condition clears (refilled, a full feed cycle). */}
           <Text style={[typography.caption, { fontWeight: 'bold', marginTop: spacing.sm, color: item.resolved ? colors.success : alertColor }]}>
             {item.resolved
               ? (item.resolvedAt ? t('resolvedAt', { time: new Date(item.resolvedAt).toLocaleString() }) : t('resolved'))

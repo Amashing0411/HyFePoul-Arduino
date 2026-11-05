@@ -20,7 +20,6 @@ export const isValidDeviceState = (data: any): boolean => {
   if (typeof data.feedingActive !== 'boolean') return false;
   if (typeof data.cycleStep !== 'string' || !CYCLE_STEPS.includes(data.cycleStep)) return false;
   if (typeof data.currentTray !== 'number') return false;
-  if (typeof data.emergencyStopActive !== 'boolean') return false;
   if (data.timeSource !== undefined && !TIME_SOURCES.includes(data.timeSource)) return false;
   if (typeof data.timestamp !== 'number') return false;
   return true;
@@ -36,7 +35,6 @@ export const toSystemData = (state: RTDBDeviceState): SystemData => ({
   feedingActive: state.feedingActive,
   cycleStep: state.cycleStep,
   currentTray: state.currentTray,
-  emergencyStopActive: state.emergencyStopActive,
   timeSource: state.timeSource ?? null,
   timestamp: new Date(state.timestamp).toISOString(),
 });
@@ -62,7 +60,7 @@ export const isValidAlert = (data: any): boolean => {
 
 const DAILY_SUMMARY_COUNTS = [
   'feedGrams', 'cyclesCompleted', 'cyclesIncomplete', 'trayTimeouts', 'chainFaults',
-  'lowWaterAlerts', 'lowFeedAlerts', 'emergencyStops',
+  'lowWaterAlerts', 'lowFeedAlerts',
 ];
 
 export const isValidDailySummary = (data: any): boolean => {

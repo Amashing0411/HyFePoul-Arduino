@@ -204,7 +204,7 @@ export default function FeedingScreen() {
   // An offline device would only pick a feed up later (or let it go stale),
   // so manual feeding is blocked until heartbeats resume.
   // The same applies when the ESP32 is online but no longer hears the Mega.
-  const manualFeedBlocked = systemData.emergencyStopActive || systemData.feedingActive || manualFeedInFlight || !controllerResponding;
+  const manualFeedBlocked = systemData.feedingActive || manualFeedInFlight || !controllerResponding;
   // Find if there is a pending sync command for schedules
   const pendingSyncCmd = commands.find(c => c.command === 'SCHEDULE_SET' && (c.status === 'queued' || c.status === 'acknowledged' || c.status === 'executing'));
 

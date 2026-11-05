@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, View, Text, StyleSheet, RefreshControl, Alert } from 'react-native';
+import { ScrollView, View, Text, StyleSheet, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Card from '../components/Card';
 import StatusBadge from '../components/StatusBadge';
@@ -29,34 +29,8 @@ export default function DashboardScreen() {
     setTimeout(() => setRefreshing(false), 1500);
   };
 
-  const handleEmergencyStop = () => {
-    if (!systemData) return;
-    if (systemData.emergencyStopActive) {
-      Alert.alert(
-        t('estopReleaseTitle') || "Release E-Stop",
-        t('estopReleaseMsg') || "Are you sure you want to release the emergency stop? Only do this if the physical switch is cleared.",
-        [
-          { text: t('cancel') || "Cancel", style: "cancel" },
-          {
-            text: t('releaseEmergencyStop') || "Release",
-            style: "destructive",
-            onPress: () => issueCommand('ESTOP_RELEASE')
-          }
-        ]
-      );
-    } else {
-      Alert.alert(
-        "Remote E-Stop Activation",
-        "The system does not currently support activating E-Stop via remote command. E-Stop must be triggered physically.",
-        [
-          { text: "OK", style: "default" }
-        ]
-      );
-    }
-  };
-
   // Manual feed lives on the Feeding tab (inline target entry, limits,
-  // E-stop and in-flight checks, command status). Alert.prompt, used here
+  // in-flight checks, command status). Alert.prompt, used here
   // before, is iOS-only and did nothing on Android.
   const handleManualFeed = () => {
     navigation.navigate('Feeding');
@@ -150,24 +124,6 @@ export default function DashboardScreen() {
           <StatusBadge
             status={systemData.waterLow ? 'error' : 'success'}
             text={systemData.waterLow ? t('refillNeeded') : t('ok')}
-          />
-        </View>
-      </Card>
-
-      <Card title={t('safety')}>
-        <View style={styles.row}>
-          <Text style={typography.body}>{t('systemState')}:</Text>
-          <StatusBadge
-            status={systemData.emergencyStopActive ? 'error' : 'success'}
-            text={systemData.emergencyStopActive ? t('halted') : t('running')}
-          />
-        </View>
-        <View style={{ marginTop: spacing.md }}>
-          <Button
-            title={systemData.emergencyStopActive ? t('releaseEmergencyStop') || "Release E-Stop" : t('emergencyStop') || "E-Stop Engaged"}
-            onPress={handleEmergencyStop}
-            variant={systemData.emergencyStopActive ? "outline" : "danger"}
-            accessibilityLabel={systemData.emergencyStopActive ? "Release E-Stop" : "Emergency Stop"}
           />
         </View>
       </Card>

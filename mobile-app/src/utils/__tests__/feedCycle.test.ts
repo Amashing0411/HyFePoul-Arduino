@@ -11,8 +11,8 @@ const t = (key: keyof typeof translations.en, params?: Record<string, string | n
 
 describe('describeCycleStep', () => {
   it('names the tray while the hopper works on it', () => {
-    expect(describeCycleStep(t, 'DISPENSING', 3)).toBe('Filling tray 3 of 5');
-    expect(describeCycleStep(t, 'TO_TRAY', 1)).toBe('Moving to tray 1 of 5');
+    expect(describeCycleStep(t, 'DISPENSING', 3)).toBe('Filling tray 3');
+    expect(describeCycleStep(t, 'TO_TRAY', 1)).toBe('Moving to tray 1');
   });
 
   it('describes the moves without a tray', () => {

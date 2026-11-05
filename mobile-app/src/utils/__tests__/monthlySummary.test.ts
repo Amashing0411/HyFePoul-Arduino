@@ -30,9 +30,9 @@ describe('monthly summary (R-22)', () => {
   it('adds up the days of a month', () => {
     const t = summarizeMonth([
       day('2026-10-01'),
-      day('2026-10-02', { feedGrams: 500, cyclesCompleted: 2, cyclesIncomplete: 1, lowWaterAlerts: 1, emergencyStops: 1 }),
+      day('2026-10-02', { feedGrams: 500, cyclesCompleted: 2, cyclesIncomplete: 1, lowWaterAlerts: 1 }),
     ]);
-    expect(t).toMatchObject({ feedGrams: 1250, cyclesCompleted: 5, cyclesIncomplete: 1, lowWaterAlerts: 1, emergencyStops: 1, daysReported: 2 });
+    expect(t).toMatchObject({ feedGrams: 1250, cyclesCompleted: 5, cyclesIncomplete: 1, lowWaterAlerts: 1, daysReported: 2 });
   });
 
   it('builds one bar per day, marks missing days and stops at today', () => {
