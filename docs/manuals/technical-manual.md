@@ -212,8 +212,8 @@ the card and verify initialization.
 The 800x480 panel runs at 9600 baud on Mega `Serial2`. Page IDs: p0 Logo, p1
 Home, p2 Schedule, p3 Recent History (HMI page name `Log`), p4 Feed Target, p5-p7 schedule editors, p8
 internal keypad, p9 System Check. The editable source is
-`Nextion/ChickenFeederV1 (1).hmi`; the compiled panel image is
-`Nextion/ChickenFeederV1 (1).tft`. The source compiles with 0 errors and 0
+`Nextion/HyFePoul.hmi`; the compiled panel image is
+`Nextion/HyFePoul.tft`. The source compiles with 0 errors and 0
 warnings. Confirm the physical panel model/resolution before flashing. Full IDs
 are in `Nextion/Nextion_IDs.txt`.
 

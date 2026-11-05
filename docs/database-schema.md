@@ -191,13 +191,13 @@ One record per local day (UTC+8), counted on the Mega (`DailyStats.ino`) and sen
 
 ## 9. Not used
 
-- **Cloud Firestore and Cloud Functions** (`firestore.rules`, `backend/functions`): this was the earlier backend design (alerts in Firestore, FCM token registration). It is not deployed and would require the Blaze plan. The app no longer calls it (see `docs/notifications.md`). The functions code is kept for reference.
+- **Cloud Firestore and Cloud Functions** (`archive/legacy-backend/firestore.rules`, `archive/legacy-backend/functions`): this was the earlier backend design (alerts in Firestore, FCM token registration). It is not deployed and would require the Blaze plan. The app no longer calls it (see `docs/notifications.md`). The functions code is kept for reference.
 - `MockDataContext` / `src/mock/data.ts` in the app: not mounted, used for early UI work only.
 
 ## 10. Rules tests
 
-[`backend/functions/scripts/test-rtdb-rules.js`](../backend/functions/scripts/test-rtdb-rules.js) covers 88 cases against the emulator: ownership and claiming, device identity, data validation, command creation and lifecycle, schedules and their device confirmation, alerts and their resolution, Mega link health, daily summaries, the owned-device query, and stale-command failure. Run it with:
+[`scripts/test-rtdb-rules.js`](../scripts/test-rtdb-rules.js) covers 88 cases against the emulator: ownership and claiming, device identity, data validation, command creation and lifecycle, schedules and their device confirmation, alerts and their resolution, Mega link health, daily summaries, the owned-device query, and stale-command failure. Run it with:
 
 ```bash
-firebase emulators:exec --only auth,database --project hyfepoul-dev "node backend/functions/scripts/test-rtdb-rules.js"
+firebase emulators:exec --only auth,database --project hyfepoul-dev "node scripts/test-rtdb-rules.js"
 ```

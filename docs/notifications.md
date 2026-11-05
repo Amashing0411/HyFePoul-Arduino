@@ -35,4 +35,4 @@ This document describes how HyFePoul alerts reach the user **as currently implem
 
 ## Legacy FCM path (not active)
 
-`backend/functions` still contains the earlier Firestore and Cloud Functions pipeline (`registerFcmToken`, FCM sends from alert processing). It is **not deployed** and would require the Blaze plan. The app hook that registered FCM tokens (`usePushNotifications.ts`) was removed in Phase 2. To restore it, recover that file from git history (it was last present in commit `c5e5f6c`) and deploy the functions after a billing decision.
+`archive/legacy-backend/functions` still contains the earlier Firestore and Cloud Functions pipeline (`registerFcmToken`, FCM sends from alert processing). It is **not deployed** and would require the Blaze plan. The app hook that registered FCM tokens (`usePushNotifications.ts`) was removed in Phase 2. To restore it, recover that file from git history (it was last present in commit `c5e5f6c`) and deploy the functions after a billing decision.

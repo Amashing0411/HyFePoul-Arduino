@@ -11,7 +11,7 @@ Since the React Native / Expo application already existed and strictly adhered t
 
 ## 3. Files Created
 - `scripts/test-mobile-commands.js` (Integration test simulator)
-- `docs/checkpoint-5B.12-report.md` (This document)
+- `docs/archive/checkpoint-5B.12-report.md` (This document)
 
 ## 4. Files Modified
 - `mobile-app/src/types/rtdb.ts`: Added `RTDBCommandAction`, `RTDBCommandStatus`, and `RTDBCommand` interfaces.
