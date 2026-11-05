@@ -617,6 +617,7 @@ const tick = () => {
   handleFeeding();
   updateBench();
   handleDailyStats();
+  handleScheduleSync();
   stepHardware();
   simMillis += LOOP_MS;
 };
@@ -663,6 +664,7 @@ const receiveESP32Line = (line) => {
   if (line === "STATUS|ONLINE") esp32ReportsOnline = true;
   else if (line === "STATUS|OFFLINE") esp32ReportsOnline = false;
   else if (line.startsWith("HIST|")) processNextionHistoryLine(line);
+  else if (line.startsWith("SCHED_SYNCED|")) handleScheduleSynced(line);
 };
 
 const updateLinkStatus = () => {
@@ -875,6 +877,7 @@ const handleNextionTouch = (page, id) => {
       feedSchedules[nextionDraftScheduleIndex].hour = nextionScheduleDraft.hour;
       feedSchedules[nextionDraftScheduleIndex].minute = nextionScheduleDraft.minute;
       saveSchedulesToEEPROM();
+      markScheduleEditedLocally(nextionDraftScheduleIndex);
       outputLog.push(`NEXTION_SCHEDULE_SAVED:${nextionDraftScheduleIndex}:${nextionScheduleDraft.hour}:${nextionScheduleDraft.minute}`);
       nextionDraftScheduleIndex = NEXTION_ID_UNSET;
     }
@@ -985,7 +988,9 @@ const rebootMega = () => {
   feedSchedules = FIRMWARE_DEFAULT_SCHEDULES();
   stopFeedCycle("REBOOT");
   activeRemoteCommandId = "";
-  return loadSchedulesFromEEPROM();
+  const loaded = loadSchedulesFromEEPROM();
+  initializeScheduleSync();
+  return loaded;
 };
 
 // Mirrors getLocalDateTime(): the RTC holds UTC, schedules are local time.
@@ -1089,6 +1094,12 @@ const processRemoteCommand = (line) => {
       sendCmdAck(cmdId, "REJECTED", "INVALID_TARGET");
       return;
     }
+    // R-54: a restore (R0-R2) must not undo a panel edit not yet in the cloud.
+    if (cmdId.startsWith("R") && scheduleEditPending(idx)) {
+      sendCmdAck(cmdId, "REJECTED", "LOCAL_EDIT_PENDING");
+      return;
+    }
+    clearScheduleEdit(idx);
     feedSchedules[idx] = { hour: hr, minute: mn, targetGrams: tgt, enabled: en };
     saveSchedulesToEEPROM();
 
@@ -1215,6 +1226,48 @@ const selectLogFile = () => {
     pruneOldLogs(logMonthIndex(name), false);
     sdFiles.add(name);
   }
+};
+
+// --- ScheduleSync.ino (R-54): panel schedule edits -> cloud ---
+const SCHEDULE_SYNC_ADDRESS = 120;
+const SCHEDULE_SYNC_MAGIC = 0x5B;
+const SCHEDULE_SYNC_RESEND_MS = 30000;
+let scheduleWritebackMask = 0;
+let lastScheduleWritebackMillis = 0;
+const initializeScheduleSync = () => {
+  scheduleWritebackMask = eeprom[SCHEDULE_SYNC_ADDRESS] === SCHEDULE_SYNC_MAGIC ? eeprom[SCHEDULE_SYNC_ADDRESS + 1] & 0x07 : 0;
+  lastScheduleWritebackMillis = simMillis - SCHEDULE_SYNC_RESEND_MS + 5000;
+};
+const saveScheduleSyncMask = () => {
+  eeprom[SCHEDULE_SYNC_ADDRESS] = SCHEDULE_SYNC_MAGIC;
+  eeprom[SCHEDULE_SYNC_ADDRESS + 1] = scheduleWritebackMask;
+};
+const scheduleEditPending = (i) => i >= 0 && i < 3 && (scheduleWritebackMask & (1 << i)) !== 0;
+const sendScheduleWriteback = (i) => {
+  const sch = feedSchedules[i];
+  outputLog.push(`SCHED_LOCAL|IDX:${i}|HR:${sch.hour}|MIN:${sch.minute}|TGT:${Math.round(sch.targetGrams)}|EN:${sch.enabled ? 1 : 0}`);
+};
+const markScheduleEditedLocally = (i) => {
+  scheduleWritebackMask |= (1 << i);
+  saveScheduleSyncMask();
+  sendScheduleWriteback(i);
+};
+const clearScheduleEdit = (i) => {
+  if (!scheduleEditPending(i)) return;
+  scheduleWritebackMask &= ~(1 << i);
+  saveScheduleSyncMask();
+};
+const handleScheduleSync = () => {
+  if (scheduleWritebackMask === 0) return;
+  if (simMillis - lastScheduleWritebackMillis < SCHEDULE_SYNC_RESEND_MS) return;
+  lastScheduleWritebackMillis = simMillis;
+  for (let i = 0; i < 3; i++) if (scheduleEditPending(i)) sendScheduleWriteback(i);
+};
+const handleScheduleSynced = (line) => {
+  const idx = extractMegaValue(line, "IDX:");
+  if (idx === "") return;
+  const i = parseInt(idx, 10);
+  if (i >= 0 && i < 3) clearScheduleEdit(i);
 };
 
 // --- Test harness ---
@@ -2098,6 +2151,80 @@ runTest("53. daily stats: counts made before the clock is set are kept for the f
   if (statsToday.lowFeed !== 1 || statsToday.day !== 26) throw new Error(JSON.stringify(statsToday));
   if (serializeStats(statsToday).length !== DAILY_STATS_SIZE) throw new Error("Layout size");
   simDate = null;
+});
+
+// Saves slot `slot` to hour:minute from the panel's schedule editor.
+const panelSaveSchedule = (slot, hour, minute) => {
+  feedNextionBytes([0x66, NEXTION_SCHEDULE_EDITOR_FIRST_PAGE_ID + slot, 0xFF, 0xFF, 0xFF]);
+  nextionDraftScheduleIndex = slot;
+  nextionScheduleDraft = { ...feedSchedules[slot], hour, minute };
+  simMillis += 100;
+  feedNextionBytes(touch(NEXTION_SCHEDULE_EDITOR_FIRST_PAGE_ID + slot, NEXTION_SCHEDULE_SAVE_BUTTON_ID, 0x01));
+};
+
+runTest("54. R-54: a panel schedule save is sent to the ESP32 and kept pending until the cloud confirms", () => {
+  resetMachine();
+  scheduleWritebackMask = 0; saveScheduleSyncMask();
+  feedSchedules[0] = { hour: 7, minute: 0, targetGrams: 50, enabled: true };
+  outputLog = [];
+  panelSaveSchedule(0, 9, 15);
+  assertLogContains("SCHED_LOCAL|IDX:0|HR:9|MIN:15|TGT:50|EN:1");
+  if (!scheduleEditPending(0)) throw new Error("Slot not pending after the panel save");
+  outputLog = [];
+  runFor(SCHEDULE_SYNC_RESEND_MS + 200);
+  assertLogContains("SCHED_LOCAL|IDX:0|HR:9|MIN:15");
+  receiveESP32Line("SCHED_SYNCED|IDX:0");
+  if (scheduleEditPending(0)) throw new Error("SCHED_SYNCED did not clear the slot");
+  outputLog = [];
+  runFor(SCHEDULE_SYNC_RESEND_MS + 200);
+  assertLogNotContains("SCHED_LOCAL|");
+});
+
+runTest("55. R-54: an older cloud restore cannot undo a pending panel edit; other slots still restore", () => {
+  resetMachine();
+  scheduleWritebackMask = 0; saveScheduleSyncMask();
+  feedSchedules[1] = { hour: 12, minute: 0, targetGrams: 50, enabled: true };
+  panelSaveSchedule(1, 13, 45);
+  outputLog = [];
+  processRemoteCommand("CMD|ID:R1|ACTION:SCHEDULE_SET|IDX:1|HR:12|MIN:0|TGT:50|EN:1");
+  assertLogContains("CMD_ACK|ID:R1|STATUS:REJECTED|REASON:LOCAL_EDIT_PENDING");
+  if (feedSchedules[1].hour !== 13 || feedSchedules[1].minute !== 45) throw new Error("Restore overwrote the panel edit");
+  processRemoteCommand("CMD|ID:R2|ACTION:SCHEDULE_SET|IDX:2|HR:18|MIN:0|TGT:40|EN:1");
+  assertLogContains("CMD_ACK|ID:R2|STATUS:ACCEPTED");
+  activeRemoteCommandId = "";
+  if (feedSchedules[2].hour !== 18) throw new Error("Other slot was not restored");
+});
+
+runTest("56. R-54: an app edit that arrives after the panel edit wins and clears it", () => {
+  resetMachine();
+  scheduleWritebackMask = 0; saveScheduleSyncMask();
+  panelSaveSchedule(0, 6, 0);
+  outputLog = [];
+  processRemoteCommand("CMD|ID:C3|ACTION:SCHEDULE_SET|IDX:0|HR:8|MIN:30|TGT:60|EN:1");
+  assertLogContains("CMD_ACK|ID:C3|STATUS:ACCEPTED");
+  activeRemoteCommandId = "";
+  if (feedSchedules[0].hour !== 8 || feedSchedules[0].minute !== 30) throw new Error("App edit not applied");
+  if (scheduleEditPending(0)) throw new Error("App edit did not clear the pending panel edit");
+  outputLog = [];
+  runFor(SCHEDULE_SYNC_RESEND_MS + 200);
+  assertLogNotContains("SCHED_LOCAL|IDX:0");
+});
+
+runTest("57. R-54: a pending panel edit survives a Mega restart and is sent again", () => {
+  resetMachine();
+  scheduleWritebackMask = 0; saveScheduleSyncMask();
+  panelSaveSchedule(2, 21, 5);
+  rebootMega();
+  if (!scheduleEditPending(2)) throw new Error("Pending mark lost on reboot");
+  if (feedSchedules[2].hour !== 21 || feedSchedules[2].minute !== 5) throw new Error("Panel edit lost on reboot");
+  outputLog = [];
+  runFor(6000);
+  assertLogContains("SCHED_LOCAL|IDX:2|HR:21|MIN:5");
+  processRemoteCommand("CMD|ID:R2|ACTION:SCHEDULE_SET|IDX:2|HR:0|MIN:0|TGT:50|EN:0");
+  assertLogContains("REASON:LOCAL_EDIT_PENDING");
+  receiveESP32Line("SCHED_SYNCED|IDX:2");
+  if (scheduleEditPending(2)) throw new Error("Not cleared");
+  scheduleWritebackMask = 0; saveScheduleSyncMask();
 });
 
 console.log(`ALL ${passed} SIMULATION TESTS PASSED.`);

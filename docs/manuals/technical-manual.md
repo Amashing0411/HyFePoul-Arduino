@@ -223,7 +223,7 @@ are in `Nextion/Nextion_IDs.txt`.
 | Recent History | Up to four newest `/systemData/{deviceId}` snapshots with feed, hopper, water and dispenser fields matching app Recent History; ESP32 fetches them and Mega formats local time. Refresh requests the records again. SD events remain in local CSV only. |
 | System Check | Hopper, water, ESP32 link and target values; Refresh sends one field per update. |
 | Feed Target | +/- adjusts the local manual target; Save stores it in Mega EEPROM. |
-| Schedule / editors | Overview displays app-synchronized time, target and enabled state; editors still adjust hour/minute locally and save to EEPROM only. |
+| Schedule / editors | Overview displays app-synchronized time, target and enabled state; editors adjust hour/minute, save to EEPROM and send the change to the cloud so the app shows it (R-54). |
 
 The HMI shows four newest cloud snapshots while the app shows up to 50 from the
 same source. History needs the device's scoped read permission on its own
@@ -233,7 +233,7 @@ ground, UART levels, page/touch mapping, live values, app-history parity,
 refresh, Save, EEPROM persistence, Stop and guarded Reset Stop. See the physical
 acceptance procedure for sequence.
 
-:::note SCHEDULE SOURCE-OF-TRUTH GAP | App schedule edits reach the Mega and appear in the HMI overview. A Nextion schedule time edit saves to local EEPROM but does not update Firebase. Online cloud restore can overwrite it; R-54 tracks the write-back and conflict behavior.
+:::note SCHEDULE SYNC (R-54) | App schedule edits reach the Mega and appear in the HMI overview. A Nextion time edit saves to EEPROM and is sent to Firebase; until confirmed, a cloud restore cannot overwrite it. The newest edit wins.
 
 Source: TimeManager.ino; ScheduleStorage.ino; SDLogging.ino; Nextion.ino; Nextion_IDs.txt.
 

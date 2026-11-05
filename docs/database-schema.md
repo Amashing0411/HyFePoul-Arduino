@@ -147,8 +147,10 @@ The pump-era fields `waterHigh` and `pumpActive` were removed in the moving-hopp
 | `targetGrams` | number | > 0 and ≤ 1000 | Grams **per tray**; the app saves whole grams (default 50) |
 | `enabled` | boolean | yes | "Delete" in the app writes `enabled: false` at 00:00 |
 | `daysOfWeek` | number[] | required | Always `[1..7]`; the Mega runs every schedule daily (decision D3) |
+| `updatedBy` | string | `panel` or `app` | Optional. Set by the device when it writes the slot (R-54); the app's own saves leave it out |
+| `updatedAt` | number | yes | Optional. Device UTC ms of that write |
 
-- **Write:** the owner only. The app writes the schedule and queues a matching `SCHEDULE_SET` command.
+- **Write:** the owner, or the device itself (R-54). The app writes the schedule and queues a matching `SCHEDULE_SET` command. The device writes a slot whose time was saved on the onsite panel (`updatedBy: "panel"`), and rewrites a slot to the app's values when an app edit reached the Mega after a panel write (`updatedBy: "app"`), so this node always matches what the Mega runs. Both are validated the same way.
 - **Read:** the owner or the device.
 - **Source of truth when online:** after a Mega or ESP32 restart, after Wi-Fi returns, or after a failed `SCHEDULE_SET`, the ESP32 reads this node and re-sends every slot to the Mega. A missing slot is sent as disabled. Offline, the Mega runs its EEPROM copy.
 
