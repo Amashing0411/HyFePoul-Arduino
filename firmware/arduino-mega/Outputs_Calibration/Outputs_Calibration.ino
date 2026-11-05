@@ -8,16 +8,19 @@
     - relay polarity: whether the relay board switches ON with HIGH or LOW
     - the dispenser's flow rate (grams per second), and from it the
       per-tray dispense timeout
-    - whether the buzzer is active (sounds on a steady HIGH) or passive
+    - whether the buzzer is active (sounds on a steady LOW) or passive
   and prints the matching lines for HyFePoul_Arduino/Config.ino.
 
   Pins (same as Config.ino): chain relay to RIGHT 10, chain relay to LEFT 9,
-  dispenser relay 8, buzzer 11, E-stop 37 (INPUT_PULLUP, closes to GND;
-  pressing it switches every output off).
+  dispenser relay 8, buzzer 11.
 
   Serial Monitor: 115200 baud, line ending "New Line".
 
     HELP               list the commands
+    PROBE <HIGH|LOW>   drive ONLY the dispenser relay pin at that level for
+                       0.5 s, to find the relay polarity without ever driving
+                       the chain relays. Use this when motor power cannot be
+                       disconnected (the dispenser runs if its relay clicks).
     LEVEL <HIGH|LOW>   which level switches a relay ON; all relays are then
                        driven OFF at that setting
     PULSE <R|L|D> <ms> switch one relay on for 100-3000 ms
@@ -25,7 +28,7 @@
     FLOW <ms>          run the dispenser 500-20000 ms into a container
     GRAMS <g>          enter what the last FLOW dispensed (kitchen scale)
     TARGET <g>         largest grams per tray you will schedule (default 50)
-    BUZZ               steady HIGH on the buzzer for 0.5 s
+    BUZZ               steady LOW on the buzzer for 0.5 s (low-trigger module)
     TONE               2 kHz tone for 0.5 s (for a passive buzzer)
     OFF                every output off at once
     RESULT             print the Config.ino lines
@@ -46,7 +49,8 @@ const uint8_t RELAY_TO_RIGHT_PIN = 10;
 const uint8_t RELAY_TO_LEFT_PIN  = 9;
 const uint8_t DISPENSER_RELAY_PIN = 8;
 const uint8_t BUZZER_PIN = 11;
-const uint8_t EMERGENCY_STOP_PIN = 37;   // not fitted: leave unconnected
+const uint8_t BUZZER_ON  = LOW;           // low-trigger module: LOW sounds it
+const uint8_t BUZZER_OFF = HIGH;
 
 int relayOnLevel = -1;            // -1 = not chosen yet (relay pins undriven)
 unsigned long pulseEndMillis = 0;
@@ -67,14 +71,15 @@ void setup() {
   pinMode(RELAY_TO_RIGHT_PIN, INPUT);
   pinMode(RELAY_TO_LEFT_PIN, INPUT);
   pinMode(DISPENSER_RELAY_PIN, INPUT);
-  digitalWrite(BUZZER_PIN, LOW);
+  digitalWrite(BUZZER_PIN, BUZZER_OFF);
   pinMode(BUZZER_PIN, OUTPUT);
-  pinMode(EMERGENCY_STOP_PIN, INPUT_PULLUP);
 
   Serial.begin(115200);
   Serial.println();
   Serial.println(F("HyFePoul outputs calibration (relays, dispenser flow, buzzer)"));
-  Serial.println(F("Relay pins are NOT driven yet. Motor power off, then: LEVEL HIGH"));
+  Serial.println(F("Relay pins are NOT driven yet."));
+  Serial.println(F("Motor power can be cut: LEVEL HIGH. It cannot: PROBE LOW, then PROBE HIGH."));
+  Serial.println(F("Any chain relay LED lit right now? Then stop and cut power before going on."));
   printHelp();
 }
 
@@ -87,11 +92,6 @@ void loop() {
     } else if (c != '\r' && inputLine.length() < 40) {
       inputLine += c;
     }
-  }
-
-  if (digitalRead(EMERGENCY_STOP_PIN) == LOW && (pulsePin != 0 || flowRunning)) {
-    allOff();
-    Serial.println(F("!!! E-STOP: everything off."));
   }
 
   if (pulsePin != 0 && (long)(millis() - pulseEndMillis) >= 0) {
@@ -126,7 +126,7 @@ void allOff() {
   relayOff(RELAY_TO_LEFT_PIN);
   relayOff(DISPENSER_RELAY_PIN);
   noTone(BUZZER_PIN);
-  digitalWrite(BUZZER_PIN, LOW);
+  digitalWrite(BUZZER_PIN, BUZZER_OFF);
   pulsePin = 0;
   flowRunning = false;
 }
@@ -138,10 +138,6 @@ bool readyToDrive() {
   }
   if (pulsePin != 0) {
     Serial.println(F("Busy: wait for it to finish, or OFF."));
-    return false;
-  }
-  if (digitalRead(EMERGENCY_STOP_PIN) == LOW) {
-    Serial.println(F("Refused: E-stop pressed."));
     return false;
   }
   return true;
@@ -173,6 +169,28 @@ void handleCommand(String line) {
     Serial.println(F("All outputs off."));
   } else if (cmd == "HELP") {
     printHelp();
+  } else if (cmd == "PROBE") {
+    if (args != "HIGH" && args != "LOW") {
+      Serial.println(F("Usage: PROBE <HIGH|LOW>"));
+      return;
+    }
+    if (relayOnLevel >= 0) {
+      Serial.println(F("LEVEL is already chosen, so PROBE is not needed. Restart the Mega to probe again."));
+      return;
+    }
+    // Only the dispenser pin is driven; the chain relay pins stay undriven.
+    digitalWrite(DISPENSER_RELAY_PIN, args == "HIGH" ? HIGH : LOW);
+    pinMode(DISPENSER_RELAY_PIN, OUTPUT);
+    delay(500);
+    pinMode(DISPENSER_RELAY_PIN, INPUT);
+    digitalWrite(DISPENSER_RELAY_PIN, LOW);   // no pull-up left on the pin
+    Serial.print(F("Dispenser relay pin was "));
+    Serial.print(args);
+    Serial.println(F(" for 0.5 s. Did the relay click and its LED light?"));
+    Serial.print(F("Yes: type LEVEL "));
+    Serial.print(args);
+    Serial.print(F(".  No: try PROBE "));
+    Serial.println(args == "HIGH" ? F("LOW") : F("HIGH"));
   } else if (cmd == "LEVEL") {
     if (args != "HIGH" && args != "LOW") {
       Serial.println(F("Usage: LEVEL <HIGH|LOW>"));
@@ -244,14 +262,16 @@ void handleCommand(String line) {
     Serial.print(g, 0);
     Serial.println(F(" g"));
   } else if (cmd == "BUZZ") {
-    digitalWrite(BUZZER_PIN, HIGH);
+    digitalWrite(BUZZER_PIN, BUZZER_ON);
     delay(500);
-    digitalWrite(BUZZER_PIN, LOW);
+    digitalWrite(BUZZER_PIN, BUZZER_OFF);
     Serial.println(F("Did it beep? Yes = active buzzer (type BUZZ OK). Silent = try TONE."));
     if (args == "OK") buzzerType = 1;
   } else if (cmd == "TONE") {
     tone(BUZZER_PIN, 2000, 500);
     delay(550);
+    noTone(BUZZER_PIN);
+    digitalWrite(BUZZER_PIN, BUZZER_OFF);
     Serial.println(F("Beeped only with TONE? Then it is a passive buzzer (type TONE OK)."));
     if (args == "OK") buzzerType = 2;
   } else if (cmd == "RESULT") {
@@ -268,7 +288,7 @@ float flowGramsPerSecond() {
 }
 
 void printHelp() {
-  Serial.println(F("Commands: LEVEL <HIGH|LOW> | PULSE <R|L|D> <ms> | FLOW <ms> | GRAMS <g> | TARGET <g> |"));
+  Serial.println(F("Commands: PROBE <HIGH|LOW> | LEVEL <HIGH|LOW> | PULSE <R|L|D> <ms> | FLOW <ms> | GRAMS <g> | TARGET <g> |"));
   Serial.println(F("          BUZZ [OK] | TONE [OK] | OFF | RESULT | HELP"));
 }
 
@@ -307,7 +327,7 @@ void printResult() {
   }
 
   if (buzzerType == 1) {
-    Serial.println(F("// Buzzer: active (the firmware's digitalWrite works as is)"));
+    Serial.println(F("// Buzzer: active, low-trigger (Config.ino BUZZER_ON = LOW)"));
   } else if (buzzerType == 2) {
     Serial.println(F("// Buzzer: PASSIVE - the firmware needs tone(); tell the developer"));
   } else {

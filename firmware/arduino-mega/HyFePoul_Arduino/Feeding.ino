@@ -20,7 +20,6 @@
       home, raise LOW_FEED (open item O-3).
     - End switch reached before the last tray: tray timings are off; skip
       the remaining trays and return home.
-    - E-stop: Safety.ino stops the cycle and all motors immediately.
 
   The tray load cells weigh the feed dispensed into each tray.
 */
@@ -111,14 +110,14 @@ bool isEndSwitchPressed() {
 // Requests a chain direction. Returns true once the motor is running in
 // that direction (or stopped, for CHAIN_STOPPED). Call it every loop while
 // a move is wanted:
-//   - both relays are never on together (the other one is always written
-//     LOW first);
+//   - both relays are never on together (the other one is always switched
+//     off first);
 //   - a direction change first stops the motor and waits
 //     CHAIN_DEAD_TIME_MS with both relays off;
 //   - forward is refused while the end switch is pressed, reverse while
 //     the home switch is pressed.
 bool setChainDirection(ChainDirection direction) {
-  if (direction == CHAIN_STOPPED || emergencyStopActive) {
+  if (direction == CHAIN_STOPPED) {
     stopChain();
     return direction == CHAIN_STOPPED;
   }
@@ -180,13 +179,6 @@ void enforceChainLimits() {
 // -----------------------------
 
 void handleFeeding() {
-  if (emergencyStopActive) {
-    if (feedingActive) {
-      stopFeedCycle("FEEDING_STOPPED_ESTOP");
-    }
-    return;
-  }
-
   checkScheduledFeeding();
 
   if (feedingActive) {
@@ -246,10 +238,6 @@ void startFeeding(uint8_t scheduleIndex) {
 // Starts a full cycle with targetGrams per tray. Returns NULL on success,
 // otherwise the reason (used directly as the CMD_ACK reason).
 const char* startFeedCycle(float targetGrams) {
-  if (emergencyStopActive) {
-    return "ESTOP_ACTIVE";
-  }
-
   if (feedingActive) {
     return "FEEDING_ACTIVE";
   }
@@ -542,7 +530,7 @@ void chainFault() {
   finishRemoteCommand("FAILED", "CHAIN_TIMEOUT");
 }
 
-// Immediate stop of the dispenser and chain (E-stop, chain fault).
+// Immediate stop of the dispenser and chain (chain fault).
 void stopFeedCycle(const char* reason) {
   digitalWrite(DISPENSER_RELAY_PIN, RELAY_OFF);
   stopChain();

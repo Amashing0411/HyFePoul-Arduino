@@ -12,7 +12,6 @@
   Pins (same as Config.ino; PLACEHOLDERS where marked there):
     limit switches 53, 51, float 49   (INPUT_PULLUP)
     ultrasonic TRIG 50, ECHO 48;  Nextion on Serial2 (TX2 16, RX2 17)
-    No E-stop input is wired on the bench, so this sketch does not read one.
 
   Serial Monitor: 115200 baud, line ending "New Line".
 
@@ -43,8 +42,8 @@
 const uint8_t LIMIT_A_PIN = 53;
 const uint8_t LIMIT_B_PIN = 51;
 const uint8_t WATER_LOW_PIN = 49;
-const uint8_t ULTRASONIC_TRIG_PIN = 50;
-const uint8_t ULTRASONIC_ECHO_PIN = 48;
+const uint8_t ULTRASONIC_TRIG_PIN = 52;
+const uint8_t ULTRASONIC_ECHO_PIN = 50;
 const unsigned long ULTRASONIC_TIMEOUT_US = 30000UL;
 
 // Relay pins: never driven here (left as inputs = off for typical boards).
@@ -68,6 +67,10 @@ int8_t mapChoice[LIMIT_COUNT] = {-1, -1};          // tray 1 side, tray 5 side
 String inputLine = "";
 
 void setup() {
+  // Low-trigger buzzer module on pin 11: hold it HIGH so it stays quiet.
+  digitalWrite(11, HIGH);
+  pinMode(11, OUTPUT);
+
   for (uint8_t i = 0; i < sizeof(RELAY_PINS); i++) pinMode(RELAY_PINS[i], INPUT);
   for (uint8_t i = 0; i < SWITCH_COUNT; i++) pinMode(SWITCH_PINS[i], INPUT_PULLUP);
   pinMode(ULTRASONIC_TRIG_PIN, OUTPUT);

@@ -143,7 +143,9 @@ void sendCurrentDataToESP32() {
   ESP32_SERIAL.print('|');
   ESP32_SERIAL.print(currentTray);
   ESP32_SERIAL.print('|');
-  ESP32_SERIAL.print(emergencyStopActive ? 1 : 0);
+  // estop field: always 0. Kept because the ESP32, database rules and backend
+  // still expect it; it goes when they are updated together.
+  ESP32_SERIAL.print(0);
   ESP32_SERIAL.print('|');
   ESP32_SERIAL.print(getTimeSourceString());
   ESP32_SERIAL.println();
@@ -228,18 +230,6 @@ void processRemoteCommand(String line) {
     activeRemoteCommandId = cmdId;
     sendCmdAck(cmdId, "ACCEPTED", "");
     logEventToSD("REMOTE_FEEDING_STARTED");
-  }
-  else if (action == "ESTOP_RELEASE") {
-    const char* rejectReason =
-        resetEmergencyStop("EMERGENCY_STOP_RELEASED_REMOTE");
-
-    if (rejectReason != NULL) {
-      sendCmdAck(cmdId, "REJECTED", rejectReason);
-      return;
-    }
-
-    sendCmdAck(cmdId, "ACCEPTED", "");
-    sendCmdDone(cmdId, "SUCCESS", "");
   }
   else if (action == "SYSTEM_RESTART") {
     sendCmdAck(cmdId, "REJECTED", "NOT_IMPLEMENTED_SAFELY");

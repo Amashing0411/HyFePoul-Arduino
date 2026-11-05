@@ -3,7 +3,7 @@
 
   Stand-alone chain timing calibration for HyFePoul. Upload this instead of
   the full firmware. It only drives the two chain relays and reads the two
-  limit switches and the E-stop; the dispenser, load cells, ESP32, SD and
+  limit switches; the dispenser, load cells, ESP32, SD and
   Nextion are not touched.
 
   The hopper starts at the limit switch on the START side (left or right).
@@ -14,11 +14,10 @@
   Pins (same as Config.ino; PLACEHOLDERS where marked there):
     chain relay that moves the hopper to the RIGHT   10
     chain relay that moves the hopper to the LEFT     9
-    LEFT limit switch                                45
-    RIGHT limit switch                               46
-    E-stop button                                    37
+    LEFT limit switch (tray 1 side)                  53
+    RIGHT limit switch (tray 5 side)                 51
   Run Inputs_Calibration and Outputs_Calibration first, and copy their
-  polarity results (RELAY_ON, LIMIT_SWITCH_PRESSED, ESTOP_PRESSED) below.
+  polarity results (RELAY_ON, LIMIT_SWITCH_PRESSED) below.
   Use JOG first to check which relay moves which way; SWAP fixes it.
 
   Serial Monitor: 115200 baud, line ending "New Line".
@@ -49,9 +48,9 @@
     firmware times its moves. Your reaction time is part of each mark, so
     check with PLAY and fine-tune with SET.
 
-  Safety: chain only, dispenser off. Keep a hand on the E-stop. Pressing the
-  E-stop, typing STOP, or reaching the limit switch in the direction of
-  travel stops the motor. No single move runs longer than 30 s.
+  Safety: chain only, dispenser off. Keep a hand on the motor power switch.
+  Typing STOP or reaching the limit switch in the direction of travel stops
+  the motor. No single move runs longer than 30 s.
 */
 
 const uint8_t TRAY_COUNT = 5;
@@ -59,16 +58,14 @@ const uint8_t TRAY_COUNT = 5;
 // Pins: keep in step with HyFePoul_Arduino/Config.ino.
 uint8_t relayToRightPin = 10;
 uint8_t relayToLeftPin  = 9;
-const uint8_t LEFT_LIMIT_PIN  = 45;
-const uint8_t RIGHT_LIMIT_PIN = 46;
-const uint8_t EMERGENCY_STOP_PIN = 37;   // not fitted: leave unconnected
+const uint8_t LEFT_LIMIT_PIN  = 53;      // tray 1 side
+const uint8_t RIGHT_LIMIT_PIN = 51;      // tray 5 side
 const uint8_t DISPENSER_RELAY_PIN = 8;   // held off, never switched on here
 
 // Polarity: copy from Config.ino (set there from Inputs_Calibration and
-// Outputs_Calibration RESULT). PLACEHOLDERS until those are run.
-const uint8_t RELAY_ON = HIGH;              // LOW for an active-LOW relay board
+// Outputs_Calibration RESULT).
+const uint8_t RELAY_ON = LOW;               // active-LOW relay board (Outputs_Calibration)
 const uint8_t LIMIT_SWITCH_PRESSED = LOW;   // HIGH for normally-closed switches
-const uint8_t ESTOP_PRESSED = LOW;          // HIGH for a normally-closed E-stop
 
 const unsigned long DEAD_TIME_MS = 300;     // both relays off before a move
 const unsigned long MAX_MOVE_MS = 30000;    // safety cap for any single move
@@ -90,10 +87,13 @@ unsigned long stopMillis = 0;
 uint8_t stopIndex = 0;                      // trays reached so far in GO / PLAY
 unsigned long trayTimes[TRAY_COUNT] = {0, 0, 0, 0, 0};
 unsigned long endTimeMs = 0;                // tray 5 -> far limit
-bool estopLatched = false;
 String inputLine = "";
 
 void setup() {
+  // Low-trigger buzzer module on pin 11: hold it HIGH so it stays quiet.
+  digitalWrite(11, HIGH);
+  pinMode(11, OUTPUT);
+
   relayWrite(relayToRightPin, false);
   relayWrite(relayToLeftPin, false);
   relayWrite(DISPENSER_RELAY_PIN, false);
@@ -103,12 +103,11 @@ void setup() {
 
   pinMode(LEFT_LIMIT_PIN, INPUT_PULLUP);
   pinMode(RIGHT_LIMIT_PIN, INPUT_PULLUP);
-  pinMode(EMERGENCY_STOP_PIN, INPUT_PULLUP);
 
   Serial.begin(115200);
   Serial.println();
   Serial.println(F("HyFePoul chain timing calibration"));
-  Serial.println(F("Chain only: dispenser stays off. Keep a hand on the E-stop."));
+  Serial.println(F("Chain only: dispenser stays off. Keep a hand on the motor power switch."));
   printStatus();
   printHelp();
 }
@@ -124,7 +123,6 @@ void loop() {
     }
   }
 
-  checkEstop();
   updateMove();
 }
 
@@ -156,10 +154,6 @@ void stopMotor() {
 
 // Starts a move toward side s. Returns false (and says why) if it cannot.
 bool startMove(Side s, unsigned long limitMs) {
-  if (estopLatched) {
-    Serial.println(F("Refused: E-stop. Release it and type STATUS."));
-    return false;
-  }
   if (limitPressed(s)) {
     Serial.print(F("Refused: already at the "));
     Serial.print(sideName(s));
@@ -187,16 +181,6 @@ bool startMove(Side s, unsigned long limitMs) {
 
 unsigned long runTime() {
   return millis() - moveStartMillis;
-}
-
-void checkEstop() {
-  bool pressed = digitalRead(EMERGENCY_STOP_PIN) == ESTOP_PRESSED;
-  if (pressed && !estopLatched) {
-    estopLatched = true;
-    stopMotor();
-    mode = IDLE;
-    Serial.println(F("!!! E-STOP: motor stopped. Release it, then type STATUS."));
-  }
 }
 
 // Runs every loop: limit switches, timed ends, safety cap.
@@ -277,14 +261,10 @@ void handleCommand(String line) {
   } else if (cmd == "NEXT") {
     nextTray();
   } else if (moving) {
-    Serial.println(F("Moving: only STOP, M or the E-stop now."));
+    Serial.println(F("Moving: only STOP or M now."));
   } else if (cmd == "HELP") {
     printHelp();
   } else if (cmd == "STATUS") {
-    if (estopLatched && digitalRead(EMERGENCY_STOP_PIN) != ESTOP_PRESSED) {
-      estopLatched = false;
-      Serial.println(F("E-stop released."));
-    }
     printStatus();
   } else if (cmd == "SIDE") {
     if (args == "L" || args == "LEFT") startSide = SIDE_LEFT;
@@ -461,10 +441,6 @@ void printStatus() {
   Serial.print(RIGHT_LIMIT_PIN);
   Serial.print(F("): "));
   Serial.println(limitPressed(SIDE_RIGHT) ? F("PRESSED") : F("open"));
-  Serial.print(F("E-stop (pin "));
-  Serial.print(EMERGENCY_STOP_PIN);
-  Serial.print(F("): "));
-  Serial.println(digitalRead(EMERGENCY_STOP_PIN) == ESTOP_PRESSED ? F("PRESSED") : F("released"));
   Serial.print(F("Relay to RIGHT: pin "));
   Serial.print(relayToRightPin);
   Serial.print(F("   relay to LEFT: pin "));

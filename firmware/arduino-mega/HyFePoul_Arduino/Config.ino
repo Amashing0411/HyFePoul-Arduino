@@ -47,8 +47,8 @@ const uint8_t TRAY5_HX711_SCK_PIN = A9;
 const uint8_t TRAY5_HX711_DT_PIN  = A8;
 
 // Ultrasonic feed-hopper sensor
-const uint8_t ULTRASONIC_TRIG_PIN = 50;
-const uint8_t ULTRASONIC_ECHO_PIN = 48;
+const uint8_t ULTRASONIC_TRIG_PIN = 52;
+const uint8_t ULTRASONIC_ECHO_PIN = 50;
 
 // Water reservoir float switch (gravity-fed drinker, no pump)
 const uint8_t WATER_LOW_PIN = 49;
@@ -70,17 +70,17 @@ const uint8_t CHAIN_TO_RIGHT_RELAY_PIN = 10;
 const uint8_t CHAIN_TO_LEFT_RELAY_PIN  = 9;
 const uint8_t DISPENSER_RELAY_PIN      = 8;
 
-// Limit switches at each end of the chain (PLACEHOLDER: confirm sides).
-const uint8_t LEFT_LIMIT_PIN  = 45;
-const uint8_t RIGHT_LIMIT_PIN = 46;
+// Limit switches at each end of the chain, mapped with Inputs_Calibration.
+// "Left" is the tray 1 side and "right" is the tray 5 side.
+const uint8_t LEFT_LIMIT_PIN  = 53;
+const uint8_t RIGHT_LIMIT_PIN = 51;
 
 // Input/output polarity. PLACEHOLDERS: set from the RESULT lines of
 // Inputs_Calibration (switches) and Outputs_Calibration (relays).
-const uint8_t RELAY_ON  = HIGH;  // HIGH = active-HIGH relay board, LOW = active-LOW
+const uint8_t RELAY_ON  = LOW;   // active-LOW relay board (Outputs_Calibration)
 const uint8_t RELAY_OFF = RELAY_ON == HIGH ? LOW : HIGH;
 const uint8_t LIMIT_SWITCH_PRESSED = LOW; // LOW: closes to GND when pressed (NO); HIGH: NC
-const uint8_t WATER_LOW_LEVEL      = LOW; // float switch reading when the reservoir is low
-const uint8_t ESTOP_PRESSED        = LOW; // LOW: closes to GND (NO); HIGH: NC (fail-safe)
+const uint8_t WATER_LOW_LEVEL      = HIGH; // float switch reading when the reservoir is low
 
 // Derived from the start side; the feed cycle uses these. "Forward" is
 // away from the start, toward the far switch; "home" is the start switch.
@@ -91,10 +91,12 @@ const uint8_t CHAIN_FORWARD_RELAY_PIN = START_LEFT ? CHAIN_TO_RIGHT_RELAY_PIN : 
 const uint8_t CHAIN_REVERSE_RELAY_PIN = START_LEFT ? CHAIN_TO_LEFT_RELAY_PIN : CHAIN_TO_RIGHT_RELAY_PIN;
 
 // Safety / alarm
-const uint8_t EMERGENCY_STOP_PIN = 37; // Not fitted: leave unconnected; the pull-up reads as not pressed
 const uint8_t BUZZER_PIN         = 11;
+// Active, low-trigger buzzer module (tested with Outputs_Calibration): LOW sounds it.
+const uint8_t BUZZER_ON  = LOW;
+const uint8_t BUZZER_OFF = HIGH;
 
-// SD card: no module is fitted, and pins 50, 51 and 53 are used by other
+// SD card: no module is fitted, and pins 50, 51, 52 and 53 are used by other
 // inputs and outputs. Starting the SD library would drive those pins, so keep
 // this false unless they are moved and a module is added.
 const bool SD_LOGGING_ENABLED = false;
@@ -110,16 +112,18 @@ const uint8_t SD_CS_PIN = 53;
 // Sensor / calibration settings
 // -----------------------------
 
-// From HX711_Calibration. Tray 3 is still a PLACEHOLDER: its load cell is being
-// fixed, so calibrate it before relying on its weight.
+// From HX711_Calibration. Tray 3's factor is well below the others (about
+// 1,800 to 2,000 counts/g), so check its cell and wiring if its readings drift.
 float LOAD_CELL_CALIBRATION_FACTORS[TRAY_COUNT] = {
-  1795.652f, 1973.592f, 1.0f, 1958.184f, 1866.02f
+  1787.856f, 1960.0f, 384.628f, 1959.096f, 1866.02f
 };
 
 // PLACEHOLDER: measure actual empty/full hopper distances (Inputs_Calibration
 // EMPTY / FULL).
-float HOPPER_EMPTY_DISTANCE_CM = 40.0f;
-float HOPPER_FULL_DISTANCE_CM  = 5.0f;
+// TEMPORARY FULL value: measured with the feed on hand, not a full hopper, so
+// this much feed already reads 100%. Measure FULL again at the normal fill line.
+float HOPPER_EMPTY_DISTANCE_CM = 19.2f;
+float HOPPER_FULL_DISTANCE_CM  = 15.2f;
 
 // Feed-level alert thresholds with hysteresis.
 const float LOW_FEED_THRESHOLD_PERCENT = 20.0f;
@@ -147,7 +151,7 @@ const unsigned long TRAY_TRAVEL_MS[TRAY_COUNT] = {
 };
 // Max dispenser run per tray; on expiry the tray is skipped (TRAY_TIMEOUT).
 // Outputs_Calibration (FLOW / GRAMS) suggests it from the measured flow.
-const unsigned long TRAY_DISPENSE_TIMEOUT_MS = 30000UL;
+const unsigned long TRAY_DISPENSE_TIMEOUT_MS = 10000UL; // 25.30 g/s measured; 50 g takes about 2 s
 // Pause after the chain stops before taring, so the tray stops swinging.
 const unsigned long TRAY_SETTLE_MS = 500UL;
 // Readings averaged for each tray tare, and how long to wait for them.
@@ -242,12 +246,6 @@ unsigned long chainRunStartMillis = 0;
 
 // Water
 bool waterLow = false;
-
-// Safety
-// emergencyStopActive is the latched stop state; emergencyButtonPressed is
-// the live physical button state.
-bool emergencyStopActive = false;
-bool emergencyButtonPressed = false;
 
 // ESP32
 // esp32Online = the ESP32 reports Wi-Fi + Firebase session (STATUS|ONLINE)
@@ -348,10 +346,6 @@ void queueBootClears() {
   if (!waterLow) {
     queueAlertEvent("LOW_WATER_CLEARED");
   }
-
-  // A power cycle clears the E-stop latch. If the button is still pressed,
-  // the first loop latches it again and EMERGENCY_STOP follows this event.
-  queueAlertEvent("EMERGENCY_STOP_RELEASED");
 }
 
 // Prints a warning for every pin number used by two functions in the pin
@@ -367,7 +361,7 @@ void checkPinConflicts() {
     TRAY5_HX711_SCK_PIN, TRAY5_HX711_DT_PIN,
     ULTRASONIC_TRIG_PIN, ULTRASONIC_ECHO_PIN, WATER_LOW_PIN,
     CHAIN_FORWARD_RELAY_PIN, CHAIN_REVERSE_RELAY_PIN, DISPENSER_RELAY_PIN,
-    HOME_LIMIT_PIN, END_LIMIT_PIN, EMERGENCY_STOP_PIN, BUZZER_PIN,
+    HOME_LIMIT_PIN, END_LIMIT_PIN, BUZZER_PIN,
     SD_LOGGING_ENABLED ? SD_CS_PIN : PIN_NOT_USED,   // SD card: CS
     SD_LOGGING_ENABLED ? 50 : PIN_NOT_USED,          // SPI MISO
     SD_LOGGING_ENABLED ? 51 : PIN_NOT_USED,          // SPI MOSI
@@ -404,8 +398,6 @@ void initializePins() {
   pinMode(HOME_LIMIT_PIN, INPUT_PULLUP);
   pinMode(END_LIMIT_PIN, INPUT_PULLUP);
 
-  pinMode(EMERGENCY_STOP_PIN, INPUT_PULLUP);
-
   // IMPORTANT:
   // Ensure relays remain in their safe state (OFF = LOW)
   // before engaging the output drivers to prevent startup glitches.
@@ -414,7 +406,7 @@ void initializePins() {
   digitalWrite(CHAIN_FORWARD_RELAY_PIN, RELAY_OFF);
   digitalWrite(CHAIN_REVERSE_RELAY_PIN, RELAY_OFF);
   digitalWrite(DISPENSER_RELAY_PIN, RELAY_OFF);
-  digitalWrite(BUZZER_PIN, LOW);
+  digitalWrite(BUZZER_PIN, BUZZER_OFF);
 
   pinMode(CHAIN_FORWARD_RELAY_PIN, OUTPUT);
   pinMode(CHAIN_REVERSE_RELAY_PIN, OUTPUT);

@@ -46,7 +46,6 @@ const uint8_t NEXTION_LOG_REFRESH_BUTTON_ID = 4; // Log b1
 const uint8_t NEXTION_SYSTEM_REFRESH_BUTTON_ID = 4; // SystemCheck b1
 const uint8_t NEXTION_SCHEDULE_EDITOR_FIRST_PAGE_ID = 5;
 const uint8_t NEXTION_SCHEDULE_EDITOR_LAST_PAGE_ID = 7;
-const uint8_t NEXTION_STOP_BUTTON_ID = 8;       // Home b3
 const uint8_t NEXTION_FEED_RESET_BUTTON_ID = 9; // Home b4
 const uint8_t NEXTION_TARGET_PLUS_BUTTON_ID = 5; // Grams b1
 const uint8_t NEXTION_TARGET_MINUS_BUTTON_ID = 6; // Grams b2
@@ -389,14 +388,8 @@ void finishNextionHistory() {
 
 void handleNextionTouch(uint8_t pageId, uint8_t componentId) {
   if (pageId == NEXTION_HOME_PAGE_ID) {
-    if (componentId == NEXTION_STOP_BUTTON_ID) {
-      handleNextionStop();
-    } else if (componentId == NEXTION_FEED_RESET_BUTTON_ID) {
-      if (emergencyStopActive) {
-        handleNextionStart();
-      } else {
-        handleNextionFeedNow();
-      }
+    if (componentId == NEXTION_FEED_RESET_BUTTON_ID) {
+      handleNextionFeedNow();
     }
     return;
   }
@@ -468,31 +461,6 @@ void handleNextionTouch(uint8_t pageId, uint8_t componentId) {
   }
 }
 
-void handleNextionStop() {
-  if (emergencyStopActive) {
-    return;
-  }
-
-  Serial.println(F("Stop pressed on Nextion."));
-  logEventToSD("NEXTION_STOP_PRESSED");
-  tripEmergencyStop();
-}
-
-void handleNextionStart() {
-  const char* rejectReason = resetEmergencyStop("EMERGENCY_STOP_RESET_NEXTION");
-
-  if (rejectReason != NULL) {
-    Serial.print(F("Start on Nextion rejected: "));
-    Serial.println(rejectReason);
-
-    if (strcmp(rejectReason, "PHYSICAL_ESTOP_ENGAGED") == 0) {
-      setNextionText("t4", "Status: RELEASE E-STOP");
-    }
-  } else {
-    setNextionText("t4", "Status: STOP RESET");
-  }
-}
-
 void handleNextionFeedNow() {
   const char* rejectReason = startFeedCycle(manualFeedTargetGrams);
   if (rejectReason != NULL) {
@@ -513,10 +481,6 @@ String getWaterStatusText() {
 }
 
 String getSystemStatusText() {
-  if (emergencyStopActive) {
-    return "STOPPED";
-  }
-
   if (!feedingActive) {
     return "NORMAL";
   }
@@ -550,7 +514,6 @@ String getCurrentTimeText() {
 }
 
 String getHomeActionLabel() {
-  if (emergencyStopActive) return "RESET STOP";
   if (feedingActive) return "FEEDING";
   return "FEED NOW";
 }

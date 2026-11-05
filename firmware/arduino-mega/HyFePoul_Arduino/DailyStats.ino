@@ -5,7 +5,7 @@
   Counted on the Mega, which knows what actually happened:
     feed dispensed (grams, from each tray's load cell when that tray stops
     dispensing), feed cycles completed / incomplete, tray timeouts, chain
-    faults, low-water and low-feed episodes, E-stops.
+    faults, low-water and low-feed episodes.
 
   Days follow local time (UTC+8), like the schedules. Today's and
   yesterday's records are kept in EEPROM (from address 64; the schedule
@@ -15,6 +15,8 @@
   The Mega sends both records to the ESP32 after every feed cycle, at the
   day change, and every 30 minutes:
     SUMMARY|YYYY-MM-DD|feedG|done|incomplete|trayTimeouts|chainFaults|lowWater|lowFeed|estops
+  (estops is no longer counted; the field stays until the ESP32, database
+  rules and backend are updated together.)
   The ESP32 writes each to dailySummary/{deviceId}/{YYYY-MM-DD} with PUT, so
   repeats are harmless and yesterday's final numbers still arrive if the
   ESP32 was offline at midnight.
@@ -153,4 +155,3 @@ void statTrayTimeout() { statCount(statsToday.trayTimeouts); }
 void statChainFault() { statCount(statsToday.chainFaults); }
 void statLowWater() { statCount(statsToday.lowWater); }
 void statLowFeed() { statCount(statsToday.lowFeed); }
-void statEmergencyStop() { statCount(statsToday.estops); }

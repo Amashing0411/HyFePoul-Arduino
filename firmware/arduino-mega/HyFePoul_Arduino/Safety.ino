@@ -1,96 +1,21 @@
 /*
   Safety.ino
 
-  Emergency stop and alarm handling.
+  Limit-switch enforcement, the USB console and the alarm buzzer.
 
   IMPORTANT:
-  The software emergency-stop handling below is NOT a replacement for
-  a properly designed physical emergency-stop circuit.
-
-  The final electrical design should allow the emergency stop to remove
-  actuator power/control independently where appropriate, while the Mega
-  also monitors the switch for status and logging.
-
-  Latching behavior:
-  Pressing the E-stop latches emergencyStopActive. Releasing the button
-  does NOT resume automation. The latch is cleared only by an explicit
-  reset while the button is released:
-    - remote ESTOP_RELEASE command (ESP32Communication.ino)
-    - "RESET" typed on the USB serial monitor (bench testing)
-    - Nextion Start button (b4), once its ID is set in Nextion.ino (R-20)
-  A power cycle also starts with the latch cleared; if the button is still
-  pressed at boot, the first loop latches it again.
+  The machine has no emergency stop of any kind: no physical button and no
+  stop on the Nextion or the app. Cutting the motor power is the only way to
+  stop a running feed cycle by hand, so keep that switch within reach.
 */
 
 void handleSafety() {
-  bool pressed = digitalRead(EMERGENCY_STOP_PIN) == ESTOP_PRESSED;
-
-  if (pressed && !emergencyButtonPressed) {
-    emergencyButtonPressed = true;
-
-    if (!emergencyStopActive) {
-      tripEmergencyStop();
-    }
-  }
-
-  if (!pressed && emergencyButtonPressed) {
-    emergencyButtonPressed = false;
-
-    Serial.println(F("E-stop button released. System stays stopped until reset."));
-    logEventToSD("EMERGENCY_STOP_BUTTON_RELEASED");
-  }
-
-  // While latched, keep every actuator commanded OFF every loop.
-  if (emergencyStopActive) {
-    digitalWrite(DISPENSER_RELAY_PIN, RELAY_OFF);
-    stopChain();
-  }
-
   // Limit switches stop the chain whatever the feed cycle is doing.
   enforceChainLimits();
 }
 
-void tripEmergencyStop() {
-  emergencyStopActive = true;
-
-  // Immediately command actuators OFF and abandon any feed cycle. The
-  // hopper stays where it is; the next cycle homes first.
-  stopFeedCycle("FEEDING_STOPPED_ESTOP");
-
-  // A remote feed interrupted here would otherwise never report back.
-  finishRemoteCommand("FAILED", "ESTOP_ACTIVE");
-
-  Serial.println(F("!!! EMERGENCY STOP ACTIVE !!!"));
-
-  logEventToSD("EMERGENCY_STOP");
-  statEmergencyStop();
-  queueAlertEvent("EMERGENCY_STOP");
-  triggerAlarm();
-}
-
-// Clears the E-stop latch. Returns NULL on success, otherwise the
-// rejection reason (used directly as the CMD_ACK reason).
-const char* resetEmergencyStop(const char* logEvent) {
-  if (digitalRead(EMERGENCY_STOP_PIN) == ESTOP_PRESSED) {
-    return "PHYSICAL_ESTOP_ENGAGED";
-  }
-
-  if (!emergencyStopActive) {
-    return "ESTOP_NOT_ACTIVE";
-  }
-
-  emergencyStopActive = false;
-
-  Serial.println(F("Emergency stop reset."));
-  logEventToSD(logEvent);
-  queueAlertEvent("EMERGENCY_STOP_RELEASED");
-
-  return NULL;
-}
-
-// Bench-testing path: type RESET in the USB serial monitor to clear a
-// latched E-stop when no ESP32 or Nextion reset is available. Every other
-// line goes to the bench console (SerialConsole.ino; type HELP).
+// Every line typed on the USB serial monitor goes to the bench console
+// (SerialConsole.ino; type HELP).
 void handleLocalConsole() {
   static String consoleBuffer = "";
 
@@ -99,20 +24,7 @@ void handleLocalConsole() {
 
     if (incoming == '\n') {
       consoleBuffer.trim();
-
-      if (consoleBuffer.equalsIgnoreCase("RESET")) {
-        const char* rejectReason =
-            resetEmergencyStop("EMERGENCY_STOP_RESET_LOCAL");
-
-        if (rejectReason != NULL) {
-          Serial.print(F("RESET rejected: "));
-          Serial.println(rejectReason);
-        }
-      } else {
-        // Commissioning commands (SerialConsole.ino).
-        handleBenchCommand(consoleBuffer);
-      }
-
+      handleBenchCommand(consoleBuffer);
       consoleBuffer = "";
     } else if (incoming != '\r' && consoleBuffer.length() < 32) {
       consoleBuffer += incoming;
@@ -121,7 +33,7 @@ void handleLocalConsole() {
 }
 
 void triggerAlarm() {
-  digitalWrite(BUZZER_PIN, HIGH);
+  digitalWrite(BUZZER_PIN, BUZZER_ON);
   buzzerActive = true;
   buzzerStartMillis = millis();
 }
@@ -132,7 +44,7 @@ void updateBuzzer() {
   }
 
   if (millis() - buzzerStartMillis >= BUZZER_DURATION_MS) {
-    digitalWrite(BUZZER_PIN, LOW);
+    digitalWrite(BUZZER_PIN, BUZZER_OFF);
     buzzerActive = false;
   }
 }

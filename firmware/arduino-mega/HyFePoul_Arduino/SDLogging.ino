@@ -200,7 +200,7 @@ void logCurrentSystemData(const String& alertEvent) {
   file.print(',');
   file.print(activeFeedTargetGrams, 1);
   file.print(',');
-  file.print(emergencyStopActive ? 1 : 0);
+  file.print(0); // former E-stop column
   file.print(',');
   file.print(getSystemStatusText());
   file.print(',');

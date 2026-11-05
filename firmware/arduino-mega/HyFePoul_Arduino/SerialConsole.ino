@@ -20,11 +20,10 @@
     STOP                 stop a bench move at once
     WDTEST               stop the program to prove the watchdog restarts
                          the Mega (only while nothing moves; Watchdog.ino)
-    RESET                clear a latched E-stop (Safety.ino)
 
-  Safety: motor commands are refused while the E-stop is latched, a feed
-  cycle runs, or another bench move is active. Moves are non-blocking (the
-  loop, the E-stop and the ESP32 link keep running) and go through the
+  Safety: motor commands are refused while a feed cycle runs or another
+  bench move is active. STOP ends a bench move only, not a feed cycle. Moves
+  are non-blocking (the loop and the ESP32 link keep running) and go through the
   normal chain driver, so the relay interlock, dead time and limit switches
   still apply. A feed cycle cannot start during a bench move.
   WEIGH, TARE and CAL block for about a second while they average readings.
@@ -45,7 +44,7 @@ bool benchMoveActive() {
   return benchMove != BENCH_IDLE;
 }
 
-// Called from handleLocalConsole() for every line except RESET.
+// Called from handleLocalConsole() for every line.
 void handleBenchCommand(String line) {
   line.trim();
   line.toUpperCase();
@@ -91,12 +90,11 @@ void handleBenchCommand(String line) {
 
 void benchHelp() {
   Serial.println(F("Bench commands: STATUS, WEIGH, TARE <1-5|ALL>, CAL <1-5> <grams>,"));
-  Serial.println(F("FACTORS, JOG <F|R> <ms>, HOME, DISP <ms>, FEED <grams>, STOP, WDTEST, RESET"));
+  Serial.println(F("FACTORS, JOG <F|R> <ms>, HOME, DISP <ms>, FEED <grams>, STOP, WDTEST"));
 }
 
 // Returns NULL when a motor command may run, otherwise why not.
 const char* benchMotorBlocked() {
-  if (emergencyStopActive) return "E-stop latched (release it and type RESET)";
   if (feedingActive) return "a feed cycle is running";
   if (benchMoveActive()) return "another bench move is running (STOP first)";
   return NULL;
@@ -138,10 +136,6 @@ int benchParseTray(const String& s) {
 
 void benchStatus() {
   Serial.println(F("--- STATUS ---"));
-  Serial.print(F("E-stop button: "));
-  Serial.print(digitalRead(EMERGENCY_STOP_PIN) == ESTOP_PRESSED ? F("PRESSED") : F("released"));
-  Serial.print(F("  latch: "));
-  Serial.println(emergencyStopActive ? F("LATCHED") : F("clear"));
   Serial.print(F("Home switch: "));
   Serial.print(isHomeSwitchPressed() ? F("PRESSED") : F("open"));
   Serial.print(F("  End switch: "));
@@ -353,11 +347,6 @@ void benchStop(const char* why) {
 // Advances a bench move; called every loop.
 void updateBench() {
   if (benchMove == BENCH_IDLE) return;
-
-  if (emergencyStopActive) {
-    benchStop("E-stop");
-    return;
-  }
 
   if (benchMove == BENCH_DISPENSE) {
     if (millis() - benchStartMillis >= benchDurationMs) {

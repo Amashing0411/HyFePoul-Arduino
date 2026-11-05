@@ -62,7 +62,7 @@ const uint8_t TRAY5_HX711_DT_PIN  = A8;
 
 // Starting factors: 1.0 = not calibrated yet, so "g" shows counts above zero
 // until CAL sets the real factor. Never 0: grams = counts / factor.
-float factors[TRAY_COUNT] = { 1795.652f, 1973.592f, 1.0f, 1958.184f, 1866.02f };
+float factors[TRAY_COUNT] = { 1787.856f, 1960.0f, 384.628f, 1959.096f, 1866.02f };
 
 const uint8_t SAMPLES = 10;            // readings averaged for TARE / CAL / READ
 const unsigned long READY_TIMEOUT_MS = 1000;
@@ -74,6 +74,10 @@ unsigned long lastWatchMillis = 0;
 String inputLine = "";
 
 void setup() {
+  // Low-trigger buzzer module on pin 11: hold it HIGH so it stays quiet.
+  digitalWrite(11, HIGH);
+  pinMode(11, OUTPUT);
+
   Serial.begin(115200);
   Serial.println();
   Serial.println(F("HyFePoul HX711 calibration (5 trays)"));
