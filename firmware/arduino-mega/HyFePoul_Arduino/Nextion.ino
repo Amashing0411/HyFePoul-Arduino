@@ -1,7 +1,7 @@
 /*
   Nextion.ino
 
-  7-inch Nextion HMI (project: Nextion/ChickenFeederV1 (1).hmi, IDs in
+  7-inch Nextion HMI (project: Nextion/HyFePoul.hmi, IDs in
   Nextion/Nextion_IDs.txt). The HMI's Program.s sets baud=9600 and starts
   on page 0 (Logo).
 
@@ -22,7 +22,8 @@
   NOTE: t2 shows the total grams in the 5 trays (the tray load cells weigh
   dispensed feed); the t0 caption was updated to "Feed in Trays:" in the HMI
   project to match that measurement.
-  t4 shows the feed cycle step, e.g. "Status: FEEDING TRAY 3/5".
+  t4 shows the feed cycle step, e.g. "Status: FEEDING TRAY 3 SPOT 2". It holds
+  at most 30 characters (txt_maxl in the HMI).
 
   The Nextion is the onsite operator surface. The Mega remains the authority:
   it validates local feed and schedule requests, controls actuators, and saves
@@ -46,10 +47,11 @@ const uint8_t NEXTION_LOG_REFRESH_BUTTON_ID = 4; // Log b1
 const uint8_t NEXTION_SYSTEM_REFRESH_BUTTON_ID = 4; // SystemCheck b1
 const uint8_t NEXTION_SCHEDULE_EDITOR_FIRST_PAGE_ID = 5;
 const uint8_t NEXTION_SCHEDULE_EDITOR_LAST_PAGE_ID = 7;
-const uint8_t NEXTION_FEED_RESET_BUTTON_ID = 9; // Home b4
+const uint8_t NEXTION_FEED_BUTTON_ID = 8; // Home b4
 const uint8_t NEXTION_TARGET_PLUS_BUTTON_ID = 5; // Grams b1
 const uint8_t NEXTION_TARGET_MINUS_BUTTON_ID = 6; // Grams b2
 const uint8_t NEXTION_TARGET_SAVE_BUTTON_ID = 4; // Grams b3
+const uint8_t NEXTION_TARGET_STEP_BUTTON_ID = 7; // Grams b4
 const uint8_t NEXTION_SCHEDULE_PLUS_HOUR_ID = 7; // editor b1
 const uint8_t NEXTION_SCHEDULE_MINUS_HOUR_ID = 8; // editor b2
 const uint8_t NEXTION_SCHEDULE_PLUS_MINUTE_ID = 9; // editor b3
@@ -75,8 +77,13 @@ char nextionHistoryRows[NEXTION_LOG_EVENT_COUNT][64] = {
   "NO HISTORY YET", "", "", ""
 };
 uint8_t nextionHistoryRowsReceived = 0;
+uint8_t nextionHistoryRowsShown = 0; // real rows on the page, not a message
 FeedSchedule nextionScheduleDraft;
 float nextionManualTargetDraft = DEFAULT_FEED_TARGET_GRAMS;
+// Grams each + or - press changes the target; the Step button cycles these.
+const uint8_t NEXTION_TARGET_STEPS[] = {1, 5, 10};
+const uint8_t NEXTION_TARGET_STEP_COUNT = sizeof(NEXTION_TARGET_STEPS);
+uint8_t nextionTargetStepIndex = NEXTION_TARGET_STEP_COUNT - 1; // starts at 10 g
 unsigned long nextionLastTouchMillis = 0;
 bool nextionHasLastTouch = false;
 
@@ -247,6 +254,7 @@ void handleNextionPageChange(uint8_t pageId) {
   } else if (pageId == NEXTION_TARGET_PAGE_ID) {
     nextionManualTargetDraft = manualFeedTargetGrams;
     setNextionValue("n0", lround(nextionManualTargetDraft));
+    showNextionTargetStep();
   } else if (pageId >= NEXTION_SCHEDULE_EDITOR_FIRST_PAGE_ID &&
              pageId <= NEXTION_SCHEDULE_EDITOR_LAST_PAGE_ID) {
     uint8_t index = pageId - NEXTION_SCHEDULE_EDITOR_FIRST_PAGE_ID;
@@ -300,19 +308,32 @@ void refreshNextionLogEntries() {
   nextionLogField = (nextionLogField + 1) % NEXTION_LOG_EVENT_COUNT;
 }
 
-void requestNextionHistory() {
-  nextionHistoryRowsReceived = 0;
+// Shows a message in the first row and clears the others.
+void setNextionHistoryMessage(const char* message) {
   for (uint8_t i = 0; i < NEXTION_LOG_EVENT_COUNT; i++) {
     nextionHistoryRows[i][0] = '\0';
   }
-  strncpy(nextionHistoryRows[0], "LOADING HISTORY",
-          sizeof(nextionHistoryRows[0]) - 1);
+  strncpy(nextionHistoryRows[0], message, sizeof(nextionHistoryRows[0]) - 1);
+  nextionHistoryRowsShown = 0;
+  nextionHistoryRowsReceived = 0;
+  nextionLogField = 0;
+}
+
+// Rows already on screen stay there until new ones replace them, so a Refresh
+// that is slow or fails does not wipe the page.
+void requestNextionHistory() {
+  nextionHistoryRowsReceived = 0;
   nextionLogField = 0;
 
   if (!esp32Online) {
-    strncpy(nextionHistoryRows[0], "HISTORY UNAVAILABLE",
-            sizeof(nextionHistoryRows[0]) - 1);
+    if (nextionHistoryRowsShown == 0) {
+      setNextionHistoryMessage("HISTORY UNAVAILABLE");
+    }
     return;
+  }
+
+  if (nextionHistoryRowsShown == 0) {
+    setNextionHistoryMessage("LOADING HISTORY");
   }
 
   ESP32_SERIAL.println(F("HISTORY_REQ"));
@@ -320,35 +341,21 @@ void requestNextionHistory() {
 
 void processNextionHistoryLine(const String& line) {
   if (line == "HIST|BEGIN") {
-    for (uint8_t i = 0; i < NEXTION_LOG_EVENT_COUNT; i++) {
-      nextionHistoryRows[i][0] = '\0';
-    }
     nextionHistoryRowsReceived = 0;
-    strncpy(nextionHistoryRows[0], "LOADING HISTORY",
-            sizeof(nextionHistoryRows[0]) - 1);
-    nextionLogField = 0;
     return;
   }
 
   if (line == "HIST|EMPTY") {
-    for (uint8_t i = 0; i < NEXTION_LOG_EVENT_COUNT; i++) {
-      nextionHistoryRows[i][0] = '\0';
-    }
-    strncpy(nextionHistoryRows[0], "NO HISTORY YET",
-            sizeof(nextionHistoryRows[0]) - 1);
-    nextionHistoryRowsReceived = 0;
-    nextionLogField = 0;
+    setNextionHistoryMessage("NO HISTORY YET");
     return;
   }
 
   if (line.startsWith("HIST|ERROR|")) {
-    for (uint8_t i = 0; i < NEXTION_LOG_EVENT_COUNT; i++) {
-      nextionHistoryRows[i][0] = '\0';
+    // A failed Refresh keeps the rows already shown.
+    if (nextionHistoryRowsShown == 0) {
+      setNextionHistoryMessage("HISTORY UNAVAILABLE");
     }
-    strncpy(nextionHistoryRows[0], "HISTORY UNAVAILABLE",
-            sizeof(nextionHistoryRows[0]) - 1);
     nextionHistoryRowsReceived = 0;
-    nextionLogField = 0;
     return;
   }
 
@@ -380,15 +387,28 @@ void processNextionHistoryLine(const String& line) {
 
 void finishNextionHistory() {
   if (nextionHistoryRowsReceived == 0) {
-    strncpy(nextionHistoryRows[0], "NO HISTORY YET",
-            sizeof(nextionHistoryRows[0]) - 1);
+    if (nextionHistoryRowsShown == 0) {
+      setNextionHistoryMessage("NO HISTORY YET");
+    }
+    return;
   }
+
+  // Fewer rows than last time: clear the old ones below them.
+  for (uint8_t i = nextionHistoryRowsReceived; i < NEXTION_LOG_EVENT_COUNT; i++) {
+    nextionHistoryRows[i][0] = '\0';
+  }
+  nextionHistoryRowsShown = nextionHistoryRowsReceived;
   nextionLogField = 0;
+}
+
+// Writes the Step button's label on the Feed Target page.
+void showNextionTargetStep() {
+  setNextionText("b4", String("Step: ") + NEXTION_TARGET_STEPS[nextionTargetStepIndex] + " g");
 }
 
 void handleNextionTouch(uint8_t pageId, uint8_t componentId) {
   if (pageId == NEXTION_HOME_PAGE_ID) {
-    if (componentId == NEXTION_FEED_RESET_BUTTON_ID) {
+    if (componentId == NEXTION_FEED_BUTTON_ID) {
       handleNextionFeedNow();
     }
     return;
@@ -396,13 +416,16 @@ void handleNextionTouch(uint8_t pageId, uint8_t componentId) {
 
   if (pageId == NEXTION_TARGET_PAGE_ID) {
     if (componentId == NEXTION_TARGET_PLUS_BUTTON_ID) {
-      if (nextionManualTargetDraft <= MAX_TRAY_TARGET_GRAMS - 10.0f) {
-        nextionManualTargetDraft += 10.0f;
-      }
+      nextionManualTargetDraft = min(MAX_TRAY_TARGET_GRAMS,
+          nextionManualTargetDraft + NEXTION_TARGET_STEPS[nextionTargetStepIndex]);
       setNextionValue("n0", lround(nextionManualTargetDraft));
     } else if (componentId == NEXTION_TARGET_MINUS_BUTTON_ID) {
-      nextionManualTargetDraft = max(1.0f, nextionManualTargetDraft - 10.0f);
+      nextionManualTargetDraft = max(1.0f,
+          nextionManualTargetDraft - NEXTION_TARGET_STEPS[nextionTargetStepIndex]);
       setNextionValue("n0", lround(nextionManualTargetDraft));
+    } else if (componentId == NEXTION_TARGET_STEP_BUTTON_ID) {
+      nextionTargetStepIndex = (nextionTargetStepIndex + 1) % NEXTION_TARGET_STEP_COUNT;
+      showNextionTargetStep();
     } else if (componentId == NEXTION_TARGET_SAVE_BUTTON_ID) {
       if (!saveManualFeedTarget(nextionManualTargetDraft)) {
         setNextionText("t4", "Status: INVALID TARGET");
@@ -448,7 +471,7 @@ void handleNextionTouch(uint8_t pageId, uint8_t componentId) {
     }
   }
 
-  // Log refresh reloads the newest saved SD events. System Check refresh starts
+  // Log refresh asks the ESP32 for the newest cloud rows. System Check refresh starts
   // a paced update of all four live readings.
   if (pageId == NEXTION_LOG_PAGE_ID &&
       componentId == NEXTION_LOG_REFRESH_BUTTON_ID) {
@@ -491,8 +514,11 @@ String getSystemStatusText() {
     case CYCLE_TO_END:
     case CYCLE_RETURNING:
       return "RETURNING";
+    case CYCLE_DISPENSING:
+    case CYCLE_TO_SPOT:
+      return String("FEEDING TRAY ") + currentTray + " SPOT " + (currentSpot + 1);
     default:
-      return String("FEEDING TRAY ") + currentTray + "/" + TRAY_COUNT;
+      return String("FEEDING TRAY ") + currentTray;
   }
 }
 

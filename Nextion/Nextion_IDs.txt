@@ -1,11 +1,11 @@
-HyFePoul Nextion project: ChickenFeederV1 (1).hmi
+HyFePoul Nextion project: HyFePoul.hmi
 Resolution: 800x480; Mega UART: Serial2, 9600 baud
 Architecture: Nextion is the onsite operator panel; Mega owns local logic and safety.
 The Android app is the away-from-device interface through Firebase; it never talks to the Mega.
 
 Pages (page ID / editor page / purpose)
 0 Logo         startup screen; uses HyFePoul app logo resource ID 2
-1 Home         onsite status, Feed Now, Stop / Reset Stop, local navigation
+1 Home         onsite status, Feed Now, local navigation
 2 Sched        three app-synchronized feeding schedules; opens one editor per slot
 3 Log          newest four cloud system-data snapshots, newest first (same records as app History)
 4 Grams        local manual target in grams per tray
@@ -29,10 +29,12 @@ Home actions
 b0  Schedule overview
 b1  History
 b2  Feed Target
-b3  Stop; latches the software stop and turns actuators off; red, high-visibility control
-b4  Feed Now; becomes Reset Stop when the software stop is latched; green, high-visibility control
+b4  Feed Now (touch ID 8); the Mega writes its label; green, high-visibility control,
+    two rows tall
 b5  System Check
-The four navigation buttons form a spaced vertical stack on the left side of Home.
+There is no Stop button: the device has no emergency stop of any kind. Deleting the old
+b3 moved the IDs after it down by one on this page (b4 8, t4 9, t5 10, t6 11, t7 12, b5 13).
+The four navigation buttons sit in two rows to the left of Feed Now.
 Navigation and action touches are handled by the HMI; only the controls that need Mega
 handling send a touch component frame.
 
@@ -40,7 +42,7 @@ History page (p3; HMI page name remains Log)
 t1..t4  newest four valid `/systemData/{deviceId}` snapshots; t1 is newest.
         Each card shows MM-DD HH:MM, total tray feed grams, hopper percentage,
         reservoir water state and dispenser state, matching the app's Recent
-        History fields. These are the same cloud snapshots, not the SD CSV.
+        History fields. These are the same cloud snapshots.
 b0       Back to Home (navy with white label)
 b1       Refresh (requests the newest cloud rows from the ESP32; green with black
          label; touch ID 4)
@@ -49,8 +51,7 @@ The ESP32 reads the latest four snapshots ordered by `timestamp`, validates the
 History fields and sends them newest first. The Mega applies the project's fixed
 UTC+8 offset when formatting the timestamp, matching the intended phone timezone.
 When the cloud history is empty the HMI shows NO HISTORY YET; when the ESP32 or
-Firebase read fails it shows HISTORY UNAVAILABLE. SD event logging continues
-locally but is not the source for this History page. An opened page requests a new
+Firebase read fails it shows HISTORY UNAVAILABLE. An opened page requests a new
 snapshot set; Refresh repeats that request.
 
 System Check page (p9; editor page name SystemCheck)
@@ -63,9 +64,11 @@ b1  Refresh all four readouts, paced across four updates (green with black label
     touch ID 4)
 
 Feed Target touch IDs
-b1  ID 5  increase the draft by 10 g
-b2  ID 6  decrease the draft by 10 g
+b1  ID 5  increase the draft by the current step
+b2  ID 6  decrease the draft by the current step
 b3  ID 4  save the local manual-feed target to EEPROM; bright green Save control
+b4  ID 7  Step: cycles how much + and - change the draft (1, 5, 10 g); the Mega
+          writes its label
 b0        Back to Home; navy control
 
 Schedule editor touch IDs (same mapping on pages 5, 6, and 7)
@@ -86,9 +89,8 @@ Disabled slot: hour field displays OFF; minute field is blank.
 Branding and layout
 - Startup screen uses the HyFePoul app mark from assets/hyfepoul-logo-480.png, imported
   as picture resource ID 2 and centered on the 800x480 canvas. The university seal was removed.
-- High-visibility green is reserved for Feed Now, Save and Refresh; navy is used for Back;
-  Stop remains red. Readout cards remain neutral so controls retain clear visual priority.
-- Home navigation controls use a four-row vertical stack with consistent spacing.
+- High-visibility green is reserved for Feed Now, Save and Refresh; navy is used for Back.
+  Readout cards remain neutral so controls retain clear visual priority.
 - Recent History shows cloud snapshots also displayed in the app; System Check shows current Mega readings.
 
 Schedule values set in the app reach the Mega through the existing cloud
@@ -98,5 +100,5 @@ not write back to Firebase and a later cloud restore can replace it (R-54). The 
 editor has no onsite schedule target or enable/disable control.
 
 Simulation and source review confirm the IDs/page routing and Mega touch handling.
-Physical panel display, touch, UART levels, SD read path and button feel remain
+Physical panel display, touch, UART levels and button feel remain
 unverified until HIT-12 is completed on the assembled device.
