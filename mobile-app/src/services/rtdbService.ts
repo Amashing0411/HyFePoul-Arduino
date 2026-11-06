@@ -1,4 +1,4 @@
-import { ref, set, onValue, query, orderByChild, orderByKey, startAt, endAt, limitToLast, get, equalTo } from 'firebase/database';
+import { ref, set, remove, onValue, query, orderByChild, orderByKey, startAt, endAt, limitToLast, get, equalTo } from 'firebase/database';
 import { rtdb } from './firebase';
 import { RTDBDevice, RTDBDeviceState, RTDBSystemDataSnapshot, RTDBAlert, RTDBCommand, RTDBCommandAction, RTDBSchedule, RTDBScheduleStatus, RTDBDailySummary } from '../types/rtdb';
 import { SystemData, TRAY_COUNT } from '../types';
@@ -230,6 +230,12 @@ export const rtdbService = {
   async updateSchedule(deviceId: string, schedule: RTDBSchedule): Promise<void> {
     const schedRef = ref(rtdb, `schedules/${deviceId}/${schedule.scheduleId}`);
     await set(schedRef, schedule);
+  },
+
+  // Empties a slot. The ESP32's schedule restore sends a missing slot to the
+  // Mega as disabled, so a removed schedule can never run again.
+  async removeSchedule(deviceId: string, scheduleId: string): Promise<void> {
+    await remove(ref(rtdb, `schedules/${deviceId}/${scheduleId}`));
   },
 
   subscribeToSchedules(deviceId: string, callback: (schedules: RTDBSchedule[], error?: Error) => void): () => void {

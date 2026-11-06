@@ -3,7 +3,7 @@ import { ScrollView, View, Text, StyleSheet, RefreshControl } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import Card from '../components/Card';
 import StatusBadge from '../components/StatusBadge';
-import ProgressBar from '../components/ProgressBar';
+import HopperGauge from '../components/HopperGauge';
 import DeviceDataUnavailable from '../components/DeviceDataUnavailable';
 import Button from '../components/Button';
 import { describeCycleStep } from '../utils/feedCycle';
@@ -40,7 +40,6 @@ export default function DashboardScreen() {
     return <DeviceDataUnavailable />;
   }
 
-  const feedColor = systemData.hopperLevelPercent < 20 ? colors.error : colors.warning;
   const isStale = (nowMs - new Date(systemData.timestamp).getTime()) > 300000;
   const activeCommand = commands.length > 0 ? commands[0] : null;
 
@@ -98,11 +97,8 @@ export default function DashboardScreen() {
           </Text>
         )}
         <View style={[styles.progressContainer, { borderTopColor: colors.border }]}>
-          <View style={styles.row}>
-            <Text style={typography.caption}>{t('hopperLevel')}</Text>
-            <Text style={[typography.body, { fontWeight: 'bold' }]}>{systemData.hopperLevelPercent.toFixed(0)}%</Text>
-          </View>
-          <ProgressBar progress={systemData.hopperLevelPercent} color={feedColor} />
+          <Text style={typography.caption}>{t('hopperLevel')}</Text>
+          <HopperGauge percent={systemData.hopperLevelPercent} />
         </View>
 
         <View style={{ marginTop: spacing.md }}>
