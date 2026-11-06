@@ -142,14 +142,24 @@ void benchStatus() {
   Serial.println(isEndSwitchPressed() ? F("PRESSED") : F("open"));
   Serial.print(F("Reservoir float: "));
   Serial.println(isWaterLow() ? F("LOW") : F("ok"));
+  // The filtered distance is what the level uses; the fresh ping shows the
+  // noise.
   float cm = readUltrasonicDistanceCm();
-  Serial.print(F("Hopper: "));
+  Serial.print(F("Hopper: filtered "));
+  if (hopperSampleCount > 0) {
+    Serial.print(medianHopperDistanceCm(), 1);
+    Serial.print(F(" cm"));
+  } else {
+    Serial.print(F("none"));
+  }
+  Serial.print(F(" (ping "));
   if (cm < 0) {
     Serial.print(F("no echo"));
   } else {
     Serial.print(cm, 1);
     Serial.print(F(" cm"));
   }
+  Serial.print(')');
   Serial.print(F(" -> "));
   Serial.print(currentHopperLevelPercent, 0);
   Serial.println(F(" %"));

@@ -32,7 +32,12 @@ void updateFeedLevel() {
   pingHopper();
 }
 
-// Median of the good pings kept so far (at least one).
+// Distance used for the level: of the good pings kept so far (at least
+// one), the one a quarter of the way up from the nearest. The feed surface
+// is the nearest thing under the sensor; longer echoes come from gaps
+// between pellets, the pit over the auger and the walls. Measured
+// 2026-11-07: ruler 12.1-12.6 cm, single pings 13.1-13.8 cm, median of 15
+// 14.5-15.3 cm. The quarter point still drops a rare too-short echo.
 float medianHopperDistanceCm() {
   float sorted[HOPPER_SAMPLE_COUNT];
   for (uint8_t i = 0; i < hopperSampleCount; i++) {
@@ -44,7 +49,7 @@ float medianHopperDistanceCm() {
     }
     sorted[j + 1] = x;
   }
-  return sorted[hopperSampleCount / 2];
+  return sorted[hopperSampleCount / 4];
 }
 
 void pingHopper() {
@@ -103,10 +108,26 @@ void pingHopper() {
     return;
   }
 
-  currentHopperLevelPercent = liveHopperLevelPercent;
+  // The median already drops stray echoes; ease the shown level toward it
+  // and only move it by HOPPER_DISPLAY_STEP_PERCENT or more, so the app and
+  // the Nextion do not flicker between nearby values (64 <-> 68%).
+  static bool smoothedSet = false;
+  static float smoothedPercent = 0.0f;
+  if (!smoothedSet) {
+    smoothedPercent = liveHopperLevelPercent;
+    smoothedSet = true;
+    currentHopperLevelPercent = smoothedPercent;
+  } else {
+    smoothedPercent += HOPPER_SMOOTHING * (liveHopperLevelPercent - smoothedPercent);
+    if (fabs(smoothedPercent - currentHopperLevelPercent) >= HOPPER_DISPLAY_STEP_PERCENT ||
+        smoothedPercent <= HOPPER_EMPTY_PERCENT || smoothedPercent >= 99.5f) {
+      currentHopperLevelPercent = smoothedPercent;
+    }
+  }
 
-  // Low-feed detection with hysteresis.
-  if (currentHopperLevelPercent <= LOW_FEED_THRESHOLD_PERCENT) {
+  // Low-feed detection by distance (the LOW calibration point), with
+  // hysteresis.
+  if (hopperAtLowPoint()) {
     if (!lowFeedAlertSent) {
       lowFeedAlertSent = true;
       statLowFeed();
@@ -115,7 +136,7 @@ void pingHopper() {
       logEventToSD("LOW_FEED");
     }
   } 
-  else if (currentHopperLevelPercent >= LOW_FEED_CLEAR_PERCENT) {
+  else if (hopperAboveLowClear()) {
     if (lowFeedAlertSent) {
       // Hopper refilled: lets the app mark the LOW_FEED alert resolved.
       queueAlertEvent("LOW_FEED_CLEARED");
@@ -150,17 +171,30 @@ float readUltrasonicDistanceCm() {
   return distanceCm;
 }
 
+// The feed has come down to the LOW calibration point.
+bool hopperAtLowPoint() {
+  return hopperSampleCount > 0 &&
+         medianHopperDistanceCm() >= HOPPER_LOW_DISTANCE_CM;
+}
+
+// Clearly above LOW again (refilled).
+bool hopperAboveLowClear() {
+  return hopperSampleCount > 0 &&
+         medianHopperDistanceCm() <= HOPPER_LOW_DISTANCE_CM - HOPPER_LOW_CLEAR_MARGIN_CM;
+}
+
+// Straight line through FULL (100 %) and LOW (HOPPER_LOW_PERCENT).
 float calculateHopperLevelPercent(float distanceCm) {
-  float emptyDistance = HOPPER_EMPTY_DISTANCE_CM;
+  float lowDistance = HOPPER_LOW_DISTANCE_CM;
   float fullDistance = HOPPER_FULL_DISTANCE_CM;
 
-  if (emptyDistance <= fullDistance) {
+  if (lowDistance <= fullDistance) {
     return 0.0f;
   }
 
-  float percentage =
-      ((emptyDistance - distanceCm) /
-       (emptyDistance - fullDistance)) * 100.0f;
+  float percentage = HOPPER_LOW_PERCENT +
+      (lowDistance - distanceCm) / (lowDistance - fullDistance) *
+      (100.0f - HOPPER_LOW_PERCENT);
 
   if (percentage < 0.0f) {
     percentage = 0.0f;

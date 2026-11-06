@@ -122,18 +122,31 @@ float LOAD_CELL_CALIBRATION_FACTORS[TRAY_COUNT] = {
 
 // Ultrasonic pings: one per interval, levels use the median of the last few.
 const unsigned long HOPPER_PING_INTERVAL_MS = 500UL;
-const uint8_t HOPPER_SAMPLE_COUNT = 5;
+// 15 pings = the median of the last 7.5 s: single jumps (stray echoes, the
+// uneven feed surface) never move it.
+const uint8_t HOPPER_SAMPLE_COUNT = 15;
+// Shown level eases toward the median (fraction per ping) and changes only
+// in steps of at least this many percent.
+const float HOPPER_SMOOTHING = 0.2f;
+const float HOPPER_DISPLAY_STEP_PERCENT = 3.0f;
 // This many failed pings in a row (about 5 s) count as a sensor fault.
 const uint8_t HOPPER_FAULT_PINGS = 10;
 
-// Measured with Inputs_Calibration EMPTY / FULL (2026-11-06): empty hopper,
-// then filled to the normal fill line.
-float HOPPER_EMPTY_DISTANCE_CM = 21.9f;
-float HOPPER_FULL_DISTANCE_CM  = 11.0f;
+// Two-point calibration with the main firmware's filtered distance (STATUS
+// "filtered", 2026-11-07), surface smoothed flat each time:
+//   FULL: hopper filled to the fill line, 7.5 cm  -> 100 %
+//   LOW:  about 30 % feed left, 15.3 cm (ruler 12.6 cm) -> HOPPER_LOW_PERCENT
+// The percentage follows the straight line through both points (0 % at
+// about 18.6 cm). The filtered distance reads deeper than a ruler, so
+// always recalibrate with the filtered value, never a ruler or single ping.
+float HOPPER_FULL_DISTANCE_CM = 7.5f;
+float HOPPER_LOW_DISTANCE_CM  = 15.3f;
+const float HOPPER_LOW_PERCENT = 30.0f;
 
-// Feed-level alert thresholds with hysteresis.
-const float LOW_FEED_THRESHOLD_PERCENT = 20.0f;
-const float LOW_FEED_CLEAR_PERCENT     = 25.0f;
+// LOW_FEED alert: raised when the filtered distance reaches the LOW point
+// (by distance, not by percentage), cleared once the feed is this much
+// above it again.
+const float HOPPER_LOW_CLEAR_MARGIN_CM = 1.0f;
 
 // Below this level a feed cycle does not start, and a running cycle stops
 // dispensing and returns home (raises LOW_FEED).
@@ -440,7 +453,7 @@ void initializeSystem() {
 // stale alerts get resolved. The ESP32 holds these until it is online and
 // only touches alerts that exist and are still active.
 void queueBootClears() {
-  if (!lowFeedAlertSent && currentHopperLevelPercent >= LOW_FEED_CLEAR_PERCENT) {
+  if (!lowFeedAlertSent && hopperAboveLowClear()) {
     queueAlertEvent("LOW_FEED_CLEARED");
   }
 
