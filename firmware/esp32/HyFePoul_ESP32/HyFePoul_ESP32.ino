@@ -210,8 +210,10 @@ void loop() {
   }
 
   // 5. Poll and manage Remote Commands
+  // Every 2 s so an app command starts within a few seconds; each poll is
+  // one small filtered read (status == queued).
   static unsigned long lastCommandPoll = 0;
-  if (millis() - lastCommandPoll >= 5000UL) {
+  if (millis() - lastCommandPoll >= 2000UL) {
     pollCommands();
     lastCommandPoll = millis();
   }

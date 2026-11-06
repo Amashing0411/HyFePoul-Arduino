@@ -63,11 +63,11 @@ const uint8_t WATER_LOW_PIN = 49;
 // 2, 1. Each keeps its own load cell whichever side the hopper starts from.
 const uint8_t TRAY_AT_POSITION[TRAY_COUNT] = {4, 5, 3, 2, 1};
 // From the right (tray 1 side) the hopper visits trays 1, 2, 3, 5, 4.
-const HopperSide HOPPER_START_SIDE = SIDE_RIGHT; // PLACEHOLDER: pick on the bench
+const HopperSide HOPPER_START_SIDE = SIDE_RIGHT; // parks at the tray 1 end (Chain_Calibration, 2026-11-06)
 
 // The chain motor is reversed by two relays that swap its polarity; each is
 // named by the way it moves the hopper. The firmware never turns both on
-// together. PLACEHOLDER: confirm the directions with Chain_Calibration JOG.
+// together. Directions confirmed with Chain_Calibration JOG (no SWAP needed).
 const uint8_t CHAIN_TO_RIGHT_RELAY_PIN = 10;
 const uint8_t CHAIN_TO_LEFT_RELAY_PIN  = 9;
 const uint8_t DISPENSER_RELAY_PIN      = 8;
@@ -77,12 +77,12 @@ const uint8_t DISPENSER_RELAY_PIN      = 8;
 const uint8_t LEFT_LIMIT_PIN  = 51; // tray 4 side
 const uint8_t RIGHT_LIMIT_PIN = 53; // tray 1 side
 
-// Input/output polarity. PLACEHOLDERS: set from the RESULT lines of
-// Inputs_Calibration (switches) and Outputs_Calibration (relays).
+// Input/output polarity, confirmed by Inputs_Calibration and
+// Outputs_Calibration (2026-11-06).
 const uint8_t RELAY_ON  = LOW;   // active-LOW relay board (Outputs_Calibration)
 const uint8_t RELAY_OFF = RELAY_ON == HIGH ? LOW : HIGH;
 const uint8_t LIMIT_SWITCH_PRESSED = LOW; // LOW: closes to GND when pressed (NO); HIGH: NC
-const uint8_t WATER_LOW_LEVEL      = HIGH; // float switch reading when the reservoir is low
+const uint8_t WATER_LOW_LEVEL      = HIGH; // float reads HIGH when the reservoir is low (WATCH, 2026-11-06)
 
 // Derived from the start side; the feed cycle uses these. "Forward" is
 // away from the start, toward the far switch; "home" is the start switch.
@@ -126,12 +126,10 @@ const uint8_t HOPPER_SAMPLE_COUNT = 5;
 // This many failed pings in a row (about 5 s) count as a sensor fault.
 const uint8_t HOPPER_FAULT_PINGS = 10;
 
-// PLACEHOLDER: measure actual empty/full hopper distances (Inputs_Calibration
-// EMPTY / FULL).
-// TEMPORARY FULL value: measured with the feed on hand, not a full hopper, so
-// this much feed already reads 100%. Measure FULL again at the normal fill line.
-float HOPPER_EMPTY_DISTANCE_CM = 19.2f;
-float HOPPER_FULL_DISTANCE_CM  = 15.2f;
+// Measured with Inputs_Calibration EMPTY / FULL (2026-11-06): empty hopper,
+// then filled to the normal fill line.
+float HOPPER_EMPTY_DISTANCE_CM = 21.9f;
+float HOPPER_FULL_DISTANCE_CM  = 11.0f;
 
 // Feed-level alert thresholds with hysteresis.
 const float LOW_FEED_THRESHOLD_PERCENT = 20.0f;
@@ -140,6 +138,13 @@ const float LOW_FEED_CLEAR_PERCENT     = 25.0f;
 // Below this level a feed cycle does not start, and a running cycle stops
 // dispensing and returns home (raises LOW_FEED).
 const float HOPPER_EMPTY_PERCENT = 5.0f;
+// Mid-cycle "out of feed" also needs the tray to gain less than this much
+// in this long of pouring (feed normally lands within about 1 s).
+const unsigned long HOPPER_NO_FLOW_MS = 3000UL;
+// After a feed cycle the shown hopper level waits this long for the feed
+// to settle before it follows the sensor again (FeedLevel.ino).
+const unsigned long HOPPER_SETTLE_AFTER_FEED_MS = 10000UL;
+const float HOPPER_NO_FLOW_GRAMS = 3.0f;
 
 // Ultrasonic timeout.
 const unsigned long ULTRASONIC_TIMEOUT_US = 30000UL;
@@ -148,36 +153,85 @@ const unsigned long ULTRASONIC_TIMEOUT_US = 30000UL;
 const float DEFAULT_FEED_TARGET_GRAMS = 50.0f;
 const float MAX_TRAY_TARGET_GRAMS = 1000.0f;
 
-// PLACEHOLDER (open items O-1, O-4): bench-calibrate all timings below
-// with firmware/arduino-mega/Chain_Calibration.
-// Run time to each tray's FIRST feed spot, in the order the hopper reaches
-// the trays from the start side: entry 1 = start switch to the first tray,
-// entry 2 = last spot of the first tray to first spot of the second, and so
-// on. Timed travel is used because there is no position sensor at each tray.
+// Chain timings below are from firmware/arduino-mega/Chain_Calibration on the
+// machine (2026-11-06), checked with PLAY. Trays 1 and 4 sit at the ends of
+// the track, so the hopper can only reach part of them and their spans are
+// shorter. Tray 1's first spot was set by hand to start at the parked position.
+// Run time to each tray's near edge, in the order the hopper reaches the
+// trays from the start side: entry 1 = start switch to the first tray,
+// entry 2 = far edge of the first tray to near edge of the second, and so
+// on. The feed cycle adds the edge gaps (see TRAY_SPOT_COUNT). Timed travel is used because there is no position sensor at each tray.
+// Travel order: trays 1 2 3 5 4
+// Trimmed with FEED 1 dry runs (2026-11-06): with 3 drops per tray the
+// hopper reached tray 3's middle instead of its first quarter (entry cut
+// 1489 -> 770 -> 670 ms), then tray 5's middle (entry cut 1241 -> 652 ms),
+// and tray 4 ran into the end switch. Tray 4 then sat slightly early, on its
+// near rim (entry 1365 -> 1515 ms). The end switch is over tray 4's middle and
+// home is over tray 1's middle, so only half of trays 1 and 4 is reachable.
+// FEED 60 check: tray 2 almost at its middle (1583 -> 933, tray 3 kept by
+// 670 -> 1320) and tray 5 early (652 -> 902, tray 4 kept by 1515 -> 1265).
+// Next run tray 2 was early: halfway back (933 -> 1233, tray 3 kept by
+// 1320 -> 1020).
 const unsigned long TRAY_TRAVEL_MS[TRAY_COUNT] = {
-  3000UL, 3000UL, 3000UL, 3000UL, 3000UL
+  100UL, 1233UL, 1020UL, 902UL, 1265UL
 };
 // Feed is spread along each tray: the hopper stops at this many spots and
-// drops an equal share of the target at each one.
-const uint8_t TRAY_SPOT_COUNT = 5;
-// Run time from a tray's first spot to its last spot, in the same travel
-// order, split into equal steps. PLACEHOLDER: set with Chain_Calibration.
+// drops an equal share of the target at each one. The spots sit inside the
+// tray, never on its edges: the span is cut into TRAY_SPOT_COUNT + 1 equal
+// gaps and the hopper drops at the inner points (edge 1 2 3 edge). Dropping
+// on an edge spilled feed over the rim, which the scale did not see.
+const uint8_t TRAY_SPOT_COUNT = 3;
+// Run time across each tray (edge to edge as measured), in the same travel
+// order. Fewer stops also means less travel lost to starting and stopping.
 const unsigned long TRAY_SPAN_MS[TRAY_COUNT] = {
-  1000UL, 1000UL, 1000UL, 1000UL, 1000UL
+  978UL, 3083UL, 2889UL, 2756UL, 1368UL
 };
 // Pause after each step, so feed still falling is on the scale before the
 // next share is judged.
 const unsigned long TRAY_SPOT_SETTLE_MS = 300UL;
+// Feed that still lands after the dispenser stops (pellets in the auger and
+// in the air). Each spot stops this much below its running target. Measured
+// 2026-11-06: a 2 s run read 48.5 g at stop and settled at 59 g; FEED 60
+// gave about 72 g per tray with no allowance and 62-75 g (mean 68) with 10 g.
+const float DISPENSE_IN_FLIGHT_GRAMS = 17.0f;
+// Last-spot top-up: after the main pour, wait for the feed to land, weigh,
+// and add short pulses until the tray is within FEED_TOLERANCE_GRAMS of the
+// target (so 58-60 g counts as 60 g). Feed falls from the auger mouth
+// unevenly, so a tighter tolerance only adds pulses and overshoot.
+// 1 g: with 50 g, 49-51 g counts as 50 g (falling feed makes the rest noise).
+const float FEED_TOLERANCE_GRAMS = 1.0f;
+// Last spot's main pour stops this far below the target: the in-flight feed
+// (DISPENSE_IN_FLIGHT_GRAMS) plus its spread, so it lands short and the
+// pulses finish from below. FEED 50 with 17 g reached 50-57 g.
+const float LAST_SPOT_HOLDBACK_GRAMS = 25.0f;
+// Top-up pulses aim for this fraction of the shortfall at the learned rate.
+const float TOPUP_PULSE_FRACTION = 0.6f;
+// Feed even the shortest pulse drops: pellets fall from the auger mouth in
+// clumps. Measured 2026-11-07 over tray 1: 150 ms 7.6 g, 300 ms 4.6 g,
+// 500 ms 21.5 g. A tray short by less than half of this is left as it is,
+// because one more pulse would end at least as far past the target.
+const float TOPUP_MIN_PULSE_GRAMS = 8.0f;
+// Tray readings below this show as 0 g (empty-tray noise is about +/-1 g).
+const float TRAY_ZERO_DEADBAND_GRAMS = 1.5f;
+const unsigned long TOPUP_SETTLE_MS = 1500UL;
+const unsigned long TOPUP_MIN_PULSE_MS = 150UL;
+const unsigned long TOPUP_MAX_PULSE_MS = 1500UL;
 // Max total dispenser run per tray; on expiry the rest is skipped (TRAY_TIMEOUT).
 // Outputs_Calibration (FLOW / GRAMS) suggests it from the measured flow.
+// This is the minimum; larger targets get twice their expected pour time
+// (target / DISPENSER_FLOW_GRAMS_PER_S), so 1000 g is not cut off at 250 g.
 const unsigned long TRAY_DISPENSE_TIMEOUT_MS = 10000UL; // 25.30 g/s measured; 50 g takes about 2 s
+const float DISPENSER_FLOW_GRAMS_PER_S = 25.3f;
 // Pause after the chain stops before taring, so the tray stops swinging.
 const unsigned long TRAY_SETTLE_MS = 500UL;
 // Readings averaged for each tray tare, and how long to wait for them.
 const uint8_t TRAY_TARE_SAMPLES = 5;
 const unsigned long TRAY_TARE_TIMEOUT_MS = 3000UL;
 // Max time to reach the end switch after the last tray, and the home switch.
-const unsigned long CHAIN_END_TIMEOUT_MS  = 15000UL;
+// Measured: last spot to the far switch 631 ms; the whole run 17483 ms. The
+// return was slower than the run out (17592 ms from tray 4's last spot), so
+// the home limit keeps the 30 s the sketch also uses, not its suggested 27 s.
+const unsigned long CHAIN_END_TIMEOUT_MS  = 5000UL;
 const unsigned long CHAIN_HOME_TIMEOUT_MS = 30000UL;
 // Both direction relays stay off this long before the motor reverses.
 const unsigned long CHAIN_DEAD_TIME_MS = 300UL;
@@ -188,6 +242,9 @@ const unsigned long WATER_DEBOUNCE_MS = 2000UL;
 
 // ESP32 communication settings.
 const unsigned long ESP32_TIMEOUT_MS = 15000UL;
+// DATA line to the ESP32 (written to devices/{id}/state for the app).
+const unsigned long DATA_INTERVAL_FEEDING_MS = 3000UL;
+const unsigned long DATA_INTERVAL_IDLE_MS = 10000UL;
 const unsigned long ESP32_TIME_SYNC_INTERVAL_MS = 300000UL;
 
 // Local time offset from UTC (Philippine Standard Time, no DST).
@@ -242,7 +299,8 @@ RTC_DS3231 rtc;
 // is their sum.
 float trayWeightsGrams[TRAY_COUNT] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
 float currentFeedWeightGrams = 0.0f;
-float currentHopperLevelPercent = 0.0f;
+float currentHopperLevelPercent = 0.0f;   // shown/alerted; held during a feed
+float liveHopperLevelPercent = 0.0f;      // every ping, also during a feed
 bool hopperSensorFault = false; // no usable echo; the level above is stale
 float activeFeedTargetGrams = 0.0f; // per tray, for the running/last cycle
 float manualFeedTargetGrams = DEFAULT_FEED_TARGET_GRAMS; // saved local HMI target, per tray
@@ -262,6 +320,15 @@ uint8_t currentSpot = 0;              // 0 = first spot
 bool spotMoveDone = false;            // chain has stopped at the next spot
 unsigned long spotArrivedMillis = 0;
 unsigned long dispenseStartMillis = 0;
+float spotStartGrams = 0.0f;           // tray reading when this pour began
+float trayStartGrams = 0.0f;           // feed already in the tray on arrival
+bool trayZerosLoaded = false;          // saved empty-tray zeros in use (TrayZero.ino)
+bool topUpActive = false;              // last spot: settling or pulsing
+bool topUpPulsing = false;             // dispenser on for a top-up pulse
+unsigned long topUpSettleStartMillis = 0;
+unsigned long topUpPulseMs = 0;
+float topUpGramsPerMs = 0.0253f;       // learned per tray from its pulses
+float topUpBeforeGrams = -1.0f;        // reading before the last pulse
 unsigned long trayDispenseUsedMs = 0; // dispenser run so far on this tray
 bool trayAborted = false;             // tray failed: pass the spots without feed
 bool trayFeedCounted = false;         // this tray's grams are in the day totals
@@ -328,7 +395,7 @@ const unsigned long BUZZER_DURATION_MS = 500;
 void initializeSystem() {
   Serial.begin(115200);
   ESP32_SERIAL.begin(115200);
-  NEXTION_SERIAL.begin(9600); // PLACEHOLDER: confirm with Inputs_Calibration NEXTION.
+  NEXTION_SERIAL.begin(9600); // confirmed by Inputs_Calibration NEXTION (2026-11-06)
 
   checkPinConflicts();
 

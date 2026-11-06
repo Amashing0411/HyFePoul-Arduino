@@ -78,8 +78,32 @@ void pingHopper() {
     hopperSampleCount++;
   }
 
-  currentHopperLevelPercent =
+  liveHopperLevelPercent =
       calculateHopperLevelPercent(medianHopperDistanceCm());
+
+  // The sensor sits over the auger: while feeding, the auger digs a pit
+  // under it and the chain shakes the feed, so the reading swings (92% ->
+  // 5% -> 50% seen in one cycle). The shown level and the low-feed alerts
+  // hold the last idle value until the feed has settled after a cycle.
+  // The cycle's own no-flow check uses the live value (Feeding.ino).
+  static bool wasFeeding = false;
+  static unsigned long feedEndedMillis = 0;
+  if (feedingActive) {
+    wasFeeding = true;
+    return;
+  }
+  if (wasFeeding) {
+    wasFeeding = false;
+    feedEndedMillis = millis();
+    hopperSampleCount = 0; // drop samples taken during the cycle
+    hopperSampleNext = 0;
+    return;
+  }
+  if (feedEndedMillis != 0 && millis() - feedEndedMillis < HOPPER_SETTLE_AFTER_FEED_MS) {
+    return;
+  }
+
+  currentHopperLevelPercent = liveHopperLevelPercent;
 
   // Low-feed detection with hysteresis.
   if (currentHopperLevelPercent <= LOW_FEED_THRESHOLD_PERCENT) {

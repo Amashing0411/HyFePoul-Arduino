@@ -215,6 +215,9 @@ void benchTare(const String& args) {
       Serial.println(F(": NOT READY"));
     }
   }
+  // Kept for every later reset: trays now read the feed actually in them.
+  saveTrayZeros();
+  Serial.println(F("Tray zeros saved (EEPROM). Only TARE with EMPTY trays."));
 }
 
 void benchCalibrate(const String& args) {

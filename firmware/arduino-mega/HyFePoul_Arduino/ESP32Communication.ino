@@ -8,7 +8,7 @@
     Architecture: Mega -> ESP32 -> Wi-Fi -> Firebase -> app
 
   Mega -> ESP32:
-    DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|timeSource   (every 10 s)
+    DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|timeSource   (every 3 s while feeding, 10 s idle)
     EVENT|<name>                     (alert queue, one per loop)
     CMD_ACK / CMD_DONE               (replies to CMD)
     SUMMARY|...                      (daily totals, DailyStats.ino)
@@ -26,10 +26,14 @@ void handleESP32Communication() {
   // R-54: resend panel schedule edits until the cloud has them.
   handleScheduleSync();
 
-  // Send periodic sensor/status data.
+  // Send periodic sensor/status data: more often during a feed cycle so the
+  // app follows the trays filling. Only the ESP32's state write follows this
+  // rate; its history rows stay throttled.
   static unsigned long lastDataSendMillis = 0;
+  unsigned long dataIntervalMs =
+      feedingActive ? DATA_INTERVAL_FEEDING_MS : DATA_INTERVAL_IDLE_MS;
 
-  if (millis() - lastDataSendMillis >= 10000UL) {
+  if (millis() - lastDataSendMillis >= dataIntervalMs) {
     sendCurrentDataToESP32();
     lastDataSendMillis = millis();
   }
