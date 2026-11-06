@@ -43,6 +43,50 @@ bool loadTrayZeros() {
   return true;
 }
 
+// Below-zero drift fix (idle trays only). A tray cannot hold less than no
+// feed, so a steady reading between TRAY_DRIFT_MIN_GRAMS and
+// -TRAY_ZERO_DEADBAND_GRAMS is the zero drifting, never leftovers: after
+// TRAY_DRIFT_STEADY_MS it is quietly re-zeroed and saved. Readings above
+// zero are never touched, because a few grams there may be pellets a
+// chicken left. Far below zero (tray lifted off, wiring) is left alone too.
+void fixBelowZeroDrift(uint8_t trayIndex) {
+  static unsigned long steadySinceMillis[TRAY_COUNT] = {0, 0, 0, 0, 0};
+  static float steadyGrams[TRAY_COUNT] = {0, 0, 0, 0, 0};
+
+  float grams = traySignedGrams[trayIndex];
+  bool drifted = !feedingActive && trayZerosLoaded &&
+                 grams < -TRAY_ZERO_DEADBAND_GRAMS && grams > TRAY_DRIFT_MIN_GRAMS;
+
+  if (!drifted) {
+    steadySinceMillis[trayIndex] = 0;
+    return;
+  }
+
+  if (steadySinceMillis[trayIndex] == 0 ||
+      fabs(grams - steadyGrams[trayIndex]) > TRAY_DRIFT_STEADY_BAND_GRAMS) {
+    steadySinceMillis[trayIndex] = millis();
+    steadyGrams[trayIndex] = grams;
+    return;
+  }
+
+  if (millis() - steadySinceMillis[trayIndex] < TRAY_DRIFT_STEADY_MS) {
+    return;
+  }
+
+  // Move the zero so this reading becomes 0 g: units = (raw - offset) / scale.
+  HX711& scale = trayScales[trayIndex];
+  scale.set_offset(scale.get_offset() + (long)(grams * scale.get_scale()));
+  saveTrayZeros();
+  steadySinceMillis[trayIndex] = 0;
+
+  Serial.print(F("Tray "));
+  Serial.print(trayIndex + 1);
+  Serial.print(F(" zero drifted to "));
+  Serial.print(grams, 1);
+  Serial.println(F(" g; re-zeroed."));
+  logEventToSD("TRAY_ZERO_DRIFT_FIXED");
+}
+
 // Saves the current offsets of all five scales.
 void saveTrayZeros() {
   TrayZeroStore store;

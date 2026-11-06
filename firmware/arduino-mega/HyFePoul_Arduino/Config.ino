@@ -82,7 +82,10 @@ const uint8_t RIGHT_LIMIT_PIN = 53; // tray 1 side
 const uint8_t RELAY_ON  = LOW;   // active-LOW relay board (Outputs_Calibration)
 const uint8_t RELAY_OFF = RELAY_ON == HIGH ? LOW : HIGH;
 const uint8_t LIMIT_SWITCH_PRESSED = LOW; // LOW: closes to GND when pressed (NO); HIGH: NC
-const uint8_t WATER_LOW_LEVEL      = HIGH; // float reads HIGH when the reservoir is low (WATCH, 2026-11-06)
+// Float reads LOW when the reservoir is low. WATCH on 2026-11-06 suggested
+// HIGH, but on 2026-11-07 a dry reservoir (float down) showed OK and a
+// raised float raised LOW_WATER, so the polarity is the other way.
+const uint8_t WATER_LOW_LEVEL      = LOW;
 
 // Derived from the start side; the feed cycle uses these. "Forward" is
 // away from the start, toward the far switch; "home" is the start switch.
@@ -226,6 +229,12 @@ const float TOPUP_PULSE_FRACTION = 0.6f;
 const float TOPUP_MIN_PULSE_GRAMS = 8.0f;
 // Tray readings below this show as 0 g (empty-tray noise is about +/-1 g).
 const float TRAY_ZERO_DEADBAND_GRAMS = 1.5f;
+// Below-zero drift fix (TrayZero.ino): an idle tray steady between this and
+// -TRAY_ZERO_DEADBAND_GRAMS for TRAY_DRIFT_STEADY_MS is re-zeroed. Lower than
+// this means a tray lifted off or a fault, not drift.
+const float TRAY_DRIFT_MIN_GRAMS = -10.0f;
+const float TRAY_DRIFT_STEADY_BAND_GRAMS = 1.0f;
+const unsigned long TRAY_DRIFT_STEADY_MS = 600000UL; // 10 min
 const unsigned long TOPUP_SETTLE_MS = 1500UL;
 const unsigned long TOPUP_MIN_PULSE_MS = 150UL;
 const unsigned long TOPUP_MAX_PULSE_MS = 1500UL;
@@ -336,6 +345,7 @@ unsigned long dispenseStartMillis = 0;
 float spotStartGrams = 0.0f;           // tray reading when this pour began
 float trayStartGrams = 0.0f;           // feed already in the tray on arrival
 bool trayZerosLoaded = false;          // saved empty-tray zeros in use (TrayZero.ino)
+float traySignedGrams[TRAY_COUNT] = {0, 0, 0, 0, 0}; // before the 0 g dead band
 bool topUpActive = false;              // last spot: settling or pulsing
 bool topUpPulsing = false;             // dispenser on for a top-up pulse
 unsigned long topUpSettleStartMillis = 0;

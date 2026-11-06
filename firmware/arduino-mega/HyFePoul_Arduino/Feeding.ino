@@ -94,6 +94,9 @@ void readTrayWeight(uint8_t trayIndex) {
 
   float grams = trayScales[trayIndex].get_units(1);
 
+  // Signed reading, before the dead band, for the below-zero drift fix.
+  traySignedGrams[trayIndex] = grams;
+
   // Empty-tray noise is about +/-1 g; show it as 0 instead of flickering
   // between 0 and 1 g (well inside FEED_TOLERANCE_GRAMS, so feeding is not
   // affected). Also avoids small negative values.
@@ -116,6 +119,7 @@ void refreshIdleTrayWeights() {
   static uint8_t nextTray = 0;
 
   readTrayWeight(nextTray);
+  fixBelowZeroDrift(nextTray);
   nextTray = (nextTray + 1) % TRAY_COUNT;
 }
 
