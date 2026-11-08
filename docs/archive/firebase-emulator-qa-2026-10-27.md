@@ -40,7 +40,7 @@ The sample was inserted directly into the local RTDB emulator as an administrato
 
 **SHA-256:** `A7BD004BABDCA85E7D6CB0B5177A1D7C2AE05F668A61428367E010DE45624AED`
 
-**Artifact lifecycle:** This emulator QA result is historical. The `app-release.apk` file was overwritten by the production-configured rebuild on 2026-10-27; the emulator-specific APK is no longer retained. The current production APK is documented in [`device-provisioning-guide.md`](device-provisioning-guide.md) and must not be used for localhost emulator testing.
+**Artifact lifecycle:** This emulator QA result is historical. The `app-release.apk` file was overwritten by the production-configured rebuild on 2026-10-27; the emulator-specific APK is no longer retained. The current production APK is documented in [`device-provisioning-guide.md`](../device-provisioning-guide.md) and must not be used for localhost emulator testing.
 
 Rebuild from `mobile-app/` in PowerShell:
 

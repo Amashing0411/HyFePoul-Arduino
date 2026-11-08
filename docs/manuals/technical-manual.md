@@ -29,13 +29,13 @@ Source: docs/development-status.md; hardware-test-day-run-sheet.md; firmware-rob
 
 | Component / signal | Mega pin or port | Software expectation |
 | --- | --- | --- |
-| HX711 SCK, trays 1 / 2 / 3 / 4 / 5 | 22 / 26 / 30 / 34 / 38 | Each board has its own clock; pair with the corresponding DT pin below. |
-| HX711 DT, trays 1 / 2 / 3 / 4 / 5 | 24 / 28 / 32 / 36 / 40 | One independent SCK/DT pair per tray. |
+| HX711 SCK, trays 1 / 2 / 3 / 4 / 5 | A1 / A3 / A5 / A7 / A9 | Each board has its own clock; pair with the corresponding DT pin below. |
+| HX711 DT, trays 1 / 2 / 3 / 4 / 5 | A0 / A2 / A4 / A6 / A8 | One independent SCK/DT pair per tray; tray numbers follow the physical tray order. |
 | Hopper ultrasonic TRIG / ECHO | 31 (placeholder) / 33 | Distance converted to hopper fill estimate; verify the placeholder against actual wiring. |
 | Reservoir float | 35 (placeholder) | INPUT_PULLUP; LOW means low water. Confirm actual wiring before connection. |
 | Chain forward / reverse relay | 10 / 9 | HIGH active in code; mutually exclusive. |
 | Dispenser relay | 8 | HIGH active in code. |
-| E-stop sense / buzzer | 37 (placeholder) / 39 | E-stop LOW active; buzzer HIGH active. Confirm the E-stop input wiring before connection. |
+| E-stop sense / buzzer | 37 (placeholder) / 11 | E-stop LOW active; buzzer HIGH active. Confirm the E-stop input wiring before connection. |
 | Home / end limit | 45 / 46 | INPUT_PULLUP; LOW means switch pressed. |
 | SD CS / SPI | 53 / hardware SPI | Mega SPI: 50 MISO, 51 MOSI, 52 SCK. |
 | DS3231 RTC / I2C | 20 SDA / 21 SCL | UTC storage, local conversion in firmware. |
@@ -54,8 +54,8 @@ Source: Config.ino; Hydration.ino; Feeding.ino; design-revision-moving-hopper.md
 
 | Link | Pins | Settings |
 | --- | --- | --- |
-| Mega to ESP32 | Mega TX1 18 to ESP32 RX2 16, through suitable 5 V to 3.3 V protection | 115200 baud, 8N1, newline ASCII |
-| ESP32 to Mega | ESP32 TX2 17 to Mega RX1 19 | Verify logic levels on the actual interface |
+| Mega to ESP32 | Mega TX3 14 to ESP32 RX2 16, through suitable 5 V to 3.3 V protection | 115200 baud, 8N1, newline ASCII |
+| ESP32 to Mega | ESP32 TX2 17 to Mega RX3 15 | Verify logic levels on the actual interface |
 | Mega to Nextion | Mega TX2 16 to Nextion RX; Nextion TX to Mega RX2 17 | 9600 baud; confirm actual HMI settings |
 | PC to Mega | USB serial | 115200 baud, newline for commands |
 
@@ -212,8 +212,8 @@ the card and verify initialization.
 The 800x480 panel runs at 9600 baud on Mega `Serial2`. Page IDs: p0 Logo, p1
 Home, p2 Schedule, p3 Recent History (HMI page name `Log`), p4 Feed Target, p5-p7 schedule editors, p8
 internal keypad, p9 System Check. The editable source is
-`Nextion/ChickenFeederV1 (1).hmi`; the compiled panel image is
-`Nextion/ChickenFeederV1 (1).tft`. The source compiles with 0 errors and 0
+`Nextion/HyFePoul.hmi`; the compiled panel image is
+`Nextion/HyFePoul.tft`. The source compiles with 0 errors and 0
 warnings. Confirm the physical panel model/resolution before flashing. Full IDs
 are in `Nextion/Nextion_IDs.txt`.
 
@@ -223,7 +223,7 @@ are in `Nextion/Nextion_IDs.txt`.
 | Recent History | Up to four newest `/systemData/{deviceId}` snapshots with feed, hopper, water and dispenser fields matching app Recent History; ESP32 fetches them and Mega formats local time. Refresh requests the records again. SD events remain in local CSV only. |
 | System Check | Hopper, water, ESP32 link and target values; Refresh sends one field per update. |
 | Feed Target | +/- adjusts the local manual target; Save stores it in Mega EEPROM. |
-| Schedule / editors | Overview displays app-synchronized time, target and enabled state; editors still adjust hour/minute locally and save to EEPROM only. |
+| Schedule / editors | Overview displays app-synchronized time, target and enabled state; editors adjust hour/minute, save to EEPROM and send the change to the cloud so the app shows it (R-54). |
 
 The HMI shows four newest cloud snapshots while the app shows up to 50 from the
 same source. History needs the device's scoped read permission on its own
@@ -233,7 +233,7 @@ ground, UART levels, page/touch mapping, live values, app-history parity,
 refresh, Save, EEPROM persistence, Stop and guarded Reset Stop. See the physical
 acceptance procedure for sequence.
 
-:::note SCHEDULE SOURCE-OF-TRUTH GAP | App schedule edits reach the Mega and appear in the HMI overview. A Nextion schedule time edit saves to local EEPROM but does not update Firebase. Online cloud restore can overwrite it; R-54 tracks the write-back and conflict behavior.
+:::note SCHEDULE SYNC (R-54) | App schedule edits reach the Mega and appear in the HMI overview. A Nextion time edit saves to EEPROM and is sent to Firebase; until confirmed, a cloud restore cannot overwrite it. The newest edit wins.
 
 Source: TimeManager.ino; ScheduleStorage.ino; SDLogging.ino; Nextion.ino; Nextion_IDs.txt.
 

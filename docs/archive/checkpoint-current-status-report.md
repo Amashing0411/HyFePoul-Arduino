@@ -71,7 +71,7 @@ Passing suites hid real defects. The most important ones:
 | `arduino-cli compile --fqbn arduino:avr:mega firmware/arduino-mega/HyFePoul_Arduino` | Pass: 36,826 B flash (14%), 2,428 B RAM (29%) |
 | `arduino-cli compile --fqbn esp32:esp32:esp32 firmware/esp32/HyFePoul_ESP32` | Pass: 1,129,472 B flash (86%), 49,592 B RAM (15%) |
 
-**Android emulator sessions** (development build, local Firebase emulators, throwaway accounts) are recorded in `comprehensive-work-plan.md` and summarised in [`mobile-app-completion-matrix.md`](mobile-app-completion-matrix.md). All checked items passed. One defect found there (the keyboard swallowing the first tap) was fixed and re-verified.
+**Android emulator sessions** (development build, local Firebase emulators, throwaway accounts) are recorded in `comprehensive-work-plan.md` and summarised in [`mobile-app-completion-matrix.md`](../mobile-app-completion-matrix.md). All checked items passed. One defect found there (the keyboard swallowing the first tap) was fixed and re-verified.
 
 **Not run, and why:**
 - No physical prototype was available.
@@ -104,8 +104,8 @@ Passing suites hid real defects. The most important ones:
 
 ## 5. Unresolved issues
 
-Full list with priorities: [`remaining-work-roadmap.md`](remaining-work-roadmap.md). The most important:
-1. **All hardware verification**, including E-stop electrical isolation, calibration, relay and float polarity, the UART link, and real ESP32 sign-in and TLS ([`hardware-integration-test-plan.md`](hardware-integration-test-plan.md), all `BLOCKED`).
+Full list with priorities: [`remaining-work-roadmap.md`](../remaining-work-roadmap.md). The most important:
+1. **All hardware verification**, including E-stop electrical isolation, calibration, relay and float polarity, the UART link, and real ESP32 sign-in and TLS ([`hardware-integration-test-plan.md`](../hardware-integration-test-plan.md), all `BLOCKED`).
 2. **No physical-phone test against production.**
 3. **Owner actions:**
    - restrict the API key;

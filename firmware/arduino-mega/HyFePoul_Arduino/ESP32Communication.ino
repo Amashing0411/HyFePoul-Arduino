@@ -1,14 +1,14 @@
 /*
   ESP32Communication.ino
 
-  The Mega's side of the UART link to the ESP32 (Serial1, 115200 baud).
+  The Mega's side of the UART link to the ESP32 (Serial3, 115200 baud).
   Wi-Fi, Firebase and notifications are all on the ESP32; the Mega only
   exchanges lines with it. Full protocol: docs/mega-esp32-protocol.md.
 
     Architecture: Mega -> ESP32 -> Wi-Fi -> Firebase -> app
 
   Mega -> ESP32:
-    DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|estop|timeSource   (every 10 s)
+    DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|timeSource   (every 3 s while feeding, 10 s idle)
     EVENT|<name>                     (alert queue, one per loop)
     CMD_ACK / CMD_DONE               (replies to CMD)
     SUMMARY|...                      (daily totals, DailyStats.ino)
@@ -23,10 +23,17 @@ String esp32ReceiveBuffer = "";
 void handleESP32Communication() {
   receiveESP32Messages();
 
-  // Send periodic sensor/status data.
-  static unsigned long lastDataSendMillis = 0;
+  // R-54: resend panel schedule edits until the cloud has them.
+  handleScheduleSync();
 
-  if (millis() - lastDataSendMillis >= 10000UL) {
+  // Send periodic sensor/status data: more often during a feed cycle so the
+  // app follows the trays filling. Only the ESP32's state write follows this
+  // rate; its history rows stay throttled.
+  static unsigned long lastDataSendMillis = 0;
+  unsigned long dataIntervalMs =
+      feedingActive ? DATA_INTERVAL_FEEDING_MS : DATA_INTERVAL_IDLE_MS;
+
+  if (millis() - lastDataSendMillis >= dataIntervalMs) {
     sendCurrentDataToESP32();
     lastDataSendMillis = millis();
   }
@@ -57,7 +64,7 @@ void receiveESP32Messages() {
   }
 }
 
-// Idle wait that keeps draining the ESP32 UART. Serial1 has only a 64-byte
+// Idle wait that keeps draining the ESP32 UART. Serial3 has only a 64-byte
 // receive buffer, which cannot hold a full command line (up to ~82 bytes)
 // across a plain delay().
 void waitServicingESP32(unsigned long durationMs) {
@@ -104,6 +111,12 @@ void processESP32Line(String line) {
     return;
   }
 
+  // R-54: the cloud now holds a schedule edited on the panel.
+  if (line.startsWith("SCHED_SYNCED|")) {
+    handleScheduleSynced(line);
+    return;
+  }
+
   if (line.startsWith("CMD|")) {
     processRemoteCommand(line);
     return;
@@ -122,7 +135,7 @@ void processESP32Line(String line) {
   // Anything else is ignored (an unknown or garbled line).
 }
 
-// DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|estop|timeSource
+// DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|timeSource
 // t1..t5 = grams in each tray, target = grams per tray, step = cycle step
 // name, tray = tray the hopper is at/heading to (0 = none).
 void sendCurrentDataToESP32() {
@@ -142,8 +155,6 @@ void sendCurrentDataToESP32() {
   ESP32_SERIAL.print(getCycleStepName(cycleStep));
   ESP32_SERIAL.print('|');
   ESP32_SERIAL.print(currentTray);
-  ESP32_SERIAL.print('|');
-  ESP32_SERIAL.print(emergencyStopActive ? 1 : 0);
   ESP32_SERIAL.print('|');
   ESP32_SERIAL.print(getTimeSourceString());
   ESP32_SERIAL.println();
@@ -229,18 +240,6 @@ void processRemoteCommand(String line) {
     sendCmdAck(cmdId, "ACCEPTED", "");
     logEventToSD("REMOTE_FEEDING_STARTED");
   }
-  else if (action == "ESTOP_RELEASE") {
-    const char* rejectReason =
-        resetEmergencyStop("EMERGENCY_STOP_RELEASED_REMOTE");
-
-    if (rejectReason != NULL) {
-      sendCmdAck(cmdId, "REJECTED", rejectReason);
-      return;
-    }
-
-    sendCmdAck(cmdId, "ACCEPTED", "");
-    sendCmdDone(cmdId, "SUCCESS", "");
-  }
   else if (action == "SYSTEM_RESTART") {
     sendCmdAck(cmdId, "REJECTED", "NOT_IMPLEMENTED_SAFELY");
   }
@@ -283,6 +282,15 @@ void processRemoteCommand(String line) {
       sendCmdAck(cmdId, "REJECTED", "INVALID_TARGET");
       return;
     }
+
+    // R-54: a restore (IDs R0-R2) carries the older cloud copy; it must not
+    // undo a panel edit that has not reached the cloud yet. An app edit
+    // (any other ID) is newer and replaces it.
+    if (cmdId.startsWith("R") && scheduleEditPending(idx)) {
+      sendCmdAck(cmdId, "REJECTED", "LOCAL_EDIT_PENDING");
+      return;
+    }
+    clearScheduleEdit(idx);
 
     feedSchedules[idx].hour = hr;
     feedSchedules[idx].minute = mn;

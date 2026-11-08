@@ -10,7 +10,7 @@
 - `database.rules.json` (Added `.indexOn` for `ownerId` and `timestamp` to resolve warnings)
 
 ## Files Added
-- `docs/checkpoint-5B.4-report.md`
+- `docs/archive/checkpoint-5B.4-report.md`
 
 ## Firestore Code Preserved
 - `mobile-app/src/services/firebase.ts` retains Firestore initialization.

@@ -375,11 +375,11 @@ Regression: Jest 30/30 (25 existing + 5 new), rules 61/61, ESP32 and Mega simula
 
 | ID | File | Content |
 |----|------|---------|
-| A | `docs/current-project-status-audit.md` | Architecture, feature status (implemented, partial, simulated, blocked, unverified), defects, and readiness per subsystem. |
+| A | `docs/archive/current-project-status-audit.md` | Architecture, feature status (implemented, partial, simulated, blocked, unverified), defects, and readiness per subsystem. |
 | B | `docs/remaining-work-roadmap.md` | Every task in this plan plus anything Phase 0 or 5 finds, with ID, dependencies, files, test procedure, acceptance criteria, status, and whether hardware is required. |
 | C | `docs/mobile-app-completion-matrix.md` | The screen-by-screen matrix. |
 | D | `docs/hardware-integration-test-plan.md` | The 20-step commissioning plan from §8 of the brief, with columns for test ID, preconditions, procedure, expected, actual, status, evidence, and corrective action. Extends the existing `hardware-commissioning-procedure.md` and log rather than duplicating them. |
-| E | `docs/checkpoint-current-status-report.md` | Baseline, commands run, results, files changed, open issues. |
+| E | `docs/archive/checkpoint-current-status-report.md` | Baseline, commands run, results, files changed, open issues. |
 | — | `docs/development-status.md` | Rewritten to the real state (F13). |
 
 ### Phase 7 — Physical commissioning (BLOCKED until hardware is confirmed available)

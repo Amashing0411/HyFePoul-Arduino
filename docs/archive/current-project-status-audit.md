@@ -8,7 +8,7 @@ The work history, decisions and per-phase evidence are in [`comprehensive-work-p
 ## 1. Bottom line
 
 - **Software: prototype path is implemented and tested without hardware, with follow-up work still open.** Firmware behavior, database rules and app flows have simulator/emulator coverage. R-54 remains open for synchronizing onsite schedule edits with Firebase. No simulator result is a physical hardware pass.
-- **Hardware: not commissioned.** Every row in [`hardware-commissioning-log.md`](hardware-commissioning-log.md) is still `PENDING – Hardware unavailable`. Nothing has been verified on the physical prototype: sensors, actuators, calibration, the E-stop circuit, the UART link, or real-world ESP32 networking.
+- **Hardware: not commissioned.** Every row in [`hardware-commissioning-log.md`](../hardware-commissioning-log.md) is still `PENDING – Hardware unavailable`. Nothing has been verified on the physical prototype: sensors, actuators, calibration, the E-stop circuit, the UART link, or real-world ESP32 networking.
 - **Production backend:** `hyfepoul-dev` with RTDB `hyfepoul-dev-default-rtdb` (`asia-southeast1`). The current security rules are deployed and were verified on 2026-10-21. **The app has not been run on a physical phone against production.**
 
 Status words used below:
@@ -37,7 +37,7 @@ Arduino Mega 2560 ──UART 115200 (≤63 chars/line)── ESP32 ──HTTPS (
   - command polling every 5 s;
   - schedule restore from RTDB;
   - `STATUS`/`TIME` to the Mega.
-- **RTDB:** `devices`, `systemData`, `alerts`, `commands`, `schedules`, `claimRequests`, `deviceSecrets` ([`database-schema.md`](database-schema.md)).
+- **RTDB:** `devices`, `systemData`, `alerts`, `commands`, `schedules`, `claimRequests`, `deviceSecrets` ([`database-schema.md`](../database-schema.md)).
 - **App:**
   - React Native + Expo SDK 57 + TypeScript, Android first;
   - RTDB listeners, command lifecycle UI;
@@ -114,7 +114,7 @@ Arduino Mega 2560 ──UART 115200 (≤63 chars/line)── ESP32 ──HTTPS (
 
 ## 7. Hardware-dependent assumptions
 
-All pins, levels and polarities are **intended, not verified** ([`hardware-assumption-matrix.md`](hardware-assumption-matrix.md)). The key ones:
+All pins, levels and polarities are **intended, not verified** ([`hardware-assumption-matrix.md`](../hardware-assumption-matrix.md)). The key ones:
 - **Mega 5 V TX → ESP32 3.3 V RX needs a level shifter.**
 - Float switches are assumed active-LOW with `INPUT_PULLUP`; relays are assumed active-HIGH.
 - Ultrasonic empty/full distances are placeholders (40 cm / 5 cm).
@@ -126,12 +126,12 @@ All pins, levels and polarities are **intended, not verified** ([`hardware-assum
 
 | Area | Readiness | Basis |
 |------|-----------|-------|
-| **Mobile app** | Feature-complete for scope; emulator-verified | Jest 53/53, `tsc`, Android emulator runs ([`mobile-app-completion-matrix.md`](mobile-app-completion-matrix.md)); Firebase/app QA details in [`firebase-emulator-qa-2026-10-27.md`](firebase-emulator-qa-2026-10-27.md). No physical phone against production yet. |
+| **Mobile app** | Feature-complete for scope; emulator-verified | Jest 53/53, `tsc`, Android emulator runs ([`mobile-app-completion-matrix.md`](../mobile-app-completion-matrix.md)); Firebase/app QA details in [`firebase-emulator-qa-2026-10-27.md`](firebase-emulator-qa-2026-10-27.md). No physical phone against production yet. |
 | **Backend / security** | Revised rules deployed; production claim and device sign-in remain unverified | 88/88 local rules tests; R-45 deployed 2026-10-27 and R-14 provisioning completed. Sign-in with the local ESP32 password failed; owner claim and physical device writes have not been exercised in production. |
 | **Firmware (Mega)** | Logic complete; compiled and simulated | Mega simulator 56/56; current source uses 53,822 bytes flash and 3,848 bytes RAM. Calibration and pins unverified. |
 | **Firmware (ESP32)** | Logic complete; compile-checked and simulated | ESP32 simulator (commands, restore R1–R4, UART U1–U4). Flash 86% of the default partition (CA bundle). |
 | **Build** | Reproducible | `arduino-cli` builds for both boards; `npx expo run:android` development build; EAS profiles configured with the production RTDB URL. |
-| **Deployment** | Not started on hardware | Requires commissioning ([`hardware-integration-test-plan.md`](hardware-integration-test-plan.md)). |
+| **Deployment** | Not started on hardware | Requires commissioning ([`hardware-integration-test-plan.md`](../hardware-integration-test-plan.md)). |
 
 Build and deployment levels reached so far:
 

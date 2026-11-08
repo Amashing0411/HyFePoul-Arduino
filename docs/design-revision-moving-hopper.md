@@ -44,8 +44,8 @@ R-16 is resolved: the load cells weigh feed **in the trays**. This means dispens
 
 | Signal | Pin |
 |---|---|
-| HX711 tray 1–5 SCK | 22, 26, 30, 34, 38 (one SCK per tray; updated 2026-10-28 to the real wiring) |
-| HX711 tray 1–5 DT (DOUT) | 24, 28, 32, 36, 40 |
+| HX711 tray 1–5 SCK | A1, A3, A5, A7, A9 (one SCK per tray; tray numbers follow the physical tray order, updated 2026-11-04) |
+| HX711 tray 1–5 DT (DOUT) | A0, A2, A4, A6, A8 |
 | Float switch (reservoir low) | 35 (placeholder; 34 is now tray 4 SCK) |
 | Chain motor forward relay | 10 |
 | Chain motor reverse relay | 9 |

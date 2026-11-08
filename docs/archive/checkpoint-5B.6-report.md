@@ -39,4 +39,4 @@ As directed, this validation was strictly conducted utilizing the Node-based C++
 ## Files Modified
 - `firmware/esp32/HyFePoul_ESP32/HyFePoul_ESP32.ino`: Altered REST call to `PUT` using deterministic keys and stripped informational non-alert events.
 - `scripts/simulate-esp32.js`: Appended idempotency test block.
-- `docs/checkpoint-5B.6-report.md`: Audit generated.
+- `docs/archive/checkpoint-5B.6-report.md`: Audit generated.

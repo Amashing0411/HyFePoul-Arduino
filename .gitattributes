@@ -1,0 +1,4 @@
+# Keep test simulators and retired code out of GitHub's language statistics.
+# The files stay in the repository.
+scripts/** linguist-vendored
+archive/** linguist-vendored
