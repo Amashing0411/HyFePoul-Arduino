@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>HyFePoul: Interactive Device Showcase</title>
+<meta name="description" content="An interactive 3D look at HyFePoul, an automated poultry feeding and water monitoring machine.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23c8561a'/%3E%3Cpath d='M9 8v16M23 8v16M9 16h14' stroke='%23fff' stroke-width='3.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+<script type="importmap">
+{"imports":{"three":"./vendor/three.module.min.js","three/orbit":"./vendor/OrbitControls.js","three/bgu":"./vendor/BufferGeometryUtils.js"}}
+</script>
+</head>
+<body>
+
+<header class="top">
+  <a class="brand" href="#top">HyFePoul</a>
+  <nav aria-label="Sections">
+    <a href="#model">3D model</a>
+    <a href="#videos">Videos</a>
+    <a href="#parts">Parts</a>
+    <a href="#system">How it connects</a>
+    <a href="#results">Results</a>
+  </nav>
+</header>
+
+<main id="top">
+  <section class="intro">
+    <div class="intro-text">
+      <p class="eyebrow">Automated poultry feeding and water monitoring</p>
+      <h1>A feeder that weighs every tray before it pours.</h1>
+      <p>Feeding by hand is repetitive, and it is hard to know how much each bird actually received. HyFePoul carries a hopper of feed along a chain over five trays. A scale under each tray tells the machine what is already there, so it pours only what is missing.</p>
+      <p>It also watches the water reservoir and sends device data to a mobile app. This page lets you look inside the machine as it was built.</p>
+      <a class="cta" href="#model">Explore the machine</a>
+    </div>
+    <figure class="intro-photo">
+      <img src="img/hopper-open.jpg" width="1400" height="1050" alt="The stainless steel hopper with its lid open, on top of the cage frame, with the drive chain running past it.">
+      <figcaption>The hopper, photographed on the finished machine.</figcaption>
+    </figure>
+  </section>
+
+  <section class="viewer" id="model" aria-label="Interactive 3D model">
+    <div class="stage" id="stage">
+      <div class="pins" id="pins"></div>
+      <div class="stage-head">
+        <h2>The machine, part by part</h2>
+        <p id="hint">Drag to turn. Scroll or pinch to zoom. Tap a number to learn about that part.</p>
+      </div>
+      <div class="loader" id="loader" role="status"><div class="bar"><span id="loadbar"></span></div><p id="loadtext">Loading the 3D model…</p></div>
+      <div class="cycle-status" id="cycleStatus" hidden aria-live="polite"></div>
+      <div class="tools" id="tools">
+        <div class="group views" role="group" aria-label="Camera">
+          <button data-view="whole" aria-pressed="true">Whole device</button>
+          <button data-view="box" aria-pressed="false">Control box</button>
+          <button data-view="hopper" aria-pressed="false">Hopper</button>
+          <button data-view="trays" aria-pressed="false">Trays</button>
+          <button data-view="chain" aria-pressed="false">Chain drive</button>
+          <button data-view="water" aria-pressed="false">Water</button>
+        </div>
+        <div class="group toggles" role="group" aria-label="Show or hide">
+          <button id="tWalls" aria-pressed="true">Covers</button>
+          <button id="t12" aria-pressed="true"><i style="background:var(--w12)"></i>12 V</button>
+          <button id="t5" aria-pressed="true"><i style="background:var(--w5)"></i>5 V</button>
+          <button id="tSig" aria-pressed="true"><i style="background:var(--wsig)"></i>Signal</button>
+          <button id="tLabels" aria-pressed="true">Labels</button>
+        </div>
+        <div class="group">
+          <label class="slider">Explode <input id="explode" type="range" min="0" max="1" step="0.02" value="0"></label>
+          <button id="play" class="play">Play feed cycle</button>
+        </div>
+      </div>
+    </div>
+    <aside class="detail" aria-live="polite">
+      <div class="meta"><span id="dNum"></span><span id="dGroup"></span></div>
+      <h3 id="dName">Choose a part</h3>
+      <p id="dText">Tap any number on the model, or pick a part from the list below.</p>
+      <dl id="dList"></dl>
+      <button id="dVideo" class="watch" hidden>Watch video</button>
+    </aside>
+  </section>
+
+  <section class="band" id="videos">
+    <div class="section-head">
+      <h2>See it working</h2>
+      <p>Short recordings of each function on the real machine.</p>
+    </div>
+    <div class="video-grid" id="videoGrid"></div>
+  </section>
+
+  <section class="band alt" id="parts">
+    <div class="section-head">
+      <h2>Every part</h2>
+      <p>Select a part to find it on the model. <strong>Measured (CAD)</strong> comes from our CAD drawing, <strong>Datasheet</strong> from the published size of the module, and <strong>Estimated</strong> from photos. <strong>Check</strong> means we could not confirm it from our records.</p>
+    </div>
+    <div class="parts" id="partsList"></div>
+  </section>
+
+  <section class="band" id="system">
+    <div class="section-head">
+      <h2>How it connects</h2>
+      <p>The Arduino Mega makes every decision on the machine. The ESP32 only carries messages to the internet, and the app talks to the cloud, never directly to the Mega.</p>
+    </div>
+    <div class="diagram" id="diagram"></div>
+  </section>
+
+  <section class="band alt" id="results">
+    <div class="section-head">
+      <h2>Measured results</h2>
+      <p>What we recorded on the machine, including where it falls short.</p>
+    </div>
+    <div class="results">
+      <article>
+        <h3>Filling empty trays to 50 g</h3>
+        <div class="bars" role="img" aria-label="Five trays measured 49.0, 50.5, 49.6, 52.6 and 51.1 grams against a 50 gram target." id="resultBars"></div>
+      </article>
+      <article>
+        <h3>Trays that are already full</h3>
+        <p>A second 50 g feed, with every tray already at its target, poured nothing.</p>
+        <h3>Limits</h3>
+        <ul>
+          <li>Very small amounts are not precise. A 10 g target landed between 8 and 20 g, because the auger drops pellets in clumps.</li>
+          <li>The hopper level is an estimate. Its sensor sits above the auger, and a dip in the feed can make it read low.</li>
+        </ul>
+      </article>
+    </div>
+    <h3 class="gallery-title">Photos of the real machine</h3>
+    <div class="gallery" id="gallery"></div>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>HyFePoul. The 3D model is built from our CAD drawing and photos of the machine. Sizes and positions are labelled by source on each part.</p>
+</footer>
+
+<dialog id="videoDialog" aria-label="Video">
+  <form method="dialog"><button aria-label="Close video">Close</button></form>
+  <div id="videoHost"></div>
+</dialog>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
