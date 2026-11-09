@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/orbit';
 import { mergeGeometries } from 'three/bgu';
 import { PARTS, VIEW_PINS } from './parts.js';
-import { buildModel, wireList, W } from './model.js';
+import { buildModel, W } from './model.js';
+import { wireList } from './wiring.js';
 
 const $ = id => document.getElementById(id);
 const P = Object.fromEntries(PARTS.map(p => [p.id, p]));
@@ -10,19 +11,20 @@ const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
 const VIEWS = {
-  whole: { c: [134, 41, 88], dir: [0.42, 0.3, 1], w: 350, h: 250 },
+  whole: { c: [134, 41, 88], dir: [0.72, 0.42, -1], w: 350, h: 250 },
   box: { c: [250, 24, 80], dir: [1, 0.07, 0.02], w: 48, h: 52, wPhone: 38, cPhone: [250, 26, 80] },
   hopper: { c: [209, 60, 98], dir: [0.6, 0.22, -1], w: 62, h: 56 },
   trays: { c: [134, 50, 72], dir: [0.08, 0.05, -1], w: 216, h: 60 },
   chain: { c: [134, 44, 108], dir: [0.14, 0.32, -1], w: 250, h: 70 },
-  water: { c: [40, 26, 124], dir: [-0.28, 0.12, 1], w: 100, h: 112 },
+  water: { c: [40, 26, 124], dir: [-0.5, 0.16, -1], w: 100, h: 112 },
   cycle: { c: [134, 50, 94], dir: [0.05, 0.14, -1], w: 256, h: 110 },
 };
 const HINTS = {
-  box: 'Red is 12 V, amber is 5 V, black is ground. Signal wires keep their real colours where known.',
+  box: 'Red is 12 V, amber is 5 V, black is ground. Routes are tidied for clarity, and every wire ends at its real pin.',
   trays: 'Seen from the feed side, so tray 1 is on the left here.',
   cycle: 'Seen from the feed side, so tray 1 is on the left here.',
-  hopper: 'Seen from the feed side of the machine.',
+  hopper: 'Seen from the feed side. Turn off Covers to see the level sensor under the cover.',
+  water: 'Seen from the feed side, through the bars.',
   chain: 'Seen from the feed side of the machine.',
 };
 const DEFAULT_HINT = 'Drag to turn. Scroll or pinch to zoom. Tap a number to learn about that part.';
@@ -69,23 +71,88 @@ export function init({ cad, onSelect, onFail }) {
     const q = new THREE.Quaternion(); P[id].obj.getWorldQuaternion(q);
     return out.copy(P[id].anchors[a].n).normalize().applyQuaternion(q);
   };
-  const tmpA = V(), tmpB = V();
+  // Resolve each wire's route once, with everything at rest.
   wires.forEach(w => {
-    w.restA = worldAnchor(w.from, V()); w.restB = worldAnchor(w.to, V());
-    w.rest = w.via.map(([k, a, b, c]) => k === 'b' ? M.box.localToWorld(V(a, b, c)) : W(a, b, c));
+    const A = worldAnchor(w.from, V()), nA = anchorNormal(w.from, V());
+    const cur = M.box.worldToLocal(A.clone().addScaledVector(nA, 0.45));
+    const Bb = M.box.worldToLocal(worldAnchor(w.to, V()));
+    const pick = (val, axis) => (val === 'B' ? Bb[axis] : val);
+    w.pts = [];
+    w.steps.forEach(s => {
+      if (s.w) w.pts.push({ f: 's', p: W(...s.w) });
+      else if (s.c) w.pts.push({ f: 'c', p: W(...s.c) });
+      else if (s.dr) w.pts.push({ f: 'd', p: V(...s.dr) });
+      else {
+        if ('u' in s) cur.x = pick(s.u, 'x');
+        if ('v' in s) cur.y = pick(s.v, 'y');
+        if ('d' in s) cur.z = pick(s.d, 'z');
+        w.pts.push({ f: 's', p: M.box.localToWorld(cur.clone()) });
+      }
+    });
   });
-  const col = new THREE.Color();
+  const shiftOf = (id, out) => {
+    out.set(0, 0, 0);
+    const q = new THREE.Quaternion(), e = V();
+    for (let g = P[id].obj; g && g !== M.root; g = g.parent) {
+      if (g.userData.ex) { g.parent.getWorldQuaternion(q); out.addScaledVector(e.copy(g.userData.ex).applyQuaternion(q), explode); }
+    }
+    return out;
+  };
+  // Rounds each corner of a route, then sweeps a thin tube along it. Straight runs need only their two end rings.
+  const CORNER = 0.28;
+  function rounded(pts) {
+    const clean = pts.filter((p, i) => !i || p.distanceToSquared(pts[i - 1]) > 1e-6), out = [clean[0]];
+    const a = V(), b = V();
+    for (let i = 1; i < clean.length - 1; i++) {
+      const p = clean[i];
+      a.subVectors(clean[i - 1], p); b.subVectors(clean[i + 1], p);
+      const la = a.length(), lb = b.length();
+      a.divideScalar(la); b.divideScalar(lb);
+      if (a.dot(b) < -0.9995) { out.push(p); continue; }
+      const r = Math.min(CORNER, la * 0.45, lb * 0.45), q0 = p.clone().addScaledVector(a, r), q1 = p.clone().addScaledVector(b, r);
+      for (let k = 0; k <= 4; k++) {
+        const t = k / 4, m = 1 - t;
+        out.push(V(m * m * q0.x + 2 * m * t * p.x + t * t * q1.x, m * m * q0.y + 2 * m * t * p.y + t * t * q1.y, m * m * q0.z + 2 * m * t * p.z + t * t * q1.z));
+      }
+    }
+    out.push(clean[clean.length - 1]);
+    return out;
+  }
+  function sweep(s, r) {
+    const RAD = 5, pos = [], nor = [], idx = [], T = V(), N = V(0.31, 0.77, 0.55), Bn = V(), v2 = V();
+    s.forEach((p, i) => {
+      T.subVectors(s[Math.min(i + 1, s.length - 1)], s[Math.max(i - 1, 0)]).normalize();
+      N.addScaledVector(T, -N.dot(T)).normalize();
+      Bn.crossVectors(T, N);
+      for (let k = 0; k < RAD; k++) {
+        const an = k / RAD * Math.PI * 2;
+        v2.copy(N).multiplyScalar(Math.cos(an)).addScaledVector(Bn, Math.sin(an));
+        nor.push(v2.x, v2.y, v2.z); pos.push(p.x + v2.x * r, p.y + v2.y * r, p.z + v2.z * r);
+      }
+      if (i) for (let k = 0; k < RAD; k++) {
+        const a = (i - 1) * RAD + k, b = (i - 1) * RAD + (k + 1) % RAD;
+        idx.push(a, b, b + RAD, a, b + RAD, a + RAD);
+      }
+    });
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    g.setIndex(idx);
+    return g;
+  }
+  const col = new THREE.Color(), dA = V(), dB = V();
   const tubeFor = (w, grow = 1) => {
     const A = worldAnchor(w.from, V()), B = worldAnchor(w.to, V());
-    tmpA.subVectors(A, w.restA); tmpB.subVectors(B, w.restB);
-    const n = w.rest.length;
-    const pts = [A, A.clone().addScaledVector(anchorNormal(w.from, V()), 0.45)];
-    w.rest.forEach((p, i) => { const s = (i + 1) / (n + 1); pts.push(p.clone().addScaledVector(tmpA, 1 - s).addScaledVector(tmpB, s)); });
+    shiftOf(w.from[0], dA); shiftOf(w.to[0], dB);
+    const n = w.pts.length, pts = [A, A.clone().addScaledVector(anchorNormal(w.from, V()), 0.45)];
+    w.pts.forEach((q, i) => {
+      const s = (i + 1) / (n + 1);
+      if (q.f === 'c') pts.push(M.carrier.localToWorld(q.p.clone()));
+      else if (q.f === 'd') pts.push(M.doorG.localToWorld(q.p.clone()));
+      else pts.push(q.p.clone().addScaledVector(dA, 1 - s).addScaledVector(dB, s));
+    });
     pts.push(B.clone().addScaledVector(anchorNormal(w.to, V()), 0.45), B);
-    const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
-    const seg = Math.min(90, Math.max(14, Math.round(curve.getLength() * 0.7)));
-    const g = new THREE.TubeGeometry(curve, seg, w.r * grow, 5, false);
-    g.deleteAttribute('uv');
+    const g = sweep(rounded(pts), w.r * grow);
     if (grow === 1) {
       col.set(w.color);
       const c = new Float32Array(g.attributes.position.count * 3);

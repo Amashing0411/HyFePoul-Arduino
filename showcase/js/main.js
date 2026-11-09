@@ -103,13 +103,15 @@ function webglFallback(reason) {
   $('stage').append(d);
 }
 
-const CAD_BYTES = 272268;
+const CAD_BYTES = 273396; // used only for the progress bar
 async function fetchWithProgress(url, onP) {
   const r = await fetch(url);
   if (!r.ok) throw new Error('Could not load ' + url);
-  const reader = r.body.getReader(), out = new Uint8Array(CAD_BYTES);
+  const reader = r.body.getReader(), parts = [];
   let got = 0;
-  for (;;) { const { done, value } = await reader.read(); if (done) break; out.set(value, got); got += value.length; onP(got / CAD_BYTES); }
+  for (;;) { const { done, value } = await reader.read(); if (done) break; parts.push(value); got += value.length; onP(Math.min(1, got / CAD_BYTES)); }
+  const out = new Uint8Array(got); let at = 0;
+  parts.forEach(c => { out.set(c, at); at += c.length; });
   return out.buffer;
 }
 
@@ -130,7 +132,7 @@ async function start() {
     const bin = await fetchWithProgress('data/assembly.bin', f => setBar(0.05 + f * 0.8));
     setBar(0.9, 'Assembling the machine…');
     await new Promise(r => setTimeout(r, 30));
-    const cad = {};
+    const cad = { lines: await fetch('data/cad-lines.json').then(r => r.json()) };
     json.parts.forEach(p => {
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(bin, p.pos[0], p.pos[1] * 3), 3));

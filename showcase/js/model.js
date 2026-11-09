@@ -93,41 +93,50 @@ export function buildModel(cad, parts) {
     addMesh(id, cad[id], mat);
   });
 
-  // The CAD draws the cage walls as flat sheets. The machine has bars and wire grid, so swap the sheets
-  // for rods inside the same outlines, and add the green mesh floor seen in the photos.
+  // The wire grid and sloped floor are real 3D lines in the DWG. They sit 5.5 cm and 0.93 cm off the solids, so the
+  // data file moves them onto the cage they belong to. The curved lip is the DWG's extruded surface, which the STL lacks.
   {
-    const g = cad.cage, pos = g.attributes.position, idx = g.index.array, keep = [];
-    const a = new V3(), b = new V3(), c = new V3();
-    for (let i = 0; i < idx.length; i += 3) {
-      a.fromBufferAttribute(pos, idx[i]); b.fromBufferAttribute(pos, idx[i + 1]); c.fromBufferAttribute(pos, idx[i + 2]);
-      if (b.clone().sub(a).cross(c.clone().sub(a)).length() / 2 <= 300) keep.push(idx[i], idx[i + 1], idx[i + 2]);
-    }
-    g.setIndex(new THREE.BufferAttribute(new Uint32Array(keep), 1));
-    const ROD = 0xa9b0b2, k = new Kit();
-    const vert = (X, Y, Z0, Z1) => { const m = W(X, Y, (Z0 + Z1) / 2); k.box(0.3, Z1 - Z0, 0.3, ROD, m.x, m.y, m.z); };
-    const horizY = (X, Y0, Y1, Z) => { const m = W(X, (Y0 + Y1) / 2, Z); k.box(0.3, 0.3, Y1 - Y0, ROD, m.x, m.y, m.z); };
-    [30.05, 72.15, 114.25, 156.35, 198.45, 240.4].forEach(X => {
-      for (let Y = 8.5; Y < 43.9; Y += 5) vert(X, Y, 68, 103);
-      for (let Z = 68; Z <= 103; Z += 5) horizY(X, 8.3, 43.8, Z);
+    cadMats.cage.side = THREE.DoubleSide;
+    const k = new Kit(), up = new V3(0, 1, 0), q = new THREE.Quaternion(), a = new V3(), b = new V3(), d = new V3();
+    const rods = (arr, r, c) => {
+      for (let i = 0; i < arr.length; i += 6) {
+        a.set(arr[i], arr[i + 1], arr[i + 2]); b.set(arr[i + 3], arr[i + 4], arr[i + 5]);
+        d.subVectors(b, a); const len = d.length(); if (len < 1e-3) continue;
+        const g = new THREE.CylinderGeometry(r, r, len, 4, 1, true);
+        g.applyQuaternion(q.setFromUnitVectors(up, d.normalize())); g.translate((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
+        k.add(g, c);
+      }
+    };
+    rods(cad.lines.walls, 0.14, 0xa9b0b2); rods(cad.lines.floor, 0.13, 0x2fb24a);
+    addMesh('cage', k.geometry(), kitMat, false);
+    const prof = [[50.26, 61.84], [56.28, 61.84], [57.1, 62.04], [57.87, 62.44], [58.53, 63], [59.03, 63.69], [59.15, 67]];
+    const pos = [], uv = [], idx = [];
+    let run = 0;
+    prof.forEach(([Y, Z], i) => {
+      if (i) run += Math.hypot(Y - prof[i - 1][0], Z - prof[i - 1][1]);
+      const p0 = W(30, Y, Z), p1 = W(240.5, Y, Z);
+      pos.push(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z); uv.push(0, run / 1.8, 210.5 / 1.8, run / 1.8);
+      if (i) { const n = i * 2; idx.push(n - 2, n - 1, n + 1, n - 2, n + 1, n); }
     });
-    for (let X = 32; X < 198.4; X += 6) vert(X, 6.75, 68, 103);
-    for (let X = 32; X < 240; X += 6) vert(X, 44, 68, 103);
-    finishKit('cage', k);
+    const lip = new THREE.BufferGeometry();
+    lip.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); lip.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); lip.setIndex(idx);
     const c2 = document.createElement('canvas'); c2.width = c2.height = 64;
-    const x = c2.getContext('2d'); x.strokeStyle = '#2fb24a'; x.lineWidth = 7;
+    const x = c2.getContext('2d'); x.strokeStyle = '#2fb24a'; x.lineWidth = 9;
     x.beginPath(); x.moveTo(0, 32); x.lineTo(32, 0); x.lineTo(64, 32); x.lineTo(32, 64); x.closePath(); x.stroke();
-    const t = new THREE.CanvasTexture(c2); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(70, 12); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
-    const floorM = W(135.25, 26, 67.6);
-    const mesh = new THREE.PlaneGeometry(210.5, 36).rotateX(-Math.PI / 2).translate(floorM.x, floorM.y, floorM.z);
-    addMesh('cage', mesh, new THREE.MeshBasicMaterial({ map: t, transparent: true, side: THREE.DoubleSide, depthWrite: false }), false);
+    const t = new THREE.CanvasTexture(c2); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+    addMesh('cage', lip, new THREE.MeshBasicMaterial({ map: t, transparent: true, side: THREE.DoubleSide, depthWrite: false }), false);
   }
 
   // --- Field parts drawn from photos and datasheets ---
-  // Ultrasonic sensor on the cover.
-  attach('ultrasonic', carrier, W(208.8, 60.8, 116.9));
-  finishKit('ultrasonic', new Kit().box(4.5, 0.16, 2, 0x2559b0).cyl(0.8, 1.4, SILVER, -1.3, -0.72, 0, 'y').cyl(0.8, 1.4, SILVER, 1.3, -0.72, 0, 'y')
-    .box(0.9, 0.3, 0.4, SILVER, 0, 0.2, -0.5).box(1.05, 0.85, 0.25, BLACK, 0, 0.5, 0.85));
-  ['VCC', 'TRIG', 'ECHO', 'GND'].forEach((a, i) => anchor('ultrasonic', a, -0.38 + i * 0.254, 0.95, 0.85, 0, 1, 0));
+  // Ultrasonic sensor: in the cover's window, under the plate, looking down at the feed.
+  attach('ultrasonic', carrier, W(208.8, 60.8, 116.35));
+  finishKit('ultrasonic', new Kit().box(4.5, 0.16, 2, 0x2559b0).cyl(0.8, 1.3, SILVER, -1.3, -0.72, 0, 'y').cyl(0.8, 1.3, SILVER, 1.3, -0.72, 0, 'y')
+    .box(0.9, 0.3, 0.4, SILVER, 0, -0.2, -0.5).box(1.05, 0.25, 0.5, BLACK, 0, -0.2, 0.9));
+  ['VCC', 'TRIG', 'ECHO', 'GND'].forEach((a, i) => anchor('ultrasonic', a, -0.38 + i * 0.254, -0.2, 1.15, 0, 0, 1));
+  {
+    const base = P.ultrasonic.obj.position;
+    addMesh('ultrasonic', cad.plate.translate(-base.x, -base.y, -base.z), new THREE.MeshStandardMaterial({ color: 0xdfe6e8, roughness: 0.3, metalness: 0.2, flatShading: true }), false);
+  }
 
   // Dispenser: grey worm gearbox and hanging black motor, joined with white lever connectors.
   attach('dispMotor', carrier, W(208.85, 71.5, 88.8));
@@ -356,7 +365,7 @@ export function buildModel(cad, parts) {
 
   // Exploded-view offsets, in each part's parent space.
   const ex = (id, x, y, z) => P[id].ex.set(x, y, z);
-  ex('cage', 0, 0, -46); ex('hopper', 0, 20, 0); ex('rollers', 0, 20, 0); ex('lid', 0, 44, 0); ex('ultrasonic', 0, 58, 0);
+  ex('cage', 0, 0, -46); ex('hopper', 0, 20, 0); ex('rollers', 0, 20, 0); ex('lid', 0, 52, 0); ex('ultrasonic', 0, 28, 0);
   ex('auger', 0, -2, 22); ex('dispMotor', 0, -2, -24); ex('chain', 0, 7, -22); ex('chainMotor', 18, 7, -28);
   ex('limitHome', 0, 7, -12); ex('limitEnd', 0, 7, -12); ex('reservoir', -22, 18, 0); ex('float', -38, 18, 0); ex('pipe', 0, -6, 24); ex('drinkers', 0, -12, 38);
   [1, 2, 3, 4, 5].forEach(n => { ex('tray' + n, 0, 15, 0); ex('lc' + n, 0, -5, 0); });
@@ -367,6 +376,9 @@ export function buildModel(cad, parts) {
     ex(id, (b.x - 17) * 0.45, (b.y - 23) * 0.4, d);
   });
 
+  parts.forEach(p => { p.obj.userData.ex = p.ex; });
+  box.userData.ex = new V3(34, 0, 0);
+
   // Feed piles and falling pellets used by the feed cycle.
   const feedMat = new THREE.MeshStandardMaterial({ color: 0xb89358, roughness: 0.9 });
   const piles = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 12, 8), feedMat, 15);
@@ -376,106 +388,4 @@ export function buildModel(cad, parts) {
   root.add(piles, pellets);
 
   return { root, box, carrier, doorG, cadMats, piles, pellets, HXU, TRAY_X, megaPins };
-}
-
-// Wiring. Endpoints are real pins; "via" points follow visible cable paths where the photos show them.
-export function wireList(HXU) {
-  const R = 0xd42a2a, K = 0x17191c, A = 0xf29a1c, Y = 0xf0cf2e, BL = 0x2f63d8, GR = 0x2aa84a, PU = 0x8e4bd0, GY = 0x9da3a6, WH = 0xeeeeea, OR = 0xe8791e, SK = 0x39b7e8;
-  const b = (u, v, d) => ['b', u, v, d];
-  const c = (X, Y2, Z) => ['w', X, Y2, Z];
-  const W_ = [];
-  const w = (layer, color, r, from, to, via = [], extra = {}) => W_.push({ layer, color, r, from, to, via, ...extra });
-  const P5 = (i, part, a, via, extra) => w('v5', A, 0.075, ['breadboard', 'p' + i], [part, a], via, extra);
-  const G5 = (i, part, a, via, extra) => w('v5', K, 0.075, ['breadboard', 'g' + i], [part, a], via, extra);
-
-  // 5 V from the step-down boards to the breadboard, then out.
-  w('v5', A, 0.085, ['buck1', 'OUT+'], ['breadboard', 'p0'], [b(12.6, 36.6, 2.1)]);
-  w('v5', K, 0.085, ['buck1', 'OUT-'], ['breadboard', 'g0'], [b(13, 35.7, 2.1)]);
-  w('v5', A, 0.085, ['buck2', 'OUT+'], ['breadboard', 'p1'], [b(12.8, 35, 2.4)]);
-  w('v5', K, 0.085, ['buck2', 'OUT-'], ['breadboard', 'g1'], [b(13.3, 34.4, 2.4)]);
-  P5(2, 'mega', '5V', [b(13.5, 34.2, 3.2), b(21, 34.5, 3)]);
-  G5(2, 'mega', 'GND1', [b(13.8, 33.9, 3.4), b(21.5, 34.8, 3)]);
-  P5(3, 'rtc', 'VCC', [b(14, 33.6, 3.6), b(19.6, 33.9, 3.8)]);
-  G5(3, 'rtc', 'GND', [b(14.3, 33.3, 3.8), b(19.9, 34.2, 3.9)]);
-  w('v5', BL, 0.08, ['breadboard', 'p4'], ['esp32', 'VIN'], [b(13.2, 28.5, 3.2), b(15.7, 27.3, 2.8)]);
-  w('v5', GR, 0.08, ['breadboard', 'g4'], ['esp32', 'GND'], [b(14.2, 28.2, 3.4), b(16.8, 27.5, 2.9)]);
-  P5(5, 'relay', 'VCC', [b(14, 27.6, 3.8), b(22.5, 26.9, 3.7)]);
-  G5(5, 'relay', 'GND', [b(14.4, 27.8, 4), b(19.7, 26.2, 3.7)]);
-  HXU.forEach((u, i) => {
-    P5(6 + i, 'hx' + (i + 1), 'VCC', [b(u - 0.3, 27 + i * 0.1, 2.6)]);
-    G5(6 + i, 'hx' + (i + 1), 'GND', [b(u - 0.7, 26.7 + i * 0.1, 2.8)]);
-  });
-  P5(11, 'buzzer', 'VCC', [b(7, 27, 3.2), b(5, 20, 2.6)]);
-  G5(11, 'buzzer', 'GND', [b(7.4, 26.5, 3.4), b(4.5, 19, 2.6)]);
-  const topExit = (i) => [b(12.2 + i * 0.1, 41, 3.2), b(12.2 + i * 0.1, 46.4, 3.2), c(243.8, 21 + i * 0.15, 106), c(240.5, 45, 124 + i * 0.2), c(222, 60.5, 127 + i * 0.2)];
-  P5(12, 'ultrasonic', 'VCC', topExit(0), { dyn: 'carrier' });
-  G5(12, 'ultrasonic', 'GND', topExit(1), { dyn: 'carrier' });
-  P5(13, 'nextion', '5V', [b(11, 30, 7), b(12, 28, 10)], { dyn: 'door' });
-  G5(13, 'nextion', 'GND', [b(11.5, 29.7, 7), b(12.5, 27.8, 10)], { dyn: 'door' });
-
-  // Signals.
-  const HXC = [SK, 0xa8e05f, 0xf28bb0, 0xffd27a, 0xbfa6ff];
-  [['A0', 'A1'], ['A2', 'A3'], ['A4', 'A5'], ['A6', 'A7'], ['A8', 'A9']].forEach(([dt, sck], i) => {
-    const u = HXU[i], n = 'hx' + (i + 1), lift = i * 0.12;
-    w('sig', HXC[i], 0.06, ['mega', dt], [n, 'DT'], [b(16.3, 33.9, 3.1 + lift), b(15.3, 29.5, 3.3 + lift), b(u + 0.2, 25.9, 2.4 + lift * 0.5)]);
-    w('sig', HXC[i], 0.06, ['mega', sck], [n, 'SCK'], [b(16.6, 34.05, 3 + lift), b(15.6, 29.5, 3.15 + lift), b(u + 0.45, 25.6, 2.25 + lift * 0.5)]);
-  });
-  w('sig', OR, 0.065, ['mega', 'D10'], ['relay', 'IN1'], [b(22.6, 26.9, 2.6), b(20.8, 25.2, 2.4)]);
-  w('sig', Y, 0.065, ['mega', 'D9'], ['relay', 'IN2'], [b(22.8, 26.8, 2.7), b(21.05, 25.2, 2.5)]);
-  w('sig', GR, 0.065, ['mega', 'D8'], ['relay', 'IN3'], [b(23, 26.7, 2.8), b(21.3, 25.2, 2.6)]);
-  w('sig', SK, 0.065, ['mega', 'D11'], ['buzzer', 'IO'], [b(23.2, 26.3, 3.2), b(14, 19, 3), b(7.5, 16.3, 2)]);
-  w('sig', PU, 0.07, ['mega', 'D14'], ['esp32', 'GPIO16'], [b(19.8, 26.9, 3.1), b(18.9, 23.8, 2.5)]);
-  w('sig', GY, 0.07, ['esp32', 'GPIO17'], ['mega', 'D15'], [b(19.1, 23.7, 2.6), b(20, 27, 3.25)]);
-  w('sig', Y, 0.07, ['mega', 'D16'], ['nextion', 'RX'], [b(19.2, 27, 3.5), b(13.5, 27.5, 6), b(13, 28.2, 10)], { dyn: 'door' });
-  w('sig', BL, 0.07, ['mega', 'D17'], ['nextion', 'TX'], [b(19, 27.1, 3.6), b(13.3, 27.7, 6), b(12.8, 28, 10)], { dyn: 'door' });
-  w('sig', OR, 0.065, ['mega', 'D20'], ['rtc', 'SDA'], [b(16.1, 27.3, 3.1), b(15.9, 33.7, 3.9), b(21.5, 35.5, 3.3)]);
-  w('sig', 0x9a5b2e, 0.065, ['mega', 'D21'], ['rtc', 'SCL'], [b(15.8, 27.5, 3.2), b(15.6, 33.8, 4), b(21.5, 35.2, 3.4)]);
-  w('sig', SK, 0.07, ['mega', 'D52'], ['ultrasonic', 'TRIG'], [b(15.6, 33.6, 3.4), ...topExit(2)], { dyn: 'carrier' });
-  w('sig', GR, 0.07, ['mega', 'D50'], ['ultrasonic', 'ECHO'], [b(15.4, 33.3, 3.5), ...topExit(3)], { dyn: 'carrier' });
-  const floatPath = i => [b(12.8 + i * 0.1, 41, 3.2), b(12.8 + i * 0.1, 46.4, 3.2), c(243.4, 12, 105.5), c(120, 9.8 + i * 0.25, 105.2), c(30, 9.8 + i * 0.25, 105), c(12.6, 21, 112), c(12.8, 26, 120)];
-  w('sig', Y, 0.08, ['mega', 'D49'], ['float', 'a'], [b(15.7, 33.1, 3.7), ...floatPath(0)]);
-  w('sig', Y, 0.08, ['breadboard', 'g14'], ['float', 'b'], floatPath(1));
-  const sidePath = i => [b(6, 30.4 - i * 0.2, 4), b(-0.5, 30 - i * 0.2, 4), c(244.6, 6.5, 90 + i * 0.3), c(239.2, 8, 103.2), c(238.5, 42, 99.5 + i * 0.2)];
-  w('sig', Y, 0.08, ['mega', 'D53'], ['limitHome', 'S'], [b(15, 32.8, 3.8), ...sidePath(0)]);
-  w('sig', R, 0.08, ['breadboard', 'g15'], ['limitHome', 'G'], sidePath(1));
-  const farPath = i => [...sidePath(2 + i), c(134, 42.6 + i * 0.25, 100.6), c(36, 44, 99.6 + i * 0.2)];
-  w('sig', BL, 0.08, ['mega', 'D51'], ['limitEnd', 'S'], [b(14.9, 32.5, 3.9), ...farPath(0)]);
-  w('sig', WH, 0.08, ['breadboard', 'g16'], ['limitEnd', 'G'], farPath(1));
-
-  // Load cells: four wires per cable, leaving the floor of the box and running under the trays.
-  const CELLX = { 1: 219.55, 2: 177.25, 3: 134.95, 5: 92.65, 4: 50.35 };
-  const CC = [['E+', R], ['E-', K], ['A-', WH], ['A+', GR]];
-  HXU.forEach((u, i) => {
-    const n = i + 1, X = CELLX[n];
-    CC.forEach(([a, color], j) => {
-      const o = (j - 1.5) * 0.14;
-      w('sig', color, 0.06, ['hx' + n, a], ['lc' + n, a], [b(u + o, 18, 1.8), b(u + o, 4, 2 + i * 0.25), b(u + o, -1, 2 + i * 0.25),
-        c(243 + i * 0.3 + o, 47, 58.6 + i * 0.5), c(X + 16, 49.5 + i * 0.3 + o, 61.4 + i * 0.3), c(X + 7, 50.2 + o, 65)]);
-    });
-  });
-
-  // 12 V.
-  const pv = 0.13;
-  w('v12', R, pv, ['psu', 'V1'], ['charger', 't5'], [b(28.4, 23, 3.8), b(28.3, 33, 3.9), b(24, 37.6, 3)]);
-  w('v12', K, pv, ['psu', 'COM1'], ['charger', 't6'], [b(28.7, 23, 3.9), b(28.6, 33, 4), b(26, 37.6, 3)]);
-  w('v12', R, pv, ['charger', 't1'], ['rocker', 'a'], [b(13, 38, 3.2), b(9, 41, 3.6), b(4, 42.45, 5)]);
-  w('v12', R, pv, ['rocker', 'b'], ['battery', '+'], [b(4.2, 39, 4.6), b(5.8, 18, 2.4), b(8.5, 3.5, 2.2), b(16, 2, 7.6), b(19.8, 12, 5.8)]);
-  w('v12', K, pv, ['charger', 't2'], ['battery', '-'], [b(13.2, 37.6, 3.4), b(6.6, 38, 3.2), b(6.5, 18, 2.5), b(9, 3.2, 2.4), b(16.5, 2.4, 8), b(26, 11.6, 8), b(32.2, 11.6, 6)]);
-  const LP = ['charger', 't3'], LN = ['charger', 't4'];
-  w('v12', R, 0.1, LP, ['buck1', 'IN+'], [b(19.4, 37.7, 2)]);
-  w('v12', K, 0.1, LN, ['buck1', 'IN-'], [b(20, 37.4, 2)]);
-  w('v12', R, 0.1, LP, ['buck2', 'IN+'], [b(19.6, 36.5, 2.2)]);
-  w('v12', K, 0.1, LN, ['buck2', 'IN-'], [b(20.2, 35.6, 2.2)]);
-  [1, 2, 3].forEach(n => {
-    w('v12', R, 0.11, LP, ['relay', 'com' + n], [b(21, 37.9, 3.1 + n * 0.1), b(28.2, 34.2, 4.2), b(29.1, 26, 4.2 + n * 0.1), b(29.7, 19, 3.6), b(20 + n * 1.6, 18.2, 2.2)]);
-  });
-  const downBox = i => [b(18 + i * 0.2, 16, 7), b(16.4 + i * 0.25, 5, 7.6), b(16.4 + i * 0.25, -1, 7.6)];
-  const upLeg = i => [c(247.6, 25 + i * 0.3, 54.5), c(242, 45.4 + i * 0.25, 55.5), c(241.9, 47.4 + i * 0.25, 100)];
-  const runMotor = (n, i, to, extra, more = []) => w('v12', n ? R : K, 0.11, n ? ['relay', 'no' + n] : LN, to, [...(n ? [b(20 + n * 1.6, 18, 2.4)] : [b(21, 37.2, 3.5), b(28.4, 34, 4.5), b(29.3, 26, 4.5), b(29.9, 18.8, 4)]), ...downBox(i), ...upLeg(i), ...more], extra);
-  runMotor(1, 0, ['chainMotor', 'M+'], {}, [c(241.5, 63, 108.8)]);
-  runMotor(2, 1, ['chainMotor', 'M-'], {}, [c(241.8, 63.2, 110)]);
-  const dispVia = i => [c(239 + i * 0.3, 63, 125 + i * 0.3), c(218, 79, 106), c(211, 75.6, 82)];
-  runMotor(3, 2, ['dispMotor', 'M+'], { dyn: 'carrier' }, dispVia(0));
-  runMotor(0, 3, ['dispMotor', 'M-'], { dyn: 'carrier' }, dispVia(1));
-  return W_;
 }
