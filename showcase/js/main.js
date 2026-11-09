@@ -20,26 +20,32 @@ function openVideo(v) {
 }
 $('videoDialog').addEventListener('close', () => { $('videoHost').textContent = ''; });
 
+const PLAY_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg>';
+
 function renderVideos() {
   const grid = $('videoGrid');
   VIDEOS.forEach(v => {
-    const card = document.createElement(v.src ? 'button' : 'article');
-    card.className = 'vcard';
-    const t = document.createElement('div'); t.className = 'vthumb'; t.textContent = v.src ? 'Play video' : 'Video coming soon';
-    const b = document.createElement('div'); b.className = 'vbody';
+    const row = document.createElement('article'); row.className = 'vrow';
+    const chip = document.createElement('span'); chip.className = 'chip'; chip.innerHTML = PLAY_ICON;
+    const b = document.createElement('div');
     const h = document.createElement('h3'); h.textContent = v.title;
     const p = document.createElement('p'); p.textContent = v.text;
-    b.append(h, p); card.append(t, b);
-    if (v.src) card.addEventListener('click', () => openVideo(v));
-    grid.append(card);
+    b.append(h, p); row.append(chip, b);
+    if (v.src) {
+      const w = document.createElement('button'); w.className = 'btn blue'; w.textContent = 'Watch';
+      w.addEventListener('click', () => openVideo(v)); row.append(w);
+    } else {
+      const s = document.createElement('span'); s.className = 'soon'; s.textContent = 'Video coming soon'; row.append(s);
+    }
+    grid.append(row);
   });
 }
 
 function renderBars() {
   const host = $('resultBars');
-  [49.0, 50.5, 49.6, 52.6, 51.1].forEach(v => {
+  [49.0, 50.5, 49.6, 52.6, 51.1].forEach((v, i) => {
     const r = document.createElement('div'); r.className = 'brow';
-    r.innerHTML = `<span>Tray</span><div class="btrack"><i style="width:${(v / 60 * 100).toFixed(1)}%"></i><u style="left:${(50 / 60 * 100).toFixed(1)}%"></u></div><span class="bval">${v.toFixed(1)} g</span>`;
+    r.innerHTML = `<span>Reading ${i + 1}</span><div class="btrack"><i style="width:${(v / 60 * 100).toFixed(1)}%"></i><u style="left:${(50 / 60 * 100).toFixed(1)}%"></u></div><span class="bval">${v.toFixed(1)} g</span>`;
     host.append(r);
   });
   const n = document.createElement('p'); n.className = 'bnote'; n.textContent = 'The dark line marks the 50 g target. Values are in the order our test notes list them.';
@@ -116,6 +122,8 @@ async function fetchWithProgress(url, onP) {
 }
 
 async function start() {
+  $('playHero').addEventListener('click', () => { $('play').click(); $('stage').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' }); });
+  $('boxHero').addEventListener('click', () => { document.querySelector('[data-view=box]').click(); $('stage').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' }); });
   VIDEOS = await fetch('data/videos.json').then(r => r.json()).catch(() => []);
   renderVideos(); renderBars(); renderGallery(); renderDiagram();
   let pick = () => {};

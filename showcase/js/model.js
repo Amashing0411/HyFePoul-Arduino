@@ -56,7 +56,7 @@ export function buildModel(cad, parts) {
   // The source mesh is one merged shell and the five trays are fused into long triangles.
   // Cut it at the measured tray boundaries so each tray is its own selectable piece.
   {
-    const start = { 4: 29.2, 5: 71.5, 3: 113.8, 2: 156.1, 1: 198.4 }, tris = [];
+    const start = { 1: 29.2, 2: 71.5, 3: 113.8, 5: 156.1, 4: 198.4 }, tris = [];
     [1, 2, 3, 4, 5].forEach(n => {
       const g = cad['tray' + n], a = g.attributes.position, idx = g.index.array;
       for (let i = 0; i < idx.length; i += 3) tris.push([0, 1, 2].map(j => new V3().fromBufferAttribute(a, idx[i + j])));
@@ -128,14 +128,18 @@ export function buildModel(cad, parts) {
   }
 
   // --- Field parts drawn from photos and datasheets ---
-  // Ultrasonic sensor: in the cover's window, under the plate, looking down at the feed.
-  attach('ultrasonic', carrier, W(208.8, 60.8, 116.35));
-  finishKit('ultrasonic', new Kit().box(4.5, 0.16, 2, 0x2559b0).cyl(0.8, 1.3, SILVER, -1.3, -0.72, 0, 'y').cyl(0.8, 1.3, SILVER, 1.3, -0.72, 0, 'y')
-    .box(0.9, 0.3, 0.4, SILVER, 0, -0.2, -0.5).box(1.05, 0.25, 0.5, BLACK, 0, -0.2, 0.9));
-  ['VCC', 'TRIG', 'ECHO', 'GND'].forEach((a, i) => anchor('ultrasonic', a, -0.38 + i * 0.254, -0.2, 1.15, 0, 0, 1));
+  // Ultrasonic sensor: board on top of the cover, in a sealed clear window; its two cans point down through it.
+  attach('ultrasonic', carrier, W(208.8, 60.8, 117.5));
+  finishKit('ultrasonic', new Kit().box(4.5, 0.16, 2, 0x2559b0).cyl(0.8, 1.5, SILVER, -1.3, -0.85, 0, 'y').cyl(0.8, 1.5, SILVER, 1.3, -0.85, 0, 'y')
+    .box(0.8, 0.12, 0.5, BLACK, -1, 0.14, 0).box(0.8, 0.12, 0.5, BLACK, 1, 0.14, 0).box(1.05, 0.55, 0.3, BLACK, 0, 0.36, 0.85)
+    .box(7.4, 0.08, 7.4, 0x14171a, 0, -0.74, 0).box(8.8, 0.18, 0.45, 0x0c0d0f, 0, -0.72, 4.2).box(8.8, 0.18, 0.45, 0x0c0d0f, 0, -0.72, -4.2).box(0.45, 0.18, 8.8, 0x0c0d0f, 4.2, -0.72, 0).box(0.45, 0.18, 8.8, 0x0c0d0f, -4.2, -0.72, 0));
+  ['VCC', 'TRIG', 'ECHO', 'GND'].forEach((a, i) => anchor('ultrasonic', a, -0.38 + i * 0.254, 0.7, 0.85, 0, 1, 0));
   {
     const base = P.ultrasonic.obj.position;
-    addMesh('ultrasonic', cad.plate.translate(-base.x, -base.y, -base.z), new THREE.MeshStandardMaterial({ color: 0xdfe6e8, roughness: 0.3, metalness: 0.2, flatShading: true }), false);
+    addMesh('ultrasonic', cad.plate.translate(-base.x, -base.y, -base.z), new THREE.MeshStandardMaterial({ color: 0xcfe0e6, transparent: true, opacity: 0.45, roughness: 0.15 }), false);
+    const clips = new Kit();
+    [[209, 53], [209, 47.3], [216, 47.3]].forEach(([X, Y]) => { const q = W(X, Y, 116.75); clips.box(1.3, 0.35, 1.3, BLACK, q.x, q.y, q.z); });
+    addMesh('lid', clips.geometry(), kitMat, false);
   }
 
   // Dispenser: grey worm gearbox and hanging black motor, joined with white lever connectors.
@@ -143,26 +147,33 @@ export function buildModel(cad, parts) {
   {
     const k = new Kit().box(5.5, 8, 4.2, 0x8c9093).cyl(0.65, 1.8, SILVER, 0, 0, 2.9).cyl(2.1, 8, BLACK, 0, -8, 0, 'y');
     [[-2, 3], [2, 3], [-2, -3], [2, -3]].forEach(([x, y]) => k.cyl(0.45, 0.3, 0x6a6e70, x, y, -2.2));
-    k.box(3.2, 1.2, 1.5, 0xf2f2ee, 0, -9.8, 2.9).cyl(0.55, 1.1, 0xc4322d, 0, -11, 2.2, 'y');
+    k.box(3.2, 1.2, 1.5, 0xf2f2ee, 0, -9.8, -2.9).cyl(0.55, 1.1, 0xc4322d, 0, -11, -2.2, 'y');
     finishKit('dispMotor', k);
-    anchor('dispMotor', 'M+', -0.8, -9.15, 2.9, 0, 1, 0);
-    anchor('dispMotor', 'M-', 0.8, -9.15, 2.9, 0, 1, 0);
+    anchor('dispMotor', 'M+', -0.8, -9.15, -2.9, 0, 1, 0);
+    anchor('dispMotor', 'M-', 0.8, -9.15, -2.9, 0, 1, 0);
   }
 
-  attach('chainMotor', root, W(239.5, 53, 109.4));
-  finishKit('chainMotor', new Kit().box(5, 5, 4, 0x71767a, 0, 0, 3).cyl(2.6, 9, BLACK, 0, 0, -3.5).box(1.8, 0.8, 0.4, 0xd8b45a, 0, 0, -8.2).cyl(0.8, 6, SILVER, 0, 0, 7));
-  anchor('chainMotor', 'M+', -0.55, 0, -8.4, 0, 0, -1);
-  anchor('chainMotor', 'M-', 0.55, 0, -8.4, 0, 0, -1);
+  // Chain motor (photo): grey gearbox behind the sprocket, black motor lying along the top of the control box,
+  // its leads going to a white lever connector on the box roof.
+  attach('chainMotor', root, W(241, 40, 109.4));
+  finishKit('chainMotor', new Kit().box(6, 6, 4, 0x8c9093, -6, 0, 0).cyl(0.7, 2.6, SILVER, -6.6, 0, -3.3).cyl(2.6, 11, BLACK, 2.5, 0, 0, 'x').cyl(2.62, 0.7, 0x9a9fa3, 8.2, 0, 0, 'x')
+    .box(1.4, 2.4, 3.2, 0xb6bbbe, -6, -4.2, 0).box(1.7, 0.8, 2.2, 0xf2f2ee, 6, -5.95, -1.6));
+  anchor('chainMotor', 'M+', 8.95, 0, 0.5, 1, 0, 0);
+  anchor('chainMotor', 'M-', 8.95, 0, -0.5, 1, 0, 0);
 
-  const limit = (id, X, dir) => {
-    attach(id, root, W(X, 47, 101.2));
-    finishKit(id, new Kit().box(2.8, 1.6, 1, BLACK).box(0.15, 0.1, 0.5, SILVER, dir * 1.6, 1, 0).box(2.8, 0.12, 0.5, SILVER, dir * 2.2, 1.1, 0).cyl(0.25, 0.5, 0x888888, dir * 3.5, 1.25, 0));
+  // Two lever microswitches, one at each end of the rail, on small steel brackets.
+  const limit = (id, X, dir, beamSide) => {
+    attach(id, root, W(X, 52, 106.2));
+    const k = new Kit().box(2.8, 1.6, 1, BLACK).box(0.5, 0.2, 0.7, 0xc23b2b, dir * 1.6, 0.4, 0).box(3, 0.14, 0.6, SILVER, dir * 2.7, 0.5, 0).cyl(0.3, 0.6, 0xaab0b4, dir * 4.1, 0.65, 0)
+      .box(4.2, 0.2, 2.6, 0xc4c9cb, beamSide * 0.6, -1, 0).box(0.3, 1.4, 2.6, 0xc4c9cb, beamSide * 2.6, -1.6, 0);
+    [-1, 1].forEach(o => k.cyl(0.22, 0.12, SILVER, o * 0.9, 0, 0.55));
+    finishKit(id, k);
     anchor(id, 'S', -0.4, -0.9, 0, 0, -1, 0); anchor(id, 'G', 0.4, -0.9, 0, 0, -1, 0);
   };
-  limit('limitHome', 237, -1);
-  limit('limitEnd', 32.5, 1);
+  limit('limitHome', 31.6, 1, -1);
+  limit('limitEnd', 238.2, -1, 1);
 
-  const TRAY_X = { 1: 219.55, 2: 177.25, 3: 134.95, 5: 92.65, 4: 50.35 };
+  const TRAY_X = { 1: 50.35, 2: 92.65, 3: 134.95, 5: 177.25, 4: 219.55 };
   [1, 2, 3, 4, 5].forEach(n => {
     const id = 'lc' + n;
     attach(id, root, W(TRAY_X[n], 50.2, 66.6));
@@ -170,9 +181,26 @@ export function buildModel(cad, parts) {
     ['E+', 'E-', 'A-', 'A+'].forEach((a, i) => anchor(id, a, 4.55, 0.1, -0.33 + i * 0.22, 1, 0, 0));
   });
 
-  attach('float', root, W(14.5, 26, 122));
-  finishKit('float', new Kit().cyl(1.4, 0.6, SILVER, -0.3, 0, 0, 'x').cyl(0.4, 6, 0xdddddd, 3, 0, 0, 'x').cyl(1.5, 3, 0xf1f1ec, 7, -0.6, 0, 'y'));
-  anchor('float', 'a', -0.6, 0.2, 0.15, -1, 0, 0); anchor('float', 'b', -0.6, -0.2, -0.15, -1, 0, 0);
+  // Float switch: white plastic nut low on the reservoir's front wall, two yellow twisted wires.
+  attach('float', root, W(22, 41.3, 120));
+  finishKit('float', new Kit().cyl(1.5, 0.5, 0xf1f1ec, 0, 0, -0.25, 'z', 6).cyl(0.75, 0.5, 0xf1f1ec, 0, 0, -0.6).cyl(0.4, 6, 0xdddddd, 0, 0, 3).cyl(1.5, 3, 0xf1f1ec, 0, -0.6, 7, 'y'));
+  anchor('float', 'a', -0.15, -0.1, -0.85, 0, 0, -1); anchor('float', 'b', 0.15, -0.1, -0.85, 0, 0, -1);
+
+  // Sprockets (35B 15T in the photos) at both ends of the chain.
+  {
+    const k = new Kit();
+    [34.1, 234.4].forEach(X => { const q = W(X, 44.55, 108.95); k.cyl(5, 0.4, 0x96683c, q.x, q.y, q.z).cyl(1.6, 0.9, 0xb9bdc1, q.x, q.y, q.z).cyl(0.7, 2.4, 0xc29a58, q.x, q.y, q.z); });
+    addMesh('chain', k.geometry(), kitMat, false);
+  }
+
+  // Grey spiral wrap under the front rail, held by clips. It hides the wires inside; "Covers" lifts it away.
+  {
+    const k = new Kit(), Y = 44.75, Z = 101.8, X0 = 72, X1 = 239.9, m = W((X0 + X1) / 2, Y, Z);
+    k.cyl(0.5, X1 - X0, 0xa7aeb3, m.x, m.y, m.z, 'x', 8);
+    for (let X = X0; X <= X1; X += 2.4) { const q = W(X, Y, Z); k.cyl(0.56, 0.5, 0x858d93, q.x, q.y, q.z, 'x', 8); }
+    for (let X = X0 + 8; X < X1; X += 32) { const q = W(X, Y, Z); k.box(1.2, 1.5, 0.3, BLACK, q.x, q.y + 0.85, q.z + 0.1); }
+    const w = addMesh('frame', k.geometry(), kitMat, false); w.userData.wall = true;
+  }
 
   // --- Control box. Local axes: x across (Y in CAD), y up, z from back plate toward the door. ---
   const box = new THREE.Group();
@@ -184,7 +212,8 @@ export function buildModel(cad, parts) {
   const steel = 0xb6bbbe;
   {
     const k = new Kit().box(34, 46, 0.15, steel, 17, 23, 0.075);
-    [[265, 190], [305, 490], [150, 430], [480, 940], [240, 900], [365, 770], [590, 430]].forEach(([px, py]) => k.box(1.2, 1.2, 0.3, BLACK, (px - 140) / 30.8, 45 - py / 30.8, 0.25));
+    [[335, 585], [190, 850], [350, 950], [700, 850], [405, 1280], [260, 1430], [535, 1520], [895, 1530]].forEach(([px, py]) => k.box(1.3, 1.3, 0.3, BLACK, 21 + (px - 962) / 36.9, 25.8 + (885 - py) / 36.9, 0.25));
+    k.cyl(2, 0.3, BLACK, 4.2, 0.2, 3.8, 'y');
     finishKit('shell', k);
     const w = new Kit().box(0.15, 46, 13, steel, 0.075, 23, 6.5).box(0.15, 46, 13, steel, 33.925, 23, 6.5).box(34, 0.15, 13, steel, 17, 45.925, 6.5).box(34, 0.15, 13, steel, 17, 0.075, 6.5);
     addMesh('shell', w.geometry(), kitMat).userData.wall = true;
@@ -207,6 +236,9 @@ export function buildModel(cad, parts) {
     [[-8.4, 4.8], [8.4, 4.8], [-8.4, -4.8], [8.4, -4.8]].forEach(([x, y]) => k.cyl(0.28, 0.8, GOLD, x, y, -0.45));
     finishKit('nextion', k);
     ['5V', 'TX', 'RX', 'GND'].forEach((a, i) => anchor('nextion', a, 2.1 + i * 0.6, -5, -1.5, 0, -0.2, -1));
+    const screen = new THREE.TextureLoader().load('img/nextion-home.jpg', () => dispatchEvent(new Event('hfp-render')));
+    screen.colorSpace = THREE.SRGBColorSpace; screen.anisotropy = 4;
+    addMesh('nextion', new THREE.PlaneGeometry(17.6, 9.6).translate(0, 0, 0.65), new THREE.MeshBasicMaterial({ map: screen }));
   }
 
   const module = (id, u, v, d) => attach(id, box, new V3(u, v, d));
@@ -229,7 +261,7 @@ export function buildModel(cad, parts) {
     for (let i = 0; i < 8; i++) put('A' + (8 + i), 73.66 + i * 2.54, 2.54);
     for (let r = 0; r < 16; r++) { put('D' + (22 + r * 2), 93.98, 46.99 - r * 2.54); put('D' + (23 + r * 2), 96.52, 46.99 - r * 2.54); }
   }
-  module('mega', 21.9, 30.6, 1.1);
+  module('mega', 21, 25.8, 1.1);
   {
     const k = new Kit(); pcb(k, 10.16, 5.33, BLUE);
     standoffs(k, [[4.6, 2.3], [-4.5, 2.3], [4.6, -2.3], [-4.5, -2.3]], 0.94);
@@ -243,10 +275,10 @@ export function buildModel(cad, parts) {
     Object.entries(megaPins).forEach(([n, [x, y]]) => anchor('mega', n, x, y, 0.92));
   }
 
-  module('esp32', 19.3, 25.6, 0.9);
+  module('esp32', 18.2, 20.8, 0.9);
   {
-    const k = new Kit(); pcb(k, 6.2, 3.5, 0xf2f1ea);
-    standoffs(k, [[2.8, 1.5], [-2.8, 1.5], [2.8, -1.5], [-2.8, -1.5]], 0.74);
+    const k = new Kit(); pcb(k, 5.6, 3.3, 0xf2f1ea);
+    standoffs(k, [[2.5, 1.4], [-2.5, 1.4], [2.5, -1.4], [-2.5, -1.4]], 0.74);
     k.box(5.2, 2.8, 0.16, 0x1a1c1f, 0, 0, 0.75).box(1.8, 1.6, 0.3, SILVER, 1.55, 0, 0.98).box(0.7, 1.7, 0.1, 0x101215, 2.5, 0, 0.87).box(0.85, 0.9, 0.3, SILVER, -2.5, 0, 0.98).box(0.4, 0.4, 0.1, 0x303236, -1, 0.5, 0.88);
     headerRow(k, -2.286, 1.27, 19, 0.254, 0, BLACK, 0.67); headerRow(k, -2.286, -1.27, 19, 0.254, 0, BLACK, 0.67);
     finishKit('esp32', k);
@@ -255,7 +287,7 @@ export function buildModel(cad, parts) {
     anchor('esp32', 'GPIO16', x(7), -1.27, 0.92); anchor('esp32', 'GPIO17', x(8), -1.27, 0.92);
   }
 
-  module('rtc', 24.9, 36, 0.8);
+  module('rtc', 23.8, 31.4, 0.8);
   {
     const k = new Kit(); pcb(k, 3.8, 2.2, 0x1659a6);
     standoffs(k, [[1.6, 0.9], [1.6, -0.9], [-1.1, 0.9], [-1.1, -0.9]], 0.64);
@@ -274,9 +306,9 @@ export function buildModel(cad, parts) {
     anchor(id, 'IN+', 2, 0.45, 0.1); anchor(id, 'IN-', 2, -0.45, 0.1);
     anchor(id, 'OUT+', -2, 0.45, 0.1); anchor(id, 'OUT-', -2, -0.45, 0.1);
   };
-  buck('buck1', 16.2, 37.4); buck('buck2', 16.5, 35);
+  buck('buck1', 15.6, 33.05); buck('buck2', 15.8, 30.7);
 
-  module('breadboard', 10.4, 32.1, 0.2);
+  module('breadboard', 9.8, 27.7, 0.2);
   {
     const k = new Kit().box(3.5, 4.6, 0.85, 0xf2f1ea, 0, 0, 0.42);
     const cols = [-1.3, -1.05, 1.05, 1.3];
@@ -290,10 +322,10 @@ export function buildModel(cad, parts) {
     }
   }
 
-  const HXU = [9.2, 11.5, 13.8, 16.1, 18.4];
+  const HXU = [8.1, 10.3, 12.5, 14.7, 16.9];
   HXU.forEach((u, i) => {
     const id = 'hx' + (i + 1);
-    module(id, u, 22, 0.8);
+    module(id, u, 17.4, 0.8);
     const k = new Kit(); pcb(k, 2.1, 3.3, 0x1f7a3c);
     standoffs(k, [[0.85, 1.4], [-0.85, 1.4], [0.85, -1.4], [-0.85, -1.4]], 0.64);
     k.box(0.65, 1, 0.16, BLACK, 0, 0, 0.08);
@@ -303,7 +335,7 @@ export function buildModel(cad, parts) {
     ['E+', 'E-', 'A-', 'A+'].forEach((a, j) => anchor(id, a, -0.635 + j * 0.254, -1.45, 0.6));
   });
 
-  module('relay', 24.7, 21.6, 1);
+  module('relay', 26.2, 17.8, 1);
   {
     const k = new Kit(); pcb(k, 10, 4.4, 0x1659a6);
     standoffs(k, [[4.7, 2], [-4.7, 2], [4.7, -2], [-4.7, -2]], 0.84);
@@ -322,18 +354,19 @@ export function buildModel(cad, parts) {
     });
   }
 
-  module('charger', 20.3, 42.2, 0.2);
+  module('charger', 19.5, 40.8, 0.2);
   {
-    const k = new Kit().box(14, 7, 3.2, 0x14171b, 0, 0, 1.6).box(5.4, 2.5, 0.08, 0x33506a, 0, 1.6, 3.22).box(13.4, 1.5, 0.08, 0x202429, 0, -2.45, 3.22);
-    [-1.5, 0, 1.5].forEach(x => k.cyl(0.38, 0.14, 0x333840, x, 0, 3.26));
-    [[5.2, 2], [5.2, 1]].forEach(([x, y]) => k.box(1.3, 0.55, 0.1, SILVER, x, y, 3.24));
-    [[-6.6, 3.1], [6.6, 3.1], [-6.6, -3.1], [6.6, -3.1]].forEach(([x, y]) => k.cyl(0.3, 0.2, SILVER, x, y, 3.3));
-    for (let i = 0; i < 6; i++) k.cyl(0.32, 0.14, SILVER, -4.4 + i * 1.76, -2.45, 3.28);
+    const k = new Kit().box(12.7, 8.8, 3.2, 0x14171b, 0, 0, 1.6).box(14.1, 8.4, 0.5, 0x14171b, 0, 0, 0.3).box(11.6, 5.4, 0.08, 0x1d57c4, 0, 1.3, 3.22).box(3.6, 2.8, 0.08, 0x8fa3a8, -0.3, 1.5, 3.27).box(11.6, 2.5, 0.08, 0x202429, 0, -3.1, 3.22);
+    [-1.6, 0, 1.6].forEach(x => k.cyl(0.36, 0.16, 0x0d0f12, x - 0.3, -0.45, 3.3));
+    [[4.7, 2.6], [4.7, 1.8]].forEach(([x, y]) => k.box(1.3, 0.55, 0.1, SILVER, x, y, 3.3));
+    [[-5, 2.5], [-3.9, 2.5], [-5, 0.8], [-3.9, 0.8]].forEach(([x, y]) => k.box(0.85, 1.25, 0.06, 0xdfe7f3, x, y, 3.28));
+    [[-6.5, 3.6], [6.5, 3.6], [-6.5, -3.6], [6.5, -3.6]].forEach(([x, y]) => k.cyl(0.3, 0.9, SILVER, x, y, 0.9));
+    for (let i = 0; i < 6; i++) k.cyl(0.3, 0.14, SILVER, -2.7 + i * 1.08, -3.2, 3.28);
     finishKit('charger', k);
-    for (let i = 0; i < 6; i++) anchor('charger', 't' + (i + 1), -4.4 + i * 1.76, -3.52, 1.3 + (i % 2) * 0.1, 0, -1, 0);
+    for (let i = 0; i < 6; i++) anchor('charger', 't' + (i + 1), -2.7 + i * 1.08, -4.42, 1.3, 0, -1, 0);
   }
 
-  module('psu', 31.75, 33.85, 5.9);
+  module('psu', 31.75, 35.9, 5.9);
   {
     const k = new Kit().box(4.2, 19.9, 9.8, 0xc2c7ca).box(0.45, 1.5, 7.6, 0xb0763a, -2.3, -9.1, 0).box(0.1, 5, 4, 0xf0f0ea, 0.9, 0, 4.95).box(0.1, 1.8, 2.4, 0xe9c23a, -2.15, 7.8, 0);
     for (let i = 0; i < 7; i++) k.cyl(0.32, 0.25, SILVER, -2.6, -9.1, -3.3 + i * 1.1, 'x');
@@ -346,28 +379,26 @@ export function buildModel(cad, parts) {
     ['L', 'N', 'E', 'COM1', 'COM2', 'V1', 'V2'].forEach((a, i) => anchor('psu', a, -2.72, -9.1, -3.3 + i * 1.1, -1, 0, 0));
   }
 
-  module('battery', 26, 4.95, 3.6);
+  module('battery', 26.2, 4.95, 3.6);
   finishKit('battery', new Kit().box(15.1, 9.4, 6.5, 0x1c1e20).box(14.6, 0.5, 6, 0x101214, 0, 4.9, 0).box(0.7, 0.35, 0.8, 0xc62d29, -6.2, 5.3, 1.8).box(0.7, 0.35, 0.8, 0x2a2c2e, 6.2, 5.3, 1.8));
   anchor('battery', '+', -6.2, 5.5, 1.8, 0, 1, 0); anchor('battery', '-', 6.2, 5.5, 1.8, 0, 1, 0);
 
-  module('rocker', 0.15, 42, 5);
-  finishKit('rocker', new Kit().box(2.2, 2, 3, BLACK, 1.1, 0, 0).box(0.5, 1.6, 2.6, 0xc92e2a, -0.25, 0, 0).box(0.8, 0.14, 0.5, 0xd9b53a, 2.5, 0.45, 0).box(0.8, 0.14, 0.5, 0xd9b53a, 2.5, -0.45, 0));
+  module('rocker', 0.15, 36, 5.5);
+  finishKit('rocker', new Kit().box(2.2, 2, 3, BLACK, 1.1, 0, 0).box(0.3, 2.5, 3.4, BLACK, -0.15, 0, 0).box(0.55, 2, 2.8, 0xd5302a, -0.5, 0, 0).box(0.8, 0.14, 0.5, 0xd9b53a, 2.5, 0.45, 0).box(0.8, 0.14, 0.5, 0xd9b53a, 2.5, -0.45, 0));
   anchor('rocker', 'a', 2.9, 0.45, 0, 1, 0, 0); anchor('rocker', 'b', 2.9, -0.45, 0, 1, 0, 0);
 
-  module('buzzer', 5.5, 16, 0.8);
+  module('buzzer', 19.5, 15.9, 0.2);
   {
-    const k = new Kit(); pcb(k, 3.3, 1.3, 0x1b5fa8);
-    standoffs(k, [[1.4, 0.45], [-1.4, -0.45]], 0.64);
-    k.cyl(0.6, 0.8, BLACK, 0.7, 0, 0.4); headerRow(k, -1.45, 0.25, 3, 0, -0.254);
+    const k = new Kit().cyl(1.35, 1.7, 0xefe9d8, 0, 0, 0.85, 'z', 18).cyl(1.5, 0.15, 0xe2dcc9, 0, 0, 0.1, 'z', 18).cyl(0.22, 2.3, SILVER, 0, 0, 1.2, 'z').box(0.5, 0.5, 0.3, 0x1c1e20, -1.25, 0.4, 0.3);
     finishKit('buzzer', k);
-    ['VCC', 'IO', 'GND'].forEach((a, i) => anchor('buzzer', a, -1.45, 0.25 - i * 0.254, 0.92));
+    ['VCC', 'IO', 'GND'].forEach((a, i) => anchor('buzzer', a, -1.3, 0.45 - i * 0.45, 0.5));
   }
 
   // Exploded-view offsets, in each part's parent space.
   const ex = (id, x, y, z) => P[id].ex.set(x, y, z);
   ex('cage', 0, 0, -46); ex('hopper', 0, 20, 0); ex('rollers', 0, 20, 0); ex('lid', 0, 52, 0); ex('ultrasonic', 0, 28, 0);
   ex('auger', 0, -2, 22); ex('dispMotor', 0, -2, -24); ex('chain', 0, 7, -22); ex('chainMotor', 18, 7, -28);
-  ex('limitHome', 0, 7, -12); ex('limitEnd', 0, 7, -12); ex('reservoir', -22, 18, 0); ex('float', -38, 18, 0); ex('pipe', 0, -6, 24); ex('drinkers', 0, -12, 38);
+  ex('limitHome', 0, 7, -12); ex('limitEnd', 0, 7, -12); ex('reservoir', -22, 18, 0); ex('float', -22, 18, -16); ex('pipe', 0, -6, 24); ex('drinkers', 0, -12, 38);
   [1, 2, 3, 4, 5].forEach(n => { ex('tray' + n, 0, 15, 0); ex('lc' + n, 0, -5, 0); });
   ex('door', 0, 0, 44);
   const spread = { battery: 10, psu: 14, charger: 20, buck1: 24, buck2: 24, breadboard: 24, mega: 28, esp32: 32, rtc: 28, relay: 24, rocker: 4, buzzer: 18, hx1: 26, hx2: 26, hx3: 26, hx4: 26, hx5: 26 };

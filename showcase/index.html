@@ -3,12 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d57cf">
 <title>HyFePoul: Interactive Device Showcase</title>
 <meta name="description" content="An interactive 3D look at HyFePoul, an automated poultry feeding and water monitoring machine.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23c8561a'/%3E%3Cpath d='M9 8v16M23 8v16M9 16h14' stroke='%23fff' stroke-width='3.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="icon" href="img/favicon.png">
+<link rel="apple-touch-icon" href="img/app-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="css/styles.css">
 <script type="importmap">
 {"imports":{"three":"./vendor/three.module.min.js","three/orbit":"./vendor/OrbitControls.js","three/bgu":"./vendor/BufferGeometryUtils.js"}}
@@ -16,37 +18,41 @@
 </head>
 <body>
 
-<header class="top">
-  <a class="brand" href="#top">HyFePoul</a>
-  <nav aria-label="Sections">
-    <a href="#model">3D model</a>
-    <a href="#videos">Videos</a>
-    <a href="#parts">Parts</a>
-    <a href="#system">How it connects</a>
-    <a href="#results">Results</a>
-  </nav>
-</header>
+<div class="sky" id="top">
+  <header class="top">
+    <a class="brand" href="#top"><img src="img/app-icon.png" width="44" height="44" alt=""><span>HyFePoul</span></a>
+    <nav aria-label="Sections">
+      <a href="#model">3D model</a>
+      <a href="#videos">Videos</a>
+      <a href="#parts">Parts</a>
+      <a href="#system">How it connects</a>
+      <a href="#results">Results</a>
+    </nav>
+  </header>
 
-<main id="top">
-  <section class="intro">
-    <div class="intro-text">
-      <p class="eyebrow">Automated poultry feeding and water monitoring</p>
-      <h1>A feeder that weighs every tray before it pours.</h1>
-      <p>Feeding by hand is repetitive, and it is hard to know how much each bird actually received. HyFePoul carries a hopper of feed along a chain over five trays. A scale under each tray tells the machine what is already there, so it pours only what is missing.</p>
-      <p>It also watches the water reservoir and sends device data to a mobile app. This page lets you look inside the machine as it was built.</p>
-      <a class="cta" href="#model">Explore the machine</a>
+  <section class="hero" id="model" aria-label="Interactive 3D model">
+    <div class="lead">
+      <h1>Every tray gets only what it&rsquo;s missing.</h1>
+      <p>HyFePoul carries a hopper of feed along a chain over five trays. A scale under each tray tells the machine what is already there, so it pours only the difference. It also watches the water reservoir and sends device data to a mobile app.</p>
+      <div class="actions">
+        <button class="btn green" id="playHero">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M8 5.2v13.6a.7.7 0 0 0 1.06.6l11-6.8a.7.7 0 0 0 0-1.2l-11-6.8A.7.7 0 0 0 8 5.2z"/></svg>
+          Play feed cycle
+        </button>
+        <button class="btn light" id="boxHero">Open the control box</button>
+      </div>
+      <aside class="detail" aria-live="polite">
+        <div class="meta"><span id="dNum"></span><span id="dGroup"></span></div>
+        <h2 id="dName">Choose a part</h2>
+        <p id="dText">Tap any number on the model to see what the part does and what it connects to.</p>
+        <dl id="dList"></dl>
+        <button id="dVideo" class="btn blue" hidden>Watch video</button>
+      </aside>
     </div>
-    <figure class="intro-photo">
-      <img src="img/hopper-open.jpg" width="1400" height="1050" alt="The stainless steel hopper with its lid open, on top of the cage frame, with the drive chain running past it.">
-      <figcaption>The hopper, photographed on the finished machine.</figcaption>
-    </figure>
-  </section>
 
-  <section class="viewer" id="model" aria-label="Interactive 3D model">
     <div class="stage" id="stage">
       <div class="pins" id="pins"></div>
       <div class="stage-head">
-        <h2>The machine, part by part</h2>
         <p id="hint">Drag to turn. Scroll or pinch to zoom. Tap a number to learn about that part.</p>
       </div>
       <div class="loader" id="loader" role="status"><div class="bar"><span id="loadbar"></span></div><p id="loadtext">Loading the 3D model…</p></div>
@@ -62,61 +68,54 @@
         </div>
         <div class="group toggles" role="group" aria-label="Show or hide">
           <button id="tWalls" aria-pressed="true">Covers</button>
-          <button id="t12" aria-pressed="true"><i style="background:var(--w12)"></i>12 V</button>
-          <button id="t5" aria-pressed="true"><i style="background:var(--w5)"></i>5 V</button>
-          <button id="tSig" aria-pressed="true"><i style="background:var(--wsig)"></i>Signal</button>
+          <button id="t12" aria-pressed="true"><i style="background:#e0413a"></i>12 V</button>
+          <button id="t5" aria-pressed="true"><i style="background:#f29a1c"></i>5 V</button>
+          <button id="tSig" aria-pressed="true"><i style="background:#2f95dc"></i>Signal</button>
           <button id="tLabels" aria-pressed="true">Labels</button>
         </div>
-        <div class="group">
+        <div class="group end">
           <label class="slider">Explode <input id="explode" type="range" min="0" max="1" step="0.02" value="0"></label>
           <button id="play" class="play">Play feed cycle</button>
         </div>
       </div>
     </div>
-    <aside class="detail" aria-live="polite">
-      <div class="meta"><span id="dNum"></span><span id="dGroup"></span></div>
-      <h3 id="dName">Choose a part</h3>
-      <p id="dText">Tap any number on the model, or pick a part from the list below.</p>
-      <dl id="dList"></dl>
-      <button id="dVideo" class="watch" hidden>Watch video</button>
-    </aside>
   </section>
 
+  <svg class="waves" viewBox="0 0 1440 150" preserveAspectRatio="none" aria-hidden="true">
+    <g class="drift slow"><path fill="#7cc8ff" fill-opacity=".28" d="M0 76C180 22 360 22 540 66s360 66 540 26 270-52 360-34v92H0z"/></g>
+    <g class="drift"><path fill="#49a6f5" fill-opacity=".45" d="M0 104c200-52 380-46 560-12s340 44 520 8 270-40 360-24v74H0z"/></g>
+    <path fill="#e8eff8" d="M0 126c220-34 420-30 620-8s400 26 820-14v46H0z"/>
+  </svg>
+</div>
+
+<main>
   <section class="band" id="videos">
-    <div class="section-head">
-      <h2>See it working</h2>
-      <p>Short recordings of each function on the real machine.</p>
-    </div>
-    <div class="video-grid" id="videoGrid"></div>
+    <h2>See it working</h2>
+    <p class="sub">Short recordings of each function on the real machine.</p>
+    <div class="video-list" id="videoGrid"></div>
   </section>
 
-  <section class="band alt" id="parts">
-    <div class="section-head">
-      <h2>Every part</h2>
-      <p>Select a part to find it on the model. <strong>Measured (CAD)</strong> comes from our CAD drawing, <strong>Datasheet</strong> from the published size of the module, and <strong>Estimated</strong> from photos. <strong>Check</strong> means we could not confirm it from our records.</p>
-    </div>
+  <section class="band" id="parts">
+    <h2>Every part</h2>
+    <p class="sub">Select a part to find it on the model. <strong>Measured (CAD)</strong> comes from our CAD drawing, <strong>Datasheet</strong> from the module&rsquo;s published size, and <strong>Estimated</strong> from photos. <strong>Check</strong> means we could not confirm it from our records.</p>
     <div class="parts" id="partsList"></div>
   </section>
 
   <section class="band" id="system">
-    <div class="section-head">
-      <h2>How it connects</h2>
-      <p>The Arduino Mega makes every decision on the machine. The ESP32 only carries messages to the internet, and the app talks to the cloud, never directly to the Mega.</p>
-    </div>
+    <h2>How it connects</h2>
+    <p class="sub">The Arduino Mega makes every decision on the machine. The ESP32 only carries messages to the internet, and the app talks to the cloud, never directly to the Mega.</p>
     <div class="diagram" id="diagram"></div>
   </section>
 
-  <section class="band alt" id="results">
-    <div class="section-head">
-      <h2>Measured results</h2>
-      <p>What we recorded on the machine, including where it falls short.</p>
-    </div>
+  <section class="band" id="results">
+    <h2>Measured results</h2>
+    <p class="sub">What we recorded on the machine, including where it falls short.</p>
     <div class="results">
-      <article>
+      <article class="tile">
         <h3>Filling empty trays to 50 g</h3>
         <div class="bars" role="img" aria-label="Five trays measured 49.0, 50.5, 49.6, 52.6 and 51.1 grams against a 50 gram target." id="resultBars"></div>
       </article>
-      <article>
+      <article class="tile">
         <h3>Trays that are already full</h3>
         <p>A second 50 g feed, with every tray already at its target, poured nothing.</p>
         <h3>Limits</h3>
@@ -132,11 +131,12 @@
 </main>
 
 <footer class="foot">
-  <p>HyFePoul. The 3D model is built from our CAD drawing and photos of the machine. Sizes and positions are labelled by source on each part.</p>
+  <img src="img/app-icon.png" width="40" height="40" alt="" loading="lazy">
+  <p>The 3D model is built from our CAD drawing and photos of the machine. Sizes and positions are labelled by source on each part.</p>
 </footer>
 
 <dialog id="videoDialog" aria-label="Video">
-  <form method="dialog"><button aria-label="Close video">Close</button></form>
+  <form method="dialog"><button class="btn navy" aria-label="Close video">Close</button></form>
   <div id="videoHost"></div>
 </dialog>
 

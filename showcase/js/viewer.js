@@ -11,30 +11,30 @@ const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
 const VIEWS = {
-  whole: { c: [134, 41, 88], dir: [0.72, 0.42, -1], w: 350, h: 250 },
+  whole: { c: [134, 41, 86], dir: [0.5, 0.36, -1], w: 292, h: 212 },
   box: { c: [250, 24, 80], dir: [1, 0.07, 0.02], w: 48, h: 52, wPhone: 38, cPhone: [250, 26, 80] },
-  hopper: { c: [209, 60, 98], dir: [0.6, 0.22, -1], w: 62, h: 56 },
-  trays: { c: [134, 50, 72], dir: [0.08, 0.05, -1], w: 216, h: 60 },
+  hopper: { c: [50.5, 60, 100], dir: [-0.45, 0.72, -1], w: 66, h: 58 },
+  trays: { c: [134, 50, 72], dir: [0.02, 0.1, -1], w: 216, h: 60 },
   chain: { c: [134, 44, 108], dir: [0.14, 0.32, -1], w: 250, h: 70 },
-  water: { c: [40, 26, 124], dir: [-0.5, 0.16, -1], w: 100, h: 112 },
-  cycle: { c: [134, 50, 94], dir: [0.05, 0.14, -1], w: 256, h: 110 },
+  water: { c: [34, 26, 124], dir: [-0.5, 0.16, -1], w: 100, h: 112 },
+  cycle: { c: [134, 50, 94], dir: [0.02, 0.14, -1], w: 256, h: 110 },
 };
 const HINTS = {
   box: 'Red is 12 V, amber is 5 V, black is ground. Routes are tidied for clarity, and every wire ends at its real pin.',
-  trays: 'Seen from the feed side, so tray 1 is on the left here.',
-  cycle: 'Seen from the feed side, so tray 1 is on the left here.',
-  hopper: 'Seen from the feed side. Turn off Covers to see the level sensor under the cover.',
-  water: 'Seen from the feed side, through the bars.',
-  chain: 'Seen from the feed side of the machine.',
+  trays: 'From the front, left to right: trays 4, 5, 3, 2, 1.',
+  cycle: 'From the front, left to right: trays 4, 5, 3, 2, 1.',
+  hopper: 'The level sensor board sits on top of the cover, in a sealed window.',
+  water: 'Water flows down from the reservoir by gravity.',
+  chain: 'Turn off Covers to see the wires inside the spiral wrap.',
 };
 const DEFAULT_HINT = 'Drag to turn. Scroll or pinch to zoom. Tap a number to learn about that part.';
 
 export function init({ cad, onSelect, onFail }) {
   const stage = $('stage'), tools = $('tools'), head = stage.querySelector('.stage-head');
   const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const renderer = new THREE.WebGLRenderer({ antialias: !mobile, powerPreference: 'high-performance' });
+  const renderer = new THREE.WebGLRenderer({ antialias: !mobile, alpha: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(devicePixelRatio, mobile ? 1.5 : 2));
-  renderer.setClearColor(0x26302c);
+  renderer.setClearColor(0x000000, 0);
   stage.prepend(renderer.domElement);
   renderer.domElement.addEventListener('webglcontextlost', e => { e.preventDefault(); onFail('The 3D view stopped working on this device.'); });
 
@@ -46,11 +46,19 @@ export function init({ cad, onSelect, onFail }) {
   const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(120, 260, 240); scene.add(key);
   const fill = new THREE.DirectionalLight(0xffffff, 1.1); fill.position.set(320, 90, 40); scene.add(fill);
   const back = new THREE.DirectionalLight(0xffffff, 0.6); back.position.set(-180, 120, -240); scene.add(back);
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(460, 240), new THREE.MeshBasicMaterial({ color: 0x1e2723 }));
-  floor.rotation.x = -Math.PI / 2; floor.position.set(5, -0.5, 0); scene.add(floor);
+  // Soft contact shadow in place of a floor, so the machine sits on the blue of the page.
+  {
+    const c = document.createElement('canvas'); c.width = 256; c.height = 128;
+    const x = c.getContext('2d'), g = x.createRadialGradient(128, 64, 8, 128, 64, 128);
+    g.addColorStop(0, 'rgba(3,18,58,.62)'); g.addColorStop(1, 'rgba(3,18,58,0)');
+    x.setTransform(1, 0, 0, 0.5, 0, 32); x.fillStyle = g; x.fillRect(0, -64, 256, 256);
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(420, 210), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
+    floor.rotation.x = -Math.PI / 2; floor.position.set(5, -0.5, -5); scene.add(floor);
+  }
 
   const M = buildModel(cad, PARTS);
   scene.add(M.root);
+  M.carrier.position.x = M.TRAY_X[1] - 208.85; // the hopper rests at home, over tray 1
   scene.updateMatrixWorld(true);
 
   let dirty = true;
@@ -284,7 +292,7 @@ export function init({ cad, onSelect, onFail }) {
 
   // --- Selection ---
   const hlCache = new WeakMap();
-  const highlight = (m, big) => { let h = hlCache.get(m); if (!h) { h = m.clone(); h.emissive = new THREE.Color(0xc25a12); h.emissiveIntensity = big ? 0.2 : 0.75; hlCache.set(m, h); } return h; };
+  const highlight = (m, big) => { let h = hlCache.get(m); if (!h) { h = m.clone(); h.emissive = new THREE.Color(0x1477e0); h.emissiveIntensity = big ? 0.15 : 0.42; hlCache.set(m, h); } return h; };
   function select(id, focus) {
     if (selected) P[selected].meshes.forEach(m => { m.material = m.userData.base; });
     selected = id;
@@ -296,9 +304,10 @@ export function init({ cad, onSelect, onFail }) {
       const c = p.obj.localToWorld(p.pinLocal.clone());
       const b = new THREE.Box3(); p.meshes.forEach(m => b.expandByObject(m));
       const r = Math.max(b.getSize(V()).length() * 0.5, 7);
-      const dir = V(...VIEWS[p.view].dir).normalize();
-      const dist = Math.max(r * 4.2, 32);
+      const dir = V(...(p.focusDir || VIEWS[p.view].dir)).normalize();
+      const dist = Math.max(r * 4.2, p.focusDir ? 75 : 32);
       flyTo(c, c.clone().addScaledVector(dir, dist), 800);
+      if (p.focusDir) pinSet = new Set([id]);
     }
     invalidate();
   }
@@ -320,7 +329,7 @@ export function init({ cad, onSelect, onFail }) {
 
   // --- Feed cycle ---
   const OUTLET = 208.85, TY = 50.2;
-  const DROPS = { 1: [0, -8, -16], 2: [10, 0, -10], 3: [10, 0, -10], 5: [10, 0, -10], 4: [16, 8, 0] };
+  const DROPS = { 1: [0, 8, 16], 2: [-10, 0, 10], 3: [-10, 0, 10], 5: [-10, 0, 10], 4: [-16, -8, 0] };
   const m4 = new THREE.Matrix4(), s3 = V(), p3 = V(), q0 = new THREE.Quaternion();
   const pileIndex = (n, d) => [1, 2, 3, 5, 4].indexOf(n) * 3 + d;
   const setPile = (i, n, d, f) => {
@@ -363,13 +372,13 @@ export function init({ cad, onSelect, onFail }) {
   function stopCycle(reset) {
     cycle = null; M.pellets.visible = false; status.hidden = true;
     playBtn.textContent = 'Play feed cycle';
-    if (reset) { M.piles.visible = false; clearPiles(); moveCarrier(OUTLET); }
+    if (reset) { M.piles.visible = false; clearPiles(); moveCarrier(M.TRAY_X[1]); }
     controls.enabled = true; invalidate();
   }
   playBtn.addEventListener('click', () => {
     if (cycle) { stopCycle(true); return; }
     explode = 0; $('explode').value = 0;
-    M.carrier.position.x = 0; applyLayout(); rebuildWires();
+    M.carrier.position.x = M.TRAY_X[1] - OUTLET; applyLayout(); rebuildWires();
     clearPiles(); M.piles.visible = true;
     setView('cycle');
     document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', 'false'));
@@ -388,6 +397,7 @@ export function init({ cad, onSelect, onFail }) {
   toggle('tSig', on => { layers.sig.visible = on; refreshWireHighlight(); });
   toggle('tLabels', on => { labelsOn = on; });
   controls.addEventListener('change', invalidate);
+  addEventListener('hfp-render', invalidate);
 
   function resize() {
     const Wd = stage.clientWidth, H = stage.clientHeight;
