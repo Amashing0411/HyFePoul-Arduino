@@ -53,32 +53,16 @@ export function buildModel(cad, parts) {
   const finishKit = (id, kit) => addMesh(id, kit.geometry(), kitMat);
 
   // --- CAD parts ---
-  // The source mesh is one merged shell and the five trays are fused into long triangles.
-  // Cut it at the measured tray boundaries so each tray is its own selectable piece.
+  // Trays are thin hollow half-pipes (open on top), built from the CAD's width, depth and tray boundaries.
+  const TRAY_START = { 1: 29.2, 2: 71.5, 3: 113.8, 5: 156.1, 4: 198.4 };
+  const R_OUT = 5.055, R_IN = 4.8, TRAY_CZ = 73.755, TOP_Z = 74.5;
   {
-    const start = { 1: 29.2, 2: 71.5, 3: 113.8, 5: 156.1, 4: 198.4 }, tris = [];
+    const a = Math.asin((TOP_Z - TRAY_CZ) / R_OUT), b = Math.asin((TOP_Z - TRAY_CZ) / R_IN);
+    const shape = new THREE.Shape();
+    shape.absarc(0, TRAY_CZ, R_OUT, a, -Math.PI - a, true);
+    shape.absarc(0, TRAY_CZ, R_IN, -Math.PI - b, b, false);
     [1, 2, 3, 4, 5].forEach(n => {
-      const g = cad['tray' + n], a = g.attributes.position, idx = g.index.array;
-      for (let i = 0; i < idx.length; i += 3) tris.push([0, 1, 2].map(j => new V3().fromBufferAttribute(a, idx[i + j])));
-    });
-    const clip = (poly, x, keepAbove) => {
-      const out = [];
-      poly.forEach((p, i) => {
-        const q = poly[(i + 1) % poly.length], pin = keepAbove ? p.x >= x : p.x <= x, qin = keepAbove ? q.x >= x : q.x <= x;
-        if (pin) out.push(p);
-        if (pin !== qin) out.push(p.clone().lerp(q, (x - p.x) / (q.x - p.x)));
-      });
-      return out;
-    };
-    [1, 2, 3, 4, 5].forEach(n => {
-      const x0 = start[n] - 134.3, x1 = x0 + 42.3, out = [];
-      tris.forEach(t => {
-        const poly = clip(clip(t, x0, true), x1, false);
-        for (let i = 1; i < poly.length - 1; i++) [poly[0], poly[i], poly[i + 1]].forEach(v => out.push(v.x, v.y, v.z));
-      });
-      const g = new THREE.BufferGeometry();
-      g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(out), 3));
-      cad['tray' + n] = g;
+      cad['tray' + n] = new THREE.ExtrudeGeometry(shape, { depth: 42.2, bevelEnabled: false, curveSegments: 30 }).rotateY(Math.PI / 2).translate(TRAY_START[n] + 0.05 - 134.3, 0, -8.9);
     });
   }
   const CADCOL = { frame: 0xbcc2c3, cage: 0xa4abac, tray1: 0xe58a2c, tray2: 0xe58a2c, tray3: 0xe58a2c, tray4: 0xe58a2c, tray5: 0xe58a2c,
@@ -92,6 +76,21 @@ export function buildModel(cad, parts) {
     const mat = cadMats[id] = new THREE.MeshStandardMaterial({ color: c, roughness: 0.55, metalness: 0.15, flatShading: true });
     addMesh(id, cad[id], mat);
   });
+
+  // Tray rims and thin end caps: the caps are see-through, so the trays read as hollow from the end too.
+  {
+    const a = Math.asin((TOP_Z - TRAY_CZ) / R_IN), cap = new THREE.Shape();
+    cap.absarc(0, TRAY_CZ, R_IN, a, -Math.PI - a, true); cap.closePath();
+    const capMat = new THREE.MeshStandardMaterial({ color: 0xf0c48a, transparent: true, opacity: 0.32, roughness: 0.3, side: THREE.DoubleSide, depthWrite: false });
+    [1, 2, 3, 4, 5].forEach(n => {
+      const id = 'tray' + n, X0 = TRAY_START[n] + 0.05, X1 = X0 + 42.2, k = new Kit(), q0 = W((X0 + X1) / 2, 45.3, TOP_Z + 0.05), q1 = W((X0 + X1) / 2, 55.1, TOP_Z + 0.05);
+      k.box(42.2, 0.14, 0.34, 0xd9b27c, q0.x, q0.y, q0.z).box(42.2, 0.14, 0.34, 0xd9b27c, q1.x, q1.y, q1.z);
+      addMesh(id, k.geometry(), kitMat, false);
+      cadMats[id].side = THREE.DoubleSide; cadMats[id].flatShading = false;
+      const caps = [X0, X1].map(X => new THREE.ShapeGeometry(cap, 24).rotateY(Math.PI / 2).translate(X - 134.3, 0, -8.9));
+      addMesh(id, mergeGeometries(caps), capMat, false).renderOrder = 1;
+    });
+  }
 
   // The wire grid and sloped floor are real 3D lines in the DWG. They sit 5.5 cm and 0.93 cm off the solids, so the
   // data file moves them onto the cage they belong to. The curved lip is the DWG's extruded surface, which the STL lacks.
@@ -176,9 +175,10 @@ export function buildModel(cad, parts) {
   const TRAY_X = { 1: 50.35, 2: 92.65, 3: 134.95, 5: 177.25, 4: 219.55 };
   [1, 2, 3, 4, 5].forEach(n => {
     const id = 'lc' + n;
-    attach(id, root, W(TRAY_X[n], 50.2, 66.6));
-    finishKit(id, new Kit().box(8, 1.27, 1.27, 0xb9bdc1).box(2, 1.3, 1.6, 0x707478, -2.7, 1.3, 0).box(2, 1, 1.6, 0x707478, 2.7, -1.1, 0).box(1.4, 1.3, 1.3, 0xf0efe9).box(0.7, 0.5, 1, BLACK, 4.2, 0, 0));
-    ['E+', 'E-', 'A-', 'A+'].forEach((a, i) => anchor(id, a, 4.55, 0.1, -0.33 + i * 0.22, 1, 0, 0));
+    // Crossways under the tray: free end under the tray's centre, fixed end on a post at the front edge.
+    attach(id, root, W(TRAY_X[n], 54.2, 66.6));
+    finishKit(id, new Kit().box(1.27, 1.27, 8, 0xb9bdc1).box(1.3, 1.3, 1.5, 0xf0efe9).box(1.6, 1.3, 2, 0x707478, 0, 1.3, 2.9).box(1.6, 1, 2, 0x707478, 0, -1.1, -2.9).cyl(0.3, 3.2, 0x9aa0a4, 0, -3.1, -2.9, 'y').box(1, 0.5, 0.7, BLACK, 0, 0, -4.2));
+    ['E+', 'E-', 'A-', 'A+'].forEach((a, i) => anchor(id, a, -0.33 + i * 0.22, 0.1, -4.55, 0, 0, -1));
   });
 
   // Float switch: white plastic nut low on the reservoir's front wall, two yellow twisted wires.
@@ -193,13 +193,18 @@ export function buildModel(cad, parts) {
     addMesh('chain', k.geometry(), kitMat, false);
   }
 
-  // Grey spiral wrap under the front rail, held by clips. It hides the wires inside; "Covers" lifts it away.
+  // Grey spiral wrap: along the end beam and under the front rail, held by clips. "Covers" lifts it away.
   {
-    const k = new Kit(), Y = 44.75, Z = 101.8, X0 = 72, X1 = 239.9, m = W((X0 + X1) / 2, Y, Z);
-    k.cyl(0.5, X1 - X0, 0xa7aeb3, m.x, m.y, m.z, 'x', 8);
-    for (let X = X0; X <= X1; X += 2.4) { const q = W(X, Y, Z); k.cyl(0.56, 0.5, 0x858d93, q.x, q.y, q.z, 'x', 8); }
-    for (let X = X0 + 8; X < X1; X += 32) { const q = W(X, Y, Z); k.box(1.2, 1.5, 0.3, BLACK, q.x, q.y + 0.85, q.z + 0.1); }
+    const k = new Kit(), YE = 43.4, Y = 77, Z = 102.3, XE = 242.4, X0 = 60;
+    const e = W(XE, (YE + Y) / 2, Z), m = W((X0 + XE) / 2, Y, Z);
+    k.cyl(0.5, Y - YE, 0xa7aeb3, e.x, e.y, e.z, 'z', 8).cyl(0.5, XE - X0, 0xa7aeb3, m.x, m.y, m.z, 'x', 8);
+    for (let q = YE; q <= Y; q += 2.4) { const r = W(XE, q, Z); k.cyl(0.56, 0.5, 0x858d93, r.x, r.y, r.z, 'z', 8); }
+    for (let X = X0; X <= XE; X += 2.4) { const r = W(X, Y, Z); k.cyl(0.56, 0.5, 0x858d93, r.x, r.y, r.z, 'x', 8); }
+    for (let X = X0 + 8; X < XE; X += 32) { const r = W(X, Y, Z); k.box(1.2, 1.2, 0.3, BLACK, r.x, r.y + 0.75, r.z - 0.3); }
     const w = addMesh('frame', k.geometry(), kitMat, false); w.userData.wall = true;
+    const c = W(150, 77, 102.3);
+    anchor('frame', 'clamp', c.x, c.y, c.z, -1, 0, 0);
+    anchor('dispMotor', 'wrapEnd', 5.15, -2.8, -6.5, 0, 1, 0);
   }
 
   // --- Control box. Local axes: x across (Y in CAD), y up, z from back plate toward the door. ---

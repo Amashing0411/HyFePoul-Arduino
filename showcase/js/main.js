@@ -1,45 +1,129 @@
-import { PARTS, GROUPS, VIEW_PINS, PHOTOS } from './parts.js';
+import { PARTS, GROUPS } from './parts.js';
 
 const $ = id => document.getElementById(id);
 const PART = Object.fromEntries(PARTS.map(p => [p.id, p]));
-let VIDEOS = [];
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const GUIDE = new URLSearchParams(location.search).has('guide');
+const toView = el => el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+let LIB = { videos: [], app: [], panel: [], photos: [], team: [] };
 
-// --- Sections that do not need WebGL ---
-function openVideo(v) {
-  const host = $('videoHost'); host.textContent = '';
-  if (/youtube\.com|youtu\.be/.test(v.src)) {
-    const f = document.createElement('iframe');
-    f.src = v.src; f.title = v.title; f.allow = 'encrypted-media; picture-in-picture'; f.allowFullscreen = true;
-    host.append(f);
-  } else {
-    const e = document.createElement('video');
-    e.src = v.src; e.controls = true; e.playsInline = true; e.autoplay = true;
-    host.append(e);
-  }
-  $('videoDialog').showModal();
+const ICON = {
+  play: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg>',
+  photo: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="8.5" cy="10" r="1.6"/><path d="m4 17 5-4.5 3.5 3 3-2.5L20 17"/></svg>',
+};
+const hasMedia = v => !!(v.src || v.youtube);
+
+function placeholder(slot, icon, label, ext) {
+  const d = document.createElement('div'); d.className = 'ph';
+  d.innerHTML = ICON[icon];
+  const p = document.createElement('span');
+  p.textContent = GUIDE ? `${slot.file}.${ext}` : label;
+  if (GUIDE) p.className = 'file';
+  d.append(p);
+  return d;
 }
-$('videoDialog').addEventListener('close', () => { $('videoHost').textContent = ''; });
 
-const PLAY_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg>';
-
+// --- Videos: one player with a playlist ---
+let current = 0;
+function showVideo(i, play) {
+  current = i;
+  const v = LIB.videos[i], host = $('playerScreen');
+  host.textContent = '';
+  if (v.youtube && play) {
+    const f = document.createElement('iframe');
+    f.src = v.youtube; f.title = v.title; f.allow = 'encrypted-media; picture-in-picture'; f.allowFullscreen = true;
+    host.append(f);
+  } else if (v.src) {
+    const e = document.createElement('video');
+    e.src = v.src; e.controls = true; e.playsInline = true; e.preload = 'metadata';
+    if (v.poster) e.poster = v.poster;
+    host.append(e);
+    if (play) e.play().catch(() => {});
+  } else if (v.youtube) {
+    const b = document.createElement('button'); b.className = 'ph as-btn'; b.innerHTML = ICON.play + '<span>Play video</span>';
+    b.addEventListener('click', () => showVideo(i, true)); host.append(b);
+  } else host.append(placeholder(v, 'play', 'Video coming soon', 'mp4'));
+  $('playerTitle').textContent = v.title;
+  $('playerText').textContent = v.text;
+  document.querySelectorAll('.track').forEach((b, k) => b.setAttribute('aria-current', k === i));
+}
 function renderVideos() {
-  const grid = $('videoGrid');
-  VIDEOS.forEach(v => {
-    const row = document.createElement('article'); row.className = 'vrow';
-    const chip = document.createElement('span'); chip.className = 'chip'; chip.innerHTML = PLAY_ICON;
-    const b = document.createElement('div');
-    const h = document.createElement('h3'); h.textContent = v.title;
-    const p = document.createElement('p'); p.textContent = v.text;
-    b.append(h, p); row.append(chip, b);
-    if (v.src) {
-      const w = document.createElement('button'); w.className = 'btn blue'; w.textContent = 'Watch';
-      w.addEventListener('click', () => openVideo(v)); row.append(w);
+  const list = $('playlist');
+  LIB.videos.forEach((v, i) => {
+    const b = document.createElement('button'); b.className = 'track';
+    const n = document.createElement('span'); n.className = 'n'; n.textContent = i + 1;
+    const t = document.createElement('span'); t.className = 't'; t.textContent = v.title;
+    const s = document.createElement('span'); s.className = 's'; s.textContent = hasMedia(v) ? 'Watch' : 'Soon';
+    if (hasMedia(v)) s.classList.add('ready');
+    b.append(n, t, s);
+    b.addEventListener('click', () => showVideo(i, hasMedia(v)));
+    list.append(b);
+  });
+  if (LIB.videos.length) showVideo(Math.max(0, LIB.videos.findIndex(hasMedia)), false);
+}
+
+// --- App and panel previews ---
+function device(slot, cls, ext) {
+  const f = document.createElement('figure'); f.className = 'device ' + cls;
+  const s = document.createElement('div'); s.className = 'screen';
+  if (slot.src) {
+    const i = document.createElement('img'); i.src = slot.src; i.alt = `${slot.title} screen`; i.loading = 'lazy'; s.append(i);
+  } else s.append(placeholder(slot, 'photo', 'Screen coming soon', ext));
+  const c = document.createElement('figcaption'); c.textContent = slot.title;
+  f.append(s, c);
+  return f;
+}
+function renderPreviews() {
+  LIB.app.forEach(s => $('previewApp').append(device(s, 'phone', 'jpg')));
+  LIB.panel.forEach(s => $('previewPanel').append(device(s, 'panel', 'jpg')));
+  const tabs = document.querySelectorAll('#previewTabs button');
+  tabs.forEach(b => b.addEventListener('click', () => {
+    tabs.forEach(x => x.setAttribute('aria-selected', x === b));
+    $('previewApp').hidden = b.dataset.tab !== 'app';
+    $('previewPanel').hidden = b.dataset.tab !== 'panel';
+  }));
+}
+
+// --- Photo library ---
+const CATS = [['all', 'All'], ['machine', 'Whole machine'], ['control', 'Control box'], ['feeding', 'Feeding'], ['trays', 'Trays and water']];
+let shots = [], shotAt = 0;
+function renderGallery(cat = 'all') {
+  const g = $('gallery'); g.textContent = '';
+  const items = LIB.photos.filter(p => cat === 'all' || p.group === cat);
+  shots = items.filter(p => p.src);
+  items.forEach(p => {
+    const f = document.createElement(p.src ? 'button' : 'div');
+    f.className = 'shot ' + p.shape;
+    if (p.src) {
+      const i = document.createElement('img'); i.src = p.src; i.alt = p.alt; i.loading = 'lazy'; i.decoding = 'async';
+      const c = document.createElement('span'); c.className = 'cap'; c.textContent = p.title;
+      f.append(i, c);
+      f.setAttribute('aria-label', `Open photo: ${p.title}`);
+      f.addEventListener('click', () => openShot(shots.indexOf(p)));
     } else {
-      const s = document.createElement('span'); s.className = 'soon'; s.textContent = 'Video coming soon'; row.append(s);
+      f.append(placeholder(p, 'photo', `${p.title}: photo coming soon`, 'jpg'));
     }
-    grid.append(row);
+    g.append(f);
   });
 }
+function renderGalleryChips() {
+  const host = $('galleryChips');
+  CATS.forEach(([id, label], i) => {
+    const b = document.createElement('button'); b.textContent = label; b.setAttribute('aria-pressed', i === 0);
+    b.addEventListener('click', () => { [...host.children].forEach(x => x.setAttribute('aria-pressed', x === b)); renderGallery(id); });
+    host.append(b);
+  });
+}
+function openShot(i) {
+  shotAt = (i + shots.length) % shots.length;
+  const p = shots[shotAt];
+  $('lightImg').src = p.src; $('lightImg').alt = p.alt; $('lightCap').textContent = p.title;
+  if (!$('lightbox').open) $('lightbox').showModal();
+}
+$('lightPrev').addEventListener('click', () => openShot(shotAt - 1));
+$('lightNext').addEventListener('click', () => openShot(shotAt + 1));
+$('lightbox').addEventListener('click', e => { if (e.target === $('lightbox')) $('lightbox').close(); });
+$('lightbox').addEventListener('keydown', e => { if (e.key === 'ArrowLeft') openShot(shotAt - 1); if (e.key === 'ArrowRight') openShot(shotAt + 1); });
 
 function renderBars() {
   const host = $('resultBars');
@@ -50,10 +134,6 @@ function renderBars() {
   });
   const n = document.createElement('p'); n.className = 'bnote'; n.textContent = 'The dark line marks the 50 g target. Values are in the order our test notes list them.';
   host.append(n);
-}
-
-function renderGallery() {
-  $('gallery').innerHTML = PHOTOS.map(([f, c, a]) => `<figure><img src="img/${f}.jpg" loading="lazy" width="1400" height="1050" alt="${a}"><figcaption>${c}</figcaption></figure>`).join('');
 }
 
 function renderDiagram() {
@@ -96,8 +176,9 @@ function showDetail(p) {
   row('Size · ' + p.size[0], p.size[1]);
   row('Position · ' + p.pos[0], p.pos[1]);
   if (p.check) row('Check', p.check, 'check');
-  const v = VIDEOS.find(x => x.id === p.video && x.src), btn = $('dVideo');
-  btn.hidden = !v; btn.onclick = v ? () => openVideo(v) : null;
+  const i = LIB.videos.findIndex(x => x.id === p.video && hasMedia(x)), btn = $('dVideo');
+  btn.hidden = i < 0;
+  btn.onclick = i < 0 ? null : () => { showVideo(i, true); toView($('player')); };
   document.querySelectorAll('.prow').forEach(b => b.setAttribute('aria-current', b.dataset.part === p.id));
 }
 
@@ -105,7 +186,8 @@ function webglFallback(reason) {
   $('loader').hidden = true;
   $('tools').hidden = true; $('pins').hidden = true;
   const d = document.createElement('div'); d.className = 'nowebgl';
-  d.innerHTML = `<h3>${reason}</h3><p>Here are photos of the machine instead.</p><div class="shots">${PHOTOS.map(([f, c, a]) => `<img src="img/${f}.jpg" loading="lazy" alt="${a}" title="${c}">`).join('')}</div>`;
+  d.innerHTML = `<h3>${reason}</h3><p>Here are photos of the machine instead.</p><div class="shots"></div>`;
+  LIB.photos.filter(p => p.src).forEach(p => { const i = document.createElement('img'); i.src = p.src; i.alt = p.alt; i.loading = 'lazy'; d.querySelector('.shots').append(i); });
   $('stage').append(d);
 }
 
@@ -121,11 +203,19 @@ async function fetchWithProgress(url, onP) {
   return out.buffer;
 }
 
+function mountTeam() {
+  const el = $('teamRoot');
+  const load = () => import('./team.bundle.js').then(m => m.mount(el, LIB.team)).catch(e => console.warn(e));
+  if (!('IntersectionObserver' in window)) return load();
+  const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { io.disconnect(); load(); } }, { rootMargin: '700px' });
+  io.observe(el);
+}
+
 async function start() {
-  $('playHero').addEventListener('click', () => { $('play').click(); $('stage').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' }); });
-  $('boxHero').addEventListener('click', () => { document.querySelector('[data-view=box]').click(); $('stage').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' }); });
-  VIDEOS = await fetch('data/videos.json').then(r => r.json()).catch(() => []);
-  renderVideos(); renderBars(); renderGallery(); renderDiagram();
+  $('playHero').addEventListener('click', () => { $('play').click(); toView($('stage')); });
+  $('boxHero').addEventListener('click', () => { document.querySelector('[data-view=box]').click(); toView($('stage')); });
+  LIB = await fetch('data/library.json').then(r => r.json()).catch(() => LIB);
+  renderVideos(); renderPreviews(); renderGalleryChips(); renderGallery(); renderBars(); renderDiagram(); mountTeam();
   let pick = () => {};
   renderPartsList(id => pick(id));
 

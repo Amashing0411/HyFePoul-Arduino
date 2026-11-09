@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/team.css">
 <script type="importmap">
 {"imports":{"three":"./vendor/three.module.min.js","three/orbit":"./vendor/OrbitControls.js","three/bgu":"./vendor/BufferGeometryUtils.js"}}
 </script>
@@ -24,9 +25,12 @@
     <nav aria-label="Sections">
       <a href="#model">3D model</a>
       <a href="#videos">Videos</a>
+      <a href="#previews">Screens</a>
+      <a href="#gallery-section">Photos</a>
       <a href="#parts">Parts</a>
       <a href="#system">How it connects</a>
       <a href="#results">Results</a>
+      <a href="#team">Team</a>
     </nav>
   </header>
 
@@ -89,45 +93,75 @@
 </div>
 
 <main>
-  <section class="band" id="videos">
-    <h2>See it working</h2>
-    <p class="sub">Short recordings of each function on the real machine.</p>
-    <div class="video-list" id="videoGrid"></div>
-  </section>
-
-  <section class="band" id="parts">
-    <h2>Every part</h2>
-    <p class="sub">Select a part to find it on the model. <strong>Measured (CAD)</strong> comes from our CAD drawing, <strong>Datasheet</strong> from the module&rsquo;s published size, and <strong>Estimated</strong> from photos. <strong>Check</strong> means we could not confirm it from our records.</p>
-    <div class="parts" id="partsList"></div>
-  </section>
-
-  <section class="band" id="system">
-    <h2>How it connects</h2>
-    <p class="sub">The Arduino Mega makes every decision on the machine. The ESP32 only carries messages to the internet, and the app talks to the cloud, never directly to the Mega.</p>
-    <div class="diagram" id="diagram"></div>
-  </section>
-
-  <section class="band" id="results">
-    <h2>Measured results</h2>
-    <p class="sub">What we recorded on the machine, including where it falls short.</p>
-    <div class="results">
-      <article class="tile">
-        <h3>Filling empty trays to 50 g</h3>
-        <div class="bars" role="img" aria-label="Five trays measured 49.0, 50.5, 49.6, 52.6 and 51.1 grams against a 50 gram target." id="resultBars"></div>
-      </article>
-      <article class="tile">
-        <h3>Trays that are already full</h3>
-        <p>A second 50 g feed, with every tray already at its target, poured nothing.</p>
-        <h3>Limits</h3>
-        <ul>
-          <li>Very small amounts are not precise. A 10 g target landed between 8 and 20 g, because the auger drops pellets in clumps.</li>
-          <li>The hopper level is an estimate. Its sensor sits above the auger, and a dip in the feed can make it read low.</li>
-        </ul>
-      </article>
+  <section class="section" id="videos">
+    <div class="wrap">
+      <div class="head"><h2>See it working</h2><p>Short recordings of each function on the real machine.</p></div>
+      <div class="player" id="player">
+        <div class="stagecard">
+          <div class="pscreen" id="playerScreen"></div>
+          <div class="pinfo"><h3 id="playerTitle"></h3><p id="playerText"></p></div>
+        </div>
+        <div class="playlist" id="playlist"></div>
+      </div>
     </div>
-    <h3 class="gallery-title">Photos of the real machine</h3>
-    <div class="gallery" id="gallery"></div>
   </section>
+
+  <section class="section blue" id="previews">
+    <div class="wrap">
+      <div class="head"><h2>The app and the panel</h2><p>A feed can be started from a phone or from the touch screen on the machine.</p></div>
+      <div class="seg" id="previewTabs" role="group" aria-label="Choose screens">
+        <button data-tab="app" aria-selected="true">Mobile app</button>
+        <button data-tab="panel" aria-selected="false">Touch panel</button>
+      </div>
+      <div class="devices" id="previewApp"></div>
+      <div class="devices wide" id="previewPanel" hidden></div>
+    </div>
+  </section>
+
+  <section class="section" id="gallery-section">
+    <div class="wrap">
+      <div class="head"><h2>The real machine</h2><p>Photos of HyFePoul as it was built. Select one to enlarge it.</p></div>
+      <div class="chips" id="galleryChips"></div>
+      <div class="gallery" id="gallery"></div>
+    </div>
+  </section>
+
+  <section class="section white" id="parts">
+    <div class="wrap">
+      <div class="head"><h2>Every part</h2><p>Select a part to find it on the model. <strong>Measured (CAD)</strong> comes from our drawing, <strong>Datasheet</strong> from the module&rsquo;s published size, and <strong>Estimated</strong> from photos. <strong>Check</strong> means we could not confirm it.</p></div>
+      <div class="parts" id="partsList"></div>
+    </div>
+  </section>
+
+  <section class="section" id="system">
+    <div class="wrap">
+      <div class="head"><h2>How it connects</h2><p>The Arduino Mega makes every decision. The ESP32 only carries messages to the internet, and the app talks to the cloud, never directly to the Mega.</p></div>
+      <div class="diagram" id="diagram"></div>
+    </div>
+  </section>
+
+  <section class="section white" id="results">
+    <div class="wrap">
+      <div class="head"><h2>Measured results</h2><p>What we recorded on the machine, including where it falls short.</p></div>
+      <div class="results">
+        <article>
+          <h3>Filling empty trays to 50 g</h3>
+          <div class="bars" role="img" aria-label="Five trays measured 49.0, 50.5, 49.6, 52.6 and 51.1 grams against a 50 gram target." id="resultBars"></div>
+        </article>
+        <article>
+          <h3>Trays that are already full</h3>
+          <p>A second 50 g feed, with every tray already at its target, poured nothing.</p>
+          <h3>Limits</h3>
+          <ul>
+            <li>Very small amounts are not precise. A 10 g target landed between 8 and 20 g, because the auger drops pellets in clumps.</li>
+            <li>The hopper level is an estimate. Its sensor sits above the auger, and a dip in the feed can make it read low.</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="team" aria-label="Team"><div id="teamRoot"></div></section>
 </main>
 
 <footer class="foot">
@@ -135,9 +169,10 @@
   <p>The 3D model is built from our CAD drawing and photos of the machine. Sizes and positions are labelled by source on each part.</p>
 </footer>
 
-<dialog id="videoDialog" aria-label="Video">
-  <form method="dialog"><button class="btn navy" aria-label="Close video">Close</button></form>
-  <div id="videoHost"></div>
+<dialog id="lightbox" aria-label="Photo">
+  <form method="dialog"><button class="btn navy" aria-label="Close photo">Close</button></form>
+  <img id="lightImg" alt="">
+  <div class="lbar"><button class="btn light-ice" id="lightPrev" type="button">Previous</button><span id="lightCap"></span><button class="btn light-ice" id="lightNext" type="button">Next</button></div>
 </dialog>
 
 <script type="module" src="js/main.js"></script>

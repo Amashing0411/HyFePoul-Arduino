@@ -23,8 +23,8 @@ const cell = n => ({
   id: 'lc' + n, group: 'trays', view: 'trays', name: `Load cell ${n}`, short: `Scale ${n}`,
   what: `A 1 kg bar that bends very slightly under weight. It tells the machine how much feed tray ${n} already holds, so only the missing amount is poured.`,
   connects: `Four wires to HX711 board ${n}: red E+, black E−, white A−, green A+.`,
-  size: [DS, '1 kg bar, about 8 × 1.3 × 1.3 cm'], pos: [EST, 'centred under the tray'],
-  check: 'The cells are hidden under the trays in our photos, so their exact position is estimated.',
+  size: [DS, '1 kg bar, about 8 × 1.3 × 1.3 cm'], pos: [EST, 'crossways: free end under the tray centre, fixed end at the front'],
+  check: 'The cells are mostly hidden under the trays in our photos, so their exact position is estimated.',
   video: 'missing-only',
 });
 
@@ -178,19 +178,3 @@ export const VIEW_PINS = {
   water: ['reservoir', 'float', 'pipe', 'drinkers'],
   box: ['door', 'nextion', 'charger', 'psu', 'battery', 'buck1', 'buck2', 'breadboard', 'mega', 'esp32', 'rtc', 'hx1', 'hx2', 'hx3', 'hx4', 'hx5', 'relay', 'rocker', 'buzzer'],
 };
-
-export const PHOTOS = [
-  ['front-view', 'The machine from the front', 'The full length of the machine from the tray side, with the orange trays, bars, green mesh floor and the spiral wrap under the rail.'],
-  ['control-box-inside', 'Inside the control box', 'The electronics inside the control box with the door open.'],
-  ['box-corner', 'Control box and chain motor', 'The control box with the chain motor on top and cables running down the corner.'],
-  ['control-box-door', 'Control box door', 'The clear control box door with the touch screen mounted on it.'],
-  ['hopper-open', 'Hopper', 'The hopper with its cover open.'],
-  ['ultrasonic', 'Level sensor on the cover', 'The ultrasonic sensor board in a sealed window on top of the hopper cover.'],
-  ['dispenser', 'Auger and motor', 'The aluminium auger housing with its grey gearbox and black motor, above an orange tray.'],
-  ['limit-switch', 'Limit switch, reservoir end', 'A lever limit switch on a bracket at the reservoir end of the rail.'],
-  ['limit-switch-box-end', 'Limit switch, control box end', 'The second lever limit switch on a bracket at the control box end of the rail.'],
-  ['float-switch', 'Float switch', 'The float switch with its white nut and yellow wires on the reservoir wall.'],
-  ['power-switch', 'Power switch', 'The red power switch on the outside of the control box.'],
-  ['power-supply', '12 V supply', 'The 12 V power supply mounted in the control box.'],
-  ['nextion-back', 'Back of the screen', 'The back of the touch screen circuit board.'],
-];

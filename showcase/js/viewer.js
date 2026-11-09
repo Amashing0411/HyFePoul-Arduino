@@ -68,7 +68,7 @@ export function init({ cad, onSelect, onFail }) {
   const wires = wireList(M.HXU);
   const wireMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55 });
   const hlMat = new THREE.MeshBasicMaterial({ color: 0xffd98a });
-  const layers = { v12: new THREE.Group(), v5: new THREE.Group(), sig: new THREE.Group() };
+  const layers = { v12: new THREE.Group(), v5: new THREE.Group(), sig: new THREE.Group(), wrap: new THREE.Group() };
   Object.values(layers).forEach(g => M.root.add(g));
   const worldAnchor = ([id, a], out) => {
     const def = P[id].anchors[a];
@@ -90,6 +90,7 @@ export function init({ cad, onSelect, onFail }) {
       if (s.w) w.pts.push({ f: 's', p: W(...s.w) });
       else if (s.c) w.pts.push({ f: 'c', p: W(...s.c) });
       else if (s.dr) w.pts.push({ f: 'd', p: V(...s.dr) });
+      else if (s.hang) w.pts.push({ f: 'h', a: W(...s.hang.a), b: W(...s.hang.b), ra: W(...s.hang.ra), rb: W(...s.hang.rb), L: s.hang.L });
       else {
         if ('u' in s) cur.x = pick(s.u, 'x');
         if ('v' in s) cur.y = pick(s.v, 'y');
@@ -155,7 +156,11 @@ export function init({ cad, onSelect, onFail }) {
     const n = w.pts.length, pts = [A, A.clone().addScaledVector(anchorNormal(w.from, V()), 0.45)];
     w.pts.forEach((q, i) => {
       const s = (i + 1) / (n + 1);
-      if (q.f === 'c') pts.push(M.carrier.localToWorld(q.p.clone()));
+      if (q.f === 'h') {
+        // A cable of fixed length: tight when the hopper is far from the fixed point, a deep loop when it is near.
+        const b = M.carrier.localToWorld(q.b.clone()), sag = Math.sqrt(Math.max(0, q.L * q.L - q.ra.distanceToSquared(M.carrier.localToWorld(q.rb.clone())))) / 2;
+        for (let k = 0; k <= 16; k++) { const t = k / 16, h = q.a.clone().lerp(b, t); h.y = Math.max(3, h.y - sag * 4 * t * (1 - t)); pts.push(h); }
+      } else if (q.f === 'c') pts.push(M.carrier.localToWorld(q.p.clone()));
       else if (q.f === 'd') pts.push(M.doorG.localToWorld(q.p.clone()));
       else pts.push(q.p.clone().addScaledVector(dA, 1 - s).addScaledVector(dB, s));
     });
@@ -207,6 +212,7 @@ export function init({ cad, onSelect, onFail }) {
   };
   const applyWalls = () => {
     walls.forEach(m => { m.visible = wallsOn; });
+    layers.wrap.visible = wallsOn;
     P.door.obj.visible = wallsOn; P.lid.obj.visible = wallsOn; P.cage.obj.visible = wallsOn;
     const r = M.cadMats.reservoir; r.transparent = !wallsOn; r.opacity = wallsOn ? 1 : 0.28; r.depthWrite = wallsOn; r.needsUpdate = true;
     invalidate();
@@ -292,7 +298,7 @@ export function init({ cad, onSelect, onFail }) {
 
   // --- Selection ---
   const hlCache = new WeakMap();
-  const highlight = (m, big) => { let h = hlCache.get(m); if (!h) { h = m.clone(); h.emissive = new THREE.Color(0x1477e0); h.emissiveIntensity = big ? 0.15 : 0.42; hlCache.set(m, h); } return h; };
+  const highlight = (m, big) => { let h = hlCache.get(m); if (!h) { h = m.clone(); h.emissive = new THREE.Color(0xffffff); h.emissiveIntensity = big ? 0.06 : 0.2; hlCache.set(m, h); } return h; };
   function select(id, focus) {
     if (selected) P[selected].meshes.forEach(m => { m.material = m.userData.base; });
     selected = id;

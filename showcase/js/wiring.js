@@ -8,16 +8,22 @@ export function wireList(HXU) {
   const w = (layer, color, r, from, to, steps, extra = {}) => out.push({ layer, color, r, from, to, steps, ...extra });
   const lane = k => { count[k] = (count[k] || 0) + 1; return count[k] - 1; };
   const X = d => 240.6 + d, Y_ = u => 9 + u;
-  const V5 = 0.075, FLOOR = -0.6, RY = 44.75, RZ = 101.8, CLAMP = 72;
+  const V5 = 0.075, FLOOR = -0.6, RY = 77, RZ = 102.3, CLAMP = 150, HANG = 101, J = [214, 78, 86];
 
   // Lanes through the floor hole.
   const hole = i => ({ u: 4.6 + (i % 5) * 0.22, d: 3.6 + Math.floor(i / 5) * 0.3 });
-  // Under the floor, up the corner between box and cage, then onto the front rail. Wires sit in a ring so the wrap hides them.
+  // Under the floor, up the corner between box and cage, along the end beam, then along the front rail in the wrap.
   const toRail = (e, i) => {
     const t = i * Math.PI * 2 / 10, a = 0.24 * Math.cos(t), b = 0.24 * Math.sin(t);
     const y = RY + a, z = RZ + b, yc = 43.4 + b * 0.3;
-    return { y, z, steps: [{ w: [X(e.d), Y_(e.u), 55.4] }, { w: [X(e.d), yc, 55.4] }, { w: [241.2 + a, yc, 55.4] }, { w: [241.2 + a, yc, z] }, { w: [239.9 + a, yc, z] }, { w: [239.9 + a, y, z] }] };
+    return { y, z, steps: [{ w: [X(e.d), Y_(e.u), 55.4] }, { w: [X(e.d), yc, 55.4] }, { w: [241.2 + a, yc, 55.4] }, { w: [241.2 + a, yc, z] }, { w: [242.4 + a, yc, z] }, { w: [242.4 + a, y, z] }] };
   };
+  // From the fixed point on the rail, the cable hangs free down to the hopper and swings into a loop as the hopper moves.
+  const hangDown = (run, i) => {
+    const t = i * Math.PI * 2 / 8, ox = 0.12 * Math.cos(t), oy = 0.12 * Math.sin(t);
+    return [{ w: [CLAMP, run.y, run.z] }, { hang: { a: [CLAMP, run.y, run.z], b: [J[0] + ox, J[1] + oy, J[2]], ra: [CLAMP, RY, RZ], rb: J, L: HANG } }];
+  };
+  w('wrap', 0xa7aeb3, 0.55, ['frame', 'clamp'], ['dispMotor', 'wrapEnd'], [{ hang: { a: [CLAMP, RY, RZ], b: J, ra: [CLAMP, RY, RZ], rb: J, L: HANG } }], { dyn: 'carrier' });
 
   // 5 V: step-down boards to the breadboard, then one bundle per destination.
   [['buck1', 'OUT+', 'p0', A], ['buck1', 'OUT-', 'g0', K], ['buck2', 'OUT+', 'p1', A], ['buck2', 'OUT-', 'g1', K]].forEach(([b, a, t, c], i) =>
@@ -72,10 +78,10 @@ export function wireList(HXU) {
     const start = opts.relay ? [{ v: 13.4 - opts.relay * 0.2 }, { d: e.d }, { u: e.u }, { v: FLOOR }] : [{ d: e.d }, ...(opts.v ? [{ v: opts.v + i * 0.05 }] : []), { u: e.u }, { v: FLOOR }];
     w(layer, color, r, from, to, [...start, ...run.steps, ...build(run, i)], opts.extra || {});
   };
-  // Level sensor: to the clamp, across to the hopper, up and over the hinge edge of the cover, then to the pins.
-  const sensor = j => run => {
-    const px = 208.42 + j * 0.254, Yl = 47 + j * 0.13, Zl = 118.65;
-    return [{ w: [CLAMP, run.y, run.z] }, { c: [226.5, run.y, run.z] }, { c: [226.5, run.y, Zl] }, { c: [226.5, Yl, Zl] }, { c: [px, Yl, Zl] }];
+  // Level sensor: down the cable, along the hopper's front, up its corner, across the cover to the pins.
+  const sensor = j => (run, i) => {
+    const px = 208.42 + j * 0.254, Yf = 76.9 + j * 0.13, Xc = 223.5 - j * 0.13, Yl = 47 + j * 0.13;
+    return [...hangDown(run, i), { c: [J[0], Yf, J[2]] }, { c: [Xc, Yf, J[2]] }, { c: [Xc, Yf, 117] }, { c: [Xc, Yl, 117] }, { c: [px, Yl, 117] }, { c: [px, 57.9, 117] }, { c: [px, 57.9, 118.65] }];
   };
   const HOP = { extra: { dyn: 'carrier' }, v: 28.5 };
   field('v5', A, V5, ['breadboard', 'p12'], ['ultrasonic', 'VCC'], sensor(0), { extra: { dyn: 'carrier' } });
@@ -84,7 +90,7 @@ export function wireList(HXU) {
   field('sig', GR, 0.07, ['mega', 'D50'], ['ultrasonic', 'ECHO'], sensor(2), HOP);
 
   // Reservoir end: float and the tray 1 limit switch. The tray 4 limit switch branches off near the box.
-  const floatRun = ax => run => [{ w: [ax, run.y, run.z] }, { w: [ax, run.y, 119.9] }];
+  const floatRun = ax => run => [{ w: [ax, run.y, run.z] }, { w: [ax, 44.75, run.z] }, { w: [ax, 44.75, 119.9] }];
   field('sig', Y, 0.08, ['mega', 'D49'], ['float', 'a'], floatRun(21.85), { v: 28.5 });
   field('sig', Y, 0.08, ['breadboard', 'g14'], ['float', 'b'], floatRun(22.15));
   const limitRun = ax => run => [{ w: [ax, run.y, run.z] }, { w: [ax, 52, run.z] }];
@@ -115,24 +121,21 @@ export function wireList(HXU) {
   chain(1, 'M+', 39.5);
   chain(2, 'M-', 40.5);
 
-  // Dispenser motor: rail, then a free drop down the hopper's side to the white connectors on the motor.
-  const disp = (px, k) => run => {
-    const Yr = 78 + k * 0.22, Zr = 90 + k * 0.2;
-    return [{ w: [CLAMP, run.y, run.z] }, { c: [226.5, run.y, run.z] }, { c: [226.5, run.y, Zr] }, { c: [226.5, Yr, Zr] }, { c: [px, Yr, Zr] }, { c: [px, 74.4, Zr] }];
-  };
-  field('v12', R, 0.11, ['relay', 'no3'], ['dispMotor', 'M+'], disp(208.05, 0), { relay: 3, extra: { dyn: 'carrier' } });
-  field('v12', K, 0.11, LN, ['dispMotor', 'M-'], disp(209.65, 1), { extra: { dyn: 'carrier' } });
+  // Dispenser motor: the same hanging cable, ending at the white connectors on the motor.
+  const disp = px => (run, i) => [...hangDown(run, i), { c: [px, J[1], J[2]] }, { c: [px, 74.4, J[2]] }];
+  field('v12', R, 0.11, ['relay', 'no3'], ['dispMotor', 'M+'], disp(208.05), { relay: 3, extra: { dyn: 'carrier' } });
+  field('v12', K, 0.11, LN, ['dispMotor', 'M-'], disp(209.65), { extra: { dyn: 'carrier' } });
 
-  // Load cells: straight down to the floor, along it to the hole, then under the mesh to each tray.
+  // Load cells: down to the floor hole, up the box corner, out along the end, then one straight line past every tray's front.
   const CELLX = { 1: 50.35, 2: 92.65, 3: 134.95, 5: 177.25, 4: 219.55 };
   const CC = [['E+', R], ['E-', K], ['A-', WH], ['A+', GR]];
   HXU.forEach((u, i) => {
     const n = i + 1, Xc = CELLX[n];
     CC.forEach(([a, color], j) => {
-      const U = 2.7 + i * 0.3 + j * 0.06, d = 3 + i * 0.18 + j * 0.05;
-      const Yc = 50.7 + i * 0.5 + j * 0.1, Zc = 60.2 + i * 0.12, Ya = 50.53 - j * 0.22, Zl = 55.6 + i * 0.1;
+      const U = 2.7 + i * 0.3 + j * 0.06, d = 3 + i * 0.18 + j * 0.05, Zl = 55.6 + i * 0.1;
+      const xc = 240.95 + i * 0.3 + j * 0.06, yc = 43.25 + j * 0.1, zb = 65.9 + i * 0.06 + j * 0.02, xb = 240.1 - i * 0.12 - j * 0.03, Yl = 59.6 + i * 0.24 + j * 0.05, Xa = Xc - 0.33 + j * 0.22;
       w('sig', color, 0.06, ['hx' + n, a], ['lc' + n, a], [{ d: 2 }, { v: 2.4 + i * 0.3 + j * 0.05 }, { d }, { u: U }, { v: FLOOR },
-        { w: [X(d), Y_(U), Zl] }, { w: [X(d), Yc, Zl] }, { w: [X(d), Yc, Zc] }, { w: [Xc + 8, Yc, Zc] }, { w: [Xc + 8, Ya, Zc] }, { w: [Xc + 8, Ya, 66.7] }]);
+        { w: [X(d), Y_(U), Zl] }, { w: [X(d), yc, Zl] }, { w: [xc, yc, Zl] }, { w: [xc, yc, zb] }, { w: [xb, yc, zb] }, { w: [xb, Yl, zb] }, { w: [Xa, Yl, zb] }, { w: [Xa, Yl, 66.7] }]);
     });
   });
   return out;
