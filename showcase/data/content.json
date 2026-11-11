@@ -1,14 +1,31 @@
 {
-  "course": "BSCpE 4D",
-  "school": "",
-  "tagline": "An automated poultry feeder that weighs every tray and pours only what is missing.",
-  "problem": [],
-  "generalObjective": "",
+  "fullTitle": "A Poultry Management System with Weight-Based Feed Dispensing and Water Level Monitoring Device",
+  "course": "Bachelor of Science in Computer Engineering",
+  "school": "College of Engineering, Pamantasan ng Lungsod ng San Pablo · May 2026",
+  "tagline": "A poultry management system with weight-based feed dispensing and water level monitoring.",
+  "problem": [
+    "A poultry farm in San Pablo City, Laguna, primarily raises laying hens for egg production and continues to perform feeding and watering activities manually. This practice requires workers to regularly inspect feed supplies, distribute feed, and check water levels.",
+    "Without weight-based feed measurement and timely notifications regarding low supply levels, maintaining consistent feeding quantities and responding promptly to resource shortages can become challenging. Manual feeding and watering can lead to worker fatigue, can be time consuming, and unmeasured feed can result in inconsistent feed and water for the chickens.",
+    "The absence of automated data collection may also limit the availability of accurate operational records for reviewing feeding activities and system conditions. Because traditional methods rely on visual observation, farmers cannot accurately quantify how much feed or water is consumed, so changes such as decreased intake can go unnoticed."
+  ],
+  "generalObjective": "To help poultry farm owners in San Pablo City, Laguna, optimize their daily operations by designing and developing an automated poultry management system with weight-based feed dispensing and water-level monitoring that uses the Arduino Mega 2560 as its main controller and the ESP32 as its communication controller for Wi-Fi-based data transmission to a mobile application. The system aims to reduce manual labor, minimize feed wastage through weight-based dispensing, improve monitoring of feed and water availability, and support consistent poultry management.",
   "specificObjectives": [
-    { "text": "", "functions": ["missing-only", "scheduled-feed"] },
-    { "text": "", "functions": ["low-feed", "low-water"] },
-    { "text": "", "functions": ["app-feed", "app-tour"] },
-    { "text": "", "functions": ["panel-feed", "nextion-screens"] }
+    {
+      "text": "Design and develop an enhanced automated poultry management device, building upon existing feeding and watering systems, with the following functions:",
+      "items": [
+        { "label": "a", "text": "Implementing programmable feeding schedules that can be adjusted according to the nutritional requirements of the flock.", "functions": ["scheduled-feed"] },
+        { "label": "b", "text": "Dispensing user-defined quantities of feed through integrated load cell sensors (HX711) to ensure accurate weight-based distribution and minimize feed wastage.", "functions": ["missing-only", "app-feed"] },
+        { "label": "c", "text": "Monitoring feed level within the storage hopper to maintain sufficient supply and prevent operational interruptions.", "functions": ["low-feed"] },
+        { "label": "d", "text": "Terminating feed dispensing automatically once target weights are reached and resetting the mechanism for subsequent operational cycles.", "functions": ["panel-feed"] },
+        { "label": "e", "text": "Implementing a data-logging feature using Google Sheets to record feeding schedules, feeding activities, dispensed feed weights, water-level status, and system operations. Authorized users can access the stored records directly through Google Sheets using the mobile application, while the Nextion display presents only selected information retrieved from Google Sheets through the system's communication and backend services.", "functions": [] },
+        { "label": "f", "text": "Monitoring the water level in the main water container through a float switch and notifying the user when the water reaches the designated low-level threshold.", "functions": ["low-water"] },
+        { "label": "g", "text": "Providing a Nextion display interface that interactively displays the system status, including operational states, feed weight, feed level, water level, and scheduled feeding times, for effective on-site monitoring.", "functions": ["nextion-screens"] },
+        { "label": "h", "text": "Developing a mobile application that allows users to remotely monitor system information and receive notifications regarding low feed levels and water levels that reach the designated threshold.", "functions": ["app-tour"] },
+        { "label": "i", "text": "Implementing a data-logging feature using Google Sheets to record feeding schedules, feeding activities, dispensed feed weights, water-level status, and system operations. The recorded information will be accessible through the mobile application and Nextion display through the system's communication and backend services.", "functions": [] }
+      ]
+    },
+    { "text": "Evaluate using ISO/IEC 25010 following functional suitability, performance efficiency, compatibility, interaction capability, reliability, security, maintainability, flexibility, and safety which will ensure the overall quality of the designed project.", "functions": [] },
+    { "text": "Deploy the device to a poultry farm in San Pablo City, Laguna.", "functions": [] }
   ],
   "steps": [
     { "title": "Go home", "text": "The hopper rides the chain to its home position over the middle of tray 1 and stops at the limit switch." },
@@ -21,7 +38,7 @@
     { "id": "missing-only", "title": "Pours only the missing amount", "what": "Each tray is weighed before feeding, so a tray that still has feed gets only the difference. A full tray gets nothing." },
     { "id": "scheduled-feed", "title": "Feeds on a schedule", "what": "Up to three daily feeding times are saved on the machine, and a clock module keeps them on time even when the internet is down." },
     { "id": "app-feed", "title": "Manual feed from the app", "what": "Set the grams per tray in the mobile app and start a feed from anywhere with internet." },
-    { "id": "panel-feed", "title": "Feed Now on the panel", "what": "Start a feed from the touch screen on the machine, without a phone." },
+    { "id": "panel-feed", "title": "Feed Now on the panel", "what": "Start a feed from the touch screen on the machine. Dispensing stops once each tray reaches its target, and the hopper returns home ready for the next cycle." },
     { "id": "low-feed", "title": "Low-feed alert", "what": "The level sensor watches the hopper. When feed runs low the buzzer sounds and the app shows an alert." },
     { "id": "low-water", "title": "Low-water alert", "what": "A float switch in the reservoir drops when the water runs low. The buzzer sounds and the app shows an alert." },
     { "id": "app-tour", "title": "Monitoring in the app", "what": "The app shows tray weights, hopper level, water status, feeding history and alerts, with timely updates." },

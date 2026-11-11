@@ -384,3 +384,12 @@ td{padding:7px 8px;border-bottom:1px solid var(--line)}
   .stage canvas,.stage{transition:none}
   .stage canvas{opacity:1;transform:none}
 }
+
+/* Objective 1 and its lettered functions */
+.objective.wide{grid-column:1/-1}
+.subs{grid-column:1/-1;list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 18px}
+.subs li{display:grid;grid-template-columns:30px minmax(0,1fr);gap:10px;padding:10px 12px;border-radius:12px;background:var(--ice);scroll-margin-top:24px}
+.subs p{margin:0;font-size:15.5px}
+.sl{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:#fff;color:var(--blue);font-weight:800;box-shadow:inset 0 0 0 2px var(--chip)}
+.subs .met{margin-top:8px}
+@media (max-width:1020px){.subs{grid-template-columns:minmax(0,1fr)}}

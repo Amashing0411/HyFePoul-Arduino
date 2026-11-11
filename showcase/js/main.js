@@ -121,24 +121,38 @@ function fillText(el, value, label) {
 function renderIntro() {
   $('cTagline').textContent = C.tagline || '';
   $('cCourse').textContent = [C.course, C.school || (GUIDE ? '(school name)' : '')].filter(Boolean).join(' · ');
+  if (C.fullTitle) document.title = `HyFePoul: ${C.fullTitle}`;
   fillText($('cProblem'), C.problem, 'The problem statement');
   const g = $('cGeneral'); g.textContent = '';
   const gh = document.createElement('h3'); gh.textContent = 'General objective';
   const gb = document.createElement('div'); fillText(gb, C.generalObjective, 'The general objective');
   g.append(gh, gb);
   const host = $('cObjectives'); host.textContent = '';
+  const chips = ids => {
+    const met = document.createElement('div'); met.className = 'met';
+    const ok = (ids || []).map(id => (C.functions || []).find(x => x.id === id)).filter(Boolean);
+    if (!ok.length) return null;
+    const lab = document.createElement('span'); lab.textContent = 'Met by'; met.append(lab);
+    ok.forEach(f => { const b = document.createElement('a'); b.href = `#fn-${f.id}`; b.textContent = f.title; met.append(b); });
+    return met;
+  };
   (C.specificObjectives || []).forEach((o, i) => {
-    const a = document.createElement('article'); a.className = 'objective'; a.id = `objective-${i + 1}`;
+    const a = document.createElement('article'); a.className = 'objective' + (o.items ? ' wide' : ''); a.id = `objective-${i + 1}`;
     const n = document.createElement('span'); n.className = 'onum'; n.textContent = i + 1;
     const body = document.createElement('div'); fillText(body, o.text, `Specific objective ${i + 1}`);
-    const met = document.createElement('div'); met.className = 'met';
-    const lab = document.createElement('span'); lab.textContent = 'Met by';
-    met.append(lab);
-    (o.functions || []).forEach(id => {
-      const f = (C.functions || []).find(x => x.id === id); if (!f) return;
-      const b = document.createElement('a'); b.href = `#fn-${id}`; b.textContent = f.title; met.append(b);
-    });
-    a.append(n, body, met); host.append(a);
+    a.append(n, body);
+    if (o.items) {
+      const ol = document.createElement('ol'); ol.className = 'subs';
+      o.items.forEach(it => {
+        const li = document.createElement('li'); li.id = `objective-${i + 1}${it.label}`;
+        const l = document.createElement('span'); l.className = 'sl'; l.textContent = it.label;
+        const t = document.createElement('div'); const p = document.createElement('p'); p.textContent = it.text; t.append(p);
+        const m = chips(it.functions); if (m) t.append(m);
+        li.append(l, t); ol.append(li);
+      });
+      a.append(ol);
+    } else { const m = chips(o.functions); if (m) a.append(m); }
+    host.append(a);
   });
 }
 
@@ -191,9 +205,14 @@ function renderFunctions() {
       const im = document.createElement('img'); im.src = photo; im.alt = f.title; im.loading = 'lazy'; media.append(im);
       const s = document.createElement('span'); s.className = 'vsoon'; s.textContent = 'Video coming soon'; media.append(s);
     } else media.append(placeholder(`media/videos/${f.id}.mp4 or media/functions/${f.id}.jpg`, 'play', 'Video coming soon'));
-    const objIndex = (C.specificObjectives || []).findIndex(o => (o.functions || []).includes(f.id));
     const body = document.createElement('div'); body.className = 'fbody';
-    if (objIndex >= 0) { const m = document.createElement('a'); m.className = 'meets'; m.href = `#objective-${objIndex + 1}`; m.textContent = `Meets objective ${objIndex + 1}`; body.append(m); }
+    let meets = null;
+    (C.specificObjectives || []).forEach((o, k) => {
+      if (meets) return;
+      if ((o.functions || []).includes(f.id)) meets = { id: `objective-${k + 1}`, label: `${k + 1}` };
+      (o.items || []).forEach(it => { if (!meets && (it.functions || []).includes(f.id)) meets = { id: `objective-${k + 1}${it.label}`, label: `${k + 1}${it.label}` }; });
+    });
+    if (meets) { const m = document.createElement('a'); m.className = 'meets'; m.href = `#${meets.id}`; m.textContent = `Meets objective ${meets.label}`; body.append(m); }
     const h = document.createElement('h3'); h.textContent = f.title;
     const p = document.createElement('p'); p.textContent = f.what;
     body.append(h, p);

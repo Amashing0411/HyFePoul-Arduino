@@ -53,9 +53,9 @@ Use the part's id, for example mega, esp32, relay, charger, hopper, auger, dispM
 
 ## team/ (square face photos, about 400 x 400, .jpg)
 
-member-1, member-2, member-3, member-4, member-5, member-6
+dalit, hernandez, alcantara, tolentino, eser, ramos (the last name, in lowercase)
 
-Names and roles are in `data/media-slots.json` under "team". Change "Member 1" and "Role" there.
+Names, roles and the back-of-badge text are in `data/media-slots.json` under "team". Replace "Role" for each member there.
 
 ## Text from the project document
 
