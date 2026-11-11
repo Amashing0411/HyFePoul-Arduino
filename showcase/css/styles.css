@@ -446,3 +446,14 @@ html.present{scrollbar-width:none}
   .present .detail{max-height:none}
 }
 .present .slide.tall{overflow-y:auto;overscroll-behavior:contain}
+/* Presenter mode: room on both sides of the title, and a team slide that reads from a distance. */
+.present #title{padding-left:clamp(28px,6vw,120px);padding-right:clamp(20px,4vw,80px)}
+.present #team{--badge-max:240}
+.present #team [data-slot="team-lanyard-rail"] h2{font-size:clamp(30px,3vw,46px)}
+.present [data-person-panel]{max-width:min(64rem,92vw)}
+.present [data-person-panel]>div{padding:20px 26px}
+.present [data-person-panel]>div>p:first-child{font-size:clamp(18px,1.5vw,24px)}
+.present [data-person-panel] span.rounded-full{font-size:clamp(13px,1vw,16px);padding:3px 12px}
+.present [data-person-panel] p.leading-relaxed{font-size:clamp(15px,1.15vw,19px)}
+.present [data-person-panel]>p:last-child,.present #team [data-person-panel]+*{font-size:15px}
+.present #team{padding-top:clamp(10px,2vh,24px);padding-bottom:clamp(64px,8vh,80px)}

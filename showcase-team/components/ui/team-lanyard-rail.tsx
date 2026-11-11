@@ -451,7 +451,10 @@ export function TeamLanyardRail({
     if (!stage) return;
     const measure = (width: number) => {
       const n = Math.max(1, live.current.count);
-      const railW = Math.min(MAX_W, (width - 40) / (n * RAIL_PITCH_MIN + 0.4));
+      // The page can allow bigger badges (presenter mode) through --badge-max, limited by the screen height.
+      const big = parseFloat(getComputedStyle(stage).getPropertyValue("--badge-max")) || 0;
+      const maxW = big > MAX_W ? Math.max(MAX_W, Math.min(big, window.innerHeight * 0.162)) : MAX_W;
+      const railW = Math.min(maxW, (width - 40) / (n * RAIL_PITCH_MIN + 0.4));
       const carousel = railW < MIN_RAIL_W;
       const W = Math.round((carousel ? clamp(width * 0.3, 96, 118) : railW) * 4) / 4;
       setSize((old) => (Math.abs(old.width - width) < 0.5 && old.carousel === carousel && old.W === W ? old : { width, W, carousel }));
@@ -459,7 +462,12 @@ export function TeamLanyardRail({
     measure(stage.clientWidth);
     const observer = new ResizeObserver((entries) => { const box = entries[0]; if (box) measure(box.contentRect.width); });
     observer.observe(stage);
-    return () => observer.disconnect();
+    // Switching the page into or out of presenter mode changes --badge-max without resizing the stage.
+    const modes = new MutationObserver(() => measure(stage.clientWidth));
+    modes.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    const onResize = () => measure(stage.clientWidth);
+    window.addEventListener("resize", onResize);
+    return () => { observer.disconnect(); modes.disconnect(); window.removeEventListener("resize", onResize); };
   }, [count]);
 
   const paint = React.useCallback((i: number) => {
