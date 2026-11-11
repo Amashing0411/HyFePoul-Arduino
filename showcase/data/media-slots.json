@@ -212,17 +212,31 @@
       "id": "dalit",
       "file": "media/team/dalit",
       "name": "Myka Ella A. Dalit",
-      "role": "Role",
+      "role": "Assistant Project Lead",
       "team": "BSCpE 4D",
-      "tone": 1
+      "color": "#5db3ea",
+      "tags": [
+        "CAD and Mechanical Design Lead",
+        "Budget and Procurement In-charge",
+        "Manuscript Writer",
+        "Editor and Proofreader",
+        "Nextion HMI Designer"
+      ],
+      "bio": "Serves as Assistant Project Lead, overseeing 3D CAD modeling, mechanical design, and Nextion HMI interface development. Manages budget allocation, procurement, manuscript writing, technical editing, and proofreading to ensure seamless project integration and delivery."
     },
     {
       "id": "hernandez",
       "file": "media/team/hernandez",
       "name": "Alleny P. Hernandez",
-      "role": "Role",
+      "role": "Project Manager",
       "team": "BSCpE 4D",
-      "tone": 3
+      "color": "#a88fdc",
+      "tags": [
+        "Technical Writer & Manuscript Lead",
+        "QA & Testing In-charge",
+        "Documentation Lead"
+      ],
+      "bio": "Oversees project coordination, manuscript preparation, quality assurance, and documentation. Also handles research adviser communications, data gathering, and project testing to ensure the project's progress and successful completion."
     },
     {
       "id": "alcantara",
@@ -230,37 +244,57 @@
       "name": "Mark James L. Alcantara",
       "role": "Project Lead",
       "team": "BSCpE 4D",
-      "tone": 2,
-      "bio": "Ubos na tokens.",
+      "color": "#7fcf9c",
       "tags": [
         "Systems Integration",
         "Firmware",
         "App Development"
-      ]
+      ],
+      "bio": "Ubos na ang token buseng."
     },
     {
       "id": "tolentino",
       "file": "media/team/tolentino",
       "name": "John Rei R. Tolentino",
-      "role": "Role",
+      "role": "Senior Project Manager",
       "team": "BSCpE 4D",
-      "tone": 4
+      "color": "#1d3a7a",
+      "tags": [
+        "Manuscript Writer / Assistant",
+        "Technical Support Representative",
+        "Client & Personnel Liaison",
+        "Data Collector / Research Assistant"
+      ],
+      "bio": "Manages communications with research advisers, oversees data collection, and conducts project testing to ensure smooth execution and successful project completion."
     },
     {
-      "id": "eser",
-      "file": "media/team/eser",
-      "name": "Arwin E. Eser",
+      "id": "eserjose",
+      "file": "media/team/eserjose",
+      "name": "Arwin E. Eser Jose",
       "role": "Role",
       "team": "BSCpE 4D",
-      "tone": 5
+      "color": "#d8383a",
+      "tags": [
+        "Maintenance and Troubleshooting In-charge",
+        "Conceptual Review In-charge",
+        "Testing and Documentation In-charge"
+      ]
     },
     {
       "id": "ramos",
       "file": "media/team/ramos",
-      "name": "Jose Brylle Edward A. Ramos",
-      "role": "Role",
+      "name": "Brylle Edward A. Ramos",
+      "role": "Project Assistant",
       "team": "BSCpE 4D",
-      "tone": 1
+      "color": "#e8811c",
+      "tags": [
+        "Device QA Lead",
+        "Device Wiring",
+        "Documentation Lead",
+        "Project Testing Assistant",
+        "Financing Assistant"
+      ],
+      "bio": "Assisting device control, quality assurance, and documentation. Handles device wiring and components functionality for the project's successful execution."
     }
   ]
 }

@@ -24,6 +24,8 @@ export interface LanyardMember {
   links?: LanyardLink[];
   /** Team colour: chart token 1–5 for the ribbon and the badge band. */
   tone?: 1 | 2 | 3 | 4 | 5;
+  /** Any CSS colour for the ribbon and band; overrides tone. */
+  color?: string;
   /** Extra lanyard length in pixels at a 124 px badge; it scales with the badge. */
   drop?: number;
 }
@@ -274,12 +276,12 @@ function LinkIcon({ label }: { label: string }) {
 
 const LINK_ROW = "inline-flex items-center gap-[0.3em] rounded-[0.4em] px-[0.3em] py-[0.14em] text-[0.68em] font-medium leading-tight";
 
-function Band({ tone, tall }: { tone: string; tall?: boolean }) {
+function Band({ tone, tall, color }: { tone: string; tall?: boolean; color?: string }) {
   return (
     <span
       aria-hidden="true"
       className={`absolute inset-x-0 top-0 block ${tone} ${tall ? "h-[4.3em]" : "h-[2.15em]"}`}
-      style={{ background: "repeating-linear-gradient(135deg, transparent 0 0.45em, color-mix(in oklab, white 10%, transparent) 0.45em 0.56em), linear-gradient(180deg, color-mix(in oklab, currentColor 80%, white), currentColor 72%, color-mix(in oklab, currentColor 86%, black))" }}
+      style={{ color, background: "repeating-linear-gradient(135deg, transparent 0 0.45em, color-mix(in oklab, white 10%, transparent) 0.45em 0.56em), linear-gradient(180deg, color-mix(in oklab, currentColor 80%, white), currentColor 72%, color-mix(in oklab, currentColor 86%, black))" }}
     >
       <span className="absolute inset-x-0 bottom-0 h-px bg-black/15" />
     </span>
@@ -320,12 +322,11 @@ const BadgeFaces = React.memo(function BadgeFaces({ item, tone }: { item: Lanyar
   const bars = React.useMemo(() => barcode(seed), [seed]);
   const digits = String(seed % 1000000000).padStart(9, "0");
   const [failed, setFailed] = React.useState(false);
-  const tags = (item.tags ?? []).slice(0, 3);
   const links = (item.links ?? []).slice(0, 3);
   return (
     <>
       <span data-face="front" className="absolute inset-0 flex flex-col items-center overflow-hidden rounded-[0.85em] border border-border bg-card px-[0.8em] pb-[0.7em] text-card-foreground [backface-visibility:hidden]" style={{ transform: "translateZ(1px)" }}>
-        <Band tone={tone} tall />
+        <Band tone={tone} tall color={item.color} />
         <Hole />
         <span className="relative mt-[2.05em] block size-[5.3em] shrink-0 rounded-full bg-card p-[0.2em]" style={{ boxShadow: "0 0.15em 0.5em color-mix(in oklab, var(--color-foreground) 22%, transparent)" }}>
           <span className="relative block size-full overflow-hidden rounded-full bg-muted">
@@ -333,8 +334,8 @@ const BadgeFaces = React.memo(function BadgeFaces({ item, tone }: { item: Lanyar
             {!failed && <img src={item.image} alt="" draggable={false} decoding="async" onError={() => setFailed(true)} className="pointer-events-none absolute inset-0 block size-full select-none object-cover" />}
           </span>
         </span>
-        <span className="mt-[0.55em] block w-full truncate text-center text-[1.08em] font-semibold leading-tight tracking-tight">{item.name}</span>
-        <span className="mt-[0.15em] block w-full truncate text-center text-[0.8em] leading-snug text-muted-foreground">{item.role}</span>
+        <span className="mt-[0.5em] line-clamp-2 block w-full text-balance text-center text-[0.98em] font-semibold leading-[1.15] tracking-tight">{item.name}</span>
+        <span className="mt-[0.2em] line-clamp-2 block w-full text-balance text-center text-[0.76em] leading-snug text-muted-foreground">{item.role}</span>
         {item.team && <span className="mt-[0.5em] block w-full truncate text-center text-[0.6em] font-medium uppercase tracking-[0.2em] text-muted-foreground">{item.team}</span>}
         <span className="mt-auto block w-full border-t border-dashed border-border pt-[0.5em]">
           <svg aria-hidden="true" viewBox={`0 0 ${bars.width} 20`} preserveAspectRatio="none" className="block h-[1.6em] w-full text-foreground/80">
@@ -345,22 +346,13 @@ const BadgeFaces = React.memo(function BadgeFaces({ item, tone }: { item: Lanyar
         <Finish />
       </span>
       <span data-face="back" className="absolute inset-0 overflow-hidden rounded-[0.85em] border border-border bg-card text-card-foreground [backface-visibility:hidden]" style={{ transform: "rotateY(180deg) translateZ(1px)" }}>
-        <Band tone={tone} />
+        <Band tone={tone} color={item.color} />
         <Hole />
-        <span className="absolute inset-x-[0.85em] top-[2.6em] block">
-          <span className="block truncate text-[0.95em] font-semibold leading-tight">{item.name}</span>
-          <span className="block truncate text-[0.72em] leading-snug text-muted-foreground">{item.role}</span>
+        <span className="absolute inset-x-[0.8em] top-[2.5em] bottom-[4.9em] flex flex-col">
+          <span className="line-clamp-2 block text-[0.86em] font-semibold leading-[1.15]">{item.name}</span>
+          <span className="mt-[0.1em] block text-[0.66em] font-medium leading-snug text-muted-foreground">{item.role}</span>
+          {item.bio && <span data-bio className="mt-[0.45em] block min-h-0 flex-1 overflow-hidden text-[0.56em] leading-[1.38]" style={{ maskImage: "linear-gradient(black 80%, transparent)", WebkitMaskImage: "linear-gradient(black 80%, transparent)" }}>{item.bio}</span>}
         </span>
-        {item.bio && (
-          <span className="absolute inset-x-[0.85em] top-[5.1em] block">
-            <span data-bio className="line-clamp-4 block text-[0.74em] leading-[1.4]">{item.bio}</span>
-          </span>
-        )}
-        {tags.length > 0 && (
-          <span className="absolute inset-x-[0.85em] top-[9.8em] flex flex-wrap gap-[0.28em]">
-            {tags.map((tag) => <span key={tag} className="block rounded-full border border-border bg-muted/60 px-[0.6em] py-[0.16em] text-[0.6em] leading-tight text-muted-foreground">{tag}</span>)}
-          </span>
-        )}
         {links.length > 0 && (
           <span aria-hidden="true" className="absolute bottom-[0.75em] left-[0.6em] flex flex-col items-start gap-[0.1em] transition-opacity duration-150 motion-reduce:transition-none" style={{ opacity: "var(--drawn, 1)" }}>
             {links.map((link) => <span key={link.label} className={LINK_ROW}><LinkIcon label={link.label} />{link.label}</span>)}
@@ -1012,7 +1004,7 @@ export function TeamLanyardRail({
               ref={(node) => { slots.current[i] = node; }}
               data-lanyard={i}
               className={`pointer-events-none absolute left-0 top-0 ${tone}`}
-              style={{ width: W, height: g.height, zIndex: isFlipped ? 40 : isActive ? 30 : 10 + i, transform: `translate3d(${((sim.current.x[i] ?? 0) - W / 2).toFixed(2)}px,0,0)` }}
+              style={{ color: item.color, width: W, height: g.height, zIndex: isFlipped ? 40 : isActive ? 30 : 10 + i, transform: `translate3d(${((sim.current.x[i] ?? 0) - W / 2).toFixed(2)}px,0,0)` }}
             >
               <span aria-hidden="true" className="absolute block rounded-full" style={{ left: W / 2 - 4.5 * g.u, top: g.railY - g.ring, width: 9 * g.u, height: g.ring * 2, border: `${Math.max(1.6, 2.2 * g.u).toFixed(2)}px solid color-mix(in oklab, var(--color-muted-foreground) 45%, white)`, boxShadow: "inset 1px 0 0 color-mix(in oklab, black 25%, transparent), 1px 1px 2px color-mix(in oklab, black 20%, transparent)" }} />
               <span ref={(node) => { swings.current[i] = node; }} data-swing className="absolute inset-0 block" style={{ transformOrigin: `${W / 2}px ${g.pivotY}px` }}>
@@ -1121,10 +1113,19 @@ export function TeamLanyardRail({
       )}
 
       <div className="relative z-10 flex flex-col items-center gap-3 px-6 pb-7 pt-3 text-center">
-        <div id={`${uid}-caption`} aria-live="polite" className="min-h-[2.6rem]">
-          <p className="text-sm font-medium">{line1}</p>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">{line2}</p>
-          {showingBack && person?.bio && <span className="sr-only">{person.bio}</span>}
+        <div id={`${uid}-caption`} aria-live="polite" data-person-panel className="min-h-[2.6rem] w-full max-w-[46rem]">
+          {person ? (
+            <div className="rounded-2xl bg-card px-5 py-4 text-left shadow-sm" style={{ borderTop: `4px solid ${person.color ?? "var(--color-chart-1)"}` }}>
+              <p className="text-base font-semibold leading-snug">{person.name}<span className="font-medium text-muted-foreground"> · {person.role}</span></p>
+              {(person.tags ?? []).length > 0 && (
+                <p className="mt-2 flex flex-wrap gap-1.5">{(person.tags ?? []).map((tag) => <span key={tag} className="rounded-full bg-muted px-2.5 py-0.5 text-[12.5px] font-medium leading-snug text-foreground">{tag}</span>)}</p>
+              )}
+              {person.bio && <p className="mt-2 text-[14.5px] leading-relaxed text-muted-foreground" style={{ textAlign: "justify", hyphens: "auto" }}>{person.bio}</p>}
+            </div>
+          ) : (
+            <p className="text-sm font-medium">{line1}</p>
+          )}
+          <p className="mt-1.5 text-[13px] text-muted-foreground">{line2}</p>
         </div>
         {action}
       </div>

@@ -7,6 +7,7 @@ const GUIDE = new URLSearchParams(location.search).has('guide');
 let glideId = 0;
 const go = (el, block = 'start', done) => {
   if (!el) return;
+  if (P.on) { P.showEl(el); if (done) done(); return; }
   const id = ++glideId;
   const targetY = () => {
     const r = el.getBoundingClientRect();
@@ -40,6 +41,157 @@ function setupTitleMotion() {
   };
   addEventListener('scroll', () => { if (!queued) { queued = true; requestAnimationFrame(apply); } }, { passive: true });
   apply();
+}
+
+// --- Presenter mode: one slide at a time, nothing scrolls ---
+// Long sections are split into pages at whole blocks (a paragraph, an objective item, a card),
+// so no text is ever cut. A page that is still too tall is shrunk a little to fit.
+const P = { on: false, i: 0, page: 0, pages: [[0, 0]], zooms: [1], label: () => {}, refresh: () => {}, slotTo: () => {} };
+const UNITS = '#cProblem > p, #cGeneral, #cObjectives .subs > li, #cObjectives > .objective:not(.wide), #steps > li, #functionGrid > .fn, #gallery > *, #partsList > *, #trials > *, #cNotes > li, #schemFrame, #schematic .pin-table, #diagram, #previewApp > *, #previewPanel > *';
+const PU_GROUPS = '.objective.wide, .notes';
+function setupPresent() {
+  const slides = [...document.querySelectorAll('.slide')];
+  const root = document.documentElement;
+  let savedY = 0, busy = 0;
+  const units = sl => [...sl.querySelectorAll(UNITS)];
+  const fits = sl => sl.scrollHeight <= sl.clientHeight + 1;
+  const showRange = (sl, us, a, b) => {
+    us.forEach((u, k) => u.classList.toggle('pu-off', k < a || k >= b));
+    sl.querySelectorAll(PU_GROUPS).forEach(g => { const inner = units(g); g.classList.toggle('pu-off', inner.length > 0 && inner.every(u => u.classList.contains('pu-off'))); });
+  };
+  const canZoom = sl => !sl.querySelector('.slot') && sl.id !== 'team';
+  const fitZoom = (sl, grow = 1.3) => {
+    let z = 1; sl.style.zoom = '';
+    if (!canZoom(sl)) return 1;
+    while (!fits(sl) && z > (innerWidth < 700 ? 0.5 : 0.62)) { z = +(z - 0.04).toFixed(2); sl.style.zoom = z; }
+    // A short page grows to fill the screen, so it reads well from the back of a room.
+    if (z === 1) {
+      while (z < grow - 0.001) { const n = +(z + 0.05).toFixed(2); sl.style.zoom = n; if (!fits(sl)) { sl.style.zoom = z; break; } z = n; }
+    }
+    return z;
+  };
+  // Split a slide into pages of whole blocks, then note how much each page must shrink.
+  const layout = sl => {
+    const us = units(sl);
+    sl.style.zoom = '';
+    showRange(sl, us, 0, us.length);
+    const pages = [];
+    if (!us.length || fits(sl)) pages.push([0, us.length]);
+    else {
+      let a = 0;
+      while (a < us.length) {
+        let b = a + 1;
+        while (b < us.length) { showRange(sl, us, a, b + 1); if (!fits(sl)) break; b++; }
+        pages.push([a, b]); a = b;
+      }
+    }
+    // Split sections are already dense, so their pages only grow a little.
+    const zooms = pages.map(([a, b]) => { showRange(sl, us, a, b); return fitZoom(sl, pages.length > 1 ? 1.1 : 1.3); });
+    return { us, pages, zooms };
+  };
+  let L = null;
+  const paint = () => {
+    const sl = slides[P.i], [a, b] = L.pages[P.page];
+    showRange(sl, L.us, a, b);
+    sl.style.zoom = L.zooms[P.page] === 1 ? '' : L.zooms[P.page];
+    sl.classList.toggle('tall', !fits(sl));
+    P.label(P.i, P.page, L.pages.length);
+  };
+  const show = (i, page = 0, dir = 1) => {
+    const prev = slides[P.i];
+    P.i = Math.max(0, Math.min(slides.length - 1, i));
+    const sl = slides[P.i];
+    slides.forEach((x, k) => { x.classList.toggle('cur', k === P.i); x.classList.toggle('before', k < P.i); });
+    if (prev !== sl || !L) {
+      if (prev && prev !== sl) { units(prev).forEach(u => u.classList.remove('pu-off')); prev.querySelectorAll(PU_GROUPS).forEach(g => g.classList.remove('pu-off')); prev.style.zoom = ''; }
+      L = layout(sl);
+    }
+    P.page = page < 0 ? L.pages.length - 1 : Math.min(page, L.pages.length - 1);
+    paint();
+    root.dataset.pslide = sl.id;
+    sl.classList.remove('enter'); void sl.offsetWidth; sl.classList.add('enter');
+    sl.style.setProperty('--dir', dir);
+    const slot = sl.querySelector('.slot'); if (slot) P.slotTo(slot);
+  };
+  P.step = d => {
+    if (d > 0 && P.page < L.pages.length - 1) { P.page++; paint(); slides[P.i].classList.remove('enter'); void slides[P.i].offsetWidth; slides[P.i].classList.add('enter'); return; }
+    if (d < 0 && P.page > 0) { P.page--; paint(); return; }
+    const k = P.i + d;
+    if (k < 0 || k >= slides.length) return;
+    show(k, d > 0 ? 0 : -1, d);
+  };
+  P.showEl = el => {
+    const sl = el.closest('.slide'); if (!sl) return;
+    const k = slides.indexOf(sl);
+    show(k, 0, k >= P.i ? 1 : -1);
+    const u = L.us.findIndex(x => x === el || x.contains(el) || el.contains(x));
+    if (u >= 0) { const pg = L.pages.findIndex(([a, b]) => u >= a && u < b); if (pg > 0) { P.page = pg; paint(); } }
+  };
+  const current = () => {
+    let i = 0;
+    slides.forEach((s, k) => { if (s.getBoundingClientRect().top <= innerHeight * 0.4) i = k; });
+    return i;
+  };
+  const enter = () => {
+    if (P.on) return;
+    const i = current();
+    savedY = scrollY;
+    P.on = true; root.classList.add('present');
+    document.querySelectorAll('#presentBtn, #presentTop').forEach(b => b.setAttribute('aria-pressed', 'true'));
+    L = null; show(i);
+    if (root.requestFullscreen && !document.fullscreenElement) root.requestFullscreen().catch(() => {});
+  };
+  const exit = () => {
+    if (!P.on) return;
+    const sl = slides[P.i];
+    units(sl).forEach(u => u.classList.remove('pu-off')); sl.querySelectorAll(PU_GROUPS).forEach(g => g.classList.remove('pu-off'));
+    slides.forEach(x => { x.classList.remove('cur', 'before', 'enter', 'tall'); x.style.zoom = ''; });
+    P.on = false; root.classList.remove('present'); delete root.dataset.pslide;
+    document.querySelectorAll('#presentBtn, #presentTop').forEach(b => b.setAttribute('aria-pressed', 'false'));
+    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+    scrollTo(0, sl.getBoundingClientRect().top + scrollY);
+    savedY = 0; P.refresh(); dispatchEvent(new Event('scroll'));
+  };
+  const toggle = () => (P.on ? exit() : enter());
+  $('presentBtn').addEventListener('click', toggle);
+  $('presentTop').addEventListener('click', toggle);
+  addEventListener('keydown', e => {
+    if (e.altKey || e.ctrlKey || e.metaKey || document.querySelector('dialog[open]')) return;
+    const t = e.target;
+    if (t.closest && t.closest('input,textarea,select,[contenteditable]')) return;
+    if ((e.key === 'p' || e.key === 'P') && !e.repeat) { e.preventDefault(); toggle(); return; }
+    if (!P.on) return;
+    if (t.closest && t.closest('[data-slot="team-lanyard-rail"]') && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return;
+    const next = ['PageDown', ' ', 'ArrowDown'].includes(e.key), prev = ['PageUp', 'ArrowUp'].includes(e.key);
+    if (e.key === 'Escape' && $('pageMenu').hidden && !document.fullscreenElement) { exit(); return; }
+    if (e.key === 'Home') { e.preventDefault(); show(0, 0, -1); return; }
+    if (e.key === 'End') { e.preventDefault(); show(slides.length - 1, 0, 1); return; }
+    if (next || prev) { if (t.closest && t.closest('button,a') && e.key === ' ') return; e.preventDefault(); P.step(next ? 1 : -1); }
+  });
+  // Mouse wheel and swipes turn the pages too, except over the 3D model and the badge rail.
+  const skip = t => t.closest && t.closest('.stage, [data-slot="team-lanyard-rail"], .pager-menu');
+  let wheelLock = 0;
+  addEventListener('wheel', e => {
+    if (!P.on || skip(e.target)) return;
+    e.preventDefault();
+    const now = performance.now();
+    if (now < wheelLock || Math.abs(e.deltaY) < 12) return;
+    wheelLock = now + 650; P.step(e.deltaY > 0 ? 1 : -1);
+  }, { passive: false });
+  let tx = null, ty = 0;
+  addEventListener('touchstart', e => { if (P.on && !skip(e.target)) { tx = e.touches[0].clientX; ty = e.touches[0].clientY; } else tx = null; }, { passive: true });
+  addEventListener('touchend', e => {
+    if (tx === null) return;
+    const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty; tx = null;
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < 50) return;
+    P.step((Math.abs(dx) > Math.abs(dy) ? -dx : -dy) > 0 ? 1 : -1);
+  }, { passive: true });
+  let rt = 0;
+  const relayout = () => { if (!P.on) return; clearTimeout(rt); rt = setTimeout(() => { const pg = P.page; const sl = slides[P.i]; units(sl).forEach(u => u.classList.remove('pu-off')); L = layout(sl); P.page = Math.min(pg, L.pages.length - 1); paint(); }, 150); };
+  addEventListener('resize', relayout);
+  // Photos that finish loading can change a page's height.
+  document.addEventListener('load', e => { if (P.on && e.target.tagName === 'IMG' && slides[P.i].contains(e.target)) relayout(); }, true);
+  if (new URLSearchParams(location.search).has('present')) requestAnimationFrame(enter);
 }
 
 // In-page links use the same glide as the pager.
@@ -407,6 +559,7 @@ function setupPager() {
   addEventListener('keydown', e => { if (e.key === 'Escape' && !menu.hidden) { closeMenu(); label.focus(); } });
   document.addEventListener('click', e => { if (!menu.hidden && !e.target.closest('#pager')) closeMenu(); });
   const update = () => {
+    if (P.on) return;
     const y = innerHeight * 0.4;
     let i = 0;
     slides.forEach((s, k) => { if (s.getBoundingClientRect().top <= y) i = k; });
@@ -427,6 +580,7 @@ function setupPager() {
   };
   // Counts from the section being headed to, so quick presses step exactly once each.
   const jump = d => {
+    if (P.on) { P.step(d); return; }
     const from = heading ?? cur, k = Math.max(0, Math.min(slides.length - 1, from + d));
     if (k === from) return;
     heading = k; show(k);
@@ -443,6 +597,13 @@ function setupPager() {
     if (t.closest && t.closest('input,textarea,select,[contenteditable],[data-slot="team-lanyard-rail"]')) return;
     e.preventDefault(); jump(e.key === 'ArrowRight' ? 1 : -1);
   });
+  P.label = (i, page, pages) => {
+    label.textContent = `${i + 1} / ${slides.length} · ${slides[i].dataset.title}${pages > 1 ? ` (${page + 1}/${pages})` : ''}`;
+    $('pagePrev').disabled = i === 0 && page === 0; $('pageNext').disabled = i === slides.length - 1 && page >= pages - 1;
+    menu.querySelectorAll('button').forEach((b, k) => b.setAttribute('aria-current', k === i));
+    $('progressBar').style.transform = `scaleX(${slides.length > 1 ? i / (slides.length - 1) : 0})`;
+  };
+  P.refresh = update;
   addEventListener('scroll', update, { passive: true });
   addEventListener('resize', update);
   update();
@@ -454,6 +615,7 @@ function setupSlots() {
   const slots = [...document.querySelectorAll('.slot')];
   let active = 'title', swapTimer = 0;
   const pick = () => {
+    if (P.on) return;
     const mid = innerHeight / 2;
     let best = null, bestD = Infinity;
     slots.forEach(s => {
@@ -461,7 +623,11 @@ function setupSlots() {
       const d = r.top <= mid && r.bottom >= mid ? 0 : Math.min(Math.abs(r.top - mid), Math.abs(r.bottom - mid));
       if (d < bestD) { bestD = d; best = s; }
     });
-    if (!best || best.dataset.slot === active || bestD > innerHeight * 0.6) return;
+    if (!best || bestD > innerHeight * 0.6) return;
+    moveTo(best);
+  };
+  const moveTo = best => {
+    if (!best || best.dataset.slot === active) return;
     const from = active;
     active = best.dataset.slot;
     // Fade out, move into the new section, fade back in while the camera flies to its view.
@@ -476,6 +642,7 @@ function setupSlots() {
       requestAnimationFrame(() => stage.classList.remove('swap'));
     }, 180);
   };
+  P.slotTo = moveTo;
   stage.dataset.mode = active;
   addEventListener('scroll', pick, { passive: true });
   addEventListener('resize', pick);
@@ -523,7 +690,7 @@ async function start() {
   fillText($('cRecommend'), C.recommendations, 'The recommendations');
   let pick = () => {};
   renderPartsList(id => { go($('device')); pick(id); });
-  setupPager(); setupSlots(); setupReveal(); setupCounters(); setupTitleMotion();
+  setupPager(); setupSlots(); setupReveal(); setupCounters(); setupTitleMotion(); setupPresent();
   if (location.hash) { const t = document.querySelector(location.hash); if (t) t.scrollIntoView(); }
   setupLinks();
 

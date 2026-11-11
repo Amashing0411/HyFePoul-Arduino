@@ -53,7 +53,7 @@ Use the part's id, for example mega, esp32, relay, charger, hopper, auger, dispM
 
 ## team/ (square face photos, about 400 x 400, .jpg)
 
-dalit, hernandez, alcantara, tolentino, eser, ramos (the last name, in lowercase)
+dalit, hernandez, alcantara, tolentino, eserjose, ramos (the last name, in lowercase)
 
 Names, roles and the back-of-badge text are in `data/media-slots.json` under "team". Replace "Role" for each member there.
 

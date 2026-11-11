@@ -393,3 +393,56 @@ td{padding:7px 8px;border-bottom:1px solid var(--line)}
 .sl{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:#fff;color:var(--blue);font-weight:800;box-shadow:inset 0 0 0 2px var(--chip)}
 .subs .met{margin-top:8px}
 @media (max-width:1020px){.subs{grid-template-columns:minmax(0,1fr)}}
+
+/* Easier reading: justified paragraphs with hyphenation, and a lighter general objective. */
+@media (min-width:700px){.prose p,.goal p,.objective p,.subs p,.fbody p,.steps li p,.notes li,.detail p,.closing p{text-align:justify;text-justify:inter-word;hyphens:auto;-webkit-hyphens:auto}}
+.goal p{font-size:clamp(17px,1.3vw,19.5px);font-weight:500;line-height:1.62;max-width:none;letter-spacing:.005em}
+.objective>div>p,.objective>div>.ph-text{line-height:1.6}
+
+/* Presenter toggle */
+.pager .present-btn[aria-pressed="true"]{background:var(--blue);color:#fff}
+.present-link{border:1.5px solid rgba(255,255,255,.5);background:transparent;color:#fff;border-radius:999px;padding:6px 14px;font:700 14px var(--font);cursor:pointer}
+.present-link:hover{background:rgba(255,255,255,.14)}
+
+/* Presenter mode: every section becomes a full-screen slide. */
+html.present,html.present body{overflow:hidden;height:100%}
+html.present{scrollbar-width:none}
+.present .waves,.present .foot{display:none}
+.present .sky{overflow:visible;background:none}
+.present .top{position:fixed;inset:0 0 auto 0;z-index:7;visibility:hidden}
+.present[data-pslide="title"] .top{visibility:visible}
+.present .slide{position:fixed;inset:0;z-index:5;margin:0;display:flex;flex-direction:column;overflow:hidden;padding:clamp(18px,4vh,44px) 0 clamp(70px,9vh,88px);
+  visibility:hidden;opacity:0;transform:translate3d(56px,0,0);transition:opacity .4s ease,transform .55s cubic-bezier(.16,1,.3,1),visibility 0s linear .55s}
+.present .slide.before{transform:translate3d(-56px,0,0)}
+.present .slide.cur{visibility:visible;opacity:1;transform:none;z-index:6;transition:opacity .4s ease,transform .55s cubic-bezier(.16,1,.3,1),visibility 0s}
+.present .slide:not(.white):not(.blue):not(.hero){background:var(--ice)}
+.present .slide>.wrap{margin-block:auto;width:min(1320px,100%)}
+.present .pu-off{display:none!important}
+.present .rv{opacity:1;transform:none}
+.present .slide.enter .wrap>*{animation:slideIn .6s cubic-bezier(.16,1,.3,1) both}
+.present .slide.enter .wrap>:nth-child(2){animation-delay:.06s}
+.present .slide.enter .wrap>:nth-child(3){animation-delay:.12s}
+.present .slide.enter .wrap>:nth-child(n+4){animation-delay:.18s}
+@keyframes slideIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.present #title{display:grid;background:linear-gradient(178deg,var(--blue-hi) 0,var(--blue) 18%,var(--blue-deep) 62%,var(--blue-night) 100%);padding-top:clamp(76px,10vh,96px);min-height:0;align-content:center}
+.present #title .lead{transform:none!important;opacity:1!important}
+.present .slot-title{height:min(70svh,720px)}
+.present .slot-steps{height:min(58svh,580px);min-height:320px}
+.present .slot-device{height:calc(100svh - 270px);min-height:340px}
+.present .detail{max-height:calc(100svh - 270px);overflow:auto}
+.present #team{justify-content:center}
+.present #team>#teamRoot{margin-block:auto}
+.present .section{scroll-margin:0}
+@media (prefers-reduced-motion:reduce){
+  .present .slide,.present .slide.cur{transition:none;transform:none}
+  .present .slide.enter .wrap>*{animation:none}
+}
+.present #schematic .sub-title:has(+ #diagram.pu-off){display:none}
+.present #schematic .schematic:has(> .pu-off){grid-template-columns:minmax(0,1fr)}
+/* Phones: smaller 3D views, and a page that still cannot fit may scroll inside itself. */
+@media (max-width:760px){
+  .present .slot-steps{height:34svh;min-height:200px}
+  .present .slot-device{height:40svh;min-height:220px}
+  .present .detail{max-height:none}
+}
+.present .slide.tall{overflow-y:auto;overscroll-behavior:contain}
