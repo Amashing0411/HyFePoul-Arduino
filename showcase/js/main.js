@@ -3,31 +3,38 @@ import { PARTS, GROUPS } from './parts.js';
 const $ = id => document.getElementById(id);
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const GUIDE = new URLSearchParams(location.search).has('guide');
-let lenis = null;
-const go = (el, block = 'start') => {
+// Jumps between sections: a short glide that re-measures the target every frame, so it always lands exactly on it.
+let glideId = 0;
+const go = (el, block = 'start', done) => {
   if (!el) return;
-  if (lenis) lenis.scrollTo(el, { offset: block === 'center' ? -Math.max(0, (innerHeight - el.offsetHeight) / 2) : 0 });
-  else el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block });
+  const id = ++glideId;
+  const targetY = () => {
+    const r = el.getBoundingClientRect();
+    const y = scrollY + r.top - (block === 'center' ? Math.max(0, (innerHeight - r.height) / 2) : 0);
+    return Math.max(0, Math.min(y, document.documentElement.scrollHeight - innerHeight));
+  };
+  const finish = () => { if (done) done(); };
+  const to = y => scrollTo(0, y);
+  if (reduced) { to(targetY()); finish(); return; }
+  const y0 = scrollY, t0 = performance.now(), dur = 480;
+  const step = now => {
+    if (id !== glideId) return;
+    const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    to(y0 + (targetY() - y0) * e);
+    if (k < 1) requestAnimationFrame(step); else { to(targetY()); finish(); }
+  };
+  requestAnimationFrame(step);
 };
 
-// Smooth scrolling (Lenis), skipped for reduced motion. The 3D view, dialogs and the team rail keep their own wheel and touch.
-async function setupSmooth() {
-  if (reduced) return;
-  try {
-    const { default: Lenis } = await import('lenis');
-    lenis = new Lenis({ lerp: 0.1, prevent: n => !!(n.closest && n.closest('#stage, dialog, [data-slot="team-lanyard-rail"], .pager-menu')) });
-    const raf = t => { lenis.raf(t); requestAnimationFrame(raf); };
-    requestAnimationFrame(raf);
-    document.documentElement.classList.add('lenis-on');
-    document.addEventListener('click', e => {
-      const a = e.target.closest && e.target.closest('a[href^="#"]');
-      if (!a) return;
-      const t = document.querySelector(a.getAttribute('href'));
-      if (!t) return;
-      e.preventDefault(); lenis.scrollTo(t); history.replaceState(null, '', a.getAttribute('href'));
-    });
-    document.querySelectorAll('dialog').forEach(d => new MutationObserver(() => (d.open ? lenis.stop() : lenis.start())).observe(d, { attributes: true, attributeFilter: ['open'] }));
-  } catch (e) { console.warn(e); lenis = null; }
+// In-page links use the same glide as the pager.
+function setupLinks() {
+  document.addEventListener('click', e => {
+    const a = e.target.closest && e.target.closest('a[href^="#"]');
+    if (!a) return;
+    const t = document.querySelector(a.getAttribute('href'));
+    if (!t) return;
+    e.preventDefault(); go(t); history.replaceState(null, '', a.getAttribute('href'));
+  });
 }
 
 // Cards in each grid rise in one after another the first time they come into view.
@@ -368,15 +375,30 @@ function setupPager() {
     const y = innerHeight * 0.4;
     let i = 0;
     slides.forEach((s, k) => { if (s.getBoundingClientRect().top <= y) i = k; });
+    // A section whose top sits at the top of the screen is the current one, even if it is short.
+    const aligned = slides.findIndex(s => Math.abs(s.getBoundingClientRect().top) <= 4);
+    if (aligned >= 0) i = aligned;
     if (innerHeight + scrollY >= document.documentElement.scrollHeight - 4) i = slides.length - 1;
     cur = i;
     menu.querySelectorAll('button').forEach((b, k) => b.setAttribute('aria-current', k === i));
-    label.textContent = `${i + 1} / ${slides.length} · ${slides[i].dataset.title}`;
+    if (heading === null) show(i);
     const h = document.documentElement.scrollHeight - innerHeight;
     $('progressBar').style.transform = `scaleX(${h > 0 ? Math.min(1, scrollY / h) : 0})`;
+  };
+  let heading = null;
+  const show = i => {
+    label.textContent = `${i + 1} / ${slides.length} · ${slides[i].dataset.title}`;
     $('pagePrev').disabled = i === 0; $('pageNext').disabled = i === slides.length - 1;
   };
-  const jump = d => { const k = Math.max(0, Math.min(slides.length - 1, cur + d)); go(slides[k]); };
+  // Counts from the section being headed to, so quick presses step exactly once each.
+  const jump = d => {
+    const from = heading ?? cur, k = Math.max(0, Math.min(slides.length - 1, from + d));
+    if (k === from) return;
+    heading = k; show(k);
+    const clear = () => { if (heading === k) { heading = null; update(); } };
+    setTimeout(clear, 900); // safety: never leave the target stuck if a glide is cut short
+    go(slides[k], 'start', clear);
+  };
   $('pagePrev').addEventListener('click', () => jump(-1));
   $('pageNext').addEventListener('click', () => jump(1));
   addEventListener('keydown', e => {
@@ -460,7 +482,7 @@ async function start() {
   renderPartsList(id => { go($('device')); pick(id); });
   setupPager(); setupSlots(); setupReveal(); setupCounters();
   if (location.hash) { const t = document.querySelector(location.hash); if (t) t.scrollIntoView(); }
-  setupSmooth();
+  setupLinks();
 
   const test = document.createElement('canvas');
   if (!(test.getContext('webgl2') || test.getContext('webgl'))) { webglFallback('This browser cannot show the 3D model.'); return; }
