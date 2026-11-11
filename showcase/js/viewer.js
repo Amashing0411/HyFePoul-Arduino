@@ -450,7 +450,7 @@ export function init({ cad, onSelect, onFail }) {
   });
 
   return {
-    pick: id => { $('device').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' }); select(id, true); },
+    pick: id => select(id, true),
     // The title shows the whole machine; the step-by-step section shows the cycle view; the device section keeps the user's view.
     enter: (mode, from) => {
       if (cycle) return;

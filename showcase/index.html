@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="css/styles.css">
 <link rel="stylesheet" href="css/team.css">
 <script type="importmap">
-{"imports":{"three":"./vendor/three.module.min.js","three/orbit":"./vendor/OrbitControls.js","three/bgu":"./vendor/BufferGeometryUtils.js"}}
+{"imports":{"three":"./vendor/three.module.min.js","three/orbit":"./vendor/OrbitControls.js","three/bgu":"./vendor/BufferGeometryUtils.js","lenis":"https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.mjs"}}
 </script>
 </head>
 <body>
@@ -22,7 +22,8 @@
 <div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
 <nav class="pager" id="pager" aria-label="Presentation">
   <button id="pagePrev" type="button" aria-label="Previous section"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg></button>
-  <span id="pageLabel"></span>
+  <button class="plabel" id="pageLabel" type="button" aria-expanded="false" aria-controls="pageMenu"></button>
+  <ol class="pager-menu" id="pageMenu" hidden></ol>
   <button id="pageNext" type="button" aria-label="Next section"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
 </nav>
 

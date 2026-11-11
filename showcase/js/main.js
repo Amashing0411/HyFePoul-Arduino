@@ -3,7 +3,61 @@ import { PARTS, GROUPS } from './parts.js';
 const $ = id => document.getElementById(id);
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const GUIDE = new URLSearchParams(location.search).has('guide');
-const go = (el, block = 'start') => el && el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block });
+let lenis = null;
+const go = (el, block = 'start') => {
+  if (!el) return;
+  if (lenis) lenis.scrollTo(el, { offset: block === 'center' ? -Math.max(0, (innerHeight - el.offsetHeight) / 2) : 0 });
+  else el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block });
+};
+
+// Smooth scrolling (Lenis), skipped for reduced motion. The 3D view, dialogs and the team rail keep their own wheel and touch.
+async function setupSmooth() {
+  if (reduced) return;
+  try {
+    const { default: Lenis } = await import('lenis');
+    lenis = new Lenis({ lerp: 0.1, prevent: n => !!(n.closest && n.closest('#stage, dialog, [data-slot="team-lanyard-rail"], .pager-menu')) });
+    const raf = t => { lenis.raf(t); requestAnimationFrame(raf); };
+    requestAnimationFrame(raf);
+    document.documentElement.classList.add('lenis-on');
+    document.addEventListener('click', e => {
+      const a = e.target.closest && e.target.closest('a[href^="#"]');
+      if (!a) return;
+      const t = document.querySelector(a.getAttribute('href'));
+      if (!t) return;
+      e.preventDefault(); lenis.scrollTo(t); history.replaceState(null, '', a.getAttribute('href'));
+    });
+    document.querySelectorAll('dialog').forEach(d => new MutationObserver(() => (d.open ? lenis.stop() : lenis.start())).observe(d, { attributes: true, attributeFilter: ['open'] }));
+  } catch (e) { console.warn(e); lenis = null; }
+}
+
+// Cards in each grid rise in one after another the first time they come into view.
+function setupReveal() {
+  if (reduced || !('IntersectionObserver' in window)) return;
+  const groups = ['.objectives', '.steps', '.functions', '.devices', '.gallery', '.parts', '.stats', '.flow'];
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px' });
+  groups.forEach(sel => document.querySelectorAll(sel).forEach(g => {
+    [...g.children].forEach((c, i) => { c.classList.add('rv'); c.style.setProperty('--d', `${Math.min(i, 8) * 60}ms`); io.observe(c); });
+  }));
+}
+
+// Result numbers count up once, keeping their sign, decimals and unit.
+function setupCounters() {
+  const els = [...document.querySelectorAll('.stats b')];
+  const run = el => {
+    const m = el.textContent.match(/^([+\u2212-]?)(\d+(?:\.\d+)?)(.*)$/);
+    if (!m || reduced) return;
+    const [, sign, num, rest] = m, target = parseFloat(num), dec = (num.split('.')[1] || '').length, t0 = performance.now(), dur = 900;
+    const tick = now => {
+      const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 4);
+      el.textContent = sign + (target * e).toFixed(dec) + rest;
+      if (k < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  };
+  if (!('IntersectionObserver' in window)) return;
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { run(e.target); io.unobserve(e.target); } }), { threshold: 0.6 });
+  els.forEach(el => io.observe(el));
+}
 let LIB = { files: [], videos: [], app: [], panel: [], photos: [], team: [] };
 let C = {};
 let viewer = null;
@@ -298,13 +352,25 @@ function renderTrials() {
 // --- Presentation: progress bar, pager, arrow keys ---
 function setupPager() {
   const slides = [...document.querySelectorAll('.slide')];
-  const label = $('pageLabel');
+  const label = $('pageLabel'), menu = $('pageMenu');
   let cur = 0;
+  slides.forEach((sl, k) => {
+    const li = document.createElement('li'), b = document.createElement('button');
+    b.type = 'button'; b.innerHTML = `<span>${k + 1}</span>`; b.append(sl.dataset.title);
+    b.addEventListener('click', () => { closeMenu(); go(sl); });
+    li.append(b); menu.append(li);
+  });
+  const closeMenu = () => { menu.hidden = true; label.setAttribute('aria-expanded', 'false'); };
+  label.addEventListener('click', () => { const open = menu.hidden; menu.hidden = !open; label.setAttribute('aria-expanded', open); });
+  addEventListener('keydown', e => { if (e.key === 'Escape' && !menu.hidden) { closeMenu(); label.focus(); } });
+  document.addEventListener('click', e => { if (!menu.hidden && !e.target.closest('#pager')) closeMenu(); });
   const update = () => {
     const y = innerHeight * 0.4;
     let i = 0;
     slides.forEach((s, k) => { if (s.getBoundingClientRect().top <= y) i = k; });
+    if (innerHeight + scrollY >= document.documentElement.scrollHeight - 4) i = slides.length - 1;
     cur = i;
+    menu.querySelectorAll('button').forEach((b, k) => b.setAttribute('aria-current', k === i));
     label.textContent = `${i + 1} / ${slides.length} · ${slides[i].dataset.title}`;
     const h = document.documentElement.scrollHeight - innerHeight;
     $('progressBar').style.transform = `scaleX(${h > 0 ? Math.min(1, scrollY / h) : 0})`;
@@ -391,9 +457,10 @@ async function start() {
   fillText($('cConclusion'), C.conclusion, 'The conclusion');
   fillText($('cRecommend'), C.recommendations, 'The recommendations');
   let pick = () => {};
-  renderPartsList(id => pick(id));
-  setupPager(); setupSlots();
+  renderPartsList(id => { go($('device')); pick(id); });
+  setupPager(); setupSlots(); setupReveal(); setupCounters();
   if (location.hash) { const t = document.querySelector(location.hash); if (t) t.scrollIntoView(); }
+  setupSmooth();
 
   const test = document.createElement('canvas');
   if (!(test.getContext('webgl2') || test.getContext('webgl'))) { webglFallback('This browser cannot show the 3D model.'); return; }
