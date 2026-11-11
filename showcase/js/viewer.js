@@ -382,6 +382,7 @@ export function init({ cad, onSelect, onFail }) {
     controls.enabled = true; invalidate();
   }
   playBtn.addEventListener('click', () => {
+    controls.autoRotate = false;
     if (cycle) { stopCycle(true); return; }
     explode = 0; $('explode').value = 0;
     M.carrier.position.x = M.TRAY_X[1] - OUTLET; applyLayout(); rebuildWires();
@@ -403,6 +404,10 @@ export function init({ cad, onSelect, onFail }) {
   toggle('tSig', on => { layers.sig.visible = on; refreshWireHighlight(); });
   toggle('tLabels', on => { labelsOn = on; });
   controls.addEventListener('change', invalidate);
+  // On the title the machine turns slowly on its own until someone takes hold of it.
+  let touched = false;
+  controls.autoRotateSpeed = 0.7;
+  controls.addEventListener('start', () => { touched = true; controls.autoRotate = false; });
   addEventListener('hfp-render', invalidate);
 
   function resize() {
@@ -442,7 +447,7 @@ export function init({ cad, onSelect, onFail }) {
       }
       dirty = true;
     }
-    if (controls.update()) dirty = true;
+    if (controls.update(dt)) dirty = true;
     if (!dirty) return;
     dirty = false;
     renderer.render(scene, camera);
@@ -454,9 +459,12 @@ export function init({ cad, onSelect, onFail }) {
     // The title shows the whole machine; the step-by-step section shows the cycle view; the device section keeps the user's view.
     enter: (mode, from) => {
       if (cycle) return;
-      if (mode === 'title') setView('whole', 0);
-      else if (mode === 'steps') setView('cycle', 0);
-      else if (mode === 'device' && from) setView('whole', 0);
+      // The camera flies to each section's view instead of cutting to it.
+      controls.autoRotate = mode === 'title' && !touched && !reduced;
+      const ms = from ? 1100 : 0;
+      if (mode === 'title') setView('whole', ms);
+      else if (mode === 'steps') setView('cycle', ms);
+      else if (mode === 'device' && from) setView('whole', ms);
     },
   };
 }

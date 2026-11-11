@@ -26,6 +26,22 @@ const go = (el, block = 'start', done) => {
   requestAnimationFrame(step);
 };
 
+// As the title scrolls away, its text drifts up and fades, and the waves move a little slower than the page.
+function setupTitleMotion() {
+  if (reduced) return;
+  const lead = document.querySelector('.hero .lead'), waves = document.querySelector('.waves');
+  let queued = false;
+  const apply = () => {
+    queued = false;
+    const y = Math.min(scrollY, innerHeight);
+    lead.style.transform = `translate3d(0, ${(y * -0.18).toFixed(1)}px, 0)`;
+    lead.style.opacity = Math.max(0, 1 - y / (innerHeight * 0.7)).toFixed(3);
+    waves.style.transform = `translate3d(0, ${(y * 0.12).toFixed(1)}px, 0)`;
+  };
+  addEventListener('scroll', () => { if (!queued) { queued = true; requestAnimationFrame(apply); } }, { passive: true });
+  apply();
+}
+
 // In-page links use the same glide as the pager.
 function setupLinks() {
   document.addEventListener('click', e => {
@@ -40,7 +56,7 @@ function setupLinks() {
 // Cards in each grid rise in one after another the first time they come into view.
 function setupReveal() {
   if (reduced || !('IntersectionObserver' in window)) return;
-  const groups = ['.objectives', '.steps', '.functions', '.devices', '.gallery', '.parts', '.stats', '.flow'];
+  const groups = ['.head', '.objectives', '.steps', '.functions', '.devices', '.gallery', '.parts', '.stats', '.flow'];
   const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px' });
   groups.forEach(sel => document.querySelectorAll(sel).forEach(g => {
     [...g.children].forEach((c, i) => { c.classList.add('rv'); c.style.setProperty('--d', `${Math.min(i, 8) * 60}ms`); io.observe(c); });
@@ -417,7 +433,7 @@ function setupPager() {
 function setupSlots() {
   const stage = $('stage');
   const slots = [...document.querySelectorAll('.slot')];
-  let active = 'title';
+  let active = 'title', swapTimer = 0;
   const pick = () => {
     const mid = innerHeight / 2;
     let best = null, bestD = Infinity;
@@ -429,9 +445,17 @@ function setupSlots() {
     if (!best || best.dataset.slot === active || bestD > innerHeight * 0.6) return;
     const from = active;
     active = best.dataset.slot;
-    best.append(stage);
-    stage.dataset.mode = active;
-    if (viewer) viewer.enter(active, from);
+    // Fade out, move into the new section, fade back in while the camera flies to its view.
+    const to = best, mode = active;
+    if (reduced) { to.append(stage); stage.dataset.mode = mode; if (viewer) viewer.enter(mode, from); return; }
+    stage.classList.add('swap');
+    clearTimeout(swapTimer);
+    swapTimer = setTimeout(() => {
+      to.append(stage);
+      stage.dataset.mode = mode;
+      if (viewer) viewer.enter(mode, from);
+      requestAnimationFrame(() => stage.classList.remove('swap'));
+    }, 180);
   };
   stage.dataset.mode = active;
   addEventListener('scroll', pick, { passive: true });
@@ -480,7 +504,7 @@ async function start() {
   fillText($('cRecommend'), C.recommendations, 'The recommendations');
   let pick = () => {};
   renderPartsList(id => { go($('device')); pick(id); });
-  setupPager(); setupSlots(); setupReveal(); setupCounters();
+  setupPager(); setupSlots(); setupReveal(); setupCounters(); setupTitleMotion();
   if (location.hash) { const t = document.querySelector(location.hash); if (t) t.scrollIntoView(); }
   setupLinks();
 
@@ -506,6 +530,7 @@ async function start() {
     pick = viewer.pick;
     viewer.enter($('stage').dataset.mode, null);
     $('loader').hidden = true;
+    requestAnimationFrame(() => $('stage').classList.add('ready'));
   } catch (e) {
     console.warn(e);
     webglFallback('The 3D model could not be loaded.');
