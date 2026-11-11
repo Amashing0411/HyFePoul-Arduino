@@ -271,14 +271,15 @@
       "id": "eserjose",
       "file": "media/team/eserjose",
       "name": "Arwin E. Eser Jose",
-      "role": "Role",
+      "role": "Maintenance Lead",
       "team": "BSCpE 4D",
       "color": "#d8383a",
       "tags": [
         "Maintenance and Troubleshooting In-charge",
         "Conceptual Review In-charge",
         "Testing and Documentation In-charge"
-      ]
+      ],
+      "bio": "Keeps the device running through maintenance and troubleshooting, and reviews design concepts before they are built. Also supports testing and documentation to ensure the project's successful completion."
     },
     {
       "id": "ramos",
