@@ -1,81 +1,172 @@
 import { PARTS, GROUPS } from './parts.js';
 
 const $ = id => document.getElementById(id);
-const PART = Object.fromEntries(PARTS.map(p => [p.id, p]));
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const GUIDE = new URLSearchParams(location.search).has('guide');
-const toView = el => el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
-let LIB = { videos: [], app: [], panel: [], photos: [], team: [] };
+const go = (el, block = 'start') => el && el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block });
+let LIB = { files: [], videos: [], app: [], panel: [], photos: [], team: [] };
+let C = {};
+let viewer = null;
 
+const IMG_EXT = ['jpg', 'jpeg', 'png', 'webp'];
+const findFile = base => { for (const e of IMG_EXT) if (LIB.files.includes(`${base}.${e}`)) return `${base}.${e}`; return null; };
 const ICON = {
   play: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg>',
   photo: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="8.5" cy="10" r="1.6"/><path d="m4 17 5-4.5 3.5 3 3-2.5L20 17"/></svg>',
+  text: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 6h14M5 10h14M5 14h9M5 18h6"/></svg>',
 };
-const hasMedia = v => !!(v.src || v.youtube);
+const hasMedia = v => !!(v && (v.src || v.youtube));
 
-function placeholder(slot, icon, label, ext) {
+function placeholder(file, icon, label) {
   const d = document.createElement('div'); d.className = 'ph';
   d.innerHTML = ICON[icon];
   const p = document.createElement('span');
-  p.textContent = GUIDE ? `${slot.file}.${ext}` : label;
+  p.textContent = GUIDE ? file : label;
   if (GUIDE) p.className = 'file';
   d.append(p);
   return d;
 }
-
-// --- Videos: one player with a playlist ---
-let current = 0;
-function showVideo(i, play) {
-  current = i;
-  const v = LIB.videos[i], host = $('playerScreen');
-  host.textContent = '';
-  if (v.youtube && play) {
-    const f = document.createElement('iframe');
-    f.src = v.youtube; f.title = v.title; f.allow = 'encrypted-media; picture-in-picture'; f.allowFullscreen = true;
-    host.append(f);
-  } else if (v.src) {
-    const e = document.createElement('video');
-    e.src = v.src; e.controls = true; e.playsInline = true; e.preload = 'metadata';
-    if (v.poster) e.poster = v.poster;
-    host.append(e);
-    if (play) e.play().catch(() => {});
-  } else if (v.youtube) {
-    const b = document.createElement('button'); b.className = 'ph as-btn'; b.innerHTML = ICON.play + '<span>Play video</span>';
-    b.addEventListener('click', () => showVideo(i, true)); host.append(b);
-  } else host.append(placeholder(v, 'play', 'Video coming soon', 'mp4'));
-  $('playerTitle').textContent = v.title;
-  $('playerText').textContent = v.text;
-  document.querySelectorAll('.track').forEach((b, k) => b.setAttribute('aria-current', k === i));
+// Text from the project document; an empty value shows a clear placeholder.
+function fillText(el, value, label) {
+  el.textContent = '';
+  const list = Array.isArray(value) ? value.filter(Boolean) : value ? [value] : [];
+  if (!list.length) {
+    const d = document.createElement('div'); d.className = 'ph-text';
+    d.innerHTML = ICON.text;
+    const s = document.createElement('span'); s.textContent = GUIDE ? `${label} (data/content.json)` : `${label} will be added from the project document.`;
+    d.append(s); el.append(d);
+    return;
+  }
+  list.forEach(t => { const p = document.createElement('p'); p.textContent = t; el.append(p); });
 }
-function renderVideos() {
-  const list = $('playlist');
-  LIB.videos.forEach((v, i) => {
-    const b = document.createElement('button'); b.className = 'track';
-    const n = document.createElement('span'); n.className = 'n'; n.textContent = i + 1;
-    const t = document.createElement('span'); t.className = 't'; t.textContent = v.title;
-    const s = document.createElement('span'); s.className = 's'; s.textContent = hasMedia(v) ? 'Watch' : 'Soon';
-    if (hasMedia(v)) s.classList.add('ready');
-    b.append(n, t, s);
-    b.addEventListener('click', () => showVideo(i, hasMedia(v)));
-    list.append(b);
+
+// --- Title, problem, objectives ---
+function renderIntro() {
+  $('cTagline').textContent = C.tagline || '';
+  $('cCourse').textContent = [C.course, C.school || (GUIDE ? '(school name)' : '')].filter(Boolean).join(' · ');
+  fillText($('cProblem'), C.problem, 'The problem statement');
+  const g = $('cGeneral'); g.textContent = '';
+  const gh = document.createElement('h3'); gh.textContent = 'General objective';
+  const gb = document.createElement('div'); fillText(gb, C.generalObjective, 'The general objective');
+  g.append(gh, gb);
+  const host = $('cObjectives'); host.textContent = '';
+  (C.specificObjectives || []).forEach((o, i) => {
+    const a = document.createElement('article'); a.className = 'objective'; a.id = `objective-${i + 1}`;
+    const n = document.createElement('span'); n.className = 'onum'; n.textContent = i + 1;
+    const body = document.createElement('div'); fillText(body, o.text, `Specific objective ${i + 1}`);
+    const met = document.createElement('div'); met.className = 'met';
+    const lab = document.createElement('span'); lab.textContent = 'Met by';
+    met.append(lab);
+    (o.functions || []).forEach(id => {
+      const f = (C.functions || []).find(x => x.id === id); if (!f) return;
+      const b = document.createElement('a'); b.href = `#fn-${id}`; b.textContent = f.title; met.append(b);
+    });
+    a.append(n, body, met); host.append(a);
   });
-  if (LIB.videos.length) showVideo(Math.max(0, LIB.videos.findIndex(hasMedia)), false);
+}
+
+// --- How it works: steps light up with the feed cycle ---
+function renderSteps() {
+  const ol = $('steps'); ol.textContent = '';
+  (C.steps || []).forEach((s, i) => {
+    const li = document.createElement('li'); li.dataset.i = i;
+    const n = document.createElement('span'); n.className = 'snum'; n.textContent = i + 1;
+    const b = document.createElement('div');
+    const h = document.createElement('h3'); h.textContent = s.title;
+    const p = document.createElement('p'); p.textContent = s.text;
+    b.append(h, p); li.append(n, b); ol.append(li);
+  });
+  const status = $('cycleStatus');
+  const stepOf = t => /goes home/i.test(t) ? 0 : /weighed/i.test(t) ? 1 : /pouring|moving/i.test(t) ? 2 : /topped up/i.test(t) ? 3 : /finished|returns home/i.test(t) ? 4 : -1;
+  const mark = () => {
+    const i = status.hidden ? -1 : stepOf(status.textContent);
+    ol.querySelectorAll('li').forEach(li => { const k = +li.dataset.i; li.classList.toggle('on', k === i); li.classList.toggle('done', i >= 0 && k < i); });
+  };
+  new MutationObserver(mark).observe(status, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
+  $('playHow').addEventListener('click', () => { if ($('play').textContent !== 'Stop') $('play').click(); go($('how'), 'start'); });
+}
+
+// --- Functions: objective, what it does, video and photo ---
+function openVideo(v) {
+  const host = $('videoHost'); host.textContent = '';
+  if (v.youtube) {
+    const f = document.createElement('iframe'); f.src = v.youtube; f.title = v.title; f.allow = 'encrypted-media; picture-in-picture'; f.allowFullscreen = true; host.append(f);
+  } else {
+    const e = document.createElement('video'); e.src = v.src; e.controls = true; e.playsInline = true; e.autoplay = true; if (v.poster) e.poster = v.poster; host.append(e);
+  }
+  $('videoDialog').showModal();
+}
+$('videoDialog').addEventListener('close', () => { $('videoHost').textContent = ''; });
+
+function renderFunctions() {
+  const host = $('functionGrid'); host.textContent = '';
+  (C.functions || []).forEach((f, i) => {
+    const card = document.createElement('article'); card.className = 'fn'; card.id = `fn-${f.id}`;
+    const media = document.createElement('div'); media.className = 'fmedia';
+    const v = LIB.videos.find(x => x.id === f.id);
+    const photo = findFile(`media/functions/${f.id}`);
+    if (hasMedia(v)) {
+      const b = document.createElement('button'); b.className = 'fplay'; b.setAttribute('aria-label', `Play video: ${f.title}`);
+      if (v.poster || photo) { const im = document.createElement('img'); im.src = v.poster || photo; im.alt = ''; im.loading = 'lazy'; b.append(im); }
+      const ic = document.createElement('span'); ic.className = 'playicon'; ic.innerHTML = ICON.play; b.append(ic);
+      b.addEventListener('click', () => openVideo(v)); media.append(b);
+    } else if (photo) {
+      const im = document.createElement('img'); im.src = photo; im.alt = f.title; im.loading = 'lazy'; media.append(im);
+      const s = document.createElement('span'); s.className = 'vsoon'; s.textContent = 'Video coming soon'; media.append(s);
+    } else media.append(placeholder(`media/videos/${f.id}.mp4 or media/functions/${f.id}.jpg`, 'play', 'Video coming soon'));
+    const objIndex = (C.specificObjectives || []).findIndex(o => (o.functions || []).includes(f.id));
+    const body = document.createElement('div'); body.className = 'fbody';
+    if (objIndex >= 0) { const m = document.createElement('a'); m.className = 'meets'; m.href = `#objective-${objIndex + 1}`; m.textContent = `Meets objective ${objIndex + 1}`; body.append(m); }
+    const h = document.createElement('h3'); h.textContent = f.title;
+    const p = document.createElement('p'); p.textContent = f.what;
+    body.append(h, p);
+    card.append(media, body); host.append(card);
+  });
+}
+
+// --- Schematic ---
+const PIN_ROWS = [
+  ['A0 / A1', 'Tray 1 scale (HX711 DT / SCK)'], ['A2 / A3', 'Tray 2 scale'], ['A4 / A5', 'Tray 3 scale'], ['A6 / A7', 'Tray 4 scale'], ['A8 / A9', 'Tray 5 scale'],
+  ['10', 'Relay 1: chain toward tray 1'], ['9', 'Relay 2: chain toward tray 4'], ['8', 'Relay 3: dispenser motor'], ['11', 'Buzzer'],
+  ['52 / 50', 'Level sensor TRIG / ECHO'], ['49', 'Float switch (water)'], ['53', 'Home limit switch (tray 1 side)'], ['51', 'Limit switch (tray 4 side)'],
+  ['16 / 17', 'Touch screen RX / TX'], ['20 / 21', 'Clock SDA / SCL'], ['14 / 15', 'ESP32 GPIO16 / GPIO17'],
+];
+function renderSchematic() {
+  const frame = $('schemFrame'); frame.textContent = '';
+  const src = findFile('media/schematic/schematic');
+  if (src) {
+    const b = document.createElement('button'); b.className = 'schem'; b.setAttribute('aria-label', 'Enlarge the schematic');
+    const im = document.createElement('img'); im.src = src; im.alt = 'Wiring schematic of HyFePoul'; b.append(im);
+    b.addEventListener('click', () => { shots = [{ src, alt: im.alt, title: 'Wiring schematic', detail: '' }]; openShot(0); });
+    frame.append(b);
+  } else frame.append(placeholder('media/schematic/schematic.png', 'photo', 'Schematic coming soon'));
+  $('pinRows').innerHTML = PIN_ROWS.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('');
+}
+
+function renderDiagram() {
+  $('diagram').innerHTML = `
+  <div class="flow">
+    <div class="node"><h3>What it senses</h3><ul><li>5 load cells through 5 HX711 boards</li><li>Ultrasonic level sensor</li><li>Float switch</li><li>2 limit switches</li><li>DS3231 clock</li></ul></div>
+    <div class="node main"><h3>Arduino Mega 2560</h3><p>Reads the sensors, decides how much each tray needs, and drives the machine.</p></div>
+    <div class="node"><h3>What it moves</h3><ul><li>Chain motor, through 2 relays</li><li>Dispenser motor, through 1 relay</li><li>Buzzer</li><li>Nextion touch screen</li></ul></div>
+  </div>
+  <div class="flow line"><div class="node main"><h3>Mega</h3></div><div class="node"><h3>ESP32</h3><p>Wi-Fi bridge</p></div><div class="node"><h3>Firebase</h3><p>Cloud database</p></div><div class="node"><h3>Mobile app</h3><p>Timely updates and alerts</p></div></div>
+  <div class="flow line"><div class="node"><h3>12 V supply and battery</h3><p>With charge controller</p></div><div class="node"><h3>Step-down boards</h3><p>12 V to 5 V for the electronics</p></div><div class="node"><h3>Relay contacts</h3><p>12 V to the motors</p></div></div>`;
 }
 
 // --- App and panel previews ---
-function device(slot, cls, ext) {
+function device(slot, cls) {
   const f = document.createElement('figure'); f.className = 'device ' + cls;
   const s = document.createElement('div'); s.className = 'screen';
-  if (slot.src) {
-    const i = document.createElement('img'); i.src = slot.src; i.alt = `${slot.title} screen`; i.loading = 'lazy'; s.append(i);
-  } else s.append(placeholder(slot, 'photo', 'Screen coming soon', ext));
+  if (slot.src) { const i = document.createElement('img'); i.src = slot.src; i.alt = `${slot.title} screen`; i.loading = 'lazy'; s.append(i); }
+  else s.append(placeholder(`${slot.file}.jpg`, 'photo', 'Screen coming soon'));
   const c = document.createElement('figcaption'); c.textContent = slot.title;
   f.append(s, c);
   return f;
 }
 function renderPreviews() {
-  LIB.app.forEach(s => $('previewApp').append(device(s, 'phone', 'jpg')));
-  LIB.panel.forEach(s => $('previewPanel').append(device(s, 'panel', 'jpg')));
+  LIB.app.forEach(s => $('previewApp').append(device(s, 'phone')));
+  LIB.panel.forEach(s => $('previewPanel').append(device(s, 'panel')));
   const tabs = document.querySelectorAll('#previewTabs button');
   tabs.forEach(b => b.addEventListener('click', () => {
     tabs.forEach(x => x.setAttribute('aria-selected', x === b));
@@ -84,7 +175,7 @@ function renderPreviews() {
   }));
 }
 
-// --- Photo library ---
+// --- Photos ---
 const CATS = [['all', 'All'], ['machine', 'Whole machine'], ['control', 'Control box'], ['feeding', 'Feeding'], ['trays', 'Trays and water']];
 let shots = [], shotAt = 0;
 function renderGallery(cat = 'all') {
@@ -99,10 +190,8 @@ function renderGallery(cat = 'all') {
       const c = document.createElement('span'); c.className = 'cap'; c.textContent = p.title;
       f.append(i, c);
       f.setAttribute('aria-label', `Open photo: ${p.title}`);
-      f.addEventListener('click', () => openShot(shots.indexOf(p)));
-    } else {
-      f.append(placeholder(p, 'photo', `${p.title}: photo coming soon`, 'jpg'));
-    }
+      f.addEventListener('click', () => { shots = LIB.photos.filter(x => x.src && (cat === 'all' || x.group === cat)); openShot(shots.indexOf(p)); });
+    } else f.append(placeholder(`${p.file}.jpg`, 'photo', `${p.title}: photo coming soon`));
     g.append(f);
   });
 }
@@ -118,6 +207,10 @@ function openShot(i) {
   shotAt = (i + shots.length) % shots.length;
   const p = shots[shotAt];
   $('lightImg').src = p.src; $('lightImg').alt = p.alt; $('lightCap').textContent = p.title;
+  const d = $('lightDetail');
+  d.textContent = p.detail || (GUIDE ? `Add a "detail" for ${p.file || 'this photo'} in data/media-slots.json` : '');
+  d.hidden = !d.textContent;
+  $('lightPrev').hidden = $('lightNext').hidden = shots.length < 2;
   if (!$('lightbox').open) $('lightbox').showModal();
 }
 $('lightPrev').addEventListener('click', () => openShot(shotAt - 1));
@@ -125,31 +218,7 @@ $('lightNext').addEventListener('click', () => openShot(shotAt + 1));
 $('lightbox').addEventListener('click', e => { if (e.target === $('lightbox')) $('lightbox').close(); });
 $('lightbox').addEventListener('keydown', e => { if (e.key === 'ArrowLeft') openShot(shotAt - 1); if (e.key === 'ArrowRight') openShot(shotAt + 1); });
 
-function renderBars() {
-  const host = $('resultBars');
-  [49.0, 50.5, 49.6, 52.6, 51.1].forEach((v, i) => {
-    const r = document.createElement('div'); r.className = 'brow';
-    r.innerHTML = `<span>Reading ${i + 1}</span><div class="btrack"><i style="width:${(v / 60 * 100).toFixed(1)}%"></i><u style="left:${(50 / 60 * 100).toFixed(1)}%"></u></div><span class="bval">${v.toFixed(1)} g</span>`;
-    host.append(r);
-  });
-  const n = document.createElement('p'); n.className = 'bnote'; n.textContent = 'The dark line marks the 50 g target. Values are in the order our test notes list them.';
-  host.append(n);
-}
-
-function renderDiagram() {
-  $('diagram').innerHTML = `
-  <div class="flow">
-    <div class="node"><h3>What it senses</h3><ul><li>5 load cells through 5 HX711 boards</li><li>Ultrasonic level sensor</li><li>Float switch</li><li>2 limit switches</li><li>DS3231 clock</li></ul></div>
-    <div class="node main"><h3>Arduino Mega 2560</h3><p>Reads the sensors, decides how much each tray needs, and drives the machine.</p></div>
-    <div class="node"><h3>What it moves</h3><ul><li>Chain motor, through 2 relays</li><li>Dispenser motor, through 1 relay</li><li>Buzzer</li><li>Nextion touch screen</li></ul></div>
-  </div>
-  <h3 class="flow-title">Device data</h3>
-  <div class="flow line"><div class="node main"><h3>Mega</h3></div><div class="node"><h3>ESP32</h3><p>Wi-Fi bridge</p></div><div class="node"><h3>Firebase</h3><p>Cloud database</p></div><div class="node"><h3>Mobile app</h3><p>Timely updates and alerts</p></div></div>
-  <h3 class="flow-title">Power</h3>
-  <div class="flow line"><div class="node"><h3>12 V supply and battery</h3><p>With charge controller</p></div><div class="node"><h3>Relay contacts</h3><p>12 V to the motors</p></div></div>
-  <div class="flow line"><div class="node"><h3>12 V supply and battery</h3><p>With charge controller</p></div><div class="node"><h3>Step-down boards</h3><p>12 V to 5 V</p></div><div class="node"><h3>Electronics</h3><p>Mega, ESP32, screen, sensors</p></div></div>`;
-}
-
+// --- Parts ---
 function renderPartsList(onPick) {
   const host = $('partsList');
   GROUPS.forEach(([g, label]) => {
@@ -165,21 +234,121 @@ function renderPartsList(onPick) {
     host.append(wrap);
   });
 }
-
 function showDetail(p) {
   $('dNum').textContent = 'Part ' + p.n;
   $('dGroup').textContent = GROUPS.find(g => g[0] === p.group)[1];
   $('dName').textContent = p.name; $('dText').textContent = p.what;
+  const ph = $('dPhoto'); ph.textContent = ''; ph.hidden = false;
+  const src = findFile(`media/parts/${p.id}`);
+  if (src) { const im = document.createElement('img'); im.src = src; im.alt = p.name; ph.append(im); }
+  else ph.append(placeholder(`media/parts/${p.id}.jpg`, 'photo', 'Photo coming soon'));
   const list = $('dList'); list.textContent = '';
   const row = (k, v, cls) => { const t = document.createElement('dt'); t.textContent = k; const d = document.createElement('dd'); d.textContent = v; if (cls) d.className = cls; list.append(t, d); };
   row('Connects to', p.connects);
   row('Size · ' + p.size[0], p.size[1]);
   row('Position · ' + p.pos[0], p.pos[1]);
   if (p.check) row('Check', p.check, 'check');
-  const i = LIB.videos.findIndex(x => x.id === p.video && hasMedia(x)), btn = $('dVideo');
-  btn.hidden = i < 0;
-  btn.onclick = i < 0 ? null : () => { showVideo(i, true); toView($('player')); };
+  const v = LIB.videos.find(x => x.id === p.video && hasMedia(x)), btn = $('dVideo');
+  btn.hidden = !v; btn.onclick = v ? () => openVideo(v) : null;
   document.querySelectorAll('.prow').forEach(b => b.setAttribute('aria-current', b.dataset.part === p.id));
+}
+
+// --- Results: grams off target ---
+const fmt = (x, sign) => (sign && x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x).toFixed(1);
+function renderTrials() {
+  const host = $('trials'); host.textContent = '';
+  (C.trials || []).forEach(t => {
+    const off = t.readings.map(r => r - t.target), n = off.length;
+    const mean = t.readings.reduce((a, b) => a + b, 0) / n;
+    const mae = off.reduce((a, b) => a + Math.abs(b), 0) / n;
+    const worst = off.reduce((a, b) => (Math.abs(b) > Math.abs(a) ? b : a), 0);
+    const within = lim => off.filter(x => Math.abs(x) <= lim + 1e-9).length;
+    const max = Math.max(3, Math.ceil(Math.max(...off.map(Math.abs))));
+    const pct = x => ((x + max) / (2 * max) * 100).toFixed(2);
+    const art = document.createElement('article'); art.className = 'trial';
+    art.innerHTML = `
+      <h3></h3>
+      <div class="stats">
+        <div><b>${mean.toFixed(2)} g</b><span>Average weight</span></div>
+        <div><b>${mae.toFixed(2)} g</b><span>Average distance from target</span></div>
+        <div><b>${fmt(worst, true)} g</b><span>Largest difference</span></div>
+        <div><b>${within(1)} of ${n}</b><span>Within ±1 g</span></div>
+        <div><b>${within(2)} of ${n}</b><span>Within ±2 g</span></div>
+      </div>
+      <div class="tgrid">
+        <table class="rtable"><thead><tr><th>Reading</th><th>Weight</th><th>Off target</th></tr></thead><tbody>
+          ${t.readings.map((r, i) => `<tr><td>${i + 1}</td><td>${r.toFixed(1)} g</td><td class="${Math.abs(off[i]) <= 1 ? 'ok' : Math.abs(off[i]) <= 2 ? 'near' : 'far'}">${fmt(off[i], true)} g</td></tr>`).join('')}
+        </tbody></table>
+        <div class="dev" role="img" aria-label="Each reading's difference from the ${t.target} g target on a scale of plus or minus ${max} grams.">
+          <div class="band b2" style="left:${pct(-2)}%;right:${(100 - pct(2)).toFixed(2)}%"></div>
+          <div class="band b1" style="left:${pct(-1)}%;right:${(100 - pct(1)).toFixed(2)}%"></div>
+          <div class="zero" style="left:50%"></div>
+          ${off.map((x, i) => `<div class="drow" style="top:${(i + 0.5) / n * 100}%"><span class="dl">${i + 1}</span><i style="left:${pct(Math.min(0, x))}%;width:${(Math.abs(x) / (2 * max) * 100).toFixed(2)}%"></i><b style="left:${pct(x)}%"></b></div>`).join('')}
+          <div class="axis"><span>−${max} g</span><span>−2</span><span>−1</span><span>0</span><span>+1</span><span>+2</span><span>+${max} g</span></div>
+        </div>
+      </div>
+      <p class="bnote">Target ${t.target} g. The darker band is ±1 g, the lighter band ±2 g. Readings are in the order our test notes list them.</p>`;
+    art.querySelector('h3').textContent = t.label;
+    host.append(art);
+  });
+  const ul = $('cNotes'); ul.textContent = '';
+  (C.notes || []).forEach(t => { const li = document.createElement('li'); li.textContent = t; ul.append(li); });
+}
+
+// --- Presentation: progress bar, pager, arrow keys ---
+function setupPager() {
+  const slides = [...document.querySelectorAll('.slide')];
+  const label = $('pageLabel');
+  let cur = 0;
+  const update = () => {
+    const y = innerHeight * 0.4;
+    let i = 0;
+    slides.forEach((s, k) => { if (s.getBoundingClientRect().top <= y) i = k; });
+    cur = i;
+    label.textContent = `${i + 1} / ${slides.length} · ${slides[i].dataset.title}`;
+    const h = document.documentElement.scrollHeight - innerHeight;
+    $('progressBar').style.transform = `scaleX(${h > 0 ? Math.min(1, scrollY / h) : 0})`;
+    $('pagePrev').disabled = i === 0; $('pageNext').disabled = i === slides.length - 1;
+  };
+  const jump = d => { const k = Math.max(0, Math.min(slides.length - 1, cur + d)); go(slides[k]); };
+  $('pagePrev').addEventListener('click', () => jump(-1));
+  $('pageNext').addEventListener('click', () => jump(1));
+  addEventListener('keydown', e => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || document.querySelector('dialog[open]')) return;
+    const t = e.target;
+    if (t.closest && t.closest('input,textarea,select,[contenteditable],[data-slot="team-lanyard-rail"]')) return;
+    e.preventDefault(); jump(e.key === 'ArrowRight' ? 1 : -1);
+  });
+  addEventListener('scroll', update, { passive: true });
+  addEventListener('resize', update);
+  update();
+}
+
+// --- One 3D view that moves into the section being read ---
+function setupSlots() {
+  const stage = $('stage');
+  const slots = [...document.querySelectorAll('.slot')];
+  let active = 'title';
+  const pick = () => {
+    const mid = innerHeight / 2;
+    let best = null, bestD = Infinity;
+    slots.forEach(s => {
+      const r = s.getBoundingClientRect();
+      const d = r.top <= mid && r.bottom >= mid ? 0 : Math.min(Math.abs(r.top - mid), Math.abs(r.bottom - mid));
+      if (d < bestD) { bestD = d; best = s; }
+    });
+    if (!best || best.dataset.slot === active || bestD > innerHeight * 0.6) return;
+    const from = active;
+    active = best.dataset.slot;
+    best.append(stage);
+    stage.dataset.mode = active;
+    if (viewer) viewer.enter(active, from);
+  };
+  stage.dataset.mode = active;
+  addEventListener('scroll', pick, { passive: true });
+  addEventListener('resize', pick);
+  pick();
 }
 
 function webglFallback(reason) {
@@ -212,17 +381,24 @@ function mountTeam() {
 }
 
 async function start() {
-  $('playHero').addEventListener('click', () => { $('play').click(); toView($('stage')); });
-  $('boxHero').addEventListener('click', () => { document.querySelector('[data-view=box]').click(); toView($('stage')); });
-  LIB = await fetch('data/library.json').then(r => r.json()).catch(() => LIB);
-  renderVideos(); renderPreviews(); renderGalleryChips(); renderGallery(); renderBars(); renderDiagram(); mountTeam();
+  [LIB, C] = await Promise.all([
+    fetch('data/library.json').then(r => r.json()).catch(() => LIB),
+    fetch('data/content.json').then(r => r.json()).catch(() => ({})),
+  ]);
+  LIB.files = LIB.files || [];
+  renderIntro(); renderSteps(); renderFunctions(); renderSchematic(); renderDiagram(); renderPreviews();
+  renderGalleryChips(); renderGallery(); renderTrials(); mountTeam();
+  fillText($('cConclusion'), C.conclusion, 'The conclusion');
+  fillText($('cRecommend'), C.recommendations, 'The recommendations');
   let pick = () => {};
   renderPartsList(id => pick(id));
+  setupPager(); setupSlots();
+  if (location.hash) { const t = document.querySelector(location.hash); if (t) t.scrollIntoView(); }
 
   const test = document.createElement('canvas');
   if (!(test.getContext('webgl2') || test.getContext('webgl'))) { webglFallback('This browser cannot show the 3D model.'); return; }
 
-  const [THREE, viewer] = await Promise.all([import('three'), import('./viewer.js')]);
+  const [THREE, viewerMod] = await Promise.all([import('three'), import('./viewer.js')]);
   try {
     const setBar = (f, msg) => { $('loadbar').style.width = Math.round(f * 100) + '%'; if (msg) $('loadtext').textContent = msg; };
     setBar(0.05);
@@ -237,7 +413,9 @@ async function start() {
       g.setIndex(new THREE.BufferAttribute(new Uint32Array(bin, p.idx[0], p.idx[1]), 1));
       cad[p.name] = g;
     });
-    pick = viewer.init({ cad, onSelect: showDetail, onFail: webglFallback });
+    viewer = viewerMod.init({ cad, onSelect: showDetail, onFail: webglFallback });
+    pick = viewer.pick;
+    viewer.enter($('stage').dataset.mode, null);
     $('loader').hidden = true;
   } catch (e) {
     console.warn(e);
@@ -245,4 +423,3 @@ async function start() {
   }
 }
 start();
-export { PART };

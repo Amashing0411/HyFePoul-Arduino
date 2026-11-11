@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0d57cf">
 <title>HyFePoul: Interactive Device Showcase</title>
-<meta name="description" content="An interactive 3D look at HyFePoul, an automated poultry feeding and water monitoring machine.">
+<meta name="description" content="HyFePoul, an automated poultry feeder that weighs every tray and pours only what is missing. An interactive presentation of the finished device.">
 <link rel="icon" href="img/favicon.png">
 <link rel="apple-touch-icon" href="img/app-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,67 +19,63 @@
 </head>
 <body>
 
-<div class="sky" id="top">
+<div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
+<nav class="pager" id="pager" aria-label="Presentation">
+  <button id="pagePrev" type="button" aria-label="Previous section"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg></button>
+  <span id="pageLabel"></span>
+  <button id="pageNext" type="button" aria-label="Next section"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
+</nav>
+
+<div class="sky">
   <header class="top">
-    <a class="brand" href="#top"><img src="img/app-icon.png" width="44" height="44" alt=""><span>HyFePoul</span></a>
+    <a class="brand" href="#title"><img src="img/app-icon.png" width="44" height="44" alt=""><span>HyFePoul</span></a>
     <nav aria-label="Sections">
-      <a href="#model">3D model</a>
-      <a href="#videos">Videos</a>
-      <a href="#previews">Screens</a>
-      <a href="#gallery-section">Photos</a>
-      <a href="#parts">Parts</a>
-      <a href="#system">How it connects</a>
-      <a href="#results">Results</a>
       <a href="#team">Team</a>
+      <a href="#objectives">Objectives</a>
+      <a href="#how">How it works</a>
+      <a href="#functions">Functions</a>
+      <a href="#device">Device</a>
+      <a href="#schematic">Schematic</a>
+      <a href="#results">Results</a>
     </nav>
   </header>
 
-  <section class="hero" id="model" aria-label="Interactive 3D model">
+  <section class="hero slide" id="title" data-title="Title">
     <div class="lead">
-      <h1>Every tray gets only what it&rsquo;s missing.</h1>
-      <p>HyFePoul carries a hopper of feed along a chain over five trays. A scale under each tray tells the machine what is already there, so it pours only the difference. It also watches the water reservoir and sends device data to a mobile app.</p>
+      <h1>HyFePoul</h1>
+      <p class="tagline" id="cTagline"></p>
+      <p class="course" id="cCourse"></p>
       <div class="actions">
-        <button class="btn green" id="playHero">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M8 5.2v13.6a.7.7 0 0 0 1.06.6l11-6.8a.7.7 0 0 0 0-1.2l-11-6.8A.7.7 0 0 0 8 5.2z"/></svg>
-          Play feed cycle
-        </button>
-        <button class="btn light" id="boxHero">Open the control box</button>
+        <a class="btn green" href="#team">Start the presentation</a>
+        <a class="btn light" href="#device">Explore the machine</a>
       </div>
-      <aside class="detail" aria-live="polite">
-        <div class="meta"><span id="dNum"></span><span id="dGroup"></span></div>
-        <h2 id="dName">Choose a part</h2>
-        <p id="dText">Tap any number on the model to see what the part does and what it connects to.</p>
-        <dl id="dList"></dl>
-        <button id="dVideo" class="btn blue" hidden>Watch video</button>
-      </aside>
     </div>
-
-    <div class="stage" id="stage">
-      <div class="pins" id="pins"></div>
-      <div class="stage-head">
-        <p id="hint">Drag to turn. Scroll or pinch to zoom. Tap a number to learn about that part.</p>
-      </div>
-      <div class="loader" id="loader" role="status"><div class="bar"><span id="loadbar"></span></div><p id="loadtext">Loading the 3D model…</p></div>
-      <div class="cycle-status" id="cycleStatus" hidden aria-live="polite"></div>
-      <div class="tools" id="tools">
-        <div class="group views" role="group" aria-label="Camera">
-          <button data-view="whole" aria-pressed="true">Whole device</button>
-          <button data-view="box" aria-pressed="false">Control box</button>
-          <button data-view="hopper" aria-pressed="false">Hopper</button>
-          <button data-view="trays" aria-pressed="false">Trays</button>
-          <button data-view="chain" aria-pressed="false">Chain drive</button>
-          <button data-view="water" aria-pressed="false">Water</button>
-        </div>
-        <div class="group toggles" role="group" aria-label="Show or hide">
-          <button id="tWalls" aria-pressed="true">Covers</button>
-          <button id="t12" aria-pressed="true"><i style="background:#e0413a"></i>12 V</button>
-          <button id="t5" aria-pressed="true"><i style="background:#f29a1c"></i>5 V</button>
-          <button id="tSig" aria-pressed="true"><i style="background:#2f95dc"></i>Signal</button>
-          <button id="tLabels" aria-pressed="true">Labels</button>
-        </div>
-        <div class="group end">
-          <label class="slider">Explode <input id="explode" type="range" min="0" max="1" step="0.02" value="0"></label>
-          <button id="play" class="play">Play feed cycle</button>
+    <div class="slot slot-title" data-slot="title">
+      <div class="stage" id="stage">
+        <div class="pins" id="pins"></div>
+        <div class="stage-head"><p id="hint">Drag to turn. Scroll or pinch to zoom. Tap a number to learn about that part.</p></div>
+        <div class="loader" id="loader" role="status"><div class="bar"><span id="loadbar"></span></div><p id="loadtext">Loading the 3D model…</p></div>
+        <div class="cycle-status" id="cycleStatus" hidden aria-live="polite"></div>
+        <div class="tools" id="tools">
+          <div class="group views" role="group" aria-label="Camera">
+            <button data-view="whole" aria-pressed="true">Whole device</button>
+            <button data-view="box" aria-pressed="false">Control box</button>
+            <button data-view="hopper" aria-pressed="false">Hopper</button>
+            <button data-view="trays" aria-pressed="false">Trays</button>
+            <button data-view="chain" aria-pressed="false">Chain drive</button>
+            <button data-view="water" aria-pressed="false">Water</button>
+          </div>
+          <div class="group toggles" role="group" aria-label="Show or hide">
+            <button id="tWalls" aria-pressed="true">Covers</button>
+            <button id="t12" aria-pressed="true"><i style="background:#e0413a"></i>12 V</button>
+            <button id="t5" aria-pressed="true"><i style="background:#f29a1c"></i>5 V</button>
+            <button id="tSig" aria-pressed="true"><i style="background:#2f95dc"></i>Signal</button>
+            <button id="tLabels" aria-pressed="true">Labels</button>
+          </div>
+          <div class="group end">
+            <label class="slider">Explode <input id="explode" type="range" min="0" max="1" step="0.02" value="0"></label>
+            <button id="play" class="play">Play feed cycle</button>
+          </div>
         </div>
       </div>
     </div>
@@ -93,20 +89,79 @@
 </div>
 
 <main>
-  <section class="section" id="videos">
+  <section class="slide" id="team" data-title="The team" aria-label="The team"><div id="teamRoot"></div></section>
+
+  <section class="section white slide" id="problem" data-title="The problem">
+    <div class="wrap narrow">
+      <div class="head"><h2>The problem</h2><p>Why we built HyFePoul.</p></div>
+      <div class="prose" id="cProblem"></div>
+    </div>
+  </section>
+
+  <section class="section slide" id="objectives" data-title="Objectives">
     <div class="wrap">
-      <div class="head"><h2>See it working</h2><p>Short recordings of each function on the real machine.</p></div>
-      <div class="player" id="player">
-        <div class="stagecard">
-          <div class="pscreen" id="playerScreen"></div>
-          <div class="pinfo"><h3 id="playerTitle"></h3><p id="playerText"></p></div>
+      <div class="head"><h2>Objectives</h2><p>Each specific objective links to the functions that meet it.</p></div>
+      <div class="goal" id="cGeneral"></div>
+      <div class="objectives" id="cObjectives"></div>
+    </div>
+  </section>
+
+  <section class="section white slide" id="how" data-title="How it works">
+    <div class="wrap">
+      <div class="head"><h2>How it works, step by step</h2><p>Press play to watch the model run a real feed cycle. Each step lights up as it happens.</p></div>
+      <div class="how">
+        <div>
+          <ol class="steps" id="steps"></ol>
+          <button class="btn green" id="playHow" type="button">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M8 5.2v13.6a.7.7 0 0 0 1.06.6l11-6.8a.7.7 0 0 0 0-1.2l-11-6.8A.7.7 0 0 0 8 5.2z"/></svg>
+            Play the feed cycle
+          </button>
         </div>
-        <div class="playlist" id="playlist"></div>
+        <div class="slot slot-steps" data-slot="steps"></div>
       </div>
     </div>
   </section>
 
-  <section class="section blue" id="previews">
+  <section class="section slide" id="functions" data-title="Functions">
+    <div class="wrap">
+      <div class="head"><h2>Functions</h2><p>What the machine does, which objective each one meets, and a recording of it working.</p></div>
+      <div class="functions" id="functionGrid"></div>
+    </div>
+  </section>
+
+  <section class="section blue slide" id="device" data-title="The device">
+    <div class="wrap wide">
+      <div class="head"><h2>The device, part by part</h2><p>Turn the model, switch views, explode it, or tap a number to read about a part.</p></div>
+      <div class="device-grid">
+        <div class="slot slot-device" data-slot="device"></div>
+        <aside class="detail" aria-live="polite">
+          <div class="meta"><span id="dNum"></span><span id="dGroup"></span></div>
+          <h3 id="dName">Choose a part</h3>
+          <div class="dphoto" id="dPhoto" hidden></div>
+          <p id="dText">Tap any number on the model, or pick a part from the parts list.</p>
+          <dl id="dList"></dl>
+          <button id="dVideo" class="btn blue" hidden>Watch video</button>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="section slide" id="schematic" data-title="Schematic">
+    <div class="wrap">
+      <div class="head"><h2>Schematic</h2><p>How every part is wired to the Arduino Mega. Select the drawing to enlarge it.</p></div>
+      <div class="schematic">
+        <div class="schem-frame" id="schemFrame"></div>
+        <div class="pin-table">
+          <h3>Mega pins, from the firmware</h3>
+          <table><thead><tr><th>Mega pin</th><th>Goes to</th></tr></thead><tbody id="pinRows"></tbody></table>
+        </div>
+      </div>
+      <h3 class="sub-title">Block diagram</h3>
+      <div class="diagram" id="diagram"></div>
+    </div>
+  </section>
+
+  <section class="section blue slide" id="previews" data-title="App and panel">
     <div class="wrap">
       <div class="head"><h2>The app and the panel</h2><p>A feed can be started from a phone or from the touch screen on the machine.</p></div>
       <div class="seg" id="previewTabs" role="group" aria-label="Choose screens">
@@ -118,50 +173,37 @@
     </div>
   </section>
 
-  <section class="section" id="gallery-section">
+  <section class="section slide" id="gallery-section" data-title="Photos">
     <div class="wrap">
-      <div class="head"><h2>The real machine</h2><p>Photos of HyFePoul as it was built. Select one to enlarge it.</p></div>
+      <div class="head"><h2>The real machine</h2><p>Photos of HyFePoul as it was built. Select one to enlarge it and read its details.</p></div>
       <div class="chips" id="galleryChips"></div>
       <div class="gallery" id="gallery"></div>
     </div>
   </section>
 
-  <section class="section white" id="parts">
+  <section class="section white slide" id="parts" data-title="Parts list">
     <div class="wrap">
       <div class="head"><h2>Every part</h2><p>Select a part to find it on the model. <strong>Measured (CAD)</strong> comes from our drawing, <strong>Datasheet</strong> from the module&rsquo;s published size, and <strong>Estimated</strong> from photos. <strong>Check</strong> means we could not confirm it.</p></div>
       <div class="parts" id="partsList"></div>
     </div>
   </section>
 
-  <section class="section" id="system">
+  <section class="section slide" id="results" data-title="Results">
     <div class="wrap">
-      <div class="head"><h2>How it connects</h2><p>The Arduino Mega makes every decision. The ESP32 only carries messages to the internet, and the app talks to the cloud, never directly to the Mega.</p></div>
-      <div class="diagram" id="diagram"></div>
+      <div class="head"><h2>Results and data</h2><p>Each reading is shown as grams off its target, so small differences are easy to compare.</p></div>
+      <div id="trials"></div>
+      <div class="notes"><h3>What else we found</h3><ul id="cNotes"></ul></div>
     </div>
   </section>
 
-  <section class="section white" id="results">
+  <section class="section white slide" id="conclusion" data-title="Conclusion">
     <div class="wrap">
-      <div class="head"><h2>Measured results</h2><p>What we recorded on the machine, including where it falls short.</p></div>
-      <div class="results">
-        <article>
-          <h3>Filling empty trays to 50 g</h3>
-          <div class="bars" role="img" aria-label="Five trays measured 49.0, 50.5, 49.6, 52.6 and 51.1 grams against a 50 gram target." id="resultBars"></div>
-        </article>
-        <article>
-          <h3>Trays that are already full</h3>
-          <p>A second 50 g feed, with every tray already at its target, poured nothing.</p>
-          <h3>Limits</h3>
-          <ul>
-            <li>Very small amounts are not precise. A 10 g target landed between 8 and 20 g, because the auger drops pellets in clumps.</li>
-            <li>The hopper level is an estimate. Its sensor sits above the auger, and a dip in the feed can make it read low.</li>
-          </ul>
-        </article>
+      <div class="closing">
+        <div><h2>Conclusion</h2><div class="prose" id="cConclusion"></div></div>
+        <div><h2>Recommendations</h2><div class="prose" id="cRecommend"></div></div>
       </div>
     </div>
   </section>
-
-  <section id="team" aria-label="Team"><div id="teamRoot"></div></section>
 </main>
 
 <footer class="foot">
@@ -170,9 +212,14 @@
 </footer>
 
 <dialog id="lightbox" aria-label="Photo">
-  <form method="dialog"><button class="btn navy" aria-label="Close photo">Close</button></form>
-  <img id="lightImg" alt="">
+  <form method="dialog"><button class="btn navy" aria-label="Close">Close</button></form>
+  <img id="lightImg" src="img/favicon.png" alt="">
+  <p class="lightdetail" id="lightDetail"></p>
   <div class="lbar"><button class="btn light-ice" id="lightPrev" type="button">Previous</button><span id="lightCap"></span><button class="btn light-ice" id="lightNext" type="button">Next</button></div>
+</dialog>
+<dialog id="videoDialog" aria-label="Video">
+  <form method="dialog"><button class="btn navy" aria-label="Close video">Close</button></form>
+  <div id="videoHost"></div>
 </dialog>
 
 <script type="module" src="js/main.js"></script>

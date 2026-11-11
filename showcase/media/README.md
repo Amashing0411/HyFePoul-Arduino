@@ -37,10 +37,26 @@ Already added: front-view, control-box-inside, box-corner, hopper-open, ultrason
 
 Still needed: trays-with-feed, side-view, feed-pouring
 
-Replace any photo by saving a new one with the same name.
+Replace any photo by saving a new one with the same name. To add a short description that shows when a photo is enlarged, add "detail": "..." to that photo in data/media-slots.json.
+
+## schematic/ (.png or .jpg, as large as you have)
+
+schematic
+
+## functions/ (one photo per function, landscape .jpg, shown until its video is added)
+
+missing-only, scheduled-feed, app-feed, panel-feed, low-feed, low-water, app-tour, nextion-screens
+
+## parts/ (optional close-up per part, .jpg, shown in the part details)
+
+Use the part's id, for example mega, esp32, relay, charger, hopper, auger, dispMotor, chainMotor, tray1, lc1, float, ultrasonic. Open the site with ?guide=1 and select a part to see its exact file name.
 
 ## team/ (square face photos, about 400 x 400, .jpg)
 
 member-1, member-2, member-3, member-4, member-5, member-6
 
 Names and roles are in `data/media-slots.json` under "team". Change "Member 1" and "Role" there.
+
+## Text from the project document
+
+Everything written about the project is in data/content.json: course and school, the problem, the general and specific objectives, the step-by-step text, each function, the test results, the conclusion and the recommendations. Empty text shows a placeholder until it is filled in.

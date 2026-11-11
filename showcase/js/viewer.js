@@ -449,5 +449,14 @@ export function init({ cad, onSelect, onFail }) {
     updatePins();
   });
 
-  return id => { $('model').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' }); select(id, true); };
+  return {
+    pick: id => { $('device').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' }); select(id, true); },
+    // The title shows the whole machine; the step-by-step section shows the cycle view; the device section keeps the user's view.
+    enter: (mode, from) => {
+      if (cycle) return;
+      if (mode === 'title') setView('whole', 0);
+      else if (mode === 'steps') setView('cycle', 0);
+      else if (mode === 'device' && from) setView('whole', 0);
+    },
+  };
 }
