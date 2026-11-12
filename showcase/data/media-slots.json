@@ -233,10 +233,13 @@
       "color": "#a88fdc",
       "tags": [
         "Technical Writer & Manuscript Lead",
+        "Editor & Proofreader",
+        "Data Gathering In-charge",
         "QA & Testing In-charge",
-        "Documentation Lead"
+        "Documentation Lead",
+        "Budget & Procurement Assistant"
       ],
-      "bio": "Oversees project coordination, manuscript preparation, quality assurance, and documentation. Also handles research adviser communications, data gathering, and project testing to ensure the project's progress and successful completion."
+      "bio": "Oversees project coordination, manuscript preparation, budget, quality assurance, and documentation. Also handles research adviser communications, data gathering, and project testing to ensure the project's progress and successful completion."
     },
     {
       "id": "alcantara",
@@ -250,7 +253,7 @@
         "Firmware",
         "App Development"
       ],
-      "bio": "Ubos na ang token buseng."
+      "bio": "Leads the project from design to deployment, integrating the hardware, firmware, mobile application, and cloud services into one working system. Develops the Arduino and ESP32 firmware and the mobile app, and coordinates testing to keep the device reliable."
     },
     {
       "id": "tolentino",
@@ -271,15 +274,16 @@
       "id": "eserjose",
       "file": "media/team/eserjose",
       "name": "Arwin E. Eser Jose",
-      "role": "Maintenance Lead",
+      "role": "Systems Integration Lead",
       "team": "BSCpE 4D",
       "color": "#d8383a",
       "tags": [
-        "Maintenance and Troubleshooting In-charge",
-        "Conceptual Review In-charge",
-        "Testing and Documentation In-charge"
+        "Hardware Developer",
+        "Calibration In-charge",
+        "Test Operator",
+        "Data Analyst"
       ],
-      "bio": "Keeps the device running through maintenance and troubleshooting, and reviews design concepts before they are built. Also supports testing and documentation to ensure the project's successful completion."
+      "bio": "Leads subsystem integration and interface validation across the hardware, firmware, display, communication, and cloud layers to deliver a stable end-to-end system. Contributes to hardware development and sensor calibration, runs benchtop and field test procedures, and analyzes deployment data to verify dispensing accuracy and system reliability."
     },
     {
       "id": "ramos",

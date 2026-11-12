@@ -112,6 +112,27 @@ function setupPresent() {
     sl.classList.remove('enter'); void sl.offsetWidth; sl.classList.add('enter');
     sl.style.setProperty('--dir', dir);
     const slot = sl.querySelector('.slot'); if (slot) P.slotTo(slot);
+    if (sl.id === 'team') fitTeam(sl);
+  };
+  // The badges grow as large as the screen allows. Their rail scales with the badge width,
+  // so a couple of measured steps find the size that leaves the slide just full.
+  const frames = n => new Promise(r => { const f = () => (--n <= 0 ? r() : requestAnimationFrame(f)); requestAnimationFrame(f); });
+  let fitting = 0;
+  const fitTeam = async sl => {
+    const id = ++fitting, set = v => root.style.setProperty('--badge-max', Math.round(v));
+    const stage = sl.querySelector('[data-stage]');
+    if (!stage) { setTimeout(() => { if (id === fitting && P.on && slides[P.i] === sl) fitTeam(sl); }, 300); return; }
+    let v = 260; set(v); await frames(3);
+    for (let k = 0; k < 4 && id === fitting; k++) {
+      const over = sl.scrollHeight - sl.clientHeight, badge = sl.querySelector('[data-badge]');
+      if (!badge) break;
+      const w = badge.offsetWidth, h = stage.offsetHeight - 24;
+      if (over <= 0 && (w >= v - 1 || over > -12)) break;
+      v = Math.max(124, Math.min(260, w * (h - over - 6) / h));
+      set(v); await frames(3);
+    }
+    // Never leave it a few pixels too tall.
+    for (let k = 0; k < 12 && id === fitting && sl.scrollHeight > sl.clientHeight; k++) { v -= 4; set(v); await frames(2); }
   };
   P.step = d => {
     if (d > 0 && P.page < L.pages.length - 1) { P.page++; paint(); slides[P.i].classList.remove('enter'); void slides[P.i].offsetWidth; slides[P.i].classList.add('enter'); return; }
@@ -146,7 +167,7 @@ function setupPresent() {
     const sl = slides[P.i];
     units(sl).forEach(u => u.classList.remove('pu-off')); sl.querySelectorAll(PU_GROUPS).forEach(g => g.classList.remove('pu-off'));
     slides.forEach(x => { x.classList.remove('cur', 'before', 'enter', 'tall'); x.style.zoom = ''; });
-    P.on = false; root.classList.remove('present'); delete root.dataset.pslide;
+    P.on = false; root.classList.remove('present'); delete root.dataset.pslide; root.style.removeProperty('--badge-max'); fitting++;
     document.querySelectorAll('#presentBtn, #presentTop').forEach(b => b.setAttribute('aria-pressed', 'false'));
     if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
     scrollTo(0, sl.getBoundingClientRect().top + scrollY);
@@ -187,7 +208,7 @@ function setupPresent() {
     P.step((Math.abs(dx) > Math.abs(dy) ? -dx : -dy) > 0 ? 1 : -1);
   }, { passive: true });
   let rt = 0;
-  const relayout = () => { if (!P.on) return; clearTimeout(rt); rt = setTimeout(() => { const pg = P.page; const sl = slides[P.i]; units(sl).forEach(u => u.classList.remove('pu-off')); L = layout(sl); P.page = Math.min(pg, L.pages.length - 1); paint(); }, 150); };
+  const relayout = () => { if (!P.on) return; clearTimeout(rt); rt = setTimeout(() => { const pg = P.page; const sl = slides[P.i]; units(sl).forEach(u => u.classList.remove('pu-off')); L = layout(sl); P.page = Math.min(pg, L.pages.length - 1); paint(); if (sl.id === 'team') fitTeam(sl); }, 150); };
   addEventListener('resize', relayout);
   // Photos that finish loading can change a page's height.
   document.addEventListener('load', e => { if (P.on && e.target.tagName === 'IMG' && slides[P.i].contains(e.target)) relayout(); }, true);

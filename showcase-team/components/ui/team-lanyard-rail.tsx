@@ -453,7 +453,7 @@ export function TeamLanyardRail({
       const n = Math.max(1, live.current.count);
       // The page can allow bigger badges (presenter mode) through --badge-max, limited by the screen height.
       const big = parseFloat(getComputedStyle(stage).getPropertyValue("--badge-max")) || 0;
-      const maxW = big > MAX_W ? Math.max(MAX_W, Math.min(big, window.innerHeight * 0.162)) : MAX_W;
+      const maxW = big > MAX_W ? big : MAX_W;
       const railW = Math.min(maxW, (width - 40) / (n * RAIL_PITCH_MIN + 0.4));
       const carousel = railW < MIN_RAIL_W;
       const W = Math.round((carousel ? clamp(width * 0.3, 96, 118) : railW) * 4) / 4;
@@ -464,7 +464,7 @@ export function TeamLanyardRail({
     observer.observe(stage);
     // Switching the page into or out of presenter mode changes --badge-max without resizing the stage.
     const modes = new MutationObserver(() => measure(stage.clientWidth));
-    modes.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    modes.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "style"] });
     const onResize = () => measure(stage.clientWidth);
     window.addEventListener("resize", onResize);
     return () => { observer.disconnect(); modes.disconnect(); window.removeEventListener("resize", onResize); };
@@ -946,6 +946,15 @@ export function TeamLanyardRail({
   const person = current === null ? null : items[current] ?? null;
   const showingBack = current !== null && current === flipped;
   const centerIndex = size.carousel ? (active ?? live.current.carouselIndex) : null;
+  const [shown, setShown] = React.useState<number | null>(null);
+  const shownRef = React.useRef<number | null>(null);
+  React.useEffect(() => {
+    const was = shownRef.current;
+    if (current === was) return;
+    const wait = current === null ? 260 : was === null ? 240 : 120;
+    const t = window.setTimeout(() => { shownRef.current = current; setShown(current); }, wait);
+    return () => window.clearTimeout(t);
+  }, [current]);
   const line1 = person ? `${person.name} — ${person.role}` : caption;
   const line2 = person ? (showingBack ? labels.back : labels.flip) : "";
 
@@ -1121,20 +1130,36 @@ export function TeamLanyardRail({
       )}
 
       <div className="relative z-10 flex flex-col items-center gap-3 px-6 pb-7 pt-3 text-center">
-        <div id={`${uid}-caption`} aria-live="polite" data-person-panel className="min-h-[2.6rem] w-full max-w-[46rem]">
-          {person ? (
-            <div className="rounded-2xl bg-card px-5 py-4 text-left shadow-sm" style={{ borderTop: `4px solid ${person.color ?? "var(--color-chart-1)"}` }}>
-              <p className="text-base font-semibold leading-snug">{person.name}<span className="font-medium text-muted-foreground"> · {person.role}</span></p>
-              {(person.tags ?? []).length > 0 && (
-                <p className="mt-2 flex flex-wrap gap-1.5">{(person.tags ?? []).map((tag) => <span key={tag} className="rounded-full bg-muted px-2.5 py-0.5 text-[12.5px] font-medium leading-snug text-foreground">{tag}</span>)}</p>
+        <div id={`${uid}-caption`} data-person-panel className="grid w-full max-w-[46rem]">
+          {/* Every panel sits in the same cell, so the area is always as tall as the longest one
+              and nothing above it moves when a panel appears. */}
+          <p className="col-start-1 row-start-1 self-center text-sm font-medium transition-opacity duration-300 motion-reduce:transition-none" style={{ opacity: shown === null ? 1 : 0 }} aria-hidden={shown !== null}>{caption}</p>
+          {items.map((it, k) => (
+            <div
+              key={it.id}
+              aria-hidden={shown !== k}
+              data-panel={k}
+              className="col-start-1 row-start-1 self-start rounded-2xl bg-card px-5 py-4 text-left shadow-sm motion-reduce:transition-none"
+              style={{
+                borderTop: `4px solid ${it.color ?? "var(--color-chart-1)"}`,
+                opacity: shown === k ? 1 : 0,
+                transform: shown === k ? "none" : "translateY(8px)",
+                visibility: shown === k ? "visible" : "hidden",
+                transition: shown === k
+                  ? "opacity .32s cubic-bezier(.16,1,.3,1), transform .42s cubic-bezier(.16,1,.3,1), visibility 0s"
+                  : "opacity .2s ease, transform .2s ease, visibility 0s linear .2s",
+              }}
+            >
+              <p className="text-base font-semibold leading-snug">{it.name}<span className="font-medium text-muted-foreground"> · {it.role}</span></p>
+              {(it.tags ?? []).length > 0 && (
+                <p className="mt-2 flex flex-wrap gap-1.5">{(it.tags ?? []).map((tag) => <span key={tag} className="rounded-full bg-muted px-2.5 py-0.5 text-[12.5px] font-medium leading-snug text-foreground">{tag}</span>)}</p>
               )}
-              {person.bio && <p className="mt-2 text-[14.5px] leading-relaxed text-muted-foreground" style={{ textAlign: "justify", hyphens: "auto" }}>{person.bio}</p>}
+              {it.bio && <p className="mt-2 text-[14.5px] leading-relaxed text-muted-foreground" style={{ textAlign: "justify", hyphens: "auto" }}>{it.bio}</p>}
             </div>
-          ) : (
-            <p className="text-sm font-medium">{line1}</p>
-          )}
-          <p className="mt-1.5 text-[13px] text-muted-foreground">{line2}</p>
+          ))}
         </div>
+        <p aria-live="polite" className="sr-only">{person ? `${line1}. ${showingBack && person.bio ? person.bio : ""}` : ""}</p>
+        <p className="-mt-1 min-h-[1.25rem] text-[13px] text-muted-foreground transition-opacity duration-300" style={{ opacity: shown === null ? 0 : 1 }}>{line2}</p>
         {action}
       </div>
     </section>
