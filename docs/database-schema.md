@@ -147,8 +147,10 @@ The pump-era fields `waterHigh` and `pumpActive` were removed in the moving-hopp
 | `targetGrams` | number | > 0 and ≤ 1000 | Grams **per tray**; the app saves whole grams (default 50) |
 | `enabled` | boolean | yes | "Delete" in the app writes `enabled: false` at 00:00 |
 | `daysOfWeek` | number[] | required | Always `[1..7]`; the Mega runs every schedule daily (decision D3) |
+| `updatedBy` | string | `panel` or `app` | Optional. Set by the device when it writes the slot (R-54); the app's own saves leave it out |
+| `updatedAt` | number | yes | Optional. Device UTC ms of that write |
 
-- **Write:** the owner only. The app writes the schedule and queues a matching `SCHEDULE_SET` command.
+- **Write:** the owner, or the device itself (R-54). The app writes the schedule and queues a matching `SCHEDULE_SET` command. The device writes a slot whose time was saved on the onsite panel (`updatedBy: "panel"`), and rewrites a slot to the app's values when an app edit reached the Mega after a panel write (`updatedBy: "app"`), so this node always matches what the Mega runs. Both are validated the same way.
 - **Read:** the owner or the device.
 - **Source of truth when online:** after a Mega or ESP32 restart, after Wi-Fi returns, or after a failed `SCHEDULE_SET`, the ESP32 reads this node and re-sends every slot to the Mega. A missing slot is sent as disabled. Offline, the Mega runs its EEPROM copy.
 
@@ -191,13 +193,13 @@ One record per local day (UTC+8), counted on the Mega (`DailyStats.ino`) and sen
 
 ## 9. Not used
 
-- **Cloud Firestore and Cloud Functions** (`firestore.rules`, `backend/functions`): this was the earlier backend design (alerts in Firestore, FCM token registration). It is not deployed and would require the Blaze plan. The app no longer calls it (see `docs/notifications.md`). The functions code is kept for reference.
+- **Cloud Firestore and Cloud Functions** (`archive/legacy-backend/firestore.rules`, `archive/legacy-backend/functions`): this was the earlier backend design (alerts in Firestore, FCM token registration). It is not deployed and would require the Blaze plan. The app no longer calls it (see `docs/notifications.md`). The functions code is kept for reference.
 - `MockDataContext` / `src/mock/data.ts` in the app: not mounted, used for early UI work only.
 
 ## 10. Rules tests
 
-[`backend/functions/scripts/test-rtdb-rules.js`](../backend/functions/scripts/test-rtdb-rules.js) covers 88 cases against the emulator: ownership and claiming, device identity, data validation, command creation and lifecycle, schedules and their device confirmation, alerts and their resolution, Mega link health, daily summaries, the owned-device query, and stale-command failure. Run it with:
+[`scripts/test-rtdb-rules.js`](../scripts/test-rtdb-rules.js) covers 88 cases against the emulator: ownership and claiming, device identity, data validation, command creation and lifecycle, schedules and their device confirmation, alerts and their resolution, Mega link health, daily summaries, the owned-device query, and stale-command failure. Run it with:
 
 ```bash
-firebase emulators:exec --only auth,database --project hyfepoul-dev "node backend/functions/scripts/test-rtdb-rules.js"
+firebase emulators:exec --only auth,database --project hyfepoul-dev "node scripts/test-rtdb-rules.js"
 ```

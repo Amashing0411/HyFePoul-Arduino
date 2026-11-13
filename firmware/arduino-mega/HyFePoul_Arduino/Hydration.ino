@@ -7,10 +7,8 @@
   low; the Mega then raises LOW_WATER (refill the reservoir) and beeps once
   per low episode. Nothing is switched on or off for water.
 
-  Current assumption:
-    Float switch closed (pin LOW) = reservoir is low.
-  Because float-switch mounting and electrical logic vary, confirm the
-  actual ON/OFF state before deployment.
+  WATER_LOW_LEVEL (Config.ino) is the pin reading when the reservoir is low.
+  Confirm it with Inputs_Calibration before deployment.
 */
 
 bool waterLowCandidate = false;

@@ -200,7 +200,7 @@ describe('Checkpoint 5B.3 - Authenticated RTDB Integration', () => {
       const state: RTDBDeviceState = {
         feedWeightGrams: 500, targetFeedGrams: 50, hopperLevelPercent: 50,
         trayWeightsGrams: [50, 50, 50, 50, 50], waterLow: false, cycleStep: 'DISPENSING', currentTray: 3,
-        feedingActive: true, emergencyStopActive: false, timestamp: 1690000000,
+        feedingActive: true, timestamp: 1690000000,
       };
       await set(ref(rtdb, 'devices/device-001/state'), state);
     });
@@ -210,7 +210,7 @@ describe('Checkpoint 5B.3 - Authenticated RTDB Integration', () => {
         feedWeightGrams: 250, targetFeedGrams: 50, hopperLevelPercent: 65,
         trayWeightsGrams: [50, 50, 50, 50, 50], waterLow: false,
         feedingActive: true, cycleStep: 'DISPENSING', currentTray: 3,
-        emergencyStopActive: false, timestamp: 1690000000000,
+        timestamp: 1690000000000,
       });
 
       const ownHistory = await get(ref(rtdb, 'systemData/device-001'));
@@ -231,7 +231,7 @@ describe('Checkpoint 5B.3 - Authenticated RTDB Integration', () => {
 
   describe('Runtime Validation & Listeners (Service Layer)', () => {
     it('safely skips malformed history records', async () => {
-      await adminPut('systemData/device-001/p1', { timestamp: 1000, feedWeightGrams: 500, targetFeedGrams: 50, hopperLevelPercent: 50, trayWeightsGrams: [50, 50, 50, 50, 50], waterLow: false, cycleStep: 'DISPENSING', currentTray: 3, feedingActive: true, emergencyStopActive: false }); // Valid
+      await adminPut('systemData/device-001/p1', { timestamp: 1000, feedWeightGrams: 500, targetFeedGrams: 50, hopperLevelPercent: 50, trayWeightsGrams: [50, 50, 50, 50, 50], waterLow: false, cycleStep: 'DISPENSING', currentTray: 3, feedingActive: true }); // Valid
       await adminPut('systemData/device-001/p2', { timestamp: 2000, feedWeightGrams: "invalid" }); // Malformed
 
       await signOut(auth);

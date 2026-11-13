@@ -1,7 +1,7 @@
 /*
   Nextion.ino
 
-  7-inch Nextion HMI (project: Nextion/ChickenFeederV1 (1).hmi, IDs in
+  7-inch Nextion HMI (project: Nextion/HyFePoul.hmi, IDs in
   Nextion/Nextion_IDs.txt). The HMI's Program.s sets baud=9600 and starts
   on page 0 (Logo).
 
@@ -22,7 +22,8 @@
   NOTE: t2 shows the total grams in the 5 trays (the tray load cells weigh
   dispensed feed); the t0 caption was updated to "Feed in Trays:" in the HMI
   project to match that measurement.
-  t4 shows the feed cycle step, e.g. "Status: FEEDING TRAY 3/5".
+  t4 shows the feed cycle step, e.g. "Status: FEEDING TRAY 3 SPOT 2". It holds
+  at most 30 characters (txt_maxl in the HMI).
 
   The Nextion is the onsite operator surface. The Mega remains the authority:
   it validates local feed and schedule requests, controls actuators, and saves
@@ -41,22 +42,33 @@ const uint8_t NEXTION_HOME_PAGE_ID = 1;
 const uint8_t NEXTION_SCHEDULE_PAGE_ID = 2;
 const uint8_t NEXTION_LOG_PAGE_ID = 3;
 const uint8_t NEXTION_TARGET_PAGE_ID = 4;
-const uint8_t NEXTION_SYSTEM_PAGE_ID = 9;
+const uint8_t NEXTION_SYSTEM_PAGE_ID = 8;     // keybdB was removed, so System Check is page 8
+const uint8_t NEXTION_SYSTEM_PAGE_ID_ALT = 9; // older builds that still had keybdB
 const uint8_t NEXTION_LOG_REFRESH_BUTTON_ID = 4; // Log b1
 const uint8_t NEXTION_SYSTEM_REFRESH_BUTTON_ID = 4; // SystemCheck b1
 const uint8_t NEXTION_SCHEDULE_EDITOR_FIRST_PAGE_ID = 5;
 const uint8_t NEXTION_SCHEDULE_EDITOR_LAST_PAGE_ID = 7;
-const uint8_t NEXTION_STOP_BUTTON_ID = 8;       // Home b3
-const uint8_t NEXTION_FEED_RESET_BUTTON_ID = 9; // Home b4
+const uint8_t NEXTION_FEED_BUTTON_ID = 8; // Home b4
 const uint8_t NEXTION_TARGET_PLUS_BUTTON_ID = 5; // Grams b1
 const uint8_t NEXTION_TARGET_MINUS_BUTTON_ID = 6; // Grams b2
 const uint8_t NEXTION_TARGET_SAVE_BUTTON_ID = 4; // Grams b3
+const uint8_t NEXTION_TARGET_STEP_BUTTON_ID = 7; // Grams b4
 const uint8_t NEXTION_SCHEDULE_PLUS_HOUR_ID = 7; // editor b1
 const uint8_t NEXTION_SCHEDULE_MINUS_HOUR_ID = 8; // editor b2
 const uint8_t NEXTION_SCHEDULE_PLUS_MINUTE_ID = 9; // editor b3
 const uint8_t NEXTION_SCHEDULE_MINUS_MINUTE_ID = 10; // editor b4
 const uint8_t NEXTION_SCHEDULE_SAVE_BUTTON_ID = 11; // editor b5
+const uint8_t NEXTION_SCHEDULE_TOGGLE_ID = 12; // editor b6: feeding ON/OFF for this slot
+// RGB565 colours for the editor's ON/OFF button.
+const uint16_t NEXTION_ON_BCO = 3115;    // green #08875F
+const uint16_t NEXTION_ON_PCO = 65535;   // white
+const uint16_t NEXTION_OFF_BCO = 59263;  // light blue #E3EDFB
+const uint16_t NEXTION_OFF_PCO = 4493;   // navy #12306B
 const uint8_t NEXTION_LOG_EVENT_COUNT = 4;
+// How often the Mega asks the panel which page is showing (`sendme`).
+const unsigned long NEXTION_PAGE_QUERY_MS = 1000UL;
+// RGB565 blue of the schedule times (design-kit GUIDE.md: #1552B0 / 4758).
+const long NEXTION_SCHEDULE_TIME_COLOR = 4758;
 
 const unsigned long NEXTION_BUTTON_DEBOUNCE_MS = 35UL;
 const uint8_t NEXTION_FRAME_MAX = 32;
@@ -76,14 +88,63 @@ char nextionHistoryRows[NEXTION_LOG_EVENT_COUNT][64] = {
   "NO HISTORY YET", "", "", ""
 };
 uint8_t nextionHistoryRowsReceived = 0;
+uint8_t nextionHistoryRowsShown = 0; // real rows on the page, not a message
 FeedSchedule nextionScheduleDraft;
+// The editor's Save also switches the panel to the Sched page, and that page
+// report can reach the Mega before the Save touch. The draft of an editor that
+// just closed is kept briefly so that late Save still saves what was shown.
+const unsigned long NEXTION_DRAFT_GRACE_MS = 1500;
+uint8_t nextionLeftDraftIndex = NEXTION_ID_UNSET;
+unsigned long nextionLeftDraftMillis = 0;
+FeedSchedule nextionLeftDraft;
 float nextionManualTargetDraft = DEFAULT_FEED_TARGET_GRAMS;
+// Grams each + or - press changes the target; the Step button cycles these.
+const uint8_t NEXTION_TARGET_STEPS[] = {1, 5, 10};
+const uint8_t NEXTION_TARGET_STEP_COUNT = sizeof(NEXTION_TARGET_STEPS);
+uint8_t nextionTargetStepIndex = NEXTION_TARGET_STEP_COUNT - 1; // starts at 10 g
 unsigned long nextionLastTouchMillis = 0;
 bool nextionHasLastTouch = false;
+
+// HMI page names (Nextion_IDs.txt). Every write names its page, so a write
+// meant for one page can never land on a same-named component of another
+// page (the Nextion rejects it instead). That is what left History rows on
+// Home and Home's feed grams in System Check's water card.
+bool isNextionSystemPage(uint8_t pageId) {
+  return pageId == NEXTION_SYSTEM_PAGE_ID || pageId == NEXTION_SYSTEM_PAGE_ID_ALT;
+}
+
+const char* nextionPageName(uint8_t pageId) {
+  switch (pageId) {
+    case 1: return "Home";
+    case 2: return "Sched";
+    case 3: return "Log";
+    case 4: return "Grams";
+    case 5: return "Sched1";
+    case 6: return "Sched2";
+    case 7: return "Sched3";
+    // The flashed panel reports System Check as page 8 (Nextion_IDs.txt says
+    // 9, with 8 the keyboard). Both are accepted: writes name the page, so on
+    // any other page they are rejected.
+    case 8:
+    case 9: return "SystemCheck";
+    default: return NULL;
+  }
+}
 
 void updateNextion() {
   static unsigned long lastNextionUpdate = 0;
   static uint8_t nextField = 0;
+  static unsigned long lastPageQueryMillis = 0;
+
+  // Ask which page is showing once a second: not every HMI page reports
+  // itself when it opens, and the Mega must not keep writing for a page that
+  // is gone. The reply (0x66 <page>) is handled in processNextionFrame().
+  if (millis() - lastPageQueryMillis >= NEXTION_PAGE_QUERY_MS) {
+    lastPageQueryMillis = millis();
+    NEXTION_SERIAL.print(F("sendme"));
+    sendNextionCommandTerminator();
+    return;
+  }
 
   // One field per update: a single field fits in Serial2's 64-byte transmit
   // buffer, so the write does not block the loop (and the ESP32 UART).
@@ -105,7 +166,7 @@ void updateNextion() {
         break;
     }
     nextField = (nextField + 1) % 5;
-  } else if (nextionCurrentPageId == NEXTION_SYSTEM_PAGE_ID) {
+  } else if (isNextionSystemPage(nextionCurrentPageId)) {
     refreshNextionSystemReadings();
   } else if (nextionCurrentPageId == NEXTION_LOG_PAGE_ID) {
     refreshNextionLogEntries();
@@ -129,6 +190,9 @@ void updateNextion() {
         snprintf(minuteText, sizeof(minuteText), "%02u", schedule.minute);
         value = minuteText;
       }
+      // Same blue for every slot's time (the HMI has t8, slot 3's hour, in
+      // grey).
+      setNextionNumber(timeComponents[nextionScheduleField], "pco", NEXTION_SCHEDULE_TIME_COLOR);
       setNextionText(timeComponents[nextionScheduleField], value);
     } else {
       uint8_t slot = nextionScheduleField - 6;
@@ -144,8 +208,20 @@ void updateNextion() {
   }
 }
 
-void setNextionText(const String& component, const String& value) {
+// Writes "<page>.<component>": nothing is sent while the page is unknown.
+bool printNextionTarget(const String& component) {
+  const char* page = nextionPageName(nextionCurrentPageId);
+  if (page == NULL) {
+    return false;
+  }
+  NEXTION_SERIAL.print(page);
+  NEXTION_SERIAL.print('.');
   NEXTION_SERIAL.print(component);
+  return true;
+}
+
+void setNextionText(const String& component, const String& value) {
+  if (!printNextionTarget(component)) return;
   NEXTION_SERIAL.print(F(".txt=\""));
   NEXTION_SERIAL.print(value);
   NEXTION_SERIAL.print(F("\""));
@@ -154,8 +230,14 @@ void setNextionText(const String& component, const String& value) {
 }
 
 void setNextionValue(const String& component, long value) {
-  NEXTION_SERIAL.print(component);
-  NEXTION_SERIAL.print(F(".val="));
+  setNextionNumber(component, "val", value);
+}
+
+void setNextionNumber(const String& component, const char* attribute, long value) {
+  if (!printNextionTarget(component)) return;
+  NEXTION_SERIAL.print('.');
+  NEXTION_SERIAL.print(attribute);
+  NEXTION_SERIAL.print('=');
   NEXTION_SERIAL.print(value);
   sendNextionCommandTerminator();
 }
@@ -200,12 +282,11 @@ void handleNextionInput() {
 }
 
 void processNextionFrame(const uint8_t* frame, uint8_t length) {
-  // `sendme` response: current page ID.
+  // `sendme` response: current page ID. The Mega also asks once a second,
+  // so only a real change resets the page (an open schedule editor keeps
+  // its draft).
   if (length == 2 && frame[0] == 0x66) {
-    nextionCurrentPageId = frame[1];
-    Serial.print(F("Nextion page: "));
-    Serial.println(nextionCurrentPageId);
-    handleNextionPageChange(nextionCurrentPageId);
+    noteNextionPage(frame[1]);
     return;
   }
 
@@ -215,7 +296,9 @@ void processNextionFrame(const uint8_t* frame, uint8_t length) {
 
   uint8_t pageId = frame[1];
   uint8_t componentId = frame[2];
-  nextionCurrentPageId = pageId;
+  // A touch also tells which page is open (before handling the touch, so a
+  // schedule editor has its draft ready).
+  noteNextionPage(pageId);
 
   Serial.print(F("Nextion touch: page "));
   Serial.print(pageId);
@@ -240,7 +323,22 @@ void processNextionFrame(const uint8_t* frame, uint8_t length) {
   handleNextionTouch(pageId, componentId);
 }
 
+void noteNextionPage(uint8_t pageId) {
+  if (pageId == nextionCurrentPageId) {
+    return;
+  }
+  nextionCurrentPageId = pageId;
+  Serial.print(F("Nextion page: "));
+  Serial.println(nextionCurrentPageId);
+  handleNextionPageChange(nextionCurrentPageId);
+}
+
 void handleNextionPageChange(uint8_t pageId) {
+  if (nextionDraftScheduleIndex < FEED_SCHEDULE_COUNT) {
+    nextionLeftDraftIndex = nextionDraftScheduleIndex;
+    nextionLeftDraft = nextionScheduleDraft;
+    nextionLeftDraftMillis = millis();
+  }
   nextionDraftScheduleIndex = NEXTION_ID_UNSET;
 
   if (pageId == NEXTION_SCHEDULE_PAGE_ID) {
@@ -248,16 +346,21 @@ void handleNextionPageChange(uint8_t pageId) {
   } else if (pageId == NEXTION_TARGET_PAGE_ID) {
     nextionManualTargetDraft = manualFeedTargetGrams;
     setNextionValue("n0", lround(nextionManualTargetDraft));
+    showNextionTargetStep();
   } else if (pageId >= NEXTION_SCHEDULE_EDITOR_FIRST_PAGE_ID &&
              pageId <= NEXTION_SCHEDULE_EDITOR_LAST_PAGE_ID) {
     uint8_t index = pageId - NEXTION_SCHEDULE_EDITOR_FIRST_PAGE_ID;
     nextionDraftScheduleIndex = index;
-    nextionScheduleDraft = feedSchedules[index];
+    bool late = nextionLeftDraftIndex == index &&
+                millis() - nextionLeftDraftMillis < NEXTION_DRAFT_GRACE_MS;
+    nextionScheduleDraft = late ? nextionLeftDraft : feedSchedules[index];
+    nextionLeftDraftIndex = NEXTION_ID_UNSET;
     setNextionValue("n0", nextionScheduleDraft.hour);
     setNextionValue("n1", nextionScheduleDraft.minute);
+    showNextionScheduleToggle();
   } else if (pageId == NEXTION_LOG_PAGE_ID) {
     requestNextionHistory();
-  } else if (pageId == NEXTION_SYSTEM_PAGE_ID) {
+  } else if (isNextionSystemPage(pageId)) {
     nextionSystemField = 0;
   } else if (pageId == NEXTION_HOME_PAGE_ID) {
     setNextionText("b4", getHomeActionLabel());
@@ -278,7 +381,9 @@ void refreshNextionSystemReadings() {
 
   switch (nextionSystemField) {
     case 0:
-      value = String("HOPPER ") + String(currentHopperLevelPercent, 0) + "%";
+      // Below the LOW calibration point (30 %) the card says LOW first.
+      value = String(currentHopperLevelPercent < HOPPER_LOW_PERCENT ? "HOPPER LOW " : "HOPPER ") +
+              String(currentHopperLevelPercent, 0) + "%";
       break;
     case 1:
       value = waterLow ? "WATER LOW - REFILL" : "WATER OK";
@@ -301,19 +406,32 @@ void refreshNextionLogEntries() {
   nextionLogField = (nextionLogField + 1) % NEXTION_LOG_EVENT_COUNT;
 }
 
-void requestNextionHistory() {
-  nextionHistoryRowsReceived = 0;
+// Shows a message in the first row and clears the others.
+void setNextionHistoryMessage(const char* message) {
   for (uint8_t i = 0; i < NEXTION_LOG_EVENT_COUNT; i++) {
     nextionHistoryRows[i][0] = '\0';
   }
-  strncpy(nextionHistoryRows[0], "LOADING HISTORY",
-          sizeof(nextionHistoryRows[0]) - 1);
+  strncpy(nextionHistoryRows[0], message, sizeof(nextionHistoryRows[0]) - 1);
+  nextionHistoryRowsShown = 0;
+  nextionHistoryRowsReceived = 0;
+  nextionLogField = 0;
+}
+
+// Rows already on screen stay there until new ones replace them, so a Refresh
+// that is slow or fails does not wipe the page.
+void requestNextionHistory() {
+  nextionHistoryRowsReceived = 0;
   nextionLogField = 0;
 
   if (!esp32Online) {
-    strncpy(nextionHistoryRows[0], "HISTORY UNAVAILABLE",
-            sizeof(nextionHistoryRows[0]) - 1);
+    if (nextionHistoryRowsShown == 0) {
+      setNextionHistoryMessage("HISTORY UNAVAILABLE");
+    }
     return;
+  }
+
+  if (nextionHistoryRowsShown == 0) {
+    setNextionHistoryMessage("LOADING HISTORY");
   }
 
   ESP32_SERIAL.println(F("HISTORY_REQ"));
@@ -321,35 +439,21 @@ void requestNextionHistory() {
 
 void processNextionHistoryLine(const String& line) {
   if (line == "HIST|BEGIN") {
-    for (uint8_t i = 0; i < NEXTION_LOG_EVENT_COUNT; i++) {
-      nextionHistoryRows[i][0] = '\0';
-    }
     nextionHistoryRowsReceived = 0;
-    strncpy(nextionHistoryRows[0], "LOADING HISTORY",
-            sizeof(nextionHistoryRows[0]) - 1);
-    nextionLogField = 0;
     return;
   }
 
   if (line == "HIST|EMPTY") {
-    for (uint8_t i = 0; i < NEXTION_LOG_EVENT_COUNT; i++) {
-      nextionHistoryRows[i][0] = '\0';
-    }
-    strncpy(nextionHistoryRows[0], "NO HISTORY YET",
-            sizeof(nextionHistoryRows[0]) - 1);
-    nextionHistoryRowsReceived = 0;
-    nextionLogField = 0;
+    setNextionHistoryMessage("NO HISTORY YET");
     return;
   }
 
   if (line.startsWith("HIST|ERROR|")) {
-    for (uint8_t i = 0; i < NEXTION_LOG_EVENT_COUNT; i++) {
-      nextionHistoryRows[i][0] = '\0';
+    // A failed Refresh keeps the rows already shown.
+    if (nextionHistoryRowsShown == 0) {
+      setNextionHistoryMessage("HISTORY UNAVAILABLE");
     }
-    strncpy(nextionHistoryRows[0], "HISTORY UNAVAILABLE",
-            sizeof(nextionHistoryRows[0]) - 1);
     nextionHistoryRowsReceived = 0;
-    nextionLogField = 0;
     return;
   }
 
@@ -381,35 +485,71 @@ void processNextionHistoryLine(const String& line) {
 
 void finishNextionHistory() {
   if (nextionHistoryRowsReceived == 0) {
-    strncpy(nextionHistoryRows[0], "NO HISTORY YET",
-            sizeof(nextionHistoryRows[0]) - 1);
+    if (nextionHistoryRowsShown == 0) {
+      setNextionHistoryMessage("NO HISTORY YET");
+    }
+    return;
   }
+
+  // Fewer rows than last time: clear the old ones below them.
+  for (uint8_t i = nextionHistoryRowsReceived; i < NEXTION_LOG_EVENT_COUNT; i++) {
+    nextionHistoryRows[i][0] = '\0';
+  }
+  nextionHistoryRowsShown = nextionHistoryRowsReceived;
   nextionLogField = 0;
+}
+
+// The schedule editor's b6 shows whether this slot feeds, and how much it
+// will pour per tray once saved (the Feed Target page's weight).
+void showNextionScheduleToggle() {
+  bool on = nextionScheduleDraft.enabled;
+  setNextionText("b6", on ? String("ON - ") + lround(manualFeedTargetGrams) + " g per tray"
+                          : String("Feeding: OFF"));
+  setNextionNumber("b6", "bco", on ? NEXTION_ON_BCO : NEXTION_OFF_BCO);
+  setNextionNumber("b6", "bco2", on ? NEXTION_ON_BCO : NEXTION_OFF_BCO);
+  setNextionNumber("b6", "pco", on ? NEXTION_ON_PCO : NEXTION_OFF_PCO);
+  setNextionNumber("b6", "pco2", on ? NEXTION_ON_PCO : NEXTION_OFF_PCO);
+}
+
+// One target weight drives every feed: Feed Now and the three schedules.
+// Changed slots are saved and sent to the cloud so the app shows the same grams.
+void applyTargetToSchedules(float grams) {
+  bool changed = false;
+  for (uint8_t i = 0; i < FEED_SCHEDULE_COUNT; i++) {
+    if (fabs(feedSchedules[i].targetGrams - grams) < 0.5f) continue;
+    feedSchedules[i].targetGrams = grams;
+    changed = true;
+  }
+  if (!changed) return;
+  saveSchedulesToEEPROM();
+  for (uint8_t i = 0; i < FEED_SCHEDULE_COUNT; i++) markScheduleEditedLocally(i);
+}
+
+// Writes the Step button's label on the Feed Target page.
+void showNextionTargetStep() {
+  setNextionText("b4", String("Step: ") + NEXTION_TARGET_STEPS[nextionTargetStepIndex] + " g");
 }
 
 void handleNextionTouch(uint8_t pageId, uint8_t componentId) {
   if (pageId == NEXTION_HOME_PAGE_ID) {
-    if (componentId == NEXTION_STOP_BUTTON_ID) {
-      handleNextionStop();
-    } else if (componentId == NEXTION_FEED_RESET_BUTTON_ID) {
-      if (emergencyStopActive) {
-        handleNextionStart();
-      } else {
-        handleNextionFeedNow();
-      }
+    if (componentId == NEXTION_FEED_BUTTON_ID) {
+      handleNextionFeedNow();
     }
     return;
   }
 
   if (pageId == NEXTION_TARGET_PAGE_ID) {
     if (componentId == NEXTION_TARGET_PLUS_BUTTON_ID) {
-      if (nextionManualTargetDraft <= MAX_TRAY_TARGET_GRAMS - 10.0f) {
-        nextionManualTargetDraft += 10.0f;
-      }
+      nextionManualTargetDraft = min(MAX_TRAY_TARGET_GRAMS,
+          nextionManualTargetDraft + NEXTION_TARGET_STEPS[nextionTargetStepIndex]);
       setNextionValue("n0", lround(nextionManualTargetDraft));
     } else if (componentId == NEXTION_TARGET_MINUS_BUTTON_ID) {
-      nextionManualTargetDraft = max(1.0f, nextionManualTargetDraft - 10.0f);
+      nextionManualTargetDraft = max(1.0f,
+          nextionManualTargetDraft - NEXTION_TARGET_STEPS[nextionTargetStepIndex]);
       setNextionValue("n0", lround(nextionManualTargetDraft));
+    } else if (componentId == NEXTION_TARGET_STEP_BUTTON_ID) {
+      nextionTargetStepIndex = (nextionTargetStepIndex + 1) % NEXTION_TARGET_STEP_COUNT;
+      showNextionTargetStep();
     } else if (componentId == NEXTION_TARGET_SAVE_BUTTON_ID) {
       if (!saveManualFeedTarget(nextionManualTargetDraft)) {
         setNextionText("t4", "Status: INVALID TARGET");
@@ -418,6 +558,10 @@ void handleNextionTouch(uint8_t pageId, uint8_t componentId) {
         Serial.print(manualFeedTargetGrams, 0);
         Serial.println(F(" g per tray."));
         logEventToSD("NEXTION_TARGET_SAVED");
+        applyTargetToSchedules(manualFeedTargetGrams);
+        // Saved: back to Home, like the schedule editor returns to its list.
+        NEXTION_SERIAL.print(F("page Home"));
+        sendNextionCommandTerminator();
       }
     }
     return;
@@ -438,11 +582,18 @@ void handleNextionTouch(uint8_t pageId, uint8_t componentId) {
     } else if (componentId == NEXTION_SCHEDULE_MINUS_MINUTE_ID) {
       nextionScheduleDraft.minute = (nextionScheduleDraft.minute + 59) % 60;
       setNextionValue("n1", nextionScheduleDraft.minute);
+    } else if (componentId == NEXTION_SCHEDULE_TOGGLE_ID) {
+      nextionScheduleDraft.enabled = !nextionScheduleDraft.enabled;
+      showNextionScheduleToggle();
     } else if (componentId == NEXTION_SCHEDULE_SAVE_BUTTON_ID) {
       FeedSchedule& saved = feedSchedules[nextionDraftScheduleIndex];
       saved.hour = nextionScheduleDraft.hour;
       saved.minute = nextionScheduleDraft.minute;
+      saved.enabled = nextionScheduleDraft.enabled;
+      saved.targetGrams = manualFeedTargetGrams;
       saveSchedulesToEEPROM();
+      // R-54: send it to the cloud so the app shows the same schedule.
+      markScheduleEditedLocally(nextionDraftScheduleIndex);
       refreshScheduleOverview();
       logEventToSD("NEXTION_SCHEDULE_SAVED");
       Serial.print(F("Nextion schedule saved: slot "));
@@ -450,46 +601,24 @@ void handleNextionTouch(uint8_t pageId, uint8_t componentId) {
       Serial.print(F(" at "));
       Serial.print(saved.hour);
       Serial.print(F(":"));
-      Serial.println(saved.minute);
+      Serial.print(saved.minute);
+      Serial.print(saved.enabled ? F(" ON, ") : F(" OFF, "));
+      Serial.print(saved.targetGrams, 0);
+      Serial.println(F(" g per tray"));
       nextionDraftScheduleIndex = NEXTION_ID_UNSET;
     }
   }
 
-  // Log refresh reloads the newest saved SD events. System Check refresh starts
+  // Log refresh asks the ESP32 for the newest cloud rows. System Check refresh starts
   // a paced update of all four live readings.
   if (pageId == NEXTION_LOG_PAGE_ID &&
       componentId == NEXTION_LOG_REFRESH_BUTTON_ID) {
     requestNextionHistory();
   }
 
-  if (pageId == NEXTION_SYSTEM_PAGE_ID &&
+  if (isNextionSystemPage(pageId) &&
       componentId == NEXTION_SYSTEM_REFRESH_BUTTON_ID) {
     nextionSystemField = 0;
-  }
-}
-
-void handleNextionStop() {
-  if (emergencyStopActive) {
-    return;
-  }
-
-  Serial.println(F("Stop pressed on Nextion."));
-  logEventToSD("NEXTION_STOP_PRESSED");
-  tripEmergencyStop();
-}
-
-void handleNextionStart() {
-  const char* rejectReason = resetEmergencyStop("EMERGENCY_STOP_RESET_NEXTION");
-
-  if (rejectReason != NULL) {
-    Serial.print(F("Start on Nextion rejected: "));
-    Serial.println(rejectReason);
-
-    if (strcmp(rejectReason, "PHYSICAL_ESTOP_ENGAGED") == 0) {
-      setNextionText("t4", "Status: RELEASE E-STOP");
-    }
-  } else {
-    setNextionText("t4", "Status: STOP RESET");
   }
 }
 
@@ -513,10 +642,6 @@ String getWaterStatusText() {
 }
 
 String getSystemStatusText() {
-  if (emergencyStopActive) {
-    return "STOPPED";
-  }
-
   if (!feedingActive) {
     return "NORMAL";
   }
@@ -527,8 +652,11 @@ String getSystemStatusText() {
     case CYCLE_TO_END:
     case CYCLE_RETURNING:
       return "RETURNING";
+    case CYCLE_DISPENSING:
+    case CYCLE_TO_SPOT:
+      return String("FEEDING TRAY ") + currentTray + " SPOT " + (currentSpot + 1);
     default:
-      return String("FEEDING TRAY ") + currentTray + "/" + TRAY_COUNT;
+      return String("FEEDING TRAY ") + currentTray;
   }
 }
 
@@ -550,7 +678,6 @@ String getCurrentTimeText() {
 }
 
 String getHomeActionLabel() {
-  if (emergencyStopActive) return "RESET STOP";
   if (feedingActive) return "FEEDING";
   return "FEED NOW";
 }

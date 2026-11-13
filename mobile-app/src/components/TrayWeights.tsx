@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { spacing, layout } from '../theme';
+import { TRAY_LAYOUT } from '../types';
 
 interface TrayWeightsProps {
   weights: number[];
@@ -10,27 +11,29 @@ interface TrayWeightsProps {
   currentTray: number;
 }
 
-// One box per tray with the grams its load cell reports.
+// One box per tray with the grams its load cell reports, in the order the trays
+// stand on the device.
 export default function TrayWeights({ weights, currentTray }: TrayWeightsProps) {
   const { colors, typography } = useTheme();
   const { t } = useLanguage();
 
   return (
     <View style={styles.row}>
-      {weights.map((grams, i) => {
-        const isCurrent = currentTray === i + 1;
+      {TRAY_LAYOUT.map((tray) => {
+        const grams = weights[tray - 1];
+        const isCurrent = currentTray === tray;
         return (
           <View
-            key={i}
+            key={tray}
             style={[
               styles.tray,
               { borderColor: isCurrent ? colors.primary : colors.border, backgroundColor: colors.neutralLight },
               isCurrent && styles.current,
             ]}
             accessible={true}
-            accessibilityLabel={t('trayWeightA11y', { n: i + 1, weight: grams.toFixed(0) })}
+            accessibilityLabel={t('trayWeightA11y', { n: tray, weight: grams.toFixed(0) })}
           >
-            <Text style={typography.caption}>{t('trayN', { n: i + 1 })}</Text>
+            <Text style={typography.caption}>{t('trayN', { n: tray })}</Text>
             <Text style={[typography.body, { fontWeight: 'bold' }]} numberOfLines={1} adjustsFontSizeToFit>
               {grams.toFixed(0)}
               <Text style={typography.caption}> g</Text>

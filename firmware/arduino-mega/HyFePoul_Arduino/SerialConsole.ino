@@ -20,14 +20,13 @@
     STOP                 stop a bench move at once
     WDTEST               stop the program to prove the watchdog restarts
                          the Mega (only while nothing moves; Watchdog.ino)
-    RESET                clear a latched E-stop (Safety.ino)
 
-  Safety: motor commands are refused while the E-stop is latched, a feed
-  cycle runs, or another bench move is active. Moves are non-blocking (the
-  loop, the E-stop and the ESP32 link keep running) and go through the
+  Safety: motor commands are refused while a feed cycle runs or another
+  bench move is active. STOP ends a bench move only, not a feed cycle. Moves
+  are non-blocking (the loop and the ESP32 link keep running) and go through the
   normal chain driver, so the relay interlock, dead time and limit switches
   still apply. A feed cycle cannot start during a bench move.
-  WEIGH, TARE and CAL block for about a second while they average readings.
+  WEIGH, TARE and CAL block for a few seconds while they average readings.
 */
 
 enum BenchMove { BENCH_IDLE, BENCH_JOG, BENCH_HOME, BENCH_DISPENSE };
@@ -45,7 +44,7 @@ bool benchMoveActive() {
   return benchMove != BENCH_IDLE;
 }
 
-// Called from handleLocalConsole() for every line except RESET.
+// Called from handleLocalConsole() for every line.
 void handleBenchCommand(String line) {
   line.trim();
   line.toUpperCase();
@@ -91,12 +90,11 @@ void handleBenchCommand(String line) {
 
 void benchHelp() {
   Serial.println(F("Bench commands: STATUS, WEIGH, TARE <1-5|ALL>, CAL <1-5> <grams>,"));
-  Serial.println(F("FACTORS, JOG <F|R> <ms>, HOME, DISP <ms>, FEED <grams>, STOP, WDTEST, RESET"));
+  Serial.println(F("FACTORS, JOG <F|R> <ms>, HOME, DISP <ms>, FEED <grams>, STOP, WDTEST"));
 }
 
 // Returns NULL when a motor command may run, otherwise why not.
 const char* benchMotorBlocked() {
-  if (emergencyStopActive) return "E-stop latched (release it and type RESET)";
   if (feedingActive) return "a feed cycle is running";
   if (benchMoveActive()) return "another bench move is running (STOP first)";
   return NULL;
@@ -138,24 +136,30 @@ int benchParseTray(const String& s) {
 
 void benchStatus() {
   Serial.println(F("--- STATUS ---"));
-  Serial.print(F("E-stop button: "));
-  Serial.print(digitalRead(EMERGENCY_STOP_PIN) == ESTOP_PRESSED ? F("PRESSED") : F("released"));
-  Serial.print(F("  latch: "));
-  Serial.println(emergencyStopActive ? F("LATCHED") : F("clear"));
   Serial.print(F("Home switch: "));
   Serial.print(isHomeSwitchPressed() ? F("PRESSED") : F("open"));
   Serial.print(F("  End switch: "));
   Serial.println(isEndSwitchPressed() ? F("PRESSED") : F("open"));
   Serial.print(F("Reservoir float: "));
   Serial.println(isWaterLow() ? F("LOW") : F("ok"));
+  // The filtered distance is what the level uses; the fresh ping shows the
+  // noise.
   float cm = readUltrasonicDistanceCm();
-  Serial.print(F("Hopper: "));
+  Serial.print(F("Hopper: filtered "));
+  if (hopperSampleCount > 0) {
+    Serial.print(medianHopperDistanceCm(), 1);
+    Serial.print(F(" cm"));
+  } else {
+    Serial.print(F("none"));
+  }
+  Serial.print(F(" (ping "));
   if (cm < 0) {
     Serial.print(F("no echo"));
   } else {
     Serial.print(cm, 1);
     Serial.print(F(" cm"));
   }
+  Serial.print(')');
   Serial.print(F(" -> "));
   Serial.print(currentHopperLevelPercent, 0);
   Serial.println(F(" %"));
@@ -180,6 +184,7 @@ void benchStatus() {
 void benchWeigh() {
   Serial.println(F("--- WEIGH (5 samples per tray) ---"));
   for (uint8_t i = 0; i < TRAY_COUNT; i++) {
+    feedWatchdog(); // all 5 trays together take longer than the watchdog limit
     Serial.print(F("Tray "));
     Serial.print(i + 1);
     Serial.print(F(": "));
@@ -209,6 +214,7 @@ void benchTare(const String& args) {
     first = last = t;
   }
   for (uint8_t i = first; i <= last; i++) {
+    feedWatchdog(); // TARE ALL takes longer than the watchdog limit
     Serial.print(F("Tare tray "));
     Serial.print(i + 1);
     if (trayScales[i].wait_ready_timeout(500)) {
@@ -219,6 +225,9 @@ void benchTare(const String& args) {
       Serial.println(F(": NOT READY"));
     }
   }
+  // Kept for every later reset: trays now read the feed actually in them.
+  saveTrayZeros();
+  Serial.println(F("Tray zeros saved (EEPROM). Only TARE with EMPTY trays."));
 }
 
 void benchCalibrate(const String& args) {
@@ -353,11 +362,6 @@ void benchStop(const char* why) {
 // Advances a bench move; called every loop.
 void updateBench() {
   if (benchMove == BENCH_IDLE) return;
-
-  if (emergencyStopActive) {
-    benchStop("E-stop");
-    return;
-  }
 
   if (benchMove == BENCH_DISPENSE) {
     if (millis() - benchStartMillis >= benchDurationMs) {

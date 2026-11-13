@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d57cf">
+<title>HyFePoul: Interactive Device Showcase</title>
+<meta name="description" content="HyFePoul, an automated poultry feeder that weighs every tray and pours only what is missing. An interactive presentation of the finished device.">
+<link rel="icon" href="img/favicon.png">
+<link rel="apple-touch-icon" href="img/app-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/team.css">
+<script type="importmap">
+{"imports":{"three":"./vendor/three.module.min.js","three/orbit":"./vendor/OrbitControls.js","three/bgu":"./vendor/BufferGeometryUtils.js"}}
+</script>
+</head>
+<body>
+
+<div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
+<nav class="pager" id="pager" aria-label="Presentation">
+  <button id="pagePrev" type="button" aria-label="Previous section"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg></button>
+  <button class="plabel" id="pageLabel" type="button" aria-expanded="false" aria-controls="pageMenu"></button>
+  <ol class="pager-menu" id="pageMenu" hidden></ol>
+  <button id="presentBtn" class="present-btn" type="button" aria-pressed="false" aria-label="Presenter mode" title="Presenter mode (P)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M12 16v4M8 20h8"/></svg></button>
+  <button id="pageNext" type="button" aria-label="Next section"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
+</nav>
+
+<div class="sky">
+  <header class="top">
+    <a class="brand" href="#title"><img src="img/app-icon.png" width="44" height="44" alt=""><span>HyFePoul</span></a>
+    <nav aria-label="Sections">
+      <a href="#team">Team</a>
+      <a href="#objectives">Objectives</a>
+      <a href="#how">How it works</a>
+      <a href="#functions">Functions</a>
+      <a href="#device">Device</a>
+      <a href="#schematic">Schematic</a>
+      <button class="present-link" id="presentTop" type="button">Presenter mode</button>
+    </nav>
+  </header>
+
+  <section class="hero slide" id="title" data-title="Title">
+    <div class="lead">
+      <h1>HyFePoul</h1>
+      <p class="tagline" id="cTagline"></p>
+      <p class="course" id="cCourse"></p>
+      <div class="actions">
+        <a class="btn green" href="#team">Start the presentation</a>
+        <a class="btn light" href="#device">Explore the machine</a>
+      </div>
+    </div>
+    <div class="slot slot-title" data-slot="title">
+      <div class="stage" id="stage">
+        <div class="pins" id="pins"></div>
+        <div class="stage-head"><p id="hint">Drag to turn. Scroll or pinch to zoom. Tap a number to learn about that part.</p></div>
+        <div class="loader" id="loader" role="status"><div class="bar"><span id="loadbar"></span></div><p id="loadtext">Loading the 3D model…</p></div>
+        <div class="cycle-status" id="cycleStatus" hidden aria-live="polite"></div>
+        <div class="tools" id="tools">
+          <div class="group views" role="group" aria-label="Camera">
+            <button data-view="whole" aria-pressed="true">Whole device</button>
+            <button data-view="box" aria-pressed="false">Control box</button>
+            <button data-view="hopper" aria-pressed="false">Hopper</button>
+            <button data-view="trays" aria-pressed="false">Trays</button>
+            <button data-view="chain" aria-pressed="false">Chain drive</button>
+            <button data-view="water" aria-pressed="false">Water</button>
+          </div>
+          <div class="group toggles" role="group" aria-label="Show or hide">
+            <button id="tWalls" aria-pressed="true">Covers</button>
+            <button id="t12" aria-pressed="true"><i style="background:#e0413a"></i>12 V</button>
+            <button id="t5" aria-pressed="true"><i style="background:#f29a1c"></i>5 V</button>
+            <button id="tSig" aria-pressed="true"><i style="background:#2f95dc"></i>Signal</button>
+            <button id="tLabels" aria-pressed="true">Labels</button>
+          </div>
+          <div class="group end">
+            <label class="slider">Explode <input id="explode" type="range" min="0" max="1" step="0.02" value="0"></label>
+            <button id="play" class="play">Play feed cycle</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <svg class="waves" viewBox="0 0 1440 150" preserveAspectRatio="none" aria-hidden="true">
+    <g class="drift slow"><path fill="#7cc8ff" fill-opacity=".28" d="M0 76C180 22 360 22 540 66s360 66 540 26 270-52 360-34v92H0z"/></g>
+    <g class="drift"><path fill="#49a6f5" fill-opacity=".45" d="M0 104c200-52 380-46 560-12s340 44 520 8 270-40 360-24v74H0z"/></g>
+    <path fill="#e8eff8" d="M0 126c220-34 420-30 620-8s400 26 820-14v46H0z"/>
+  </svg>
+</div>
+
+<main>
+  <section class="slide" id="team" data-title="The team" aria-label="The team"><div id="teamRoot"></div></section>
+
+  <section class="section white slide" id="problem" data-title="The problem">
+    <div class="wrap narrow">
+      <div class="head"><h2>The problem</h2><p>Why we built HyFePoul.</p></div>
+      <div class="prose" id="cProblem"></div>
+    </div>
+  </section>
+
+  <section class="section slide" id="objectives" data-title="Objectives">
+    <div class="wrap">
+      <div class="head"><h2>Objectives</h2><p>Each specific objective links to the functions that meet it.</p></div>
+      <div class="goal" id="cGeneral"></div>
+      <div class="objectives" id="cObjectives"></div>
+    </div>
+  </section>
+
+  <section class="section white slide" id="how" data-title="How it works">
+    <div class="wrap">
+      <div class="head"><h2>How it works, step by step</h2><p>Press play to watch the model run a real feed cycle. Each step lights up as it happens.</p></div>
+      <div class="how">
+        <div>
+          <ol class="steps" id="steps"></ol>
+          <button class="btn green" id="playHow" type="button">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M8 5.2v13.6a.7.7 0 0 0 1.06.6l11-6.8a.7.7 0 0 0 0-1.2l-11-6.8A.7.7 0 0 0 8 5.2z"/></svg>
+            Play the feed cycle
+          </button>
+        </div>
+        <div class="slot slot-steps" data-slot="steps"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section slide" id="functions" data-title="Functions">
+    <div class="wrap">
+      <div class="head"><h2>Functions</h2><p>What the machine does, which objective each one meets, and a recording of it working.</p></div>
+      <div class="functions" id="functionGrid"></div>
+    </div>
+  </section>
+
+  <section class="section blue slide" id="device" data-title="The device">
+    <div class="wrap wide">
+      <div class="head"><h2>The device, part by part</h2><p>Turn the model, switch views, explode it, or tap a number to read about a part.</p></div>
+      <div class="device-grid">
+        <div class="slot slot-device" data-slot="device"></div>
+        <aside class="detail" aria-live="polite">
+          <div class="meta"><span id="dNum"></span><span id="dGroup"></span></div>
+          <h3 id="dName">Choose a part</h3>
+          <div class="dphoto" id="dPhoto" hidden></div>
+          <p id="dText">Tap any number on the model, or pick a part from the parts list.</p>
+          <dl id="dList"></dl>
+          <button id="dVideo" class="btn blue" hidden>Watch video</button>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="section slide" id="schematic" data-title="Schematic">
+    <div class="wrap">
+      <div class="head"><h2>Schematic</h2><p>How every part is wired to the Arduino Mega. Select the drawing to enlarge it.</p></div>
+      <div class="schematic">
+        <div class="schem-frame" id="schemFrame"></div>
+        <div class="pin-table">
+          <h3>Mega pins, from the firmware</h3>
+          <table><thead><tr><th>Mega pin</th><th>Goes to</th></tr></thead><tbody id="pinRows"></tbody></table>
+        </div>
+      </div>
+      <h3 class="sub-title">Block diagram</h3>
+      <div class="diagram" id="diagram"></div>
+    </div>
+  </section>
+
+  <section class="section blue slide" id="previews" data-title="App and panel">
+    <div class="wrap">
+      <div class="head"><h2>The app and the panel</h2><p>A feed can be started from a phone or from the touch screen on the machine.</p></div>
+      <div class="seg" id="previewTabs" role="group" aria-label="Choose screens">
+        <button data-tab="app" aria-selected="true">Mobile app</button>
+        <button data-tab="panel" aria-selected="false">Touch panel</button>
+      </div>
+      <div class="devices" id="previewApp"></div>
+      <div class="devices wide" id="previewPanel" hidden></div>
+    </div>
+  </section>
+
+  <section class="section slide" id="gallery-section" data-title="Photos">
+    <div class="wrap">
+      <div class="head"><h2>The real machine</h2><p>Photos of HyFePoul as it was built. Select one to enlarge it and read its details.</p></div>
+      <div class="chips" id="galleryChips"></div>
+      <div class="gallery" id="gallery"></div>
+    </div>
+  </section>
+
+  <section class="section white slide" id="parts" data-title="Parts list">
+    <div class="wrap">
+      <div class="head"><h2>Every part</h2><p>Select a part to find it on the model. <strong>Measured (CAD)</strong> comes from our drawing, <strong>Datasheet</strong> from the module&rsquo;s published size, and <strong>Estimated</strong> from photos. <strong>Check</strong> means we could not confirm it.</p></div>
+      <div class="parts" id="partsList"></div>
+    </div>
+  </section>
+
+  <!-- Results and data: hidden until the final trials are in (renderTrials in main.js is kept). -->
+
+  <section class="section white slide" id="conclusion" data-title="Conclusion">
+    <div class="wrap">
+      <div class="closing">
+        <div><h2>Conclusion</h2><div class="prose" id="cConclusion"></div></div>
+        <div><h2>Recommendations</h2><div class="prose" id="cRecommend"></div></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <img src="img/app-icon.png" width="40" height="40" alt="" loading="lazy">
+  <p>The 3D model is built from our CAD drawing and photos of the machine. Sizes and positions are labelled by source on each part.</p>
+</footer>
+
+<dialog id="lightbox" aria-label="Photo">
+  <form method="dialog"><button class="btn navy" aria-label="Close">Close</button></form>
+  <img id="lightImg" src="img/favicon.png" alt="">
+  <p class="lightdetail" id="lightDetail"></p>
+  <div class="lbar"><button class="btn light-ice" id="lightPrev" type="button">Previous</button><span id="lightCap"></span><button class="btn light-ice" id="lightNext" type="button">Next</button></div>
+</dialog>
+<dialog id="videoDialog" aria-label="Video">
+  <form method="dialog"><button class="btn navy" aria-label="Close video">Close</button></form>
+  <div id="videoHost"></div>
+</dialog>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

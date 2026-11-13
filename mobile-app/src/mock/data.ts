@@ -18,7 +18,6 @@ export const mockSystemData: SystemData = {
   cycleStep: 'IDLE',
   currentTray: 0,
   timeSource: 'NETWORK',
-  emergencyStopActive: false,
   timestamp: new Date().toISOString(),
 };
 
@@ -30,7 +29,6 @@ export const mockSchedules: FeedSchedule[] = [
 
 export const mockAlerts: Alert[] = [
   { id: 'a1', type: 'LOW_FEED', timestamp: new Date(Date.now() - 3600000).toISOString(), resolved: true },
-  { id: 'a2', type: 'EMERGENCY_STOP', timestamp: new Date(Date.now() - 7200000).toISOString(), resolved: true },
   { id: 'a3', type: 'DEVICE_OFFLINE', timestamp: new Date(Date.now() - 86400000).toISOString(), resolved: false },
 ];
 

@@ -4,6 +4,7 @@ import * as Notifications from 'expo-notifications';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { rtdbService } from '../services/rtdbService';
+import { isRetiredAlert } from '../utils/alerts';
 
 // Local (on-device) notifications for new RTDB alerts.
 //
@@ -77,6 +78,7 @@ export function useAlertNotifications() {
       }
 
       for (const alert of alerts) {
+        if (isRetiredAlert(alert.name)) continue;
         const previous = seen.get(alert.eventId);
         if (previous !== undefined && alert.timestamp <= previous) continue;
         seen.set(alert.eventId, alert.timestamp);
