@@ -84,6 +84,13 @@ function setupPresent() {
         while (b < us.length) { showRange(sl, us, a, b + 1); if (!fits(sl)) break; b++; }
         pages.push([a, b]); a = b;
       }
+      // Even out the pages (13 cards as 4,3,3,3 rather than 4,4,4,1), if every even page still fits.
+      if (pages.length > 1) {
+        const n = pages.length, even = [];
+        let start = 0;
+        for (let k = 0; k < n; k++) { const size = Math.ceil((us.length - start) / (n - k)); even.push([start, start + size]); start += size; }
+        if (even.every(([x, y]) => { showRange(sl, us, x, y); return fits(sl); })) pages.splice(0, n, ...even);
+      }
     }
     // Split sections are already dense, so their pages only grow a little.
     const zooms = pages.map(([a, b]) => { showRange(sl, us, a, b); return fitZoom(sl, pages.length > 1 ? 1.1 : 1.3); });
@@ -472,7 +479,7 @@ function renderGallery(cat = 'all') {
   shots = items.filter(p => p.src);
   items.forEach(p => {
     const f = document.createElement(p.src ? 'button' : 'div');
-    f.className = 'shot ' + p.shape;
+    f.className = 'shot ' + p.shape + (p.group === 'cad' ? ' drawing' : '');
     if (p.src) {
       const i = document.createElement('img'); i.src = p.src; i.alt = p.alt; i.loading = 'lazy'; i.decoding = 'async';
       const c = document.createElement('span'); c.className = 'cap'; c.textContent = p.title;
@@ -511,13 +518,15 @@ function renderPartsList(onPick) {
   const host = $('partsList');
   GROUPS.forEach(([g, label]) => {
     const wrap = document.createElement('div'); wrap.className = 'pgroup';
-    const h = document.createElement('h3'); h.textContent = label; wrap.append(h);
-    PARTS.filter(p => p.group === g).forEach(p => {
+    const list = PARTS.filter(p => p.group === g);
+    const h = document.createElement('h3'); h.innerHTML = `${label} <span>${list.length} parts</span>`; wrap.append(h);
+    const grid = document.createElement('div'); grid.className = 'pgrid'; wrap.append(grid);
+    list.forEach(p => {
       const b = document.createElement('button'); b.className = 'prow'; b.dataset.part = p.id;
       const n = document.createElement('span'); n.className = 'n'; n.textContent = p.n;
       const t = document.createElement('span'); t.textContent = p.name;
       const s = document.createElement('small'); s.textContent = p.check ? p.size[0] + ' · Check' : p.size[0]; t.append(s);
-      b.append(n, t); b.addEventListener('click', () => onPick(p.id)); wrap.append(b);
+      b.append(n, t); b.addEventListener('click', () => onPick(p.id)); grid.append(b);
     });
     host.append(wrap);
   });
@@ -544,7 +553,7 @@ function showDetail(p) {
 // --- Results: grams off target ---
 const fmt = (x, sign) => (sign && x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x).toFixed(1);
 function renderTrials() {
-  const host = $('trials'); host.textContent = '';
+  const host = $('trials'); if (!host) return; host.textContent = '';
   (C.trials || []).forEach(t => {
     const off = t.readings.map(r => r - t.target), n = off.length;
     const mean = t.readings.reduce((a, b) => a + b, 0) / n;

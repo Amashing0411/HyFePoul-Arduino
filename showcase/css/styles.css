@@ -155,10 +155,12 @@ button.shot{cursor:zoom-in}
 button.shot:hover img{transform:scale(1.04)}
 .cap{position:absolute;left:0;right:0;bottom:0;padding:26px 12px 9px;background:linear-gradient(transparent,rgba(7,42,115,.85));color:#fff;font-weight:600;font-size:14.5px;text-align:left}
 
-.parts{columns:3 300px;column-gap:clamp(20px,3vw,44px)}
-.pgroup{break-inside:avoid;margin-bottom:26px}
-.pgroup h3{font-size:20px;color:var(--navy);margin-bottom:4px}
-.prow{display:grid;grid-template-columns:30px minmax(0,1fr);gap:8px;align-items:start;width:100%;background:none;border:0;border-top:1px solid var(--line);padding:8px 0;text-align:left;font:500 16px/1.25 var(--font);color:inherit;cursor:pointer;transition:color .15s}
+.parts{display:grid;gap:18px}
+.pgroup{background:var(--ice);border-radius:var(--r);padding:16px 18px 18px}
+.pgroup h3{display:flex;align-items:baseline;gap:10px;font-size:20px;color:var(--navy);margin-bottom:12px}
+.pgroup h3 span{font-size:13px;font-weight:600;color:var(--muted)}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.prow{display:grid;grid-template-columns:30px minmax(0,1fr);gap:8px;align-items:center;width:100%;background:#fff;border:0;border-radius:10px;box-shadow:0 1px 2px rgba(3,18,58,.06);padding:9px 10px;text-align:left;font:500 16px/1.25 var(--font);color:inherit;cursor:pointer;transition:color .15s}
 .prow:hover,.prow[aria-current="true"]{color:var(--blue)}
 .prow .n{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--chip);color:var(--blue);font-weight:800;font-size:12px}
 .prow small{display:block;font-size:13px;font-weight:400;color:var(--muted);margin-top:2px}
@@ -282,7 +284,6 @@ dialog form{text-align:right;margin-bottom:8px}
 
 .functions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
 .fn{display:flex;flex-direction:column;background:#fff;border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);scroll-margin-top:20px}
-.fn:nth-child(1),.fn:nth-child(2){grid-column:span 2}
 .fmedia{position:relative;aspect-ratio:16/10;background:var(--chip)}
 .fmedia img{width:100%;height:100%;object-fit:cover}
 .fplay{position:absolute;inset:0;border:0;padding:0;cursor:pointer;background:var(--blue-night)}
@@ -351,7 +352,6 @@ td{padding:7px 8px;border-bottom:1px solid var(--line)}
   .device-grid .detail{position:static;max-height:none}
   .objectives{grid-template-columns:minmax(0,1fr)}
   .functions{grid-template-columns:minmax(0,1fr)}
-  .fn:nth-child(1),.fn:nth-child(2){grid-column:auto}
   .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
   .stats div:last-child{grid-column:span 2}
   .pager span{max-width:40vw}
@@ -476,5 +476,15 @@ button.screen:focus-visible{outline:3px solid var(--sky);outline-offset:3px}
 .screen img{display:block}
 .device.panel .screen img{image-rendering:auto}
 
-/* 13 feature cards: the last one fills the end of its row on the 4-column layout */
-@media (min-width:1281px){.fn:nth-child(13):last-child{grid-column:span 2}}
+
+/* CAD drawings: shown whole on white, caption below the drawing instead of over it */
+.shot.drawing{background:#fff}
+.shot.drawing img{object-fit:contain;padding:10px 10px 34px}
+.shot.drawing .cap{background:linear-gradient(transparent,rgba(9,40,100,.85) 55%)}
+/* Feature cards: all the same size, text area fills the card */
+.fn .fbody{flex:1}
+/* Presenter: wider part tiles and an even 3-up feature grid */
+.present .pgrid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.present .functions{grid-template-columns:repeat(4,minmax(0,1fr))}
+.present .fmedia{aspect-ratio:16/8}
+.present .fbody p{font-size:15px}
