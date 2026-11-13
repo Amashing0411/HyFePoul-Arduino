@@ -47,6 +47,36 @@
       "file": "media/videos/app-tour",
       "title": "Mobile app tour",
       "text": "A walk through the mobile app."
+    },
+    {
+      "id": "moving-hopper",
+      "file": "media/videos/moving-hopper",
+      "title": "Moving hopper",
+      "text": "The hopper travelling from tray to tray and turning at the limit switches."
+    },
+    {
+      "id": "safety-stops",
+      "file": "media/videos/safety-stops",
+      "title": "Safety stops",
+      "text": "The hopper stopping at a limit switch."
+    },
+    {
+      "id": "records-log",
+      "file": "media/videos/records-log",
+      "title": "Records and Google Sheets log",
+      "text": "The monthly Google Sheet opened from the app."
+    },
+    {
+      "id": "offline",
+      "file": "media/videos/offline",
+      "title": "Keeps working offline",
+      "text": "Wi-Fi off, and the machine still feeding on schedule."
+    },
+    {
+      "id": "battery",
+      "file": "media/videos/battery",
+      "title": "Battery backup",
+      "text": "Mains unplugged, and the machine still running on the battery."
     }
   ],
   "app": [

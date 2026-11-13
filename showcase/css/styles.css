@@ -475,3 +475,6 @@ button.screen:hover{transform:translateY(-3px)}
 button.screen:focus-visible{outline:3px solid var(--sky);outline-offset:3px}
 .screen img{display:block}
 .device.panel .screen img{image-rendering:auto}
+
+/* 13 feature cards: the last one fills the end of its row on the 4-column layout */
+@media (min-width:1281px){.fn:nth-child(13):last-child{grid-column:span 2}}

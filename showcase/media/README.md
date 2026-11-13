@@ -18,6 +18,11 @@ To check the names on the live page, open it with `?guide=1` at the end of the a
 | low-water.mp4 | Float drops, alert reaches the app |
 | low-feed.mp4 | Hopper runs low, alert reaches the app |
 | nextion-screens.mp4 | Walk through the touch screen pages |
+| moving-hopper.mp4 | Hopper travelling tray to tray, turning at the limit switches |
+| safety-stops.mp4 | Hopper stopping at a limit switch |
+| records-log.mp4 | Monthly Google Sheet opened from the app |
+| offline.mp4 | Wi-Fi off, machine still feeding on schedule |
+| battery.mp4 | Mains unplugged, machine still running on the battery |
 | app-tour.mp4 | Walk through the mobile app |
 
 Optional cover image: a .jpg with the same name, for example `app-feed.jpg`.
@@ -45,7 +50,7 @@ schematic
 
 ## functions/ (one photo per function, landscape .jpg, shown until its video is added)
 
-missing-only, scheduled-feed, app-feed, panel-feed, low-feed, low-water, app-tour, nextion-screens
+missing-only, scheduled-feed, app-feed, panel-feed, low-feed, low-water, app-tour, nextion-screens, moving-hopper, safety-stops, records-log, offline, battery
 
 ## parts/ (optional close-up per part, .jpg, shown in the part details)
 

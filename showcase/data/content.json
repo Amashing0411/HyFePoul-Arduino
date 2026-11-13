@@ -23,7 +23,9 @@
         {
           "label": "b",
           "text": "Distributing feed through a chain-driven moving hopper that travels along five feeding trays, using home and end limit switches to determine its starting and ending positions.",
-          "functions": []
+          "functions": [
+            "moving-hopper"
+          ]
         },
         {
           "label": "c",
@@ -57,7 +59,9 @@
         {
           "label": "g",
           "text": "Providing safety functions that stop the hopper when it reaches the home or end limit switch, and stop the motors when a hopper movement or feed dispensing step exceeds its time limit.",
-          "functions": []
+          "functions": [
+            "safety-stops"
+          ]
         },
         {
           "label": "h",
@@ -69,12 +73,16 @@
         {
           "label": "i",
           "text": "Recording system data, including tray feed weights, hopper feed level, water status, and system alerts, in a cloud database (Firebase Realtime Database), and copying these records periodically to Google Sheets as a long-term operational log organized into a new sheet each month, which authorized users can open from the mobile application through the Google Sheets app. Feeding schedules, tray calibration, and daily feeding totals are also retained on the controller during power interruptions.",
-          "functions": []
+          "functions": [
+            "records-log"
+          ]
         },
         {
           "label": "j",
           "text": "Transmitting system data between the device and the cloud database through the ESP32 over Wi-Fi, so that the mobile application receives timely system updates from the device it is registered to, while the device continues its local feeding schedules and safety functions when the connection is unavailable and sends its pending alerts and daily records once the connection returns.",
-          "functions": []
+          "functions": [
+            "offline"
+          ]
         },
         {
           "label": "k",
@@ -86,7 +94,9 @@
         {
           "label": "l",
           "text": "Providing a battery backup that automatically supplies power to the device during main power interruptions, allowing it to continue operating.",
-          "functions": []
+          "functions": [
+            "battery"
+          ]
         }
       ]
     },
@@ -161,6 +171,31 @@
       "id": "nextion-screens",
       "title": "Touch screen control",
       "what": "The 7-inch screen on the machine shows status, schedules, history and a system check."
+    },
+    {
+      "id": "moving-hopper",
+      "title": "Moving hopper",
+      "what": "The hopper rides a chain from tray to tray. It finds its starting point at the home limit switch and turns back at the end limit switch."
+    },
+    {
+      "id": "safety-stops",
+      "title": "Safety stops",
+      "what": "The chain motor stops the moment the hopper reaches either limit switch. If going home, reaching the end or pouring into a tray takes longer than its time limit, the motors stop and an alert is raised."
+    },
+    {
+      "id": "records-log",
+      "title": "Records and Google Sheets log",
+      "what": "Every reading and alert is saved in Firebase, then copied to a Google Sheet with a new tab each month. The app opens the sheet from its History screen."
+    },
+    {
+      "id": "offline",
+      "title": "Keeps working offline",
+      "what": "Without Wi-Fi the machine still feeds on schedule from its own clock and still beeps for low feed or water. Alerts and daily totals are sent once the connection is back."
+    },
+    {
+      "id": "battery",
+      "title": "Battery backup",
+      "what": "A 12 V battery sits behind the charge controller, so the machine keeps running from it when the mains power goes out."
     }
   ],
   "trials": [
