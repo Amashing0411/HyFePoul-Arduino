@@ -464,5 +464,7 @@ html.present{scrollbar-width:none}
 .present #team [data-person-panel]~p:not(.sr-only){display:none}
 @media (max-width:1100px){.present #team [data-person-panel]{max-width:92vw}.present #team{padding-bottom:76px}}
 /* The team's block diagram image */
-.diagram .diagram-img{height:auto;border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);max-width:min(620px,100%);margin:0 auto}
-.diagram .diagram-img img{display:block;width:100%;height:auto}
+/* Always whole on screen: as tall as the screen allows, never wider than its box. */
+.diagram .diagram-img{display:block;width:fit-content;max-width:100%;height:auto;border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);margin:0 auto}
+.diagram .diagram-img img{display:block;width:auto;height:auto;max-width:100%;max-height:calc(100svh - 140px);object-fit:contain}
+.present .diagram .diagram-img img{max-height:calc(100svh - 230px)}
