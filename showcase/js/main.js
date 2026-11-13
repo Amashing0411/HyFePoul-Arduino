@@ -229,7 +229,8 @@ function setupLinks() {
 // Cards in each grid rise in one after another the first time they come into view.
 function setupReveal() {
   if (reduced || !('IntersectionObserver' in window)) return;
-  const groups = ['.head', '.objectives', '.steps', '.functions', '.devices', '.gallery', '.parts', '.stats', '.flow'];
+  // Not the app/panel screens: they sit in a tab that can be hidden, and a fade there could stall.
+  const groups = ['.head', '.objectives', '.steps', '.functions', '.gallery', '.parts', '.stats', '.flow'];
   const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px' });
   groups.forEach(sel => document.querySelectorAll(sel).forEach(g => {
     [...g.children].forEach((c, i) => { c.classList.add('rv'); c.style.setProperty('--d', `${Math.min(i, 8) * 60}ms`); io.observe(c); });
@@ -434,18 +435,26 @@ function renderDiagram() {
 }
 
 // --- App and panel previews ---
-function device(slot, cls) {
+// Each screen opens full size in the lightbox, with Previous and Next through its set.
+function device(slot, cls, set, k) {
   const f = document.createElement('figure'); f.className = 'device ' + cls;
-  const s = document.createElement('div'); s.className = 'screen';
-  if (slot.src) { const i = document.createElement('img'); i.src = slot.src; i.alt = `${slot.title} screen`; i.loading = 'lazy'; s.append(i); }
+  const s = document.createElement(slot.src ? 'button' : 'div'); s.className = 'screen';
+  if (slot.src) {
+    s.type = 'button'; s.setAttribute('aria-label', `Enlarge the ${slot.title} screen`);
+    const i = document.createElement('img'); i.src = slot.src; i.alt = `${slot.title} screen`; s.append(i);
+    s.addEventListener('click', () => {
+      shots = set.filter(x => x.src).map(x => ({ src: x.src, alt: `${x.title} screen`, title: x.title, detail: cls === 'phone' ? 'Mobile app' : 'Touch panel on the machine' }));
+      openShot(shots.findIndex(x => x.src === slot.src));
+    });
+  }
   else s.append(placeholder(`${slot.file}.jpg`, 'photo', 'Screen coming soon'));
   const c = document.createElement('figcaption'); c.textContent = slot.title;
   f.append(s, c);
   return f;
 }
 function renderPreviews() {
-  LIB.app.forEach(s => $('previewApp').append(device(s, 'phone')));
-  LIB.panel.forEach(s => $('previewPanel').append(device(s, 'panel')));
+  LIB.app.forEach((s, k) => $('previewApp').append(device(s, 'phone', LIB.app, k)));
+  LIB.panel.forEach((s, k) => $('previewPanel').append(device(s, 'panel', LIB.panel, k)));
   const tabs = document.querySelectorAll('#previewTabs button');
   tabs.forEach(b => b.addEventListener('click', () => {
     tabs.forEach(x => x.setAttribute('aria-selected', x === b));
