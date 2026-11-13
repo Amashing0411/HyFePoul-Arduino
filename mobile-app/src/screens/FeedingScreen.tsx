@@ -49,6 +49,13 @@ export default function FeedingScreen() {
   const scrollViewHeight = useRef(0);
   const scrollOffset = useRef(0);
 
+  // The device reports its saved Feed Target while idle (set on the panel),
+  // so new feeds and schedules start from the same grams as the machine.
+  const deviceTarget = (): number => {
+    const g = systemData?.targetFeedGrams;
+    return typeof g === 'number' && g >= 1 && g <= MAX_TRAY_TARGET_GRAMS ? Math.round(g) : DEFAULT_TRAY_TARGET_GRAMS;
+  };
+
   const formatTime = (h: number, m: number) => {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
   };
@@ -68,7 +75,7 @@ export default function FeedingScreen() {
     } else {
       setNewHour('07');
       setNewMin('00');
-      setNewTarget(String(DEFAULT_TRAY_TARGET_GRAMS));
+      setNewTarget(String(deviceTarget()));
     }
     setEditingIndex(index);
   };
@@ -259,7 +266,7 @@ export default function FeedingScreen() {
             {manualTarget === null ? (
               <Button
                 title={t('manualFeed')}
-                onPress={() => setManualTarget(String(DEFAULT_TRAY_TARGET_GRAMS))}
+                onPress={() => setManualTarget(String(deviceTarget()))}
                 variant="outline"
                 disabled={manualFeedBlocked}
                 accessibilityLabel={t('manualFeed')}
