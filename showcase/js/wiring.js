@@ -126,14 +126,14 @@ export function wireList(HXU) {
   field('v12', R, 0.11, ['relay', 'no3'], ['dispMotor', 'M+'], disp(208.05), { relay: 3, extra: { dyn: 'carrier' } });
   field('v12', K, 0.11, LN, ['dispMotor', 'M-'], disp(209.65), { extra: { dyn: 'carrier' } });
 
-  // Load cells: down to the floor hole, up the box corner, out along the end, then one straight line past every tray's front.
+  // Load cells: down to the floor hole, up the box corner, out along the end, then one straight line behind the trays to each cell's fixed end.
   const CELLX = { 1: 50.35, 2: 92.65, 3: 134.95, 5: 177.25, 4: 219.55 };
   const CC = [['E+', R], ['E-', K], ['A-', WH], ['A+', GR]];
   HXU.forEach((u, i) => {
     const n = i + 1, Xc = CELLX[n];
     CC.forEach(([a, color], j) => {
       const U = 2.7 + i * 0.3 + j * 0.06, d = 3 + i * 0.18 + j * 0.05, Zl = 55.6 + i * 0.1;
-      const xc = 240.95 + i * 0.3 + j * 0.06, yc = 43.25 + j * 0.1, zb = 65.9 + i * 0.06 + j * 0.02, xb = 240.1 - i * 0.12 - j * 0.03, Yl = 59.6 + i * 0.24 + j * 0.05, Xa = Xc - 0.33 + j * 0.22;
+      const xc = 240.95 + i * 0.3 + j * 0.06, yc = 43.25 + j * 0.1, zb = 65.9 + i * 0.06 + j * 0.02, xb = 240.1 - i * 0.12 - j * 0.03, Yl = 40.6 - i * 0.24 - j * 0.05, Xa = Xc - 0.33 + j * 0.22;
       w('sig', color, 0.06, ['hx' + n, a], ['lc' + n, a], [{ d: 2 }, { v: 2.4 + i * 0.3 + j * 0.05 }, { d }, { u: U }, { v: FLOOR },
         { w: [X(d), Y_(U), Zl] }, { w: [X(d), yc, Zl] }, { w: [xc, yc, Zl] }, { w: [xc, yc, zb] }, { w: [xb, yc, zb] }, { w: [xb, Yl, zb] }, { w: [Xa, Yl, zb] }, { w: [Xa, Yl, 66.7] }]);
     });

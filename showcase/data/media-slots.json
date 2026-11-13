@@ -205,6 +205,27 @@
       "alt": "Feed falling from the auger into a tray.",
       "group": "feeding",
       "shape": "wide"
+    },
+    {
+      "file": "media/photos/cad-drawing-sheet",
+      "title": "CAD drawing sheet",
+      "alt": "Front, back, top, side and two isometric views of HyFePoul with overall dimensions in centimetres.",
+      "group": "cad",
+      "shape": "large"
+    },
+    {
+      "file": "media/photos/cad-labelled",
+      "title": "Labelled CAD model",
+      "alt": "The CAD model with its parts labelled: hopper, wheels, roller chain, gear, feeder, water container, pipe, drip cups, sliding door, control box and Nextion display.",
+      "group": "cad",
+      "shape": "wide"
+    },
+    {
+      "file": "media/photos/cad-three-views",
+      "title": "CAD model, three views",
+      "alt": "Three coloured isometric views of the CAD model.",
+      "group": "cad",
+      "shape": "wide"
     }
   ],
   "team": [

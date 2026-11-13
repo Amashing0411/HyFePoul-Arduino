@@ -175,8 +175,8 @@ export function buildModel(cad, parts) {
   const TRAY_X = { 1: 50.35, 2: 92.65, 3: 134.95, 5: 177.25, 4: 219.55 };
   [1, 2, 3, 4, 5].forEach(n => {
     const id = 'lc' + n;
-    // Crossways under the tray: free end under the tray's centre, fixed end on a post at the front edge.
-    attach(id, root, W(TRAY_X[n], 54.2, 66.6));
+    // Crossways under the tray: free end under the tray's centre (Y 50.2), fixed end on a post at the back edge.
+    attach(id, root, W(TRAY_X[n], 46.2, 66.6)).rotation.y = Math.PI;
     finishKit(id, new Kit().box(1.27, 1.27, 8, 0xb9bdc1).box(1.3, 1.3, 1.5, 0xf0efe9).box(1.6, 1.3, 2, 0x707478, 0, 1.3, 2.9).box(1.6, 1, 2, 0x707478, 0, -1.1, -2.9).cyl(0.3, 3.2, 0x9aa0a4, 0, -3.1, -2.9, 'y').box(1, 0.5, 0.7, BLACK, 0, 0, -4.2));
     ['E+', 'E-', 'A-', 'A+'].forEach((a, i) => anchor(id, a, -0.33 + i * 0.22, 0.1, -4.55, 0, 0, -1));
   });

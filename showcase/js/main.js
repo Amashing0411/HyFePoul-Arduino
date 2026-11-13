@@ -413,6 +413,16 @@ function renderSchematic() {
 }
 
 function renderDiagram() {
+  // The team's block diagram, when it is in the library; the drawn one below otherwise.
+  const img = findFile('media/schematic/block-diagram');
+  if (img) {
+    const host = $('diagram'); host.textContent = '';
+    const b = document.createElement('button'); b.className = 'schem diagram-img'; b.setAttribute('aria-label', 'Enlarge the block diagram');
+    const im = document.createElement('img'); im.src = img; im.alt = 'Block diagram: power from the 220 V source and charge controller with the 12 V battery, the main switch and two buck converters; the sensors feeding the Arduino Mega; the Mega driving the ESP32, Nextion, buzzer and the relay module for the chain and dispenser motors.'; b.append(im);
+    b.addEventListener('click', () => { shots = [{ src: img, alt: im.alt, title: 'Block diagram', detail: '' }]; openShot(0); });
+    host.append(b);
+    return;
+  }
   $('diagram').innerHTML = `
   <div class="flow">
     <div class="node"><h3>What it senses</h3><ul><li>5 load cells through 5 HX711 boards</li><li>Ultrasonic level sensor</li><li>Float switch</li><li>2 limit switches</li><li>DS3231 clock</li></ul></div>
@@ -445,7 +455,7 @@ function renderPreviews() {
 }
 
 // --- Photos ---
-const CATS = [['all', 'All'], ['machine', 'Whole machine'], ['control', 'Control box'], ['feeding', 'Feeding'], ['trays', 'Trays and water']];
+const CATS = [['all', 'All'], ['machine', 'Whole machine'], ['control', 'Control box'], ['feeding', 'Feeding'], ['trays', 'Trays and water'], ['cad', 'CAD drawings']];
 let shots = [], shotAt = 0;
 function renderGallery(cat = 'all') {
   const g = $('gallery'); g.textContent = '';

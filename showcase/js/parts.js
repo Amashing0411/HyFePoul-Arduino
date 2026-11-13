@@ -23,7 +23,7 @@ const cell = n => ({
   id: 'lc' + n, group: 'trays', view: 'trays', name: `Load cell ${n}`, short: `Scale ${n}`,
   what: `A 1 kg bar that bends very slightly under weight. It tells the machine how much feed tray ${n} already holds, so only the missing amount is poured.`,
   connects: `Four wires to HX711 board ${n}: red E+, black E−, white A−, green A+.`,
-  size: [DS, '1 kg bar, about 8 × 1.3 × 1.3 cm'], pos: [EST, 'crossways: free end under the tray centre, fixed end at the front'],
+  size: [DS, '1 kg bar, about 8 × 1.3 × 1.3 cm'], pos: [EST, 'crossways: free end under the tray centre, fixed end on a post at the back'],
   check: 'The cells are mostly hidden under the trays in our photos, so their exact position is estimated.',
   video: 'missing-only',
 });
