@@ -225,14 +225,14 @@
     {
       "file": "media/photos/side-view",
       "title": "The machine from the side",
-      "alt": "The machine seen from the reservoir end.",
+      "alt": "The full length of the machine seen from the side.",
       "group": "machine",
       "shape": "wide"
     },
     {
       "file": "media/photos/feed-pouring",
       "title": "Feed pouring",
-      "alt": "Feed falling from the auger into a tray.",
+      "alt": "The auger dispenser above a tray, with feed in the tray.",
       "group": "feeding",
       "shape": "wide"
     },
@@ -255,6 +255,153 @@
       "title": "CAD model, three views",
       "alt": "Three coloured isometric views of the CAD model.",
       "group": "cad",
+      "shape": "wide"
+    },
+    {
+      "file": "media/photos/panel-startup",
+      "title": "Panel starting up",
+      "alt": "The touch screen showing the HyFePoul logo while it starts.",
+      "group": "control",
+      "shape": "wide"
+    },
+    {
+      "file": "media/photos/tray-and-drinkers",
+      "title": "Tray, cage and drinkers",
+      "alt": "An orange feed tray in front of the cage, with the blue water line and red drinker cups behind it.",
+      "group": "trays",
+      "shape": "wide"
+    },
+    {
+      "file": "media/photos/cage-and-switch",
+      "title": "Cage and power switch",
+      "alt": "The cage along its length, with the red power switch on the control box.",
+      "group": "machine",
+      "shape": "wide"
+    },
+    {
+      "file": "media/photos/reservoir-float",
+      "title": "Reservoir and float switch",
+      "alt": "The water reservoir with its float switch, above the chain sprocket.",
+      "group": "trays",
+      "shape": "wide"
+    },
+    {
+      "file": "media/photos/drinker-line",
+      "title": "Drinker line",
+      "alt": "The blue water line with red drinker cups running along the cage.",
+      "group": "trays",
+      "shape": "wide"
+    },
+    {
+      "file": "media/photos/reservoir-inside",
+      "title": "Inside the reservoir",
+      "alt": "Looking down into the empty stainless water reservoir.",
+      "group": "trays",
+      "shape": "wide"
+    },
+    {
+      "file": "media/photos/control-box-side",
+      "title": "Control box from the side",
+      "alt": "The open control box with the Mega and relay board, beside the cage.",
+      "group": "control",
+      "shape": "wide"
+    },
+    {
+      "file": "media/photos/power-cord",
+      "title": "Power cord",
+      "alt": "The mains power cord running under the machine.",
+      "group": "control",
+      "shape": "wide"
+    },
+    {
+      "file": "media/photos/panel-logo",
+      "title": "Touch screen close up",
+      "alt": "The touch screen in its frame showing the HyFePoul logo.",
+      "group": "control",
+      "shape": "wide"
+    },
+    {
+      "file": "media/photos/box-end-view",
+      "title": "From the control box end",
+      "alt": "The machine seen from the control box end, with the touch screen on the door.",
+      "group": "machine",
+      "shape": "wide"
+    },
+    {
+      "file": "media/photos/hopper-cover-sensor",
+      "title": "Level sensor on the cover",
+      "alt": "The hopper cover from above with the ultrasonic sensor board in its window.",
+      "group": "feeding",
+      "shape": "wide"
+    },
+    {
+      "file": "media/photos/panel-wiring",
+      "title": "Behind the clear door",
+      "alt": "The touch screen with the control box wiring visible through the clear door.",
+      "group": "control",
+      "shape": "wide"
+    },
+    {
+      "file": "media/photos/load-cell-under-tray",
+      "title": "Load cell under a tray",
+      "alt": "Looking under a tray at its load cell, above the green mesh floor.",
+      "group": "trays",
+      "shape": "wide"
+    },
+    {
+      "file": "media/photos/hopper-open-top",
+      "title": "Hopper with the cover open",
+      "alt": "The hopper with its cover lifted, showing the funnel and the sensor window.",
+      "group": "feeding",
+      "shape": "wide"
+    },
+    {
+      "file": "media/photos/rail-end-switch",
+      "title": "Limit switch at the rail end",
+      "alt": "A limit switch and its wiring on the frame at the end of the rail.",
+      "group": "feeding",
+      "shape": "wide"
+    },
+    {
+      "file": "media/photos/control-box-wiring",
+      "title": "Control box wiring",
+      "alt": "The full control box: charge controller, Mega, ESP32, HX711 boards, relay board and battery.",
+      "group": "control",
+      "shape": "tall"
+    },
+    {
+      "file": "media/photos/control-box-open",
+      "title": "Control box open",
+      "alt": "The control box with its door open and the touch screen on the inside of the door.",
+      "group": "control",
+      "shape": "wide"
+    },
+    {
+      "file": "media/photos/reservoir-open",
+      "title": "Reservoir with the lid open",
+      "alt": "The water reservoir with its hinged lid open.",
+      "group": "trays",
+      "shape": "wide"
+    },
+    {
+      "file": "media/photos/panel-home-live",
+      "title": "Touch screen running",
+      "alt": "The Home page on the real screen: 175 g in the trays and the reservoir showing LOW - REFILL.",
+      "group": "control",
+      "shape": "wide"
+    },
+    {
+      "file": "media/photos/box-end-angle",
+      "title": "Control box end, angled",
+      "alt": "The control box end of the machine from an angle, with the trays along the front.",
+      "group": "machine",
+      "shape": "wide"
+    },
+    {
+      "file": "media/photos/hopper-on-rail",
+      "title": "Hopper on its rollers",
+      "alt": "The hopper riding on its rollers above the trays, with the auger underneath.",
+      "group": "feeding",
       "shape": "wide"
     }
   ],

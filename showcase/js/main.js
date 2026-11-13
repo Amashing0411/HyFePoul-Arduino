@@ -47,7 +47,7 @@ function setupTitleMotion() {
 // Long sections are split into pages at whole blocks (a paragraph, an objective item, a card),
 // so no text is ever cut. A page that is still too tall is shrunk a little to fit.
 const P = { on: false, i: 0, page: 0, pages: [[0, 0]], zooms: [1], label: () => {}, refresh: () => {}, slotTo: () => {} };
-const UNITS = '#cProblem > p, #cGeneral, #cObjectives .subs > li, #cObjectives > .objective:not(.wide), #steps > li, #functionGrid > .fn, #gallery > *, #partsList > *, #trials > *, #cNotes > li, #schemFrame, #schematic .pin-table, #diagram, #previewApp > *, #previewPanel > *';
+const UNITS = '#cProblem > p, #cGeneral, #cObjectives .subs > li, #cObjectives > .objective:not(.wide), #steps > li, #functionGrid > .fn, #gallery > *, #partsList > *, #trials > *, #cNotes > li, #schemFrame, #schematic .pin-table, #diagram, #previewApp, #previewPanel';
 const PU_GROUPS = '.objective.wide, .notes';
 function setupPresent() {
   const slides = [...document.querySelectorAll('.slide')];
@@ -102,6 +102,12 @@ function setupPresent() {
     showRange(sl, L.us, a, b);
     sl.style.zoom = L.zooms[P.page] === 1 ? '' : L.zooms[P.page];
     sl.classList.toggle('tall', !fits(sl));
+    // App and panel: each tab is one page, and the tab buttons follow the page.
+    if (sl.id === 'previews') {
+      const appOn = !$('previewApp').classList.contains('pu-off');
+      $('previewApp').hidden = !appOn; $('previewPanel').hidden = appOn;
+      document.querySelectorAll('#previewTabs button').forEach(b => b.setAttribute('aria-selected', (b.dataset.tab === 'app') === appOn));
+    }
     P.label(P.i, P.page, L.pages.length);
   };
   const show = (i, page = 0, dir = 1) => {
@@ -464,6 +470,7 @@ function renderPreviews() {
   LIB.panel.forEach((s, k) => $('previewPanel').append(device(s, 'panel', LIB.panel, k)));
   const tabs = document.querySelectorAll('#previewTabs button');
   tabs.forEach(b => b.addEventListener('click', () => {
+    if (P.on) { P.showEl($(b.dataset.tab === 'app' ? 'previewApp' : 'previewPanel')); return; }
     tabs.forEach(x => x.setAttribute('aria-selected', x === b));
     $('previewApp').hidden = b.dataset.tab !== 'app';
     $('previewPanel').hidden = b.dataset.tab !== 'panel';

@@ -133,9 +133,7 @@ button.ph{border:0;cursor:pointer;font-family:var(--font)}
 .seg button[aria-selected="true"]{background:#fff;color:var(--blue-deep)}
 .devices{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:clamp(10px,2vw,24px)}
 .devices[hidden]{display:none}
-.devices.wide{grid-template-columns:repeat(6,minmax(0,1fr))}
-.devices.wide .device{grid-column:span 2}
-.devices.wide .device:first-child,.devices.wide .device:nth-child(2){grid-column:span 3}
+.devices.wide{grid-template-columns:repeat(3,minmax(0,1fr));max-width:1100px;margin:0 auto}
 .device{margin:0}
 .screen{overflow:hidden;background:var(--navy)}
 .screen img{width:100%;height:100%;object-fit:cover}
@@ -213,7 +211,6 @@ dialog form{text-align:right;margin-bottom:8px}
   .player{grid-template-columns:minmax(0,1fr)}
   .devices{grid-template-columns:repeat(2,minmax(0,1fr))}
   .devices.wide{grid-template-columns:minmax(0,1fr)}
-  .devices.wide .device,.devices.wide .device:first-child,.devices.wide .device:nth-child(2){grid-column:auto}
   .gallery{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:40vw}
   .shot,.shot.tall{grid-column:span 1}
   .shot.wide,.shot.large{grid-column:span 2}
@@ -488,3 +485,6 @@ button.screen:focus-visible{outline:3px solid var(--sky);outline-offset:3px}
 .present .functions{grid-template-columns:repeat(4,minmax(0,1fr))}
 .present .fmedia{aspect-ratio:16/8}
 .present .fbody p{font-size:15px}
+
+/* Presenter: both tabs are measured as pages; the page system shows one at a time */
+.present .devices[hidden]{display:grid}
