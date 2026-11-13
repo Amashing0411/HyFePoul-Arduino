@@ -136,14 +136,14 @@
       "title": "Inside the control box",
       "alt": "The electronics inside the control box with the door open.",
       "group": "control",
-      "shape": "tall"
+      "shape": "wide"
     },
     {
       "file": "media/photos/box-corner",
       "title": "Control box and chain motor",
       "alt": "The control box with the chain motor on top and cables running down the corner.",
       "group": "machine",
-      "shape": "tall"
+      "shape": "wide"
     },
     {
       "file": "media/photos/hopper-open",
@@ -178,21 +178,21 @@
       "title": "Limit switch, reservoir end",
       "alt": "A lever limit switch on a bracket at the reservoir end of the rail.",
       "group": "feeding",
-      "shape": "tall"
+      "shape": "wide"
     },
     {
       "file": "media/photos/limit-switch-box-end",
       "title": "Limit switch, control box end",
       "alt": "The second lever limit switch on a bracket at the control box end of the rail.",
       "group": "feeding",
-      "shape": "tall"
+      "shape": "wide"
     },
     {
       "file": "media/photos/float-switch",
       "title": "Float switch",
       "alt": "The float switch with its white nut and yellow wires on the reservoir wall.",
       "group": "trays",
-      "shape": "tall"
+      "shape": "wide"
     },
     {
       "file": "media/photos/power-switch",
@@ -367,7 +367,7 @@
       "title": "Control box wiring",
       "alt": "The full control box: charge controller, Mega, ESP32, HX711 boards, relay board and battery.",
       "group": "control",
-      "shape": "tall"
+      "shape": "wide"
     },
     {
       "file": "media/photos/control-box-open",
