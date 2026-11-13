@@ -133,14 +133,19 @@
   ],
   "functions": [
     {
-      "id": "missing-only",
-      "title": "Pours only the missing amount",
-      "what": "Each tray is weighed before feeding, so a tray that still has feed gets only the difference. A full tray gets nothing."
-    },
-    {
       "id": "scheduled-feed",
       "title": "Feeds on a schedule",
       "what": "Up to three daily feeding times are saved on the machine, and a clock module keeps them on time even when the internet is down."
+    },
+    {
+      "id": "moving-hopper",
+      "title": "Moving hopper",
+      "what": "The hopper rides a chain from tray to tray. It finds its starting point at the home limit switch and turns back at the end limit switch."
+    },
+    {
+      "id": "missing-only",
+      "title": "Pours only the missing amount",
+      "what": "Each tray is weighed before feeding, so a tray that still has feed gets only the difference. A full tray gets nothing."
     },
     {
       "id": "app-feed",
@@ -163,24 +168,14 @@
       "what": "A float switch in the reservoir drops when the water runs low. The buzzer sounds and the app shows an alert."
     },
     {
-      "id": "app-tour",
-      "title": "Monitoring in the app",
-      "what": "The app shows tray weights, hopper level, water status, feeding history and alerts, with timely updates."
+      "id": "safety-stops",
+      "title": "Safety stops",
+      "what": "The chain motor stops the moment the hopper reaches either limit switch. If going home, reaching the end or pouring into a tray takes longer than its time limit, the motors stop and an alert is raised."
     },
     {
       "id": "nextion-screens",
       "title": "Touch screen control",
       "what": "The 7-inch screen on the machine shows status, schedules, history and a system check."
-    },
-    {
-      "id": "moving-hopper",
-      "title": "Moving hopper",
-      "what": "The hopper rides a chain from tray to tray. It finds its starting point at the home limit switch and turns back at the end limit switch."
-    },
-    {
-      "id": "safety-stops",
-      "title": "Safety stops",
-      "what": "The chain motor stops the moment the hopper reaches either limit switch. If going home, reaching the end or pouring into a tray takes longer than its time limit, the motors stop and an alert is raised."
     },
     {
       "id": "records-log",
@@ -191,6 +186,11 @@
       "id": "offline",
       "title": "Keeps working offline",
       "what": "Without Wi-Fi the machine still feeds on schedule from its own clock and still beeps for low feed or water. Alerts and daily totals are sent once the connection is back."
+    },
+    {
+      "id": "app-tour",
+      "title": "Monitoring in the app",
+      "what": "The app shows tray weights, hopper level, water status, feeding history and alerts, with timely updates."
     },
     {
       "id": "battery",
