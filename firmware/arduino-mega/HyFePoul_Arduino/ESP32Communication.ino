@@ -136,7 +136,8 @@ void processESP32Line(String line) {
 }
 
 // DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|timeSource
-// t1..t5 = grams in each tray, target = grams per tray, step = cycle step
+// t1..t5 = grams in each tray, target = grams per tray (the running cycle's,
+// or the saved Feed Target when idle), step = cycle step
 // name, tray = tray the hopper is at/heading to (0 = none).
 void sendCurrentDataToESP32() {
   ESP32_SERIAL.print(F("DATA|"));
@@ -144,7 +145,9 @@ void sendCurrentDataToESP32() {
     ESP32_SERIAL.print(trayWeightsGrams[i], 1);
     ESP32_SERIAL.print('|');
   }
-  ESP32_SERIAL.print(activeFeedTargetGrams, 1);
+  // While feeding: this cycle's target. Idle: the saved Feed Target, so the
+  // app's manual feed starts from the same grams as the panel.
+  ESP32_SERIAL.print(feedingActive ? activeFeedTargetGrams : manualFeedTargetGrams, 1);
   ESP32_SERIAL.print('|');
   ESP32_SERIAL.print(currentHopperLevelPercent, 1);
   ESP32_SERIAL.print('|');

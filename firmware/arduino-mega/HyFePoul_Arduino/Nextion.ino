@@ -42,8 +42,8 @@ const uint8_t NEXTION_HOME_PAGE_ID = 1;
 const uint8_t NEXTION_SCHEDULE_PAGE_ID = 2;
 const uint8_t NEXTION_LOG_PAGE_ID = 3;
 const uint8_t NEXTION_TARGET_PAGE_ID = 4;
-const uint8_t NEXTION_SYSTEM_PAGE_ID = 9;
-const uint8_t NEXTION_SYSTEM_PAGE_ID_ALT = 8; // what the flashed panel reports
+const uint8_t NEXTION_SYSTEM_PAGE_ID = 8;     // keybdB was removed, so System Check is page 8
+const uint8_t NEXTION_SYSTEM_PAGE_ID_ALT = 9; // older builds that still had keybdB
 const uint8_t NEXTION_LOG_REFRESH_BUTTON_ID = 4; // Log b1
 const uint8_t NEXTION_SYSTEM_REFRESH_BUTTON_ID = 4; // SystemCheck b1
 const uint8_t NEXTION_SCHEDULE_EDITOR_FIRST_PAGE_ID = 5;
@@ -58,6 +58,12 @@ const uint8_t NEXTION_SCHEDULE_MINUS_HOUR_ID = 8; // editor b2
 const uint8_t NEXTION_SCHEDULE_PLUS_MINUTE_ID = 9; // editor b3
 const uint8_t NEXTION_SCHEDULE_MINUS_MINUTE_ID = 10; // editor b4
 const uint8_t NEXTION_SCHEDULE_SAVE_BUTTON_ID = 11; // editor b5
+const uint8_t NEXTION_SCHEDULE_TOGGLE_ID = 12; // editor b6: feeding ON/OFF for this slot
+// RGB565 colours for the editor's ON/OFF button.
+const uint16_t NEXTION_ON_BCO = 3115;    // green #08875F
+const uint16_t NEXTION_ON_PCO = 65535;   // white
+const uint16_t NEXTION_OFF_BCO = 59263;  // light blue #E3EDFB
+const uint16_t NEXTION_OFF_PCO = 4493;   // navy #12306B
 const uint8_t NEXTION_LOG_EVENT_COUNT = 4;
 // How often the Mega asks the panel which page is showing (`sendme`).
 const unsigned long NEXTION_PAGE_QUERY_MS = 1000UL;
@@ -84,6 +90,13 @@ char nextionHistoryRows[NEXTION_LOG_EVENT_COUNT][64] = {
 uint8_t nextionHistoryRowsReceived = 0;
 uint8_t nextionHistoryRowsShown = 0; // real rows on the page, not a message
 FeedSchedule nextionScheduleDraft;
+// The editor's Save also switches the panel to the Sched page, and that page
+// report can reach the Mega before the Save touch. The draft of an editor that
+// just closed is kept briefly so that late Save still saves what was shown.
+const unsigned long NEXTION_DRAFT_GRACE_MS = 1500;
+uint8_t nextionLeftDraftIndex = NEXTION_ID_UNSET;
+unsigned long nextionLeftDraftMillis = 0;
+FeedSchedule nextionLeftDraft;
 float nextionManualTargetDraft = DEFAULT_FEED_TARGET_GRAMS;
 // Grams each + or - press changes the target; the Step button cycles these.
 const uint8_t NEXTION_TARGET_STEPS[] = {1, 5, 10};
@@ -321,6 +334,11 @@ void noteNextionPage(uint8_t pageId) {
 }
 
 void handleNextionPageChange(uint8_t pageId) {
+  if (nextionDraftScheduleIndex < FEED_SCHEDULE_COUNT) {
+    nextionLeftDraftIndex = nextionDraftScheduleIndex;
+    nextionLeftDraft = nextionScheduleDraft;
+    nextionLeftDraftMillis = millis();
+  }
   nextionDraftScheduleIndex = NEXTION_ID_UNSET;
 
   if (pageId == NEXTION_SCHEDULE_PAGE_ID) {
@@ -333,9 +351,13 @@ void handleNextionPageChange(uint8_t pageId) {
              pageId <= NEXTION_SCHEDULE_EDITOR_LAST_PAGE_ID) {
     uint8_t index = pageId - NEXTION_SCHEDULE_EDITOR_FIRST_PAGE_ID;
     nextionDraftScheduleIndex = index;
-    nextionScheduleDraft = feedSchedules[index];
+    bool late = nextionLeftDraftIndex == index &&
+                millis() - nextionLeftDraftMillis < NEXTION_DRAFT_GRACE_MS;
+    nextionScheduleDraft = late ? nextionLeftDraft : feedSchedules[index];
+    nextionLeftDraftIndex = NEXTION_ID_UNSET;
     setNextionValue("n0", nextionScheduleDraft.hour);
     setNextionValue("n1", nextionScheduleDraft.minute);
+    showNextionScheduleToggle();
   } else if (pageId == NEXTION_LOG_PAGE_ID) {
     requestNextionHistory();
   } else if (isNextionSystemPage(pageId)) {
@@ -477,6 +499,32 @@ void finishNextionHistory() {
   nextionLogField = 0;
 }
 
+// The schedule editor's b6 shows whether this slot feeds, and how much it
+// will pour per tray once saved (the Feed Target page's weight).
+void showNextionScheduleToggle() {
+  bool on = nextionScheduleDraft.enabled;
+  setNextionText("b6", on ? String("ON - ") + lround(manualFeedTargetGrams) + " g per tray"
+                          : String("Feeding: OFF"));
+  setNextionNumber("b6", "bco", on ? NEXTION_ON_BCO : NEXTION_OFF_BCO);
+  setNextionNumber("b6", "bco2", on ? NEXTION_ON_BCO : NEXTION_OFF_BCO);
+  setNextionNumber("b6", "pco", on ? NEXTION_ON_PCO : NEXTION_OFF_PCO);
+  setNextionNumber("b6", "pco2", on ? NEXTION_ON_PCO : NEXTION_OFF_PCO);
+}
+
+// One target weight drives every feed: Feed Now and the three schedules.
+// Changed slots are saved and sent to the cloud so the app shows the same grams.
+void applyTargetToSchedules(float grams) {
+  bool changed = false;
+  for (uint8_t i = 0; i < FEED_SCHEDULE_COUNT; i++) {
+    if (fabs(feedSchedules[i].targetGrams - grams) < 0.5f) continue;
+    feedSchedules[i].targetGrams = grams;
+    changed = true;
+  }
+  if (!changed) return;
+  saveSchedulesToEEPROM();
+  for (uint8_t i = 0; i < FEED_SCHEDULE_COUNT; i++) markScheduleEditedLocally(i);
+}
+
 // Writes the Step button's label on the Feed Target page.
 void showNextionTargetStep() {
   setNextionText("b4", String("Step: ") + NEXTION_TARGET_STEPS[nextionTargetStepIndex] + " g");
@@ -510,6 +558,10 @@ void handleNextionTouch(uint8_t pageId, uint8_t componentId) {
         Serial.print(manualFeedTargetGrams, 0);
         Serial.println(F(" g per tray."));
         logEventToSD("NEXTION_TARGET_SAVED");
+        applyTargetToSchedules(manualFeedTargetGrams);
+        // Saved: back to Home, like the schedule editor returns to its list.
+        NEXTION_SERIAL.print(F("page Home"));
+        sendNextionCommandTerminator();
       }
     }
     return;
@@ -530,10 +582,15 @@ void handleNextionTouch(uint8_t pageId, uint8_t componentId) {
     } else if (componentId == NEXTION_SCHEDULE_MINUS_MINUTE_ID) {
       nextionScheduleDraft.minute = (nextionScheduleDraft.minute + 59) % 60;
       setNextionValue("n1", nextionScheduleDraft.minute);
+    } else if (componentId == NEXTION_SCHEDULE_TOGGLE_ID) {
+      nextionScheduleDraft.enabled = !nextionScheduleDraft.enabled;
+      showNextionScheduleToggle();
     } else if (componentId == NEXTION_SCHEDULE_SAVE_BUTTON_ID) {
       FeedSchedule& saved = feedSchedules[nextionDraftScheduleIndex];
       saved.hour = nextionScheduleDraft.hour;
       saved.minute = nextionScheduleDraft.minute;
+      saved.enabled = nextionScheduleDraft.enabled;
+      saved.targetGrams = manualFeedTargetGrams;
       saveSchedulesToEEPROM();
       // R-54: send it to the cloud so the app shows the same schedule.
       markScheduleEditedLocally(nextionDraftScheduleIndex);
@@ -544,7 +601,10 @@ void handleNextionTouch(uint8_t pageId, uint8_t componentId) {
       Serial.print(F(" at "));
       Serial.print(saved.hour);
       Serial.print(F(":"));
-      Serial.println(saved.minute);
+      Serial.print(saved.minute);
+      Serial.print(saved.enabled ? F(" ON, ") : F(" OFF, "));
+      Serial.print(saved.targetGrams, 0);
+      Serial.println(F(" g per tray"));
       nextionDraftScheduleIndex = NEXTION_ID_UNSET;
     }
   }

@@ -1,5 +1,9 @@
 HyFePoul Nextion project: HyFePoul.hmi
 Resolution: 800x480; Mega UART: Serial2, 9600 baud
+Display model: NX8048T070_011 (Basic series, 7 inch; the R suffix is the resistive-touch
+version and uses the same project). Basic panels have 3,584 bytes of RAM, so text fields
+stay local in scope with txt_maxl 100 (History rows and System Check readouts); the earlier
+global 1000-character fields only compiled for the Intelligent (P070) model.
 Architecture: Nextion is the onsite operator panel; Mega owns local logic and safety.
 The Android app is the away-from-device interface through Firebase; it never talks to the Mega.
 
@@ -16,8 +20,8 @@ Pages (page ID / editor page / purpose)
 5 Sched1       time editor for local schedule slot 1
 6 Sched2       time editor for local schedule slot 2
 7 Sched3       time editor for local schedule slot 3
-8 keybdB       internal numeric keyboard page
-9 SystemCheck  live hopper, water, ESP32-link and target readouts
+8 SystemCheck  live hopper, water, ESP32-link and target readouts
+(The unused keybdB keyboard page was removed; nothing on the panel opened it.)
 
 Home fields (component ID / purpose / Mega behavior)
 t0  static caption "Feed in Trays:"
@@ -58,7 +62,7 @@ When the cloud history is empty the HMI shows NO HISTORY YET; when the ESP32 or
 Firebase read fails it shows HISTORY UNAVAILABLE. An opened page requests a new
 snapshot set; Refresh repeats that request.
 
-System Check page (p9; editor page name SystemCheck)
+System Check page (p8; editor page name SystemCheck)
 t1  hopper percentage
 t2  reservoir water state (OK or LOW - REFILL)
 t3  ESP32 link state (OK or OFF)
@@ -80,7 +84,11 @@ b1  ID 7   increase hour
 b2  ID 8   decrease hour
 b3  ID 9   increase minute
 b4  ID 10  decrease minute
-b5  ID 11  save schedule time to EEPROM
+b5  ID 11  save the slot (time, ON/OFF, grams) to EEPROM; the HMI then opens Sched
+b6  ID 12  feeding ON/OFF for this slot; the Mega writes its label and colour
+           ("ON - 37 g per tray" in green, "Feeding: OFF" in light blue)
+Saving a slot also sets its grams to the Feed Target weight. Saving the Feed
+Target sets all three slots to that weight and returns the panel to Home.
 
 Schedule overview display fields (one Mega update per 100 ms tick)
 Slot labels t1/t2/t3 show S1/S2/S3, the target grams and ON/OFF state from
@@ -102,7 +110,7 @@ Schedule values set in the app reach the Mega through the existing cloud
 Onsite schedule-editor Save changes hour/minute in Mega EEPROM and is sent to the
 cloud (R-54): the ESP32 writes it to /schedules, so the app shows the same time.
 Until the cloud confirms, a schedule restore cannot replace it; an app edit made
-after it wins. The HMI editor has no onsite schedule target or enable/disable control.
+after it wins. The HMI editor sets the slot's ON/OFF state; its grams follow the Feed Target.
 
 Simulation and source review confirm the IDs/page routing and Mega touch handling.
 Physical panel display, touch, UART levels and button feel remain
