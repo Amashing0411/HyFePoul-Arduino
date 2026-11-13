@@ -410,6 +410,12 @@ bool lowWaterAlertSent = false;
 bool buzzerActive = false;
 unsigned long buzzerStartMillis = 0;
 const unsigned long BUZZER_DURATION_MS = 500;
+// Low feed / low water keep reminding until fixed: a burst of short beeps,
+// then a quiet gap, repeated (Safety.ino, updateBuzzer).
+const unsigned long ALERT_BURST_MS       = 6000;  // beeping part of each round
+const unsigned long ALERT_QUIET_MS       = 300000UL - ALERT_BURST_MS; // a new burst every 5 minutes
+const unsigned long ALERT_BEEP_ON_MS     = 300;
+const unsigned long ALERT_BEEP_OFF_MS    = 200;
 
 // -----------------------------
 // System initialization

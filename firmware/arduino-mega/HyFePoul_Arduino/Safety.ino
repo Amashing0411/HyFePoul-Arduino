@@ -38,13 +38,35 @@ void triggerAlarm() {
   buzzerStartMillis = millis();
 }
 
+// Faults give one short beep (triggerAlarm). Low feed and low water keep
+// reminding while they last: ALERT_BURST_MS of beep-beep-beep, then
+// ALERT_QUIET_MS of silence, repeated. The first burst starts right away.
 void updateBuzzer() {
-  if (!buzzerActive) {
-    return;
+  static bool reminderWasOn = false;
+  static unsigned long reminderStartMillis = 0;
+  unsigned long now = millis();
+
+  bool reminder = lowFeedAlertSent || lowWaterAlertSent;
+  if (reminder && !reminderWasOn) {
+    reminderStartMillis = now;
+  }
+  reminderWasOn = reminder;
+
+  bool sound = false;
+  if (reminder) {
+    unsigned long t = (now - reminderStartMillis) % (ALERT_BURST_MS + ALERT_QUIET_MS);
+    if (t < ALERT_BURST_MS) {
+      sound = (t % (ALERT_BEEP_ON_MS + ALERT_BEEP_OFF_MS)) < ALERT_BEEP_ON_MS;
+    }
   }
 
-  if (millis() - buzzerStartMillis >= BUZZER_DURATION_MS) {
-    digitalWrite(BUZZER_PIN, BUZZER_OFF);
-    buzzerActive = false;
+  if (buzzerActive) {
+    if (now - buzzerStartMillis >= BUZZER_DURATION_MS) {
+      buzzerActive = false;
+    } else {
+      sound = true;
+    }
   }
+
+  digitalWrite(BUZZER_PIN, sound ? BUZZER_ON : BUZZER_OFF);
 }
