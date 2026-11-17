@@ -1,4 +1,6 @@
 wrangler.jsonc
 vercel.json
 .vercel
+.wrangler
+node_modules
 tools
