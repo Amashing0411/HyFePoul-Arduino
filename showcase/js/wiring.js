@@ -55,7 +55,7 @@ export function wireList(HXU) {
 
   // Scales: a ten-wire bus from the analog header around to the HX711 row.
   const HXC = [SK, 0xa8e05f, 0xf28bb0, 0xffd27a, 0xbfa6ff];
-  [['A0', 'A1'], ['A2', 'A3'], ['A4', 'A5'], ['A6', 'A7'], ['A8', 'A9']].forEach(([dt, sck], i) => {
+  [['A0', 'A1'], ['A2', 'A3'], ['A4', 'A5'], ['A8', 'A9'], ['A6', 'A7']].forEach(([dt, sck], i) => {
     const n = 'hx' + (i + 1);
     [[dt, 'DT'], [sck, 'SCK']].forEach(([m, a], j) => {
       const k = i * 2 + j;
@@ -127,7 +127,7 @@ export function wireList(HXU) {
   field('v12', K, 0.11, LN, ['dispMotor', 'M-'], disp(209.65), { extra: { dyn: 'carrier' } });
 
   // Load cells: down to the floor hole, up the box corner, out along the end, then one straight line behind the trays to each cell's fixed end.
-  const CELLX = { 1: 50.35, 2: 92.65, 3: 134.95, 5: 177.25, 4: 219.55 };
+  const CELLX = { 1: 50.35, 2: 92.65, 3: 134.95, 4: 177.25, 5: 219.55 };
   const CC = [['E+', R], ['E-', K], ['A-', WH], ['A+', GR]];
   HXU.forEach((u, i) => {
     const n = i + 1, Xc = CELLX[n];

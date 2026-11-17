@@ -11,13 +11,13 @@ export const GROUPS = [
 
 const tray = (n, x, pos) => ({
   id: 'tray' + n, group: 'trays', view: 'trays', name: 'Tray ' + n, short: 'Tray ' + n,
-  what: `Holds the feed for this section. Seen from the front it is ${pos}. The hopper visits the trays in the order 1, 2, 3, 5, 4.`,
+  what: `Holds the feed for this section. Seen from the front it is ${pos}. The hopper visits the trays in the order 1, 2, 3, 4, 5.`,
   connects: `Rests on load cell ${n}, which weighs it.`,
   size: [CAD, '42.3 × 10 × 5.8 cm orange half-pipe'], pos: [CAD, `starts ${x} cm along the machine`],
   video: 'missing-only',
 });
 
-const cellPins = ['A0 / A1', 'A2 / A3', 'A4 / A5', 'A6 / A7', 'A8 / A9'];
+const cellPins = ['A0 / A1', 'A2 / A3', 'A4 / A5', 'A8 / A9', 'A6 / A7'];
 
 const cell = n => ({
   id: 'lc' + n, group: 'trays', view: 'trays', name: `Load cell ${n}`, short: `Scale ${n}`,
@@ -85,7 +85,7 @@ export const PARTS = [
     size: [EST, 'about 2.8 × 1.6 × 1 cm'], pos: [EST, 'on a bracket at the control box end of the rail, from photos'] },
 
   tray(1, 29.2, 'the far right, by the reservoir'), tray(2, 71.5, 'second from the right'), tray(3, 113.8, 'in the middle'),
-  tray(4, 198.4, 'the far left, by the control box'), tray(5, 156.1, 'second from the left'),
+  tray(4, 156.1, 'second from the left'), tray(5, 198.4, 'the far left, by the control box'),
   cell(1), cell(2), cell(3), cell(4), cell(5),
 
   { id: 'reservoir', group: 'water', view: 'water', name: 'Water reservoir', short: 'Reservoir',

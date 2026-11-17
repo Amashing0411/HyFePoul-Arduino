@@ -409,7 +409,7 @@ function renderFunctions() {
 
 // --- Schematic ---
 const PIN_ROWS = [
-  ['A0 / A1', 'Tray 1 scale (HX711 DT / SCK)'], ['A2 / A3', 'Tray 2 scale'], ['A4 / A5', 'Tray 3 scale'], ['A6 / A7', 'Tray 4 scale'], ['A8 / A9', 'Tray 5 scale'],
+  ['A0 / A1', 'Tray 1 scale (HX711 DT / SCK)'], ['A2 / A3', 'Tray 2 scale'], ['A4 / A5', 'Tray 3 scale'], ['A8 / A9', 'Tray 4 scale'], ['A6 / A7', 'Tray 5 scale'],
   ['10', 'Relay 1: chain toward tray 1'], ['9', 'Relay 2: chain toward tray 4'], ['8', 'Relay 3: dispenser motor'], ['11', 'Buzzer'],
   ['52 / 50', 'Level sensor TRIG / ECHO'], ['49', 'Float switch (water)'], ['53', 'Home limit switch (tray 1 side)'], ['51', 'Limit switch (tray 4 side)'],
   ['16 / 17', 'Touch screen RX / TX'], ['20 / 21', 'Clock SDA / SCL'], ['14 / 15', 'ESP32 GPIO16 / GPIO17'],

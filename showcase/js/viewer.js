@@ -21,8 +21,8 @@ const VIEWS = {
 };
 const HINTS = {
   box: 'Red is 12 V, amber is 5 V, black is ground. Routes are tidied for clarity, and every wire ends at its real pin.',
-  trays: 'From the front, left to right: trays 4, 5, 3, 2, 1.',
-  cycle: 'From the front, left to right: trays 4, 5, 3, 2, 1.',
+  trays: 'From the front, left to right: trays 5, 4, 3, 2, 1.',
+  cycle: 'From the front, left to right: trays 5, 4, 3, 2, 1.',
   hopper: 'The level sensor board sits on top of the cover, in a sealed window.',
   water: 'Water flows down from the reservoir by gravity.',
   chain: 'Turn off Covers to see the wires inside the spiral wrap.',
@@ -335,9 +335,9 @@ export function init({ cad, onSelect, onFail }) {
 
   // --- Feed cycle ---
   const OUTLET = 208.85, TY = 50.2;
-  const DROPS = { 1: [0, 8, 16], 2: [-10, 0, 10], 3: [-10, 0, 10], 5: [-10, 0, 10], 4: [-16, -8, 0] };
+  const DROPS = { 1: [0, 8, 16], 2: [-10, 0, 10], 3: [-10, 0, 10], 4: [-10, 0, 10], 5: [-16, -8, 0] };
   const m4 = new THREE.Matrix4(), s3 = V(), p3 = V(), q0 = new THREE.Quaternion();
-  const pileIndex = (n, d) => [1, 2, 3, 5, 4].indexOf(n) * 3 + d;
+  const pileIndex = (n, d) => [1, 2, 3, 4, 5].indexOf(n) * 3 + d;
   const setPile = (i, n, d, f) => {
     const X = M.TRAY_X[n] + DROPS[n][d];
     p3.copy(W(X, TY, 69.2 + 1.1 * f)); s3.set(5.4 * f + 0.001, 1.25 * f + 0.001, 3 * f + 0.001);
@@ -355,7 +355,7 @@ export function init({ cad, onSelect, onFail }) {
     const hold = (dur, label, run) => steps.push({ dur, label, run: run || (() => {}) });
     travel(M.TRAY_X[1], 1.2, 'Hopper goes home, over the middle of tray 1');
     hold(1.4, 'Every tray is weighed to see what it already holds');
-    [1, 2, 3, 5, 4].forEach((n, ti) => {
+    [1, 2, 3, 4, 5].forEach((n, ti) => {
       DROPS[n].forEach((o, d) => {
         const X = M.TRAY_X[n] + o;
         if (d > 0) travel(X, 0.4, `Tray ${n}: moving to drop ${d + 1} of 3`);

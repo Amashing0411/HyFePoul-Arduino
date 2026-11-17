@@ -54,7 +54,7 @@ export function buildModel(cad, parts) {
 
   // --- CAD parts ---
   // Trays are thin hollow half-pipes (open on top), built from the CAD's width, depth and tray boundaries.
-  const TRAY_START = { 1: 29.2, 2: 71.5, 3: 113.8, 5: 156.1, 4: 198.4 };
+  const TRAY_START = { 1: 29.2, 2: 71.5, 3: 113.8, 4: 156.1, 5: 198.4 };
   const R_OUT = 5.055, R_IN = 4.8, TRAY_CZ = 73.755, TOP_Z = 74.5;
   {
     const a = Math.asin((TOP_Z - TRAY_CZ) / R_OUT), b = Math.asin((TOP_Z - TRAY_CZ) / R_IN);
@@ -172,7 +172,7 @@ export function buildModel(cad, parts) {
   limit('limitHome', 31.6, 1, -1);
   limit('limitEnd', 238.2, -1, 1);
 
-  const TRAY_X = { 1: 50.35, 2: 92.65, 3: 134.95, 5: 177.25, 4: 219.55 };
+  const TRAY_X = { 1: 50.35, 2: 92.65, 3: 134.95, 4: 177.25, 5: 219.55 };
   [1, 2, 3, 4, 5].forEach(n => {
     const id = 'lc' + n;
     // Crossways under the tray: free end under the tray's centre (Y 50.2), fixed end on a post at the back edge.

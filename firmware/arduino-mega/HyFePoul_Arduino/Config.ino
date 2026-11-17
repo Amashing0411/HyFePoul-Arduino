@@ -38,13 +38,13 @@ const uint8_t TRAY2_HX711_DT_PIN  = A2;
 const uint8_t TRAY3_HX711_SCK_PIN = A5;
 const uint8_t TRAY3_HX711_DT_PIN  = A4;
 
-// Tray 4 HX711
-const uint8_t TRAY4_HX711_SCK_PIN = A7;
-const uint8_t TRAY4_HX711_DT_PIN  = A6;
+// Tray 4 HX711 (renumbered 2026-11-17: the 4th tray along, was "tray 5")
+const uint8_t TRAY4_HX711_SCK_PIN = A9;
+const uint8_t TRAY4_HX711_DT_PIN  = A8;
 
-// Tray 5 HX711
-const uint8_t TRAY5_HX711_SCK_PIN = A9;
-const uint8_t TRAY5_HX711_DT_PIN  = A8;
+// Tray 5 HX711 (the tray by the control box, was "tray 4")
+const uint8_t TRAY5_HX711_SCK_PIN = A7;
+const uint8_t TRAY5_HX711_DT_PIN  = A6;
 
 // Ultrasonic feed-hopper sensor
 const uint8_t ULTRASONIC_TRIG_PIN = 52;
@@ -59,10 +59,10 @@ const uint8_t WATER_LOW_PIN = 49;
 // then returns to the start switch for the next feeding. Calibrate with
 // firmware/arduino-mega/Chain_Calibration (its RESULT prints these lines).
 //
-// Standing in front of the device, the trays from left to right are 4, 5, 3,
+// Standing in front of the device, the trays from left to right are 5, 4, 3,
 // 2, 1. Each keeps its own load cell whichever side the hopper starts from.
-const uint8_t TRAY_AT_POSITION[TRAY_COUNT] = {4, 5, 3, 2, 1};
-// From the right (tray 1 side) the hopper visits trays 1, 2, 3, 5, 4.
+const uint8_t TRAY_AT_POSITION[TRAY_COUNT] = {5, 4, 3, 2, 1};
+// From the right (tray 1 side) the hopper visits trays 1, 2, 3, 4, 5.
 const HopperSide HOPPER_START_SIDE = SIDE_RIGHT; // parks at the tray 1 end (Chain_Calibration, 2026-11-06)
 
 // The chain motor is reversed by two relays that swap its polarity; each is
@@ -120,7 +120,7 @@ const uint8_t SD_CS_PIN = 53;
 // From HX711_Calibration. Tray 3's factor is well below the others (about
 // 1,800 to 2,000 counts/g), so check its cell and wiring if its readings drift.
 float LOAD_CELL_CALIBRATION_FACTORS[TRAY_COUNT] = {
-  1787.856f, 1960.0f, 384.628f, 1959.096f, 1866.02f
+  1787.856f, 1960.0f, 384.628f, 1866.02f, 1959.096f  // 4 and 5 follow their boards (renumbered)
 };
 
 // Ultrasonic pings: one per interval, levels use the median of the last few.
