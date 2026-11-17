@@ -20,6 +20,8 @@
     STOP                 stop a bench move at once
     WDTEST               stop the program to prove the watchdog restarts
                          the Mega (only while nothing moves; Watchdog.ino)
+    LIVE <seconds>       unfiltered grams of all 5 trays, 5 times a second,
+                         for 1-60 s (press tests; refused during a feed)
     TRACE [ON|OFF]       test bench: live status lines while the machine
                          keeps working normally (no command needed to run it)
   EVENT lines are always printed: limit switches, float, water state,
@@ -85,6 +87,8 @@ void handleBenchCommand(String line) {
     benchStop("stopped by STOP");
   } else if (cmd == "WDTEST") {
     benchWatchdogTest();
+  } else if (cmd == "LIVE") {
+    benchLive(args);
   } else if (cmd == "TRACE") {
     traceOn = args == "ON" ? true : args == "OFF" ? false : !traceOn;
     Serial.print(F("TRACE "));
@@ -100,6 +104,7 @@ void benchHelp() {
   Serial.println(F("Bench commands: STATUS, WEIGH, TARE <1-5|ALL>, CAL <1-5> <grams>,"));
   Serial.println(F("FACTORS, JOG <F|R> <ms>, HOME, DISP <ms>, FEED <grams>, STOP, WDTEST,"));
   Serial.println(F("TRACE [ON|OFF] (live status lines; the machine keeps working)"));
+  Serial.println(F("LIVE <seconds> (unfiltered tray grams 5x a second; idle only)"));
 }
 
 // Returns NULL when a motor command may run, otherwise why not.
@@ -536,4 +541,36 @@ void printEvents() {
     buzzerSounding = false;
     Serial.println(F("EVENT buzzer quiet"));
   }
+}
+
+// Unfiltered tray readings for press tests: every sample, no median, no hold.
+// Blocks for the given time, so it is refused while a feed cycle runs.
+void benchLive(const String& args) {
+  if (feedingActive || benchMoveActive()) {
+    Serial.println(F("Refused: the machine is busy."));
+    return;
+  }
+  long secs = args.toInt();
+  if (secs < 1 || secs > 60) secs = 20;
+  Serial.print(F("LIVE for ")); Serial.print(secs); Serial.println(F(" s (grams, trays 1-5, unfiltered):"));
+  unsigned long start = millis();
+  while (millis() - start < (unsigned long)secs * 1000UL) {
+    feedWatchdog();
+    unsigned long t0 = millis();
+    Serial.print(F("LIVE "));
+    Serial.print((t0 - start) / 1000.0f, 1);
+    Serial.print('s');
+    for (uint8_t i = 0; i < TRAY_COUNT; i++) {
+      Serial.print(' ');
+      if (trayScales[i].wait_ready_timeout(150)) {
+        long raw = trayScales[i].read();
+        Serial.print(((float)raw - (float)trayScales[i].get_offset()) / trayScales[i].get_scale(), 0);
+      } else {
+        Serial.print(F("--"));
+      }
+    }
+    Serial.println();
+    while (millis() - t0 < 200UL) { feedWatchdog(); }
+  }
+  Serial.println(F("LIVE done"));
 }
