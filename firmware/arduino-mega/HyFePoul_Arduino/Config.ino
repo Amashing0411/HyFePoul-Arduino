@@ -265,7 +265,7 @@ const unsigned long TRACE_IDLE_MS = 1000UL;
 const unsigned long TRACE_MOTOR_MS = 500UL;
 // Zero tracking never follows a reading below this: that is a tray lifted
 // off or a fault, not drift.
-const float TRAY_DRIFT_MIN_GRAMS = -25.0f;
+const float TRAY_DRIFT_MIN_GRAMS = -8.0f;   // bigger steps are a tray that moved: TARE by hand
 const unsigned long TOPUP_SETTLE_MS = 1500UL;
 const unsigned long TOPUP_MIN_PULSE_MS = 150UL;
 const unsigned long TOPUP_MAX_PULSE_MS = 1500UL;
