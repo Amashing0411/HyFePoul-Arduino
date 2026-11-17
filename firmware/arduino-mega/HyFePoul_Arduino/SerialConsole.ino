@@ -22,6 +22,8 @@
                          the Mega (only while nothing moves; Watchdog.ino)
     TRACE [ON|OFF]       test bench: live status lines while the machine
                          keeps working normally (no command needed to run it)
+  EVENT lines are always printed: limit switches, float, water state,
+  buzzer, auger, chain and the low feed / low water alerts, as they change.
 
   Safety: motor commands are refused while a feed cycle runs or another
   bench move is active. STOP ends a bench move only, not a feed cycle. Moves
@@ -478,4 +480,60 @@ void updateTrace() {
   Serial.print(F(" | H")); Serial.print(isHomeSwitchPressed() ? 1 : 0);
   Serial.print(F(" E")); Serial.print(isEndSwitchPressed() ? 1 : 0);
   Serial.print(F(" | esp ")); Serial.println(esp32Online ? F("on") : F("off"));
+}
+
+// --- Input and output events (always printed) ---
+// One line whenever something changes, so the serial monitor shows every
+// switch press, the float, the buzzer, the auger and the chain as they happen.
+// The buzzer is reported per sounding (start and stop), not per beep.
+void printEvents() {
+  static bool first = true;
+  static bool home, end, floatLow, water, auger, lowFeed, lowWater;
+  static ChainDirection chain;
+  static bool buzzerSounding = false;
+  static unsigned long buzzerChangeMillis = 0;
+  static bool buzzerPinWas = false;
+
+  bool h = isHomeSwitchPressed();
+  bool e = isEndSwitchPressed();
+  bool fl = isWaterLow();
+  bool a = digitalRead(DISPENSER_RELAY_PIN) == RELAY_ON;
+  bool bz = digitalRead(BUZZER_PIN) == BUZZER_ON;
+
+  if (first) {
+    first = false;
+    home = h; end = e; floatLow = fl; water = waterLow; auger = a; chain = chainDirection;
+    lowFeed = lowFeedAlertSent; lowWater = lowWaterAlertSent;
+    buzzerPinWas = bz; buzzerSounding = bz; buzzerChangeMillis = millis();
+    return;
+  }
+
+  if (h != home) { home = h; Serial.println(h ? F("EVENT home limit switch PRESSED") : F("EVENT home limit switch released")); }
+  if (e != end) { end = e; Serial.println(e ? F("EVENT end limit switch PRESSED") : F("EVENT end limit switch released")); }
+  if (fl != floatLow) { floatLow = fl; Serial.println(fl ? F("EVENT float switch: down (reads LOW)") : F("EVENT float switch: up (reads OK)")); }
+  if (waterLow != water) { water = waterLow; Serial.println(waterLow ? F("EVENT water state -> LOW (after debounce)") : F("EVENT water state -> OK")); }
+  if (a != auger) { auger = a; Serial.println(a ? F("EVENT auger ON") : F("EVENT auger off")); }
+  if (chainDirection != chain) {
+    chain = chainDirection;
+    Serial.println(chain == CHAIN_FORWARD ? F("EVENT chain FORWARD") : chain == CHAIN_REVERSE ? F("EVENT chain REVERSE") : F("EVENT chain stopped"));
+  }
+  if (lowFeedAlertSent != lowFeed) { lowFeed = lowFeedAlertSent; Serial.println(lowFeed ? F("EVENT LOW FEED alert on (buzzer reminders start)") : F("EVENT LOW FEED cleared")); }
+  if (lowWaterAlertSent != lowWater) { lowWater = lowWaterAlertSent; Serial.println(lowWater ? F("EVENT LOW WATER alert on (buzzer reminders start)") : F("EVENT LOW WATER cleared")); }
+
+  // Buzzer: beeps inside a burst are 200 ms apart, so a sounding only ends
+  // after 1 s of silence.
+  if (bz != buzzerPinWas) { buzzerPinWas = bz; buzzerChangeMillis = millis(); }
+  if (bz && !buzzerSounding) {
+    buzzerSounding = true;
+    Serial.print(F("EVENT buzzer sounding ("));
+    if (buzzerActive) Serial.print(F("fault beep"));
+    else if (lowFeedAlertSent && lowWaterAlertSent) Serial.print(F("low feed + low water reminder"));
+    else if (lowFeedAlertSent) Serial.print(F("low feed reminder"));
+    else if (lowWaterAlertSent) Serial.print(F("low water reminder"));
+    else Serial.print(F("other"));
+    Serial.println(F(")"));
+  } else if (!bz && buzzerSounding && millis() - buzzerChangeMillis > 1000UL) {
+    buzzerSounding = false;
+    Serial.println(F("EVENT buzzer quiet"));
+  }
 }

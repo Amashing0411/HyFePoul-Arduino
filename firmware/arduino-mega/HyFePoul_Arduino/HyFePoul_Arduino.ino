@@ -62,6 +62,9 @@ void loop() {
   // Non-blocking alarm handling.
   updateBuzzer();
 
+  // One serial line per switch, float, buzzer, auger or chain change.
+  printEvents();
+
   // Small loop interval. The wait keeps reading the ESP32 UART so command
   // lines longer than the 64-byte receive buffer are not cut off.
   // Motors running: keep the loop tight so timed moves and weight stops are
