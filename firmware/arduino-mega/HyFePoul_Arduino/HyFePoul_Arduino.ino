@@ -41,6 +41,9 @@ void loop() {
   // Commissioning moves started from the USB serial monitor.
   updateBench();
 
+  // Test bench status lines (TRACE ON on the serial monitor).
+  updateTrace();
+
   // Communicate with ESP32.
   handleESP32Communication();
 

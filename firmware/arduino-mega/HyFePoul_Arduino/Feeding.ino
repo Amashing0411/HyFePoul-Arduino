@@ -35,6 +35,20 @@
       the sensor). The start of a cycle still checks the level.
     - End switch reached before the last tray: tray timings are off; skip
       the remaining trays and return home.
+    - Auger runs but no feed reaches the tray (HOPPER_NO_FLOW_MS with less
+      than HOPPER_NO_FLOW_GRAMS, or TOPUP_NO_FEED_PULSES top-up pulses that
+      add nothing): with the hopper reading empty it is HOPPER_EMPTY,
+      otherwise AUGER_NO_FEED (jam, motor, relay or bridged feed). Either way
+      the cycle stops pouring and returns home instead of going on.
+    - Scale problems at a tray (not ready, no new readings, out of range,
+      stuck, or the weight dropping while it is poured into): that tray is
+      skipped (SCALE_FAULT / SCALE_DISTURBED); the other trays still feed.
+    - Chain: a switch the hopper starts on that does not let go within
+      CHAIN_RELEASE_MS (CHAIN_NOT_MOVING), both switches pressed at once
+      (LIMIT_SWITCH_FAULT), a move that does not reach its switch in time
+      (CHAIN_TIMEOUT). The return run is also timed against the run out:
+      much shorter or much longer is logged as CHAIN_RETURN_SHORT /
+      CHAIN_SLOW.
 
   The tray load cells weigh the feed dispensed into each tray.
 */
@@ -86,32 +100,7 @@ void initializeTrayScale(uint8_t tray, uint8_t dtPin, uint8_t sckPin) {
   }
 }
 
-// Reads one tray if its HX711 has a conversion ready (non-blocking).
-void readTrayWeight(uint8_t trayIndex) {
-  if (!trayScales[trayIndex].is_ready()) {
-    return;
-  }
-
-  float grams = trayScales[trayIndex].get_units(1);
-
-  // Signed reading, before the dead band, for the below-zero drift fix.
-  traySignedGrams[trayIndex] = grams;
-
-  // Empty-tray noise is about +/-1 g; show it as 0 instead of flickering
-  // between 0 and 1 g (well inside FEED_TOLERANCE_GRAMS, so feeding is not
-  // affected). Also avoids small negative values.
-  if (grams < TRAY_ZERO_DEADBAND_GRAMS) {
-    grams = 0.0f;
-  }
-
-  trayWeightsGrams[trayIndex] = grams;
-
-  float total = 0.0f;
-  for (uint8_t i = 0; i < TRAY_COUNT; i++) {
-    total += trayWeightsGrams[i];
-  }
-  currentFeedWeightGrams = total;
-}
+// readTrayWeight() is in TrayWeights.ino (filtering, whole grams, scale faults).
 
 // Between cycles, refresh one tray per loop so the display and DATA show
 // how much feed is left in each tray.
@@ -119,7 +108,7 @@ void refreshIdleTrayWeights() {
   static uint8_t nextTray = 0;
 
   readTrayWeight(nextTray);
-  fixBelowZeroDrift(nextTray);
+  trackTrayZero(nextTray);
   nextTray = (nextTray + 1) % TRAY_COUNT;
 }
 
@@ -189,6 +178,9 @@ void stopChain() {
   digitalWrite(CHAIN_FORWARD_RELAY_PIN, RELAY_OFF);
   digitalWrite(CHAIN_REVERSE_RELAY_PIN, RELAY_OFF);
 
+  if (chainDirection == CHAIN_FORWARD && feedingActive) {
+    cycleForwardMs += millis() - chainRunStartMillis;
+  }
   if (chainDirection != CHAIN_STOPPED) {
     chainDirection = CHAIN_STOPPED;
     chainStopMillis = millis();
@@ -286,7 +278,17 @@ const char* startFeedCycle(float targetGrams) {
     return "HOPPER_LOW";
   }
 
+  // Both switches at once cannot happen with the hopper in one place: a
+  // wiring fault, and homing would trust a wrong switch.
+  if (isHomeSwitchPressed() && isEndSwitchPressed()) {
+    return "LIMIT_SWITCH_FAULT";
+  }
+
+  // Feed is poured in whole grams.
+  targetGrams = (float)lround(targetGrams);
   activeFeedTargetGrams = targetGrams;
+  cycleForwardMs = 0;
+  topUpNoFeedPulses = 0;
   feedingActive = true;
   cycleFailReason = NULL;
   trayTimeoutAlertSent = false;
@@ -353,6 +355,10 @@ void runFeedCycle() {
   // empty while the hopper still holds feed. Only "reads empty AND the tray
   // gains nothing while pouring" stops the cycle.
 
+  if (!monitorChain()) {
+    return;
+  }
+
   switch (cycleStep) {
     case CYCLE_HOMING:
       if (isHomeSwitchPressed()) {
@@ -397,6 +403,7 @@ void runFeedCycle() {
     case CYCLE_RETURNING:
       if (isHomeSwitchPressed()) {
         stopChain();
+        checkReturnTime(elapsed);
         finishFeedCycle();
       } else if (elapsed >= CHAIN_HOME_TIMEOUT_MS) {
         chainFault();
@@ -407,6 +414,51 @@ void runFeedCycle() {
 
     default:
       break;
+  }
+}
+
+// Chain checks that run every loop of a cycle. Returns false after a fault.
+//  - Both limit switches pressed at once: wiring fault.
+//  - The switch the hopper started on must let go within CHAIN_RELEASE_MS of
+//    the chain running away from it, or the chain is not moving (motor,
+//    relay, a chain off its sprocket or slipping).
+bool monitorChain() {
+  if (isHomeSwitchPressed() && isEndSwitchPressed()) {
+    chainFaultReason("LIMIT_SWITCH_FAULT");
+    return false;
+  }
+  unsigned long ran = millis() - chainRunStartMillis;
+  // Forward runs in a cycle are short stop-and-go moves, so the home check
+  // adds up all forward running so far: still on the home switch after
+  // CHAIN_RELEASE_MS of it means the hopper has not left home.
+  unsigned long forwardSoFar = cycleForwardMs + (chainDirection == CHAIN_FORWARD ? ran : 0UL);
+  if (chainDirection == CHAIN_FORWARD && isHomeSwitchPressed() && forwardSoFar > CHAIN_RELEASE_MS) {
+    chainFaultReason("CHAIN_NOT_MOVING");
+    return false;
+  }
+  if (chainDirection == CHAIN_REVERSE && isEndSwitchPressed() && ran > CHAIN_RELEASE_MS) {
+    chainFaultReason("CHAIN_NOT_MOVING");
+    return false;
+  }
+  return true;
+}
+
+// The run home should take about as long as the run out. Much shorter means
+// the home switch was hit early or the chain jumped teeth; much longer means
+// it dragged. Logged as a warning; the cycle itself still finished.
+void checkReturnTime(unsigned long returnMs) {
+  if (cycleFailReason != NULL || cycleForwardMs < 3000UL) {
+    return; // returned early from a fault: nothing to compare
+  }
+  float ratio = (float)returnMs / (float)cycleForwardMs;
+  Serial.print(F("Chain: out ")); Serial.print(cycleForwardMs); Serial.print(F(" ms, back "));
+  Serial.print(returnMs); Serial.print(F(" ms (x")); Serial.print(ratio, 2); Serial.println(F(")"));
+  if (ratio < CHAIN_RETURN_SHORT_RATIO) {
+    Serial.println(F("WARNING: return much shorter than the run out (CHAIN_RETURN_SHORT)"));
+    logEventToSD("CHAIN_RETURN_SHORT");
+  } else if (ratio > CHAIN_RETURN_SLOW_RATIO) {
+    Serial.println(F("WARNING: return much slower than the run out (CHAIN_SLOW)"));
+    logEventToSD("CHAIN_SLOW");
   }
 }
 
@@ -447,8 +499,7 @@ void runTaring(unsigned long elapsed) {
     Serial.print(F("Tray "));
     Serial.print(currentTray);
     Serial.println(F(" load cell not calibrated; tray skipped."));
-    logEventToSD("LOAD_CELL_NOT_CALIBRATED");
-    trayFailed();
+    trayFailedReason("LOAD_CELL_NOT_CALIBRATED");
     return;
   }
 
@@ -461,8 +512,15 @@ void runTaring(unsigned long elapsed) {
     Serial.print(F("Tray "));
     Serial.print(currentTray);
     Serial.println(F(" load cell not ready; tray skipped."));
-    logEventToSD("LOAD_CELL_NOT_READY");
-    trayFailed();
+    trayFailedReason("LOAD_CELL_NOT_READY");
+    return;
+  }
+
+  if (trayScaleFault[trayIndex]) {
+    Serial.print(F("Tray "));
+    Serial.print(currentTray);
+    Serial.println(F(" scale fault; tray skipped."));
+    trayFailedReason("SCALE_FAULT");
     return;
   }
 
@@ -479,12 +537,21 @@ void runTaring(unsigned long elapsed) {
   if (tareCount >= TRAY_TARE_SAMPLES) {
     HX711& scale = trayScales[trayIndex];
     float grams = ((float)(tareSum / tareCount) - (float)scale.get_offset()) / scale.get_scale();
-    if (grams < 0.0f) {
-      grams = 0.0f;
+    if (grams > TRAY_MAX_PLAUSIBLE_GRAMS || grams < TRAY_MIN_PLAUSIBLE_GRAMS) {
+      Serial.print(F("Tray "));
+      Serial.print(currentTray);
+      Serial.print(F(" reads "));
+      Serial.print(grams, 1);
+      Serial.println(F(" g, out of range; tray skipped."));
+      trayFailedReason("SCALE_FAULT");
+      return;
     }
+    // Whole grams, and the empty-tray band counts as empty.
+    grams = wholeGrams(grams);
     trayStartGrams = grams;
     trayWeightsGrams[trayIndex] = grams;
-    readTrayWeight(trayIndex); // refresh the total
+    resetTrayFilter(trayIndex, grams);
+    updateFeedTotal();
 
     Serial.print(F("Tray "));
     Serial.print(currentTray);
@@ -623,6 +690,10 @@ void runTopUp() {
 
   // A steadier reading than one sample: the decision is made to about 1 g.
   // (Blocks about 0.3 s with the motors stopped.)
+  if (trayScaleFault[trayIndex]) {
+    trayFailedReason("SCALE_FAULT");
+    return;
+  }
   float weight = trayScales[trayIndex].get_units(3);
   if (weight < TRAY_ZERO_DEADBAND_GRAMS) weight = 0.0f;
   trayWeightsGrams[trayIndex] = weight;
@@ -633,6 +704,13 @@ void runTopUp() {
     float dropped = weight - topUpBeforeGrams;
     if (dropped > 0.5f) {
       topUpGramsPerMs = dropped / (float)topUpPulseMs;
+    }
+    // Pulses that add nothing: the auger is not delivering feed.
+    topUpNoFeedPulses = dropped < TOPUP_NO_FEED_GRAMS ? topUpNoFeedPulses + 1 : 0;
+    if (topUpNoFeedPulses >= TOPUP_NO_FEED_PULSES) {
+      topUpActive = false;
+      noFeedFromAuger();
+      return;
     }
   }
 
@@ -645,6 +723,7 @@ void runTopUp() {
   }
   if (shortGrams <= FEED_TOLERANCE_GRAMS || shortGrams < minPulseGrams / 2.0f) {
     topUpActive = false;
+    topUpNoFeedPulses = 0;
     leaveSpot();
     return;
   }
@@ -692,17 +771,36 @@ void runDispensing() {
 
   unsigned long ranMs = millis() - dispenseStartMillis;
 
-  // O-3: no feed reaching the tray and the hopper reads empty: out of feed.
-  // (No gain with feed in the hopper is left to the dispense timeout: a jam
-  // or a motor fault, TRAY_TIMEOUT.)
-  if (ranMs >= HOPPER_NO_FLOW_MS &&
-      trayWeightsGrams[trayIndex] - spotStartGrams < HOPPER_NO_FLOW_GRAMS &&
-      liveHopperLevelPercent <= HOPPER_EMPTY_PERCENT) {
+  // The scale stopped answering or reads nonsense: pouring blind would overfill.
+  if (trayScaleFault[trayIndex]) {
     digitalWrite(DISPENSER_RELAY_PIN, RELAY_OFF);
-    countTrayFeed();
-    queueAlertEvent("LOW_FEED");
-    triggerAlarm();
-    returnHome("HOPPER_EMPTY");
+    trayDispenseUsedMs += ranMs;
+    Serial.print(F("Tray "));
+    Serial.print(currentTray);
+    Serial.println(F(" scale fault while pouring; tray skipped."));
+    trayFailedReason("SCALE_FAULT");
+    return;
+  }
+
+  // Weight going down while feed is poured in: the tray was knocked or lifted.
+  if (trayWeightsGrams[trayIndex] < spotStartGrams - TRAY_DROP_FAULT_GRAMS) {
+    digitalWrite(DISPENSER_RELAY_PIN, RELAY_OFF);
+    trayDispenseUsedMs += ranMs;
+    Serial.print(F("Tray "));
+    Serial.print(currentTray);
+    Serial.println(F(" weight dropped while pouring; tray skipped."));
+    trayFailedReason("SCALE_DISTURBED");
+    return;
+  }
+
+  // O-3 and auger faults: the auger has run HOPPER_NO_FLOW_MS and the tray has
+  // gained almost nothing. Nothing is reaching the trays, so the cycle stops
+  // and returns home rather than trying the next tray.
+  if (ranMs >= HOPPER_NO_FLOW_MS &&
+      trayWeightsGrams[trayIndex] - spotStartGrams < HOPPER_NO_FLOW_GRAMS) {
+    digitalWrite(DISPENSER_RELAY_PIN, RELAY_OFF);
+    trayDispenseUsedMs += ranMs;
+    noFeedFromAuger();
     return;
   }
 
@@ -736,6 +834,18 @@ void leaveSpot() {
       // Feed still falling is not on the scale yet; the day total only needs
       // this reading, the tray itself has already reached its target.
       countTrayFeed();
+      float ended = trayWeightsGrams[currentTray - 1];
+      Serial.print(F("Tray "));
+      Serial.print(currentTray);
+      Serial.print(F(" done: "));
+      Serial.print(lround(ended));
+      Serial.print(F(" g of "));
+      Serial.print(lround(activeFeedTargetGrams));
+      Serial.println(F(" g"));
+      if (ended > activeFeedTargetGrams + TRAY_OVERFILL_GRAMS) {
+        Serial.println(F("WARNING: tray overfilled (OVERFILL)"));
+        logEventToSD("OVERFILL");
+      }
     }
     nextTray();
     return;
@@ -805,7 +915,7 @@ void countTrayFeed() {
   }
   trayFeedCounted = true;
   // Only what this cycle added; the tray may already have held feed.
-  float added = trayWeightsGrams[currentTray - 1] - trayStartGrams;
+  float added = (float)lround(trayWeightsGrams[currentTray - 1] - trayStartGrams);
   if (added > 0.0f) {
     statAddFeed(added);
   }
@@ -815,14 +925,24 @@ void countTrayFeed() {
 // hopper still passes the remaining spots, because the next tray's travel time
 // is measured from this tray's last spot.
 void trayFailed() {
+  trayFailedReason("TRAY_TIMEOUT");
+}
+
+// Same, with the reason kept for the log and the app's command result
+// (SCALE_FAULT, SCALE_DISTURBED, LOAD_CELL_NOT_READY ...). The app alert is
+// TRAY_TIMEOUT for all of them, the alert the ESP32 knows.
+void trayFailedReason(const char* reason) {
+  digitalWrite(DISPENSER_RELAY_PIN, RELAY_OFF);
   trayAborted = true;
   trayFeedCounted = true;
+  topUpActive = false;
+  topUpPulsing = false;
 
-  logEventToSD("TRAY_TIMEOUT");
+  logEventToSD(reason);
   statTrayTimeout();
 
   if (cycleFailReason == NULL) {
-    cycleFailReason = "TRAY_TIMEOUT";
+    cycleFailReason = reason;
   }
 
   // One alert per cycle so a jammed dispenser cannot flood the queue.
@@ -861,6 +981,29 @@ bool motorRunning() {
 void setStop(uint8_t stop) {
   currentStop = stop;
   currentTray = stop == 0 ? 0 : trayAtStop(stop);
+}
+
+// The auger ran but no feed reached the tray. With the hopper reading empty
+// it is out of feed; otherwise the auger, its motor or relay, or feed bridged
+// above the auger. Nothing will reach the other trays either, so stop and go home.
+void noFeedFromAuger() {
+  digitalWrite(DISPENSER_RELAY_PIN, RELAY_OFF);
+  countTrayFeed();
+  trayAborted = true;
+  bool empty = liveHopperLevelPercent <= HOPPER_EMPTY_PERCENT;
+  Serial.print(F("Tray "));
+  Serial.print(currentTray);
+  Serial.println(empty ? F(": no feed and the hopper reads empty (HOPPER_EMPTY)")
+                       : F(": auger ran but no feed arrived (AUGER_NO_FEED)"));
+  if (empty) {
+    queueAlertEvent("LOW_FEED");
+  } else {
+    logEventToSD("AUGER_NO_FEED");
+    statTrayTimeout();
+    queueAlertEvent("TRAY_TIMEOUT");
+  }
+  triggerAlarm();
+  returnHome(empty ? "HOPPER_EMPTY" : "AUGER_NO_FEED");
 }
 
 // Skips the remaining trays and goes straight back to the home switch.
@@ -903,14 +1046,23 @@ void finishFeedCycle() {
 // A chain move did not reach its limit switch in time (jam, motor or
 // switch fault). Stop in place; the next cycle homes first.
 void chainFault() {
-  Serial.print(F("CHAIN TIMEOUT during "));
+  chainFaultReason("CHAIN_TIMEOUT");
+}
+
+// Any chain problem stops everything in place (CHAIN_TIMEOUT,
+// CHAIN_NOT_MOVING, LIMIT_SWITCH_FAULT). The app alert is CHAIN_TIMEOUT for
+// all of them; the reason is in the command result and the log.
+void chainFaultReason(const char* reason) {
+  Serial.print(F("CHAIN FAULT ("));
+  Serial.print(reason);
+  Serial.print(F(") during "));
   Serial.println(getCycleStepName(cycleStep));
 
   statChainFault();
-  stopFeedCycle("CHAIN_TIMEOUT");
+  stopFeedCycle(reason);
   queueAlertEvent("CHAIN_TIMEOUT");
   triggerAlarm();
-  finishRemoteCommand("FAILED", "CHAIN_TIMEOUT");
+  finishRemoteCommand("FAILED", reason);
 }
 
 // Immediate stop of the dispenser and chain (chain fault).

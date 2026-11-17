@@ -142,12 +142,12 @@ void processESP32Line(String line) {
 void sendCurrentDataToESP32() {
   ESP32_SERIAL.print(F("DATA|"));
   for (uint8_t i = 0; i < TRAY_COUNT; i++) {
-    ESP32_SERIAL.print(trayWeightsGrams[i], 1);
+    ESP32_SERIAL.print(lround(trayWeightsGrams[i])); // whole grams
     ESP32_SERIAL.print('|');
   }
   // While feeding: this cycle's target. Idle: the saved Feed Target, so the
   // app's manual feed starts from the same grams as the panel.
-  ESP32_SERIAL.print(feedingActive ? activeFeedTargetGrams : manualFeedTargetGrams, 1);
+  ESP32_SERIAL.print(lround(feedingActive ? activeFeedTargetGrams : manualFeedTargetGrams));
   ESP32_SERIAL.print('|');
   ESP32_SERIAL.print(currentHopperLevelPercent, 1);
   ESP32_SERIAL.print('|');

@@ -20,6 +20,8 @@
     STOP                 stop a bench move at once
     WDTEST               stop the program to prove the watchdog restarts
                          the Mega (only while nothing moves; Watchdog.ino)
+    TRACE [ON|OFF]       test bench: live status lines while the machine
+                         keeps working normally (no command needed to run it)
 
   Safety: motor commands are refused while a feed cycle runs or another
   bench move is active. STOP ends a bench move only, not a feed cycle. Moves
@@ -81,6 +83,10 @@ void handleBenchCommand(String line) {
     benchStop("stopped by STOP");
   } else if (cmd == "WDTEST") {
     benchWatchdogTest();
+  } else if (cmd == "TRACE") {
+    traceOn = args == "ON" ? true : args == "OFF" ? false : !traceOn;
+    Serial.print(F("TRACE "));
+    Serial.println(traceOn ? F("ON: status every 1 s (0.5 s while a motor runs). TRACE OFF to stop.") : F("OFF"));
   } else {
     Serial.print(F("Unknown command: "));
     Serial.println(line);
@@ -90,7 +96,8 @@ void handleBenchCommand(String line) {
 
 void benchHelp() {
   Serial.println(F("Bench commands: STATUS, WEIGH, TARE <1-5|ALL>, CAL <1-5> <grams>,"));
-  Serial.println(F("FACTORS, JOG <F|R> <ms>, HOME, DISP <ms>, FEED <grams>, STOP, WDTEST"));
+  Serial.println(F("FACTORS, JOG <F|R> <ms>, HOME, DISP <ms>, FEED <grams>, STOP, WDTEST,"));
+  Serial.println(F("TRACE [ON|OFF] (live status lines; the machine keeps working)"));
 }
 
 // Returns NULL when a motor command may run, otherwise why not.
@@ -176,9 +183,11 @@ void benchStatus() {
   Serial.print(F("Trays (g):"));
   for (uint8_t i = 0; i < TRAY_COUNT; i++) {
     Serial.print(' ');
-    Serial.print(trayWeightsGrams[i], 1);
+    Serial.print(lround(trayWeightsGrams[i]));
+    if (trayScaleFault[i]) Serial.print(F("(FAULT)"));
   }
-  Serial.println();
+  Serial.print(F("  total "));
+  Serial.println(lround(currentFeedWeightGrams));
 }
 
 void benchWeigh() {
@@ -195,7 +204,12 @@ void benchWeigh() {
     long raw = trayScales[i].read_average(5);
     float grams = (raw - trayScales[i].get_offset()) / trayScales[i].get_scale();
     Serial.print(grams, 1);
-    Serial.print(F(" g   raw "));
+    Serial.print(F(" g   shown "));
+    Serial.print(lround(trayWeightsGrams[i]));
+    Serial.print(F(" g   median "));
+    Serial.print(trayMedianGrams[i], 1);
+    if (trayScaleFault[i]) Serial.print(F("   SCALE FAULT"));
+    Serial.print(F("   raw "));
     Serial.print(raw);
     Serial.print(F("   factor "));
     Serial.println(trayScales[i].get_scale(), 1);
@@ -220,6 +234,8 @@ void benchTare(const String& args) {
     if (trayScales[i].wait_ready_timeout(500)) {
       trayScales[i].tare(10);
       trayWeightsGrams[i] = 0.0f;
+      resetTrayFilter(i, 0.0f);
+      trayScaleFault[i] = false;
       Serial.println(F(": done"));
     } else {
       Serial.println(F(": NOT READY"));
@@ -259,6 +275,7 @@ void benchCalibrate(const String& args) {
   }
   float factor = value / grams;
   trayScales[t].set_scale(factor);
+  resetTrayFilter(t, grams);
   LOAD_CELL_CALIBRATION_FACTORS[t] = factor;
   Serial.print(F("Tray "));
   Serial.print(t + 1);
@@ -417,4 +434,48 @@ void updateBench() {
     Serial.println(F(" ms."));
     benchMove = BENCH_IDLE;
   }
+}
+
+// --- Test bench trace (TRACE ON) ---
+// The machine runs exactly as normal; this only prints what it is doing.
+// Idle: one full line a second. While a motor runs: a short line every
+// half second (long lines would stall the loop on the 64-byte serial buffer).
+void updateTrace() {
+  static unsigned long last = 0;
+  if (!traceOn) return;
+  bool moving = motorRunning();
+  if (millis() - last < (moving ? TRACE_MOTOR_MS : TRACE_IDLE_MS)) return;
+  last = millis();
+
+  Serial.print(F("TRACE "));
+  Serial.print(millis() / 1000.0f, 1);
+  Serial.print(F("s "));
+  Serial.print(feedingActive ? getCycleStepName(cycleStep) : "IDLE");
+  if (currentTray > 0) {
+    Serial.print(F(" t")); Serial.print(currentTray);
+    Serial.print(F(" s")); Serial.print(currentSpot + 1);
+  }
+  if (moving) {
+    if (currentTray > 0) {
+      Serial.print(F(" | ")); Serial.print(trayWeightsGrams[currentTray - 1], 1);
+      Serial.print(F("g of ")); Serial.print(lround(activeFeedTargetGrams));
+    }
+    Serial.print(F(" | chain "));
+    Serial.print(chainDirection == CHAIN_FORWARD ? F("FWD") : chainDirection == CHAIN_REVERSE ? F("REV") : F("off"));
+    Serial.print(F(" auger "));
+    Serial.println(digitalRead(DISPENSER_RELAY_PIN) == RELAY_ON ? F("ON") : F("off"));
+    return;
+  }
+  Serial.print(F(" | g"));
+  for (uint8_t i = 0; i < TRAY_COUNT; i++) { Serial.print(' '); Serial.print(lround(trayWeightsGrams[i])); }
+  Serial.print(F(" = ")); Serial.print(lround(currentFeedWeightGrams));
+  Serial.print(F(" | med"));
+  for (uint8_t i = 0; i < TRAY_COUNT; i++) { Serial.print(' '); Serial.print(trayMedianGrams[i], 1); }
+  Serial.print(F(" | flt "));
+  for (uint8_t i = 0; i < TRAY_COUNT; i++) Serial.print(trayScaleFault[i] ? "X" : "-");
+  Serial.print(F(" | hop ")); Serial.print(currentHopperLevelPercent, 0); Serial.print("%");
+  Serial.print(F(" | water ")); Serial.print(waterLow ? F("LOW") : F("OK"));
+  Serial.print(F(" | H")); Serial.print(isHomeSwitchPressed() ? 1 : 0);
+  Serial.print(F(" E")); Serial.print(isEndSwitchPressed() ? 1 : 0);
+  Serial.print(F(" | esp ")); Serial.println(esp32Online ? F("on") : F("off"));
 }

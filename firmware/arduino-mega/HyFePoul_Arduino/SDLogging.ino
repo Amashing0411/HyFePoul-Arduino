@@ -182,10 +182,10 @@ void logCurrentSystemData(const String& alertEvent) {
 
   file.print(formatTimestamp(now));
   file.print(',');
-  file.print(currentFeedWeightGrams, 1);
+  file.print(lround(currentFeedWeightGrams));
   file.print(',');
   for (uint8_t i = 0; i < TRAY_COUNT; i++) {
-    file.print(trayWeightsGrams[i], 1);
+    file.print(lround(trayWeightsGrams[i]));
     file.print(',');
   }
   file.print(currentHopperLevelPercent, 1);

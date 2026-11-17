@@ -227,14 +227,41 @@ const float TOPUP_PULSE_FRACTION = 0.6f;
 // 500 ms 21.5 g. A tray short by less than half of this is left as it is,
 // because one more pulse would end at least as far past the target.
 const float TOPUP_MIN_PULSE_GRAMS = 8.0f;
-// Tray readings below this show as 0 g (empty-tray noise is about +/-1 g).
-const float TRAY_ZERO_DEADBAND_GRAMS = 1.5f;
-// Below-zero drift fix (TrayZero.ino): an idle tray steady between this and
-// -TRAY_ZERO_DEADBAND_GRAMS for TRAY_DRIFT_STEADY_MS is re-zeroed. Lower than
-// this means a tray lifted off or a fault, not drift.
-const float TRAY_DRIFT_MIN_GRAMS = -10.0f;
-const float TRAY_DRIFT_STEADY_BAND_GRAMS = 1.0f;
-const unsigned long TRAY_DRIFT_STEADY_MS = 600000UL; // 10 min
+// Tray readings below this count as an empty tray (0 g). Empty trays read
+// up to about +/-2 g of noise; whole grams are shown above it.
+const float TRAY_ZERO_DEADBAND_GRAMS = 2.5f;
+// Tray weight filter (TrayWeights.ino).
+const uint8_t TRAY_FILTER_SAMPLES = 7;          // median window
+const float TRAY_SPIKE_GRAMS = 30.0f;           // a jump this big needs a second sample to count
+const float TRAY_SHOW_STEP_GRAMS = 0.8f;        // shown whole grams only move this far from the median
+// Idle zero tracking: steady near zero for this long -> re-zeroed and saved.
+const float TRAY_ZERO_TRACK_BAND_GRAMS = 6.0f;  // above this it is feed, never drift
+const float TRAY_ZERO_TRACK_MIN_GRAMS = 0.5f;   // smaller offsets are left alone
+const float TRAY_ZERO_TRACK_STEADY_GRAMS = 1.0f;
+const unsigned long TRAY_ZERO_TRACK_MS = 180000UL; // 3 min
+// Scale faults: readings outside this range, no new sample for this long, or
+// the exact same raw count this many times in a row.
+const float TRAY_MAX_PLAUSIBLE_GRAMS = 2500.0f;
+const float TRAY_MIN_PLAUSIBLE_GRAMS = -150.0f;
+const unsigned long TRAY_STALE_MS = 1500UL;
+const uint8_t TRAY_FROZEN_SAMPLES = 25;
+// Feeding faults (Feeding.ino).
+const float TRAY_DROP_FAULT_GRAMS = 15.0f;      // a tray losing this much while poured into is disturbed
+const uint8_t TOPUP_NO_FEED_PULSES = 3;         // top-up pulses in a row that add nothing
+const float TOPUP_NO_FEED_GRAMS = 0.5f;
+const float TRAY_OVERFILL_GRAMS = 25.0f;        // logged when a tray ends this far past its target
+// Chain checks: a switch the hopper starts on must let go within this time
+// of moving off it, or the chain is not moving.
+const unsigned long CHAIN_RELEASE_MS = 3000UL;
+// The return run is compared with the forward run time of the same cycle.
+const float CHAIN_RETURN_SHORT_RATIO = 0.6f;    // home reached this much sooner: chain jumped or switch hit early
+const float CHAIN_RETURN_SLOW_RATIO = 1.6f;     // this much slower: chain dragging or motor weak
+// Serial test-bench trace (TRACE ON): one status line per interval.
+const unsigned long TRACE_IDLE_MS = 1000UL;
+const unsigned long TRACE_MOTOR_MS = 500UL;
+// Zero tracking never follows a reading below this: that is a tray lifted
+// off or a fault, not drift.
+const float TRAY_DRIFT_MIN_GRAMS = -25.0f;
 const unsigned long TOPUP_SETTLE_MS = 1500UL;
 const unsigned long TOPUP_MIN_PULSE_MS = 150UL;
 const unsigned long TOPUP_MAX_PULSE_MS = 1500UL;
@@ -346,6 +373,20 @@ float spotStartGrams = 0.0f;           // tray reading when this pour began
 float trayStartGrams = 0.0f;           // feed already in the tray on arrival
 bool trayZerosLoaded = false;          // saved empty-tray zeros in use (TrayZero.ino)
 float traySignedGrams[TRAY_COUNT] = {0, 0, 0, 0, 0}; // before the 0 g dead band
+// Tray weight filter state (TrayWeights.ino).
+float trayHistory[TRAY_COUNT][TRAY_FILTER_SAMPLES];
+uint8_t trayHistoryCount[TRAY_COUNT] = {0, 0, 0, 0, 0};
+uint8_t trayHistoryNext[TRAY_COUNT] = {0, 0, 0, 0, 0};
+float trayLastSample[TRAY_COUNT] = {0, 0, 0, 0, 0};
+bool trayHasSample[TRAY_COUNT] = {false, false, false, false, false};
+float trayPendingSpike[TRAY_COUNT] = {0, 0, 0, 0, 0};
+bool trayHasPendingSpike[TRAY_COUNT] = {false, false, false, false, false};
+float trayMedianGrams[TRAY_COUNT] = {0, 0, 0, 0, 0};
+unsigned long trayLastSampleMillis[TRAY_COUNT] = {0, 0, 0, 0, 0};
+long trayLastRaw[TRAY_COUNT] = {0, 0, 0, 0, 0};
+uint8_t trayFrozenCount[TRAY_COUNT] = {0, 0, 0, 0, 0};
+bool trayScaleFault[TRAY_COUNT] = {false, false, false, false, false};
+
 bool topUpActive = false;              // last spot: settling or pulsing
 bool topUpPulsing = false;             // dispenser on for a top-up pulse
 unsigned long topUpSettleStartMillis = 0;
@@ -364,6 +405,9 @@ uint8_t tareCount = 0;
 ChainDirection chainDirection = CHAIN_STOPPED;
 unsigned long chainStopMillis = 0;
 unsigned long chainRunStartMillis = 0;
+unsigned long cycleForwardMs = 0;     // chain forward run time in this cycle (TO_TRAY, TO_SPOT, TO_END)
+uint8_t topUpNoFeedPulses = 0;         // top-up pulses in a row that added nothing
+bool traceOn = false;                  // TRACE ON: status lines on the USB serial monitor
 
 // Water
 bool waterLow = false;
