@@ -229,16 +229,20 @@ const float TOPUP_PULSE_FRACTION = 0.6f;
 const float TOPUP_MIN_PULSE_GRAMS = 8.0f;
 // Tray readings below this count as an empty tray (0 g). Empty trays read
 // up to about +/-2 g of noise; whole grams are shown above it.
-const float TRAY_ZERO_DEADBAND_GRAMS = 2.5f;
+const float TRAY_ZERO_DEADBAND_GRAMS = 4.0f;
 // Tray weight filter (TrayWeights.ino).
 const uint8_t TRAY_FILTER_SAMPLES = 7;          // median window
 const float TRAY_SPIKE_GRAMS = 30.0f;           // a jump this big needs a second sample to count
 const float TRAY_SHOW_STEP_GRAMS = 0.8f;        // shown whole grams only move this far from the median
+// Idle: a new weight is shown only after it has held this long (within
+// TRAY_HOLD_BAND_GRAMS), so a knock on the frame never shows as grams.
+const unsigned long TRAY_SHOW_HOLD_MS = 8000UL;
+const float TRAY_HOLD_BAND_GRAMS = 1.5f;
 // Idle zero tracking: steady near zero for this long -> re-zeroed and saved.
 const float TRAY_ZERO_TRACK_BAND_GRAMS = 6.0f;  // above this it is feed, never drift
 const float TRAY_ZERO_TRACK_MIN_GRAMS = 0.5f;   // smaller offsets are left alone
-const float TRAY_ZERO_TRACK_STEADY_GRAMS = 1.0f;
-const unsigned long TRAY_ZERO_TRACK_MS = 180000UL; // 3 min
+const float TRAY_ZERO_TRACK_STEADY_GRAMS = 1.5f;
+const unsigned long TRAY_ZERO_TRACK_MS = 120000UL; // 2 min
 // Scale faults: readings outside this range, no new sample for this long, or
 // the exact same raw count this many times in a row.
 const float TRAY_MAX_PLAUSIBLE_GRAMS = 2500.0f;
@@ -382,6 +386,9 @@ bool trayHasSample[TRAY_COUNT] = {false, false, false, false, false};
 float trayPendingSpike[TRAY_COUNT] = {0, 0, 0, 0, 0};
 bool trayHasPendingSpike[TRAY_COUNT] = {false, false, false, false, false};
 float trayMedianGrams[TRAY_COUNT] = {0, 0, 0, 0, 0};
+float trayHeldGrams[TRAY_COUNT] = {0, 0, 0, 0, 0};       // median that has held TRAY_SHOW_HOLD_MS
+float trayHoldCandidate[TRAY_COUNT] = {0, 0, 0, 0, 0};
+unsigned long trayHoldSince[TRAY_COUNT] = {0, 0, 0, 0, 0};
 unsigned long trayLastSampleMillis[TRAY_COUNT] = {0, 0, 0, 0, 0};
 long trayLastRaw[TRAY_COUNT] = {0, 0, 0, 0, 0};
 uint8_t trayFrozenCount[TRAY_COUNT] = {0, 0, 0, 0, 0};

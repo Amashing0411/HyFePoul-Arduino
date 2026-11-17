@@ -8,16 +8,20 @@
        read is dropped; real feed arriving is confirmed by the next sample).
     2. Median of the last TRAY_FILTER_SAMPLES samples (single odd readings
        never move it).
-    3. Whole grams with a little hysteresis, and a zero band
+    3. Hold: a new median must stay within TRAY_HOLD_BAND_GRAMS for
+       TRAY_SHOW_HOLD_MS before it counts (knocks and wind last a second or
+       two and are never shown).
+    4. Whole grams with a little hysteresis, and a zero band
        (TRAY_ZERO_DEADBAND_GRAMS): the shown value only changes when the
-       median moves at least TRAY_SHOW_STEP_GRAMS away from it.
+       held value moves at least TRAY_SHOW_STEP_GRAMS away from it.
 
   While the hopper is pouring into a tray, that tray uses the latest sample
   (after the spike guard) instead, so the stop decision is as fast as before.
 
-  Zero tracking (idle only): a tray that sits steady within
-  TRAY_ZERO_TRACK_BAND_GRAMS of zero for TRAY_ZERO_TRACK_MS is re-zeroed and
-  the new zero saved (TrayZero.ino). Load cells drift slowly with
+  Zero tracking (idle only): the lowest reading a tray keeps returning to
+  over TRAY_ZERO_TRACK_MS, if it is within TRAY_ZERO_TRACK_BAND_GRAMS of zero,
+  becomes the new zero and is saved (TrayZero.ino). Short upward bumps
+  (drips, wind, a bird) are ignored. Load cells drift slowly with
   temperature; feed arrives in steps, so it is never mistaken for drift. A
   few grams of leftovers sitting perfectly still for that long are treated
   as zero too: below this band the machine counts the tray as empty.
@@ -57,6 +61,9 @@ void pushTraySample(uint8_t t, float grams) {
 
 // Forget the history (after a re-zero or a fresh weigh) and start from one value.
 void resetTrayFilter(uint8_t t, float grams) {
+  trayHeldGrams[t] = grams;
+  trayHoldCandidate[t] = grams;
+  trayHoldSince[t] = 0;
   trayHistoryCount[t] = 0;
   trayHistoryNext[t] = 0;
   trayHasPendingSpike[t] = false;
@@ -138,8 +145,16 @@ void readTrayWeight(uint8_t t) {
     // Pouring: the newest sample, so the auger stops on time.
     trayWeightsGrams[t] = grams < TRAY_ZERO_DEADBAND_GRAMS ? 0.0f : grams;
   } else {
-    // Idle: the median, as whole grams that only move by a full step.
-    float m = trayMedianGrams[t];
+    // Idle: the median must hold before it counts, then whole grams that
+    // only move by a full step.
+    float med = trayMedianGrams[t];
+    if (fabs(med - trayHoldCandidate[t]) > TRAY_HOLD_BAND_GRAMS) {
+      trayHoldCandidate[t] = med;
+      trayHoldSince[t] = millis();
+    } else if (millis() - trayHoldSince[t] >= TRAY_SHOW_HOLD_MS) {
+      trayHeldGrams[t] = med;
+    }
+    float m = trayHeldGrams[t];
     float shown = trayWeightsGrams[t];
     if (m < TRAY_ZERO_DEADBAND_GRAMS) shown = 0.0f;
     else if (fabs(m - shown) >= TRAY_SHOW_STEP_GRAMS || shown == 0.0f) shown = (float)lround(m);
@@ -149,32 +164,41 @@ void readTrayWeight(uint8_t t) {
 }
 
 // Idle zero tracking: slow drift near zero is removed, in either direction.
+// It follows the LOWEST reading over the window: drips, wind and birds only
+// ever add weight for a few seconds, so upward bumps are ignored, and the
+// zero moves to the floor the tray keeps coming back to. A floor that keeps
+// falling (still settling) restarts the window.
 void trackTrayZero(uint8_t t) {
-  static unsigned long steadySince[TRAY_COUNT] = {0, 0, 0, 0, 0};
-  static float lo[TRAY_COUNT], hi[TRAY_COUNT];
+  static unsigned long windowStart[TRAY_COUNT] = {0, 0, 0, 0, 0};
+  static float floorGrams[TRAY_COUNT];
 
   float m = trayMedianGrams[t];
-  bool candidate = !feedingActive && !benchMoveActive() && trayZerosLoaded && !trayScaleFault[t] &&
-                   trayHistoryCount[t] >= TRAY_FILTER_SAMPLES &&
-                   m > TRAY_DRIFT_MIN_GRAMS && m < TRAY_ZERO_TRACK_BAND_GRAMS && fabs(m) >= TRAY_ZERO_TRACK_MIN_GRAMS;
-  if (!candidate) { steadySince[t] = 0; return; }
+  bool allowed = !feedingActive && !benchMoveActive() && trayZerosLoaded && !trayScaleFault[t] &&
+                 trayHistoryCount[t] >= TRAY_FILTER_SAMPLES;
+  if (!allowed) { windowStart[t] = 0; return; }
 
-  if (steadySince[t] == 0) { steadySince[t] = millis(); lo[t] = hi[t] = m; return; }
-  if (m < lo[t]) lo[t] = m;
-  if (m > hi[t]) hi[t] = m;
-  if (hi[t] - lo[t] > TRAY_ZERO_TRACK_STEADY_GRAMS) { steadySince[t] = millis(); lo[t] = hi[t] = m; return; }
-  if (millis() - steadySince[t] < TRAY_ZERO_TRACK_MS) return;
+  if (windowStart[t] == 0) { windowStart[t] = millis(); floorGrams[t] = m; return; }
+  if (m < floorGrams[t] - TRAY_ZERO_TRACK_STEADY_GRAMS) {
+    // Still settling downward: start again from the new floor.
+    windowStart[t] = millis(); floorGrams[t] = m; return;
+  }
+  if (m < floorGrams[t]) floorGrams[t] = m;
+  if (millis() - windowStart[t] < TRAY_ZERO_TRACK_MS) return;
 
-  // Move the zero so this reading becomes 0 g: units = (raw - offset) / scale.
+  float f = floorGrams[t];
+  windowStart[t] = 0;
+  // Only small offsets near zero are drift; a floor above the band is feed.
+  if (f <= TRAY_DRIFT_MIN_GRAMS || f >= TRAY_ZERO_TRACK_BAND_GRAMS || fabs(f) < TRAY_ZERO_TRACK_MIN_GRAMS) return;
+
+  // Move the zero so the floor becomes 0 g: units = (raw - offset) / scale.
   HX711& scale = trayScales[t];
-  scale.set_offset(scale.get_offset() + (long)(m * scale.get_scale()));
+  scale.set_offset(scale.get_offset() + (long)(f * scale.get_scale()));
   saveTrayZeros();
-  resetTrayFilter(t, 0.0f);
-  trayWeightsGrams[t] = 0.0f;
+  resetTrayFilter(t, wholeGrams(m - f));
+  trayWeightsGrams[t] = wholeGrams(m - f);
   updateFeedTotal();
-  steadySince[t] = 0;
 
   Serial.print(F("Tray ")); Serial.print(t + 1);
-  Serial.print(F(" zero drifted to ")); Serial.print(m, 1); Serial.println(F(" g; re-zeroed."));
+  Serial.print(F(" zero drifted to ")); Serial.print(f, 1); Serial.println(F(" g; re-zeroed."));
   logEventToSD("TRAY_ZERO_TRACKED");
 }
