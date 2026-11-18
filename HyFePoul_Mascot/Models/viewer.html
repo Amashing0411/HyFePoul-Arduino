@@ -15,7 +15,7 @@
   header p { margin:2px 0 0; font-size:13px; opacity:.85; }
   main { display:grid; grid-template-columns: minmax(0,1fr) 340px; gap:16px; padding:16px; max-width:1300px; margin:0 auto; }
   main { align-items:start; }
-  #stage { background:#fff; border-radius:14px; height:min(78vh, 720px); position:sticky; top:16px; overflow:hidden; }
+  #stage { background:#fff; border-radius:14px; height:min(78vh, 720px); position:sticky; top:16px; overflow:hidden; padding:12px; }
   canvas { display:block; width:100%; height:100%; }
   #now { position:absolute; left:14px; top:12px; font-weight:600; color:var(--navy); font-size:14px; }
   aside { display:flex; flex-direction:column; gap:12px; }
@@ -72,7 +72,7 @@ const ground = new THREE.Mesh(new THREE.CircleGeometry(0.45, 48), new THREE.Mesh
 ground.rotation.x = -Math.PI / 2; scene.add(ground);
 
 function resize() {
-  const w = stage.clientWidth, h = stage.clientHeight;
+  const w = stage.clientWidth - 24, h = stage.clientHeight - 24;   // inside the 12px padding
   renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
 }
 new ResizeObserver(resize).observe(stage);
