@@ -1,6 +1,6 @@
 # HyFePoul Nextion design kit
 
-A restyle of the onsite panel (NX8048P070, 800x480) in the HyFePoul brand: the logo's blue header with the wave, white cards, large touch targets, green for go, matching the phone app.
+A restyle of the onsite panel (NX8048T070-011, 800x480) in the HyFePoul brand: the logo's blue header with the wave, white cards, large touch targets, green for go, matching the phone app.
 
 ![All pages](mockups/all-pages.png)
 

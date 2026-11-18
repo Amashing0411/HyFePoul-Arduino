@@ -29,7 +29,7 @@ def main():
     w('`Nextion/HyFePoul.hmi` already has this design applied. This guide records every value, for rebuilding '
       'it from an older project. The tables match the current project, where Home has no Stop button and Feed '
       'Target has a Step button (`b4`, ID 7). `Nextion_IDs.txt` lists the IDs the Mega uses.\n')
-    w('Time: about 45-60 minutes. Panel: NX8048P070 (800x480).\n')
+    w('Time: about 45-60 minutes. Panel: NX8048T070-011 (800x480).\n')
     w('## 0. Before you start\n')
     w('1. **Back up** `Nextion/HyFePoul.hmi` (copy it as `HyFePoul_before-design.hmi`).')
     w('2. Open `HyFePoul.hmi` in Nextion Editor.')

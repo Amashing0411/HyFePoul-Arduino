@@ -124,6 +124,11 @@ the panel-loadable artifact for the documented 800x480 NX8048P070_011 model.
 Confirm the actual panel model before flashing. No physical upload or display
 verification has been performed.
 
+> **Panel model correction (2026-11-19):** the fitted panel is the
+> **NX8048T070-011** (Basic series, 7.0", 800x480), not the NX8048P070_011.
+> A TFT compiled for the P070 will not load on it; compile for the T070 model
+> before flashing (see `Nextion/Nextion_IDs.txt`).
+
 ## App-History sync build (2026-10-28)
 
 These are the latest local outputs built from the app-History sync source. The
