@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "showcase",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "4173", "--directory", "showcase"],
+      "port": 4173
+    },
+    {
+      "name": "mascot",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "4180", "--directory", "HyFePoul_Mascot/Models"],
+      "port": 4180
+    }
+  ]
+}

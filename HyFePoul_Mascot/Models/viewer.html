@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PIP Viewer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --blue:#0d57cf; --navy:#12306b; --ice:#e8eff8; --green:#08875f; --ink:#24324d; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: Figtree, system-ui, sans-serif; background: var(--ice); color: var(--ink); }
+  header { background: linear-gradient(135deg,#0d57cf,#0a3a98 60%,#072a73); color:#fff; padding:14px 20px; }
+  header h1 { margin:0; font-size:20px; font-weight:700; }
+  header p { margin:2px 0 0; font-size:13px; opacity:.85; }
+  main { display:grid; grid-template-columns: minmax(0,1fr) 340px; gap:16px; padding:16px; max-width:1300px; margin:0 auto; }
+  main { align-items:start; }
+  #stage { background:#fff; border-radius:14px; height:min(78vh, 720px); position:sticky; top:16px; overflow:hidden; }
+  canvas { display:block; width:100%; height:100%; }
+  #now { position:absolute; left:14px; top:12px; font-weight:600; color:var(--navy); font-size:14px; }
+  aside { display:flex; flex-direction:column; gap:12px; }
+  section { background:#fff; border-radius:14px; padding:12px 14px; }
+  h2 { margin:0 0 8px; font-size:14px; color:var(--navy); }
+  .clips { display:flex; flex-wrap:wrap; gap:6px; }
+  button { font:inherit; font-size:12px; border:1px solid #c9d6ea; background:#f5f8fd; color:var(--navy); border-radius:8px; padding:8px 12px; cursor:pointer; }
+  button:hover { border-color: var(--blue); }
+  button.on { background: var(--green); border-color: var(--green); color:#fff; }
+  label { display:flex; justify-content:space-between; align-items:center; font-size:12px; gap:8px; margin:3px 0; }
+  input[type=range] { width:150px; }
+  #stats { font-size:12px; color:#556; line-height:1.5; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } #stage { height:420px; position:relative; top:0; } }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<header><h1>PIP: web export check</h1><p>Models/PIP.glb · three.js r170 · click a clip to crossfade to it</p></header>
+<main>
+  <div id="stage"><div id="now">Loading…</div></div>
+  <aside>
+    <section><h2>Locomotion</h2><div class="clips" data-g="Loco_"></div></section>
+    <section><h2>Personality</h2><div class="clips" data-g="Pers_"></div></section>
+    <section><h2>Website</h2><div class="clips" data-g="Web_"></div></section>
+    <section><h2>Expressions (poses)</h2><div class="clips" data-g="EXPR_"></div></section>
+    <section><h2>Face morphs (live, when paused)</h2><div id="morphs"></div></section>
+    <section id="stats"></section>
+  </aside>
+</main>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const stage = document.getElementById('stage'), now = document.getElementById('now');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+stage.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(30, 1, 0.01, 50);
+camera.position.set(-0.9, 0.75, 2.1);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0.48, 0); controls.enableDamping = true;
+scene.add(new THREE.HemisphereLight(0xffffff, 0xb8c8e6, 1.6));
+const key = new THREE.DirectionalLight(0xfff4e8, 2.2); key.position.set(-2, 3, 3); scene.add(key);
+const rim = new THREE.DirectionalLight(0x8fd6ff, 1.4); rim.position.set(1.5, 2, -3); scene.add(rim);
+const ground = new THREE.Mesh(new THREE.CircleGeometry(0.45, 48), new THREE.MeshBasicMaterial({ color: 0xdfe8f5 }));
+ground.rotation.x = -Math.PI / 2; scene.add(ground);
+
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage);
+
+let mixer, current, face;
+const actions = {};
+const clock = new THREE.Clock();
+const t0 = performance.now();
+
+new GLTFLoader().load('PIP.glb', (gltf) => {
+  const pip = gltf.scene; scene.add(pip);
+  face = pip.getObjectByName('PIP_Face');
+  mixer = new THREE.AnimationMixer(pip);
+  let tris = 0, draws = 0;
+  pip.traverse(o => { if (o.isMesh) { draws++; tris += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; } });
+  for (const clip of gltf.animations) {
+    const a = mixer.clipAction(clip);
+    const loop = /^(Loco_(Idle|LookAround|Walk|Run|Sleep)|Web_RoamDashboard)$/.test(clip.name);
+    a.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce); a.clampWhenFinished = !loop;
+    actions[clip.name] = a;
+    const box = document.querySelector(`.clips[data-g="${clip.name.split('_')[0]}_"]`);
+    const b = document.createElement('button'); b.textContent = clip.name.replace(/^[A-Za-z]+_/, ''); b.dataset.clip = clip.name;
+    b.onclick = () => play(clip.name); box.appendChild(b);
+  }
+  // morph sliders (only meaningful while no clip drives the face)
+  const md = document.getElementById('morphs');
+  const dict = face.morphTargetDictionary || face.children?.[0]?.morphTargetDictionary;
+  const faceMeshes = []; face.traverse(o => { if (o.morphTargetDictionary) faceMeshes.push(o); });
+  for (const name of Object.keys(faceMeshes[0].morphTargetDictionary)) {
+    const l = document.createElement('label'); l.innerHTML = `<span>${name}</span>`;
+    const r = document.createElement('input'); r.type = 'range'; r.min = 0; r.max = 1; r.step = 0.01; r.value = 0;
+    r.oninput = () => { if (current) { current.fadeOut(0.2); current = null; setOn(null); now.textContent = 'Morph test (no clip)'; }
+      faceMeshes.forEach(m => m.morphTargetInfluences[m.morphTargetDictionary[name]] = +r.value); };
+    l.appendChild(r); md.appendChild(l);
+  }
+  document.getElementById('stats').innerHTML =
+    `<b>${gltf.animations.length}</b> clips · <b>${draws}</b> draw calls · <b>${Math.round(tris).toLocaleString()}</b> triangles · ` +
+    `loaded in ${Math.round(performance.now() - t0)} ms`;
+  window.__pip = { clips: gltf.animations.map(c => c.name), draws, tris: Math.round(tris), morphs: Object.keys(faceMeshes[0].morphTargetDictionary) };
+  play('Web_Appear');
+  mixer.addEventListener('finished', e => { if (e.action === actions.Web_Appear) play('Loco_Idle'); });
+}, undefined, (err) => { now.textContent = 'Load failed: ' + err.message; window.__pipError = String(err); });
+
+function setOn(name) { document.querySelectorAll('button[data-clip]').forEach(b => b.classList.toggle('on', b.dataset.clip === name)); }
+function play(name) {
+  const next = actions[name]; if (!next) return;
+  next.reset().setEffectiveWeight(1).play();
+  if (current && current !== next) current.crossFadeTo(next, 0.25, false);
+  current = next; setOn(name); now.textContent = name;
+  window.__pipPlaying = name;
+}
+window.__play = play;
+
+renderer.setAnimationLoop(() => {
+  const dt = clock.getDelta();
+  if (mixer) mixer.update(dt);
+  controls.update(); renderer.render(scene, camera);
+});
+</script>
+</body>
+</html>
