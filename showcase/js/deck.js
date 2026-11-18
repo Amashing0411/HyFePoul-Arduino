@@ -47,7 +47,6 @@ const vslot = (id, thumb, label) => {
   return `<div class="vslot" data-video="${esc(id)}" data-a></div>`;
 };
 const head = (s, cls = '') => `<header class="sh ${cls}">
-  ${s.kicker ? `<p class="k" data-a>${esc(s.kicker)}</p>` : ''}
   ${s.title ? `<h2 class="h" data-a>${esc(s.title)}</h2>` : ''}
   ${s.text ? `<p class="lead" data-a>${esc(s.text)}</p>` : ''}
 </header>`;
@@ -56,10 +55,9 @@ const head = (s, cls = '') => `<header class="sh ${cls}">
 const R = {
   cover: (s, t) => `
     <div class="cover-text">
-      <p class="k" data-a>${esc(s.kicker)}</p>
       <h1 class="cover-title" data-a>${esc(s.title)}</h1>
       <p class="cover-sub" data-a>${esc(s.text)}</p>
-      <ul class="cover-meta" data-a>${(s.meta || []).map(m => `<li>${esc(m)}</li>`).join('')}</ul>
+      <ul class="cover-meta" data-a>${[...(s.meta || []), s.kicker].filter(Boolean).map(m => `<li>${esc(m)}</li>`).join('')}</ul>
     </div>
     <div class="cover-model">${t ? `<img src="media/deck/cad-render-colour.jpg" alt="">` : '<div class="model-host" data-mode="title"></div>'}</div>`,
 
@@ -77,39 +75,37 @@ const R = {
     const c = chap(s.chapter);
     return `${s.img && exists(s.img) ? `<img class="ch-bg" src="${esc(s.img)}" alt="" loading="lazy"${s.pos ? ` style="object-position:${esc(s.pos)}"` : ''}>` : ''}
       <div class="ch-text">
-        <p class="k" data-a>${esc(c.label)}</p>
-        <span class="ch-num" data-a aria-hidden="true">${String(D.chapters.filter(x => x.num).indexOf(c) + 1).padStart(2, '0')}</span>
+        <p class="ch-num" data-a>${esc(c.label)}</p>
         <h2 class="ch-title" data-a>${esc(c.title)}</h2>
       </div>`;
   },
 
   statement: s => `<div class="st-text${s.img ? '' : ' wide'}">
-      ${s.kicker ? `<p class="k" data-a>${esc(s.kicker)}</p>` : ''}
       <p class="st-big" data-a>${esc(s.text)}</p>
       ${s.sub ? `<p class="st-sub" data-a>${esc(s.sub)}</p>` : ''}
     </div>${s.img ? `<div class="st-img">${pic(s.img, { fit: 'cover', title: s.kicker })}</div>` : ''}`,
 
   points: s => `${head(s)}
-    <ol class="pts pts-${(s.points || []).length}">${(s.points || []).map((p, k) => `
-      <li data-a><span class="pt-n">${String(k + 1).padStart(2, '0')}</span><b>${esc(p.t)}</b><p>${esc(p.d)}</p></li>`).join('')}</ol>`,
+    <dl class="pts pts-${(s.points || []).length}">${(s.points || []).map(p => `
+      <div data-a><dt>${esc(p.t)}</dt><dd>${esc(p.d)}</dd></div>`).join('')}</dl>`,
 
   terms: s => `${head(s)}
     <dl class="terms">${s.items.map(p => `<div data-a><dt>${esc(p.t)}</dt><dd>${esc(p.d)}</dd></div>`).join('')}</dl>`,
 
   objectives: (s, t) => `${head(s)}
-    <div class="objs objs-${s.items.length}">${s.items.map(o => {
+    <ol class="objs">${s.items.map(o => {
       const v = video(o.video);
-      return `<article class="obj" data-a>
-        <span class="obj-l">${esc(o.label)}</span>
-        <b>${esc(o.t)}</b><p>${esc(o.d)}</p>
-        ${v ? `<button type="button" class="obj-v" data-play="${esc(o.video)}">${v.poster ? `<img src="${esc(v.poster)}" alt="" loading="lazy">` : ''}<span>${ICON.play} Watch it work</span></button>` : ''}
-      </article>`;
-    }).join('')}</div>`,
+      return `<li class="obj" data-a>
+        <span class="obj-l">${esc(o.label)}.</span>
+        <div class="obj-w"><b>${esc(o.t)}</b><p>${esc(o.d)}</p></div>
+        ${v ? `<button type="button" class="obj-v" data-play="${esc(o.video)}" aria-label="Play the ${esc(o.t)} recording">${v.poster ? `<img src="${esc(v.poster)}" alt="" loading="lazy">` : ''}<i>${ICON.play}</i></button>` : '<span></span>'}
+      </li>`;
+    }).join('')}</ol>`,
 
   media: s => s.layout === 'full'
     ? `<div class="full-img">${pic(s.img, { fit: s.fit || 'cover', title: s.title, eager: true })}</div>
-       <div class="full-cap">${s.kicker ? `<p class="k" data-a>${esc(s.kicker)}</p>` : ''}<h2 class="h" data-a>${esc(s.title)}</h2></div>`
-    : `<div class="split">${head(s)}<div class="split-img">${pic(s.img, { fit: s.fit, paper: s.paper, title: s.title })}</div></div>`,
+       <div class="full-cap"><h2 class="h" data-a>${esc(s.title)}</h2></div>`
+    : `<div class="split">${head(s)}<div class="split-img">${pic(s.img, { fit: s.fit, paper: s.paper, title: s.title })}${s.kicker ? `<p class="fig-cap">${esc(s.kicker)}. ${esc(s.title)}</p>` : ''}</div></div>`,
 
   gallery: s => {
     const imgs = s.images || [];
@@ -121,17 +117,90 @@ const R = {
   },
 
   flow: s => `${head(s)}
-    <ol class="flow flow-${s.nodes.length}">${s.nodes.map((n, k) => `<li data-a><span class="fl-n">${k + 1}</span><b>${esc(n.t)}</b><p>${esc(n.d)}</p></li>`).join('')}</ol>`,
+    <ol class="flow flow-${s.nodes.length}">${s.nodes.map(n => `<li data-a><b>${esc(n.t)}</b><p>${esc(n.d)}</p></li>`).join('')}</ol>`,
 
   chips: s => `${head(s)}<ul class="chips">${s.items.map(c => `<li data-a>${esc(c)}</li>`).join('')}</ul>`,
 
-  table: s => `${head(s)}
+  table: s => `${head(s)}${s.kicker ? `<p class="tcap">${esc(s.kicker)}</p>` : ''}
     <div class="tbl-wrap" data-a><table class="tbl${s.rows.length > 6 ? ' tbl-many' : ''}">
       <thead><tr>${s.columns.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead>
       <tbody>${s.rows.map(r => `<tr>${r.map(c => `<td${c === '' ? ' class="empty"' : ''}>${c === '' ? '<i></i>' : esc(c)}</td>`).join('')}</tr>`).join('')}</tbody>
     </table></div>
     ${s.foot ? `<p class="foot-note" data-a>${esc(s.foot)}</p>` : ''}
     ${s.todo ? `<p class="todo-line" data-a>${esc(GUIDE ? s.todo : 'Values to be added')}</p>` : ''}`,
+
+
+  // Chapter IV, laid out like the manuscript: the caption above the table, one row per condition,
+  // and a frame for the photo of each result (media/results/table-4-x-rN.jpg).
+  doctable: (s, t) => {
+    const photo = !!s.photos;
+    const cell = c => `<td${c === '' ? ' class="empty"' : ''}>${c === '' ? '<i></i>' : esc(c)}</td>`;
+    const shot = n => {
+      const f = findBase(`${s.photos}-r${n}`);
+      return f ? `<td class="shot"><button type="button" data-zoom="${esc(f)}" data-title="Table ${esc(s.table)}, row ${n}"><img src="${esc(f)}" alt="Result photo, row ${n}" loading="lazy"></button></td>`
+        : `<td class="shot"><span class="slot">${GUIDE ? esc(`${s.photos}-r${n}.jpg`) : 'Photo'}</span></td>`;
+    };
+    const bars = s.bars ? `<div class="hbars">${s.bars.map(([l, v]) => `<div><span>${esc(l)}</span><i style="--w:${(v / Math.max(...s.bars.map(b => b[1])) * 100).toFixed(1)}%"></i><b>${v} ${esc(s.unit || '')}</b></div>`).join('')}</div>` : '';
+    return `<header class="sh"><h2 class="h">${esc(s.title)}</h2></header>
+      <p class="tcap" data-a><b>Table ${esc(s.table)}.</b> ${esc(s.caption)}</p>
+      <div class="dt-wrap${bars ? ' with-bars' : ''}"><div class="tbl-wrap doc" data-a><table class="tbl doc-tbl${photo ? ' has-shot' : ''}${s.rows.length > 3 ? ' tight' : ''} cols-${s.columns.length}">
+        <thead><tr>${s.columns.map(c => `<th>${esc(c)}</th>`).join('')}${photo ? '<th>Actual image result</th>' : ''}</tr></thead>
+        <tbody>${s.rows.map((r, k) => `<tr>${r.map(cell).join('')}${photo ? shot((s.start || 0) + k + 1) : ''}</tr>`).join('')}</tbody>
+      </table></div>${bars}</div>
+      ${s.note ? `<p class="foot-note">${esc(s.note)}</p>` : ''}`;
+  },
+
+  // Weight tables: difference and accuracy are worked out from the target and the measured grams.
+  grams: (s, t) => {
+    const res = s.mode === 'residue';
+    const rows = s.rows.map((r, k) => {
+      const ok = r.target != null && r.actual != null;
+      const diff = ok ? Math.abs(r.actual - r.target) : null;
+      return { ...r, n: k + 1, diff, acc: ok ? 100 - diff / r.target * 100 : null };
+    });
+    const have = rows.filter(r => r.acc != null);
+    const avg = f => have.length ? have.reduce((a, r) => a + r[f], 0) / have.length : null;
+    const g = (v, d = 2) => v == null || v === '' ? '' : (+v).toFixed(d);
+    const cols = res ? ['Tray', 'Target (g)', 'Remaining (g)', 'Added (g)', 'Final (g)', 'Difference (g)', 'Accuracy'] : ['Tray', 'Target (g)', 'Actual (g)', 'Difference (g)', 'Accuracy'];
+    const cells = r => res ? [r.tray, g(r.target, 0), g(r.remaining, 1), g(r.added, 1), g(r.actual, 1), g(r.diff), r.acc == null ? '' : g(r.acc) + '%']
+      : [r.tray, g(r.target, 0), g(r.actual, 1), g(r.diff), r.acc == null ? '' : g(r.acc) + '%'];
+    const shot = n => { const f = findBase(`${s.photos}-r${n}`); return f ? `<td class="shot"><button type="button" data-zoom="${esc(f)}" data-title="Table ${esc(s.table)}, tray ${n}"><img src="${esc(f)}" alt="Tray ${n} result photo" loading="lazy"></button></td>` : `<td class="shot"><span class="slot">${GUIDE ? esc(`${s.photos}-r${n}.jpg`) : 'Photo'}</span></td>`; };
+    const td = c => `<td${c === '' ? ' class="empty"' : ''}>${c === '' ? '<i></i>' : esc(c)}</td>`;
+    const avgRow = res ? ['Average', g(avg('target'), 0), '', '', g(avg('actual')), g(avg('diff')), have.length ? g(avg('acc')) + '%' : '']
+      : ['Average', g(avg('target'), 0), g(avg('actual')), g(avg('diff')), have.length ? g(avg('acc')) + '%' : ''];
+    const target = rows.find(r => r.target != null)?.target;
+    const chart = have.length ? (() => {
+      const max = Math.max(...have.map(r => r.actual)) * 1.12, y = v => v / max * 100;
+      return `<div class="bars" role="img" aria-label="${esc(have.map(r => `${r.tray} ${r.actual} g`).join(', '))}, target ${target} g">
+        <div class="bars-target" style="bottom:${y(target)}%"><span>Target ${target} g</span></div>
+        ${have.map((r, k) => `<div class="bc" style="--h:${y(r.actual)}%;--d:${k * 70}ms"><span class="bar-v">${r.actual.toFixed(1)}</span><i></i><span class="bar-l">${esc(r.tray)}</span><span class="bar-a">${g(r.acc)}%</span></div>`).join('')}
+      </div>`;
+    })() : '';
+    return `<header class="sh"><h2 class="h">${esc(s.title)}</h2></header>
+      <p class="tcap" data-a><b>Table ${esc(s.table)}.</b> ${esc(s.caption)}${have.length ? ` <span class="tcap-sum">Average accuracy ${g(avg('acc'))}%</span>` : ''}</p>
+      <div class="dt-wrap${chart ? ' with-chart' : ''}"><div class="tbl-wrap doc" data-a><table class="tbl doc-tbl grams-tbl has-shot">
+        <thead><tr>${cols.map(c => `<th>${esc(c)}</th>`).join('')}<th>Actual image result</th></tr></thead>
+        <tbody>${rows.map(r => `<tr>${cells(r).map(td).join('')}${shot(r.n)}</tr>`).join('')}
+          <tr class="avg">${avgRow.map(td).join('')}<td></td></tr></tbody>
+      </table></div>${chart}</div>`;
+  },
+
+  // The components as labelled photos; an empty frame waits for a close-up.
+  parts: s => `${head(s)}
+    <ul class="parts">${s.items.map(p => `<li data-a>${exists(p.img)
+      ? `<button type="button" data-zoom="${esc(p.img)}" data-title="${esc(p.t)}"><img src="${esc(p.img)}" alt="${esc(p.t)}" loading="lazy"></button>`
+      : `<span class="slot">${GUIDE ? esc(p.img) : 'Photo'}</span>`}<b>${esc(p.t)}</b></li>`).join('')}</ul>`,
+
+  // Panel comments, each matched with what the team did about it.
+  panel: s => `${head(s)}
+    <div class="pnl" data-a>
+      <div class="pnl-h"><span>Panelist</span><span>Comment</span><span>What we did</span></div>
+      ${s.entries.map(e => {
+        const k = e.see ? S().findIndex(x => x.id === e.see) : -1;
+        const box = (v, l) => v ? `<p>${esc(v)}</p>` : `<p class="blank">${esc(l)}</p>`;
+        return `<div class="pnl-r"><div><b>${esc(e.who)}</b><span>${esc(e.role)}</span></div>${box(e.comment, 'Comment to be added')}<div>${box(e.action, 'Action to be added')}${k >= 0 ? `<button type="button" class="pnl-see" data-go="${k}">See slide ${k + 1}</button>` : ''}</div></div>`;
+      }).join('')}
+    </div>`,
 
   pins: s => `${head(s)}
     <div class="pins-grid">${s.rows.map(([p, d]) => `<div data-a><code>${esc(p)}</code><span>${esc(d)}</span></div>`).join('')}</div>`,
@@ -230,7 +299,7 @@ function build(s, i, thumb) {
   let body;
   try { body = (R[s.type] || R.todo)(s, thumb); } catch (e) { console.warn(s.id, e); body = head(s) + todo('This slide could not be drawn'); }
   el.innerHTML = body + (['cover', 'chapter', 'end'].includes(s.type) || (s.type === 'media' && s.layout === 'full') ? '' :
-    `<footer class="sf"><span>HyFePoul${c.num ? ` · ${esc(c.label)}` : ''}</span><span>${i + 1}</span></footer>`);
+    `<footer class="sf"><span>HyFePoul${c.num ? ` · ${esc(c.label)}` : ''}${s._sec ? ` · ${esc(s._sec)}` : ''}</span><span>${i + 1}</span></footer>`);
   if (GUIDE && !thumb) el.insertAdjacentHTML('beforeend', `<span class="guide-id">${esc(s.id)}</span>`);
   if (!thumb) el.querySelectorAll('[data-a]').forEach((n, k) => n.style.setProperty('--k', Math.min(k, 14)));
   if (!thumb && mode === 'slides') el.querySelectorAll('img[loading="lazy"]').forEach(im => { im.loading = 'eager'; });
@@ -530,7 +599,6 @@ const buildIO = new IntersectionObserver(es => es.forEach(e => {
   if (!e.isIntersecting || mode !== 'web' || !e.target.offsetHeight) return;
   const band = e.target; buildIO.unobserve(band);
   const i = +band.dataset.i, s = S()[i], el = build(s, i, false);
-  el.classList.add('enter'); el.style.setProperty('--dir', 0);
   band.querySelector('.frame').append(el);
   hydrate(el, s);
   revealIO.observe(band);
@@ -621,6 +689,7 @@ async function start() {
     fetch('data/library.json').then(r => r.json()).catch(() => LIB),
   ]);
   LIB.files = LIB.files || [];
+  { let sec = null, ch = null; S().forEach(x => { if (x.chapter !== ch) { ch = x.chapter; sec = null; } if (x.section) sec = x.section; x._sec = sec; }); }
   document.title = `${D.title}: ${S()[0]?.text || 'Presentation'}`;
   buildStrip(); buildGrid(); buildWeb(); setupInput();
   $('toSlides').addEventListener('click', () => setMode('slides'));
@@ -632,7 +701,7 @@ async function start() {
   else {
     document.body.classList.add('mode-web'); fit();
     const at = S().findIndex(s => s.id === h);
-    if (at > 0) requestAnimationFrame(() => scrollToSlide(at));
+    if (at > 0) setTimeout(() => { const b = document.querySelector(`.band[data-i="${at}"]`); if (b) b.scrollIntoView({ block: 'start' }); }, 300);
     onWebScroll();
   }
 }

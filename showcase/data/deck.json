@@ -1,642 +1,3041 @@
 {
   "title": "HyFePoul",
   "chapters": [
-    { "id": "open", "label": "Opening" },
-    { "id": "c1", "num": "I", "label": "Chapter I", "title": "The Project and Its Background" },
-    { "id": "c2", "num": "II", "label": "Chapter II", "title": "Review of Literature and Studies" },
-    { "id": "c3", "num": "III", "label": "Chapter III", "title": "Design and Methodology" },
-    { "id": "c4", "num": "IV", "label": "Chapter IV", "title": "Results and Discussion" },
-    { "id": "c5", "num": "V", "label": "Chapter V", "title": "Summary, Conclusions and Recommendations" },
-    { "id": "end", "label": "Closing" }
+    {
+      "id": "open",
+      "label": "Opening"
+    },
+    {
+      "id": "c1",
+      "num": "I",
+      "label": "Chapter I",
+      "title": "The Project and Its Background"
+    },
+    {
+      "id": "c2",
+      "num": "II",
+      "label": "Chapter II",
+      "title": "Review of Literature and Studies"
+    },
+    {
+      "id": "c3",
+      "num": "III",
+      "label": "Chapter III",
+      "title": "Design and Methodology"
+    },
+    {
+      "id": "c4",
+      "num": "IV",
+      "label": "Chapter IV",
+      "title": "Results and Discussion"
+    },
+    {
+      "id": "c5",
+      "num": "V",
+      "label": "Chapter V",
+      "title": "Summary, Conclusions and Recommendations"
+    },
+    {
+      "id": "end",
+      "label": "Closing"
+    }
   ],
   "slides": [
     {
-      "id": "cover", "chapter": "open", "type": "cover",
+      "id": "cover",
+      "chapter": "open",
+      "type": "cover",
       "kicker": "Design Project 2 · Group 3 · BSCpE 4D",
       "title": "HyFePoul",
       "text": "A Poultry Management System with Weight-Based Feed Dispensing and Water Level Monitoring Device",
-      "meta": ["Bachelor of Science in Computer Engineering", "College of Engineering, Pamantasan ng Lungsod ng San Pablo", "November 2026"],
+      "meta": [
+        "Bachelor of Science in Computer Engineering",
+        "College of Engineering, Pamantasan ng Lungsod ng San Pablo",
+        "November 2026"
+      ],
       "notes": "Good day. We are Group 3 of BSCpE 4D, and this is HyFePoul. The model on the right is built from our CAD drawing. It turns on its own; drag it to look around."
     },
     {
-      "id": "team", "chapter": "open", "type": "team",
+      "id": "team",
+      "chapter": "open",
+      "type": "team",
       "kicker": "Adviser · Engr. Angelica C. Samortin, MSECE",
       "notes": "Move along the rail to meet each researcher. Pull a badge down or click it to flip it."
     },
-    { "id": "agenda", "chapter": "open", "type": "agenda", "title": "Today's presentation" },
     {
-      "id": "one-line", "chapter": "open", "type": "statement",
+      "id": "agenda",
+      "chapter": "open",
+      "type": "agenda",
+      "title": "Today's presentation"
+    },
+    {
+      "id": "one-line",
+      "chapter": "open",
+      "type": "statement",
       "kicker": "HyFePoul in one line",
       "text": "It weighs every tray and pours only the feed that is missing.",
       "sub": "Five trays, five scales and one moving hopper, set from the touch screen or a phone.",
       "img": "media/photos/tray-and-drinkers.jpg"
     },
-
-    { "id": "c1", "chapter": "c1", "type": "chapter", "img": "media/deck/farm-hens.jpg" },
     {
-      "id": "intro", "chapter": "c1", "type": "statement",
+      "id": "c1",
+      "chapter": "c1",
+      "type": "chapter",
+      "img": "media/deck/farm-hens.jpg"
+    },
+    {
+      "id": "intro",
+      "chapter": "c1",
+      "type": "statement",
       "kicker": "Introduction",
       "text": "Most poultry farms still feed and water their flock by hand.",
       "sub": "It tires workers, takes time, and unmeasured feed means uneven portions for the hens.",
       "notes": "Agriculture is the main livelihood of millions of Filipino families (PSA, 2023, as cited in Razonales et al., 2025). Chicken is the most common poultry because of its nutritional value and low cost (Eda et al., 2023). Feeding and watering practices affect its quality (Franco et al., 2020, as cited in Zhou et al., 2022). Most farms still do this manually, which leads to fatigue and inconsistent feed and water."
     },
     {
-      "id": "client", "chapter": "c1", "type": "media", "layout": "split",
+      "id": "client",
+      "chapter": "c1",
+      "type": "media",
+      "layout": "split",
       "kicker": "Our client",
       "title": "A layer farm in San Pablo City, Laguna",
       "text": "Laying hens are raised here for eggs. Workers check supplies, pour feed and look at the water several times a day.",
-      "img": "media/deck/farm-hens.jpg", "fit": "cover",
+      "img": "media/deck/farm-hens.jpg",
+      "fit": "cover",
       "notes": "The farm is in Barangay Del Remedio, San Pablo City. Layers need a nutrient-rich, consistent diet to sustain egg production."
     },
     {
-      "id": "problem", "chapter": "c1", "type": "points",
+      "id": "problem",
+      "chapter": "c1",
+      "type": "points",
       "kicker": "The problem",
       "title": "What manual feeding leaves behind",
       "points": [
-        { "t": "Uneven portions", "d": "Feed is estimated by eye, not weighed, so trays get different amounts." },
-        { "t": "Late response", "d": "Nobody is told when the feed or water runs low." },
-        { "t": "No records", "d": "Visual checks leave no data on how much feed was given or eaten." }
+        {
+          "t": "Uneven portions",
+          "d": "Feed is estimated by eye, not weighed, so trays get different amounts."
+        },
+        {
+          "t": "Late response",
+          "d": "Nobody is told when the feed or water runs low."
+        },
+        {
+          "t": "No records",
+          "d": "Visual checks leave no data on how much feed was given or eaten."
+        }
       ],
       "notes": "Without weight-based feed measurement and timely notifications about low supply, consistent feeding and prompt response are hard. Without automated data collection, there are no accurate records to review."
     },
     {
-      "id": "general-objective", "chapter": "c1", "type": "statement",
+      "id": "general-objective",
+      "chapter": "c1",
+      "type": "statement",
       "kicker": "General objective",
       "text": "Reduce manual labor, minimize feed wastage and improve monitoring of feed and water.",
       "sub": "For poultry farm owners in San Pablo City, through an automated system built on the Arduino Mega 2560 and the ESP32.",
       "notes": "The general objective is to help poultry farm owners in San Pablo City, Laguna, improve their daily operations by designing and developing HyFePoul, which aims to reduce manual labor, minimize feed wastage, and provide better monitoring of feed and water availability."
     },
     {
-      "id": "objectives-1", "chapter": "c1", "type": "objectives",
+      "id": "objectives-1",
+      "chapter": "c1",
+      "type": "objectives",
       "kicker": "Specific objective 1 · Functions a to d",
       "title": "Feeding, moving and measuring",
       "items": [
-        { "label": "a", "t": "Feeding schedules", "d": "Up to three times a day, set on the panel or the app, kept through power loss.", "video": "scheduled-feed" },
-        { "label": "b", "t": "Moving hopper", "d": "A chain carries the hopper along five trays between two limit switches, then home.", "video": "moving-hopper" },
-        { "label": "c", "t": "Weight-based dispensing", "d": "A 1 kg load cell under each tray stops the pour at its target.", "video": "missing-only" },
-        { "label": "d", "t": "Feed level", "d": "An ultrasonic sensor warns, alerts the app and blocks a cycle when the hopper is nearly empty.", "video": "low-feed" }
+        {
+          "label": "a",
+          "t": "Feeding schedules",
+          "d": "Up to three times a day, set on the panel or the app, kept through power loss.",
+          "video": "scheduled-feed"
+        },
+        {
+          "label": "b",
+          "t": "Moving hopper",
+          "d": "A chain carries the hopper along five trays between two limit switches, then home.",
+          "video": "moving-hopper"
+        },
+        {
+          "label": "c",
+          "t": "Weight-based dispensing",
+          "d": "A 1 kg load cell under each tray stops the pour at its target.",
+          "video": "missing-only"
+        },
+        {
+          "label": "d",
+          "t": "Feed level",
+          "d": "An ultrasonic sensor warns, alerts the app and blocks a cycle when the hopper is nearly empty.",
+          "video": "low-feed"
+        }
       ],
       "notes": "a. Implementing programmable feeding schedules of up to three daily feeding times, with an adjustable feed dispensing amount, set through the Nextion display or the mobile application and retained during power interruptions.\nb. Distributing feed through a chain-driven moving hopper that travels along five feeding trays, using home and end limit switches to determine its starting and ending positions, prevent movement beyond its limits, and return home after each cycle.\nc. Dispensing user-defined quantities into each tray using a 1 kg load cell under each tray with HX711 amplifiers, stopping once the tray's target weight is reached.\nd. Monitoring the hopper feed level with an ultrasonic sensor, notifying the app and sounding the buzzer at the low threshold, and preventing or stopping a cycle when the hopper is nearly empty."
     },
     {
-      "id": "objectives-2", "chapter": "c1", "type": "objectives",
+      "id": "objectives-2",
+      "chapter": "c1",
+      "type": "objectives",
       "kicker": "Specific objective 1 · Functions e to g",
       "title": "Water, screen and app",
       "items": [
-        { "label": "e", "t": "Water level", "d": "A float switch in the gravity-fed reservoir sounds the buzzer and alerts the app.", "video": "low-water" },
-        { "label": "f", "t": "Touch panel", "d": "A 7-inch Nextion screen shows status, weights and schedules, and starts a feed.", "video": "nextion-screens" },
-        { "label": "g", "t": "Mobile app", "d": "Sign in, link the device, monitor, set schedules, feed and get alerts.", "video": "app-tour" }
+        {
+          "label": "e",
+          "t": "Water level",
+          "d": "A float switch in the gravity-fed reservoir sounds the buzzer and alerts the app.",
+          "video": "low-water"
+        },
+        {
+          "label": "f",
+          "t": "Touch panel",
+          "d": "A 7-inch Nextion screen shows status, weights and schedules, and starts a feed.",
+          "video": "nextion-screens"
+        },
+        {
+          "label": "g",
+          "t": "Mobile app",
+          "d": "Sign in, link the device, monitor, set schedules, feed and get alerts.",
+          "video": "app-tour"
+        }
       ],
       "notes": "e. Monitoring the water level in the gravity-fed reservoir using a float switch, notifying the app and activating the buzzer when manual replenishment is needed.\nf. Providing a Nextion display that shows operational status, tray feed weights, hopper level, water status and schedules, allows an on-demand feed, and presents recent records.\ng. Developing a mobile application for signing in, linking the device, viewing status and history, opening the Google Sheets log, adjusting schedules, starting a manual feed, and receiving notifications."
     },
     {
-      "id": "objectives-3", "chapter": "c1", "type": "objectives",
+      "id": "objectives-3",
+      "chapter": "c1",
+      "type": "objectives",
       "kicker": "Specific objective 1 · Functions h to j",
       "title": "Records, connection and power",
       "items": [
-        { "label": "h", "t": "Records", "d": "Data goes to Firebase and is copied to a Google Sheet, one tab per month.", "video": "records-log" },
-        { "label": "i", "t": "Wi-Fi bridge", "d": "The ESP32 sends timely updates. Offline, the device keeps feeding and sends pending data later.", "video": "offline" },
-        { "label": "j", "t": "Battery backup", "d": "A 12 V battery keeps feeding, monitoring and safety running during outages.", "video": "battery" }
+        {
+          "label": "h",
+          "t": "Records",
+          "d": "Data goes to Firebase and is copied to a Google Sheet, one tab per month.",
+          "video": "records-log"
+        },
+        {
+          "label": "i",
+          "t": "Wi-Fi bridge",
+          "d": "The ESP32 sends timely updates. Offline, the device keeps feeding and sends pending data later.",
+          "video": "offline"
+        },
+        {
+          "label": "j",
+          "t": "Battery backup",
+          "d": "A 12 V battery keeps feeding, monitoring and safety running during outages.",
+          "video": "battery"
+        }
       ],
       "notes": "h. Recording tray weights, hopper level, water status and alerts in Firebase Realtime Database, copied periodically to Google Sheets with a new sheet each month. Schedules, calibration and daily totals are also kept on the controller.\ni. Transmitting system data through the ESP32 over Wi-Fi, so the app receives timely updates, while the device keeps its schedules and safety functions offline and sends pending alerts and records once connected.\nj. Providing a battery backup that powers all components during main power interruptions, except internet-dependent functions."
     },
     {
-      "id": "objectives-more", "chapter": "c1", "type": "points",
+      "id": "objectives-more",
+      "chapter": "c1",
+      "type": "points",
       "kicker": "Specific objectives 2 and 3",
       "title": "Evaluate it, then deploy it",
       "points": [
-        { "t": "Evaluate with ISO/IEC 25010", "d": "Functional suitability, performance efficiency, compatibility, interaction capability, reliability, security, maintainability, flexibility and safety." },
-        { "t": "Deploy to a poultry farm", "d": "Install and hand over the device at the client's farm in San Pablo City, Laguna." }
+        {
+          "t": "Evaluate with ISO/IEC 25010",
+          "d": "Functional suitability, performance efficiency, compatibility, interaction capability, reliability, security, maintainability, flexibility and safety."
+        },
+        {
+          "t": "Deploy to a poultry farm",
+          "d": "Install and hand over the device at the client's farm in San Pablo City, Laguna."
+        }
       ]
     },
     {
-      "id": "scope", "chapter": "c1", "type": "points",
+      "id": "scope",
+      "chapter": "c1",
+      "type": "points",
       "kicker": "Scope",
       "title": "What the project covers",
       "points": [
-        { "t": "Design to evaluation", "d": "Built, tested and evaluated for one layer farm in San Pablo City." },
-        { "t": "Two controllers", "d": "The Arduino Mega 2560 runs the machine; the ESP32 handles Wi-Fi." },
-        { "t": "On site and remote", "d": "A 7-inch touch screen on the machine and a mobile app anywhere." },
-        { "t": "Outages", "d": "Keeps working offline and on battery power." }
+        {
+          "t": "Design to evaluation",
+          "d": "Built, tested and evaluated for one layer farm in San Pablo City."
+        },
+        {
+          "t": "Two controllers",
+          "d": "The Arduino Mega 2560 runs the machine; the ESP32 handles Wi-Fi."
+        },
+        {
+          "t": "On site and remote",
+          "d": "A 7-inch touch screen on the machine and a mobile app anywhere."
+        },
+        {
+          "t": "Outages",
+          "d": "Keeps working offline and on battery power."
+        }
       ]
     },
     {
-      "id": "limitations", "chapter": "c1", "type": "points",
+      "id": "limitations",
+      "chapter": "c1",
+      "type": "points",
       "kicker": "Limitations",
       "title": "Where it stops",
       "points": [
-        { "t": "One farm, one species", "d": "Tailored for laying hens; other layouts or flocks may differ." },
-        { "t": "Calibration matters", "d": "Accuracy depends on load-cell calibration and hopper alignment." },
-        { "t": "Water is refilled by hand", "d": "The system only detects low water and alerts." },
-        { "t": "Internet for remote use", "d": "Cloud, app and alerts need a connection; battery runtime is limited." }
+        {
+          "t": "One farm, one species",
+          "d": "Tailored for laying hens; other layouts or flocks may differ."
+        },
+        {
+          "t": "Calibration matters",
+          "d": "Accuracy depends on load-cell calibration and hopper alignment."
+        },
+        {
+          "t": "Water is refilled by hand",
+          "d": "The system only detects low water and alerts."
+        },
+        {
+          "t": "Internet for remote use",
+          "d": "Cloud, app and alerts need a connection; battery runtime is limited."
+        }
       ]
     },
     {
-      "id": "significance", "chapter": "c1", "type": "points",
+      "id": "significance",
+      "chapter": "c1",
+      "type": "points",
       "kicker": "Significance of the project",
       "title": "Who benefits",
       "points": [
-        { "t": "Poultry farmers", "d": "More accurate feeding and water management, monitored from a phone." },
-        { "t": "Poultry industry", "d": "A working example of affordable farm automation." },
-        { "t": "Developers", "d": "A reference for joining the Mega, ESP32, load cells and a touch screen." },
-        { "t": "Future developers", "d": "A baseline for analytics and feed-prediction features." }
+        {
+          "t": "Poultry farmers",
+          "d": "More accurate feeding and water management, monitored from a phone."
+        },
+        {
+          "t": "Poultry industry",
+          "d": "A working example of affordable farm automation."
+        },
+        {
+          "t": "Developers",
+          "d": "A reference for joining the Mega, ESP32, load cells and a touch screen."
+        },
+        {
+          "t": "Future developers",
+          "d": "A baseline for analytics and feed-prediction features."
+        }
       ]
     },
     {
-      "id": "tam", "chapter": "c1", "type": "flow",
+      "id": "tam",
+      "chapter": "c1",
+      "type": "flow",
       "kicker": "Theoretical framework",
       "title": "Technology Acceptance Model",
       "text": "People adopt a tool when they find it easy and useful (Davis, 1986).",
       "nodes": [
-        { "t": "Perceived ease of use", "d": "Is it simple to operate?" },
-        { "t": "Perceived usefulness", "d": "Does it help the farm?" },
-        { "t": "Intention to use", "d": "Will the farmer keep using it?" },
-        { "t": "Actual use", "d": "Daily feeding with HyFePoul" }
+        {
+          "t": "Perceived ease of use",
+          "d": "Is it simple to operate?"
+        },
+        {
+          "t": "Perceived usefulness",
+          "d": "Does it help the farm?"
+        },
+        {
+          "t": "Intention to use",
+          "d": "Will the farmer keep using it?"
+        },
+        {
+          "t": "Actual use",
+          "d": "Daily feeding with HyFePoul"
+        }
       ],
       "notes": "Perceived ease of use influences both perceived usefulness and behavioral intention. Perceived usefulness also directly affects intention, which leads to actual system use."
     },
     {
-      "id": "conceptual", "chapter": "c1", "type": "media", "layout": "split",
+      "id": "conceptual",
+      "chapter": "c1",
+      "type": "media",
+      "layout": "split",
       "kicker": "Conceptual framework",
       "title": "Input, process, output and evaluation",
       "text": "Sensors, controllers, outputs, data and power go in. HyFePoul processes them. Feed, alerts and records come out, evaluated with ISO/IEC 25010.",
-      "img": "media/deck/conceptual-framework.png", "fit": "contain", "paper": true,
+      "img": "media/deck/conceptual-framework.png",
+      "fit": "contain",
+      "paper": true,
       "notes": "Figure 1.2 follows the Input-Process-Output-Evaluation model."
     },
     {
-      "id": "terms", "chapter": "c1", "type": "terms",
+      "id": "terms",
+      "chapter": "c1",
+      "type": "terms",
       "kicker": "Definition of terms",
       "title": "Six words to know",
       "items": [
-        { "t": "Load cell", "d": "Turns the weight on a tray into an electrical signal." },
-        { "t": "HX711", "d": "Amplifies that signal so the Mega can read grams." },
-        { "t": "Ultrasonic sensor", "d": "Measures the distance to the feed to estimate the hopper level." },
-        { "t": "Float switch", "d": "Flips when the reservoir water drops below its level." },
-        { "t": "Nextion display", "d": "The 7-inch touch screen on the machine." },
-        { "t": "ESP32", "d": "The Wi-Fi board that links the device to the cloud." }
+        {
+          "t": "Load cell",
+          "d": "Turns the weight on a tray into an electrical signal."
+        },
+        {
+          "t": "HX711",
+          "d": "Amplifies that signal so the Mega can read grams."
+        },
+        {
+          "t": "Ultrasonic sensor",
+          "d": "Measures the distance to the feed to estimate the hopper level."
+        },
+        {
+          "t": "Float switch",
+          "d": "Flips when the reservoir water drops below its level."
+        },
+        {
+          "t": "Nextion display",
+          "d": "The 7-inch touch screen on the machine."
+        },
+        {
+          "t": "ESP32",
+          "d": "The Wi-Fi board that links the device to the cloud."
+        }
       ]
     },
-
-    { "id": "c2", "chapter": "c2", "type": "chapter", "img": "media/photos/control-box-inside.jpg" },
     {
-      "id": "lit-traditional", "chapter": "c2", "type": "points",
+      "id": "c2",
+      "chapter": "c2",
+      "type": "chapter",
+      "img": "media/deck/team-review.jpg",
+      "pos": "center 45%"
+    },
+    {
+      "id": "lit-traditional",
+      "chapter": "c2",
+      "type": "points",
       "kicker": "Review of conceptual literature",
       "title": "How farms feed and water today",
       "points": [
-        { "t": "Mostly by hand", "d": "Manual feeding is still the norm on smallholder farms (Deni et al., 2026; Simon and Palaoag, 2024)." },
-        { "t": "Water comes first", "d": "Birds drink about 1.5 to 2 times as much as they eat (El-Sabrout et al.)." },
-        { "t": "Layers need more", "d": "Feed needs change with age and production stage (De Grano et al., 2025)." }
+        {
+          "t": "Mostly by hand",
+          "d": "Manual feeding is still the norm on smallholder farms (Deni et al., 2026; Simon and Palaoag, 2024)."
+        },
+        {
+          "t": "Water comes first",
+          "d": "Birds drink about 1.5 to 2 times as much as they eat (El-Sabrout et al.)."
+        },
+        {
+          "t": "Layers need more",
+          "d": "Feed needs change with age and production stage (De Grano et al., 2025)."
+        }
       ]
     },
     {
-      "id": "lit-innovations", "chapter": "c2", "type": "points",
+      "id": "lit-innovations",
+      "chapter": "c2",
+      "type": "points",
       "kicker": "Review of conceptual literature",
       "title": "Where automation is heading",
       "points": [
-        { "t": "Precision livestock farming", "d": "Continuous, automated monitoring of production (Zaharieva and Dunchev, 2025; Bist et al., 2026)." },
-        { "t": "Affordable local builds", "d": "Arduino and ESP32 feeders close the cost gap in the Philippines (Araneta, 2025)." },
-        { "t": "Less waste", "d": "Closed, measured feeding replaces open troughs that waste feed." }
+        {
+          "t": "Precision livestock farming",
+          "d": "Continuous, automated monitoring of production (Zaharieva and Dunchev, 2025; Bist et al., 2026)."
+        },
+        {
+          "t": "Affordable local builds",
+          "d": "Arduino and ESP32 feeders close the cost gap in the Philippines (Araneta, 2025)."
+        },
+        {
+          "t": "Less waste",
+          "d": "Closed, measured feeding replaces open troughs that waste feed."
+        }
       ]
     },
     {
-      "id": "components", "chapter": "c2", "type": "chips",
-      "kicker": "Components reviewed",
+      "id": "components",
+      "chapter": "c2",
+      "type": "parts",
       "title": "The parts we chose",
-      "items": ["Arduino Mega 2560", "ESP32", "Nextion 7-inch display", "1 kg load cell × 5", "HX711 × 5", "6-channel relay", "12 V 12 Ah battery", "12 V 12.5 A power supply", "RTC module", "Buzzer", "Charge controller", "Main power switch", "DC-DC buck converter", "Right-angle float switch", "DC worm gear motor", "Limit switch", "HC-SR04 ultrasonic sensor"]
+      "items": [
+        {
+          "t": "Arduino Mega 2560",
+          "img": "media/parts/mega.jpg"
+        },
+        {
+          "t": "ESP32",
+          "img": "media/parts/esp32.jpg"
+        },
+        {
+          "t": "Nextion 7-inch display",
+          "img": "media/photos/panel-home-live.jpg"
+        },
+        {
+          "t": "1 kg load cell × 5",
+          "img": "media/photos/load-cell-under-tray.jpg"
+        },
+        {
+          "t": "HX711 × 5",
+          "img": "media/parts/hx711.jpg"
+        },
+        {
+          "t": "6-channel relay",
+          "img": "media/parts/relay.jpg"
+        },
+        {
+          "t": "12 V 12 Ah battery",
+          "img": "media/parts/battery.jpg"
+        },
+        {
+          "t": "12 V 12.5 A power supply",
+          "img": "media/photos/power-supply.jpg"
+        },
+        {
+          "t": "RTC module",
+          "img": "media/parts/rtc.jpg"
+        },
+        {
+          "t": "Buzzer",
+          "img": "media/parts/buzzer.jpg"
+        },
+        {
+          "t": "Charge controller",
+          "img": "media/parts/charger.jpg"
+        },
+        {
+          "t": "Main power switch",
+          "img": "media/photos/power-switch.jpg"
+        },
+        {
+          "t": "DC-DC buck converter",
+          "img": "media/parts/buck.jpg"
+        },
+        {
+          "t": "Right-angle float switch",
+          "img": "media/photos/float-switch.jpg"
+        },
+        {
+          "t": "DC worm gear motor",
+          "img": "media/photos/dispenser.jpg"
+        },
+        {
+          "t": "Limit switch",
+          "img": "media/photos/limit-switch.jpg"
+        },
+        {
+          "t": "HC-SR04 ultrasonic sensor",
+          "img": "media/photos/ultrasonic.jpg"
+        }
+      ],
+      "text": "Photos from our build. Empty frames are waiting for a close-up of that part."
     },
     {
-      "id": "studies-1", "chapter": "c2", "type": "table",
+      "id": "studies-1",
+      "chapter": "c2",
+      "type": "table",
       "kicker": "Review of research projects",
       "title": "Weighing and feeding studies",
-      "columns": ["Study", "What it built", "What we took from it"],
+      "columns": [
+        "Study",
+        "What it built",
+        "What we took from it"
+      ],
       "rows": [
-        ["Asri et al., 2024", "Arduino Mega, load cell and HX711 weighing machine: 1 kg in 11.86 s vs 57.6 s by hand", "Load-cell dispensing"],
-        ["Peng et al., 2022", "Feeder with load cells and RFID; 2.164 g mean deviation", "Weighing during feeding"],
-        ["David and Galina, 2024", "Granulated food weigher, 99.72% accuracy", "Screw conveyor plus scale"],
-        ["Hermawan, 2023", "IoT chicken feeder, 99.075% weighing accuracy", "Weight-based poultry feeding"]
+        [
+          "Asri et al., 2024",
+          "Arduino Mega, load cell and HX711 weighing machine: 1 kg in 11.86 s vs 57.6 s by hand",
+          "Load-cell dispensing"
+        ],
+        [
+          "Peng et al., 2022",
+          "Feeder with load cells and RFID; 2.164 g mean deviation",
+          "Weighing during feeding"
+        ],
+        [
+          "David and Galina, 2024",
+          "Granulated food weigher, 99.72% accuracy",
+          "Screw conveyor plus scale"
+        ],
+        [
+          "Hermawan, 2023",
+          "IoT chicken feeder, 99.075% weighing accuracy",
+          "Weight-based poultry feeding"
+        ]
       ]
     },
     {
-      "id": "studies-2", "chapter": "c2", "type": "table",
+      "id": "studies-2",
+      "chapter": "c2",
+      "type": "table",
       "kicker": "Review of research projects",
       "title": "Scheduling and monitoring studies",
-      "columns": ["Study", "What it built", "What we took from it"],
+      "columns": [
+        "Study",
+        "What it built",
+        "What we took from it"
+      ],
       "rows": [
-        ["Mansur, 2025", "RTC-scheduled feeder with a screw conveyor and three containers", "RTC schedules, auger"],
-        ["Tagacay, 2024", "Raspberry Pi feeder with Google Sheets logging", "Sheets log, feed level"],
-        ["Karun et al., 2024", "IoT poultry system with an auger and water control", "Sensors plus app"],
-        ["Laksono et al., 2024", "PaYot Android app for broiler feeding", "Mobile monitoring"]
+        [
+          "Mansur, 2025",
+          "RTC-scheduled feeder with a screw conveyor and three containers",
+          "RTC schedules, auger"
+        ],
+        [
+          "Tagacay, 2024",
+          "Raspberry Pi feeder with Google Sheets logging",
+          "Sheets log, feed level"
+        ],
+        [
+          "Karun et al., 2024",
+          "IoT poultry system with an auger and water control",
+          "Sensors plus app"
+        ],
+        [
+          "Laksono et al., 2024",
+          "PaYot Android app for broiler feeding",
+          "Mobile monitoring"
+        ]
       ]
     },
     {
-      "id": "synthesis", "chapter": "c2", "type": "statement",
+      "id": "synthesis",
+      "chapter": "c2",
+      "type": "statement",
       "kicker": "Design synthesis",
       "text": "None of the reviewed systems weighs each tray and pours only what is missing.",
       "sub": "Most estimate feed from motor run time or watch only the storage level. HyFePoul adds per-tray scales, water alerts and offline operation.",
       "notes": "Load-cell studies (Asri, Anand, David and Galina, Hermawan) shaped the weighing. Scheduling studies (Mansur, Ajayi, Chaurasia, Lumban Tobing and Kusuma) led to the RTC and worm gear motor. Hydration studies (Karun, Tagacay, Hidzir and Ismail, Preethi) led to the float switch. Connectivity studies (Velasco, Laksono, Tagacay) led to the ESP32 and app."
     },
-
-    { "id": "c3", "chapter": "c3", "type": "chapter", "img": "media/deck/testing-2.jpg", "pos": "center 30%" },
     {
-      "id": "block", "chapter": "c3", "type": "media", "layout": "split",
+      "id": "c3",
+      "chapter": "c3",
+      "type": "chapter",
+      "img": "media/deck/testing-2.jpg",
+      "pos": "center 30%"
+    },
+    {
+      "id": "block",
+      "chapter": "c3",
+      "type": "media",
+      "layout": "split",
       "kicker": "Project design · Figure 3.1",
       "title": "Block diagram",
       "text": "The Mega reads every sensor and drives the motors. The ESP32 carries the data to Firebase and the app.",
-      "img": "media/schematic/block-diagram.png", "fit": "contain", "paper": true
+      "img": "media/schematic/block-diagram.png",
+      "fit": "contain",
+      "paper": true
     },
     {
-      "id": "roles", "chapter": "c3", "type": "points",
+      "id": "roles",
+      "chapter": "c3",
+      "type": "points",
       "kicker": "Architecture",
       "title": "Each part has one job",
       "points": [
-        { "t": "Arduino Mega 2560", "d": "Reads sensors, runs feeding and safety, keeps the schedule." },
-        { "t": "ESP32", "d": "Wi-Fi bridge between the Mega and Firebase." },
-        { "t": "Nextion display", "d": "Status and controls on the machine." },
-        { "t": "App, Firebase, Sheets", "d": "Monitoring, alerts and the monthly log." }
+        {
+          "t": "Arduino Mega 2560",
+          "d": "Reads sensors, runs feeding and safety, keeps the schedule."
+        },
+        {
+          "t": "ESP32",
+          "d": "Wi-Fi bridge between the Mega and Firebase."
+        },
+        {
+          "t": "Nextion display",
+          "d": "Status and controls on the machine."
+        },
+        {
+          "t": "App, Firebase, Sheets",
+          "d": "Monitoring, alerts and the monthly log."
+        }
       ]
     },
     {
-      "id": "flowchart", "chapter": "c3", "type": "media", "layout": "split",
+      "id": "flowchart",
+      "chapter": "c3",
+      "type": "media",
+      "layout": "split",
       "kicker": "Project design · Figure 3.2",
       "title": "Flowchart",
       "text": "Select the chart to open it full size. Zoom with the wheel or a pinch.",
-      "img": "media/schematic/flowchart.png", "fit": "contain", "paper": true
+      "img": "media/schematic/flowchart.png",
+      "fit": "contain",
+      "paper": true
     },
     {
-      "id": "device3d", "chapter": "c3", "type": "model", "mode": "device",
+      "id": "device3d",
+      "chapter": "c3",
+      "type": "model",
+      "mode": "device",
       "kicker": "Figure 3.3 · Interactive",
       "title": "The device, part by part",
       "notes": "Switch views with the buttons, explode the model, or tap a number to read about a part. From the front, left to right, the trays are 5, 4, 3, 2, 1."
     },
     {
-      "id": "cad", "chapter": "c3", "type": "gallery",
+      "id": "cad",
+      "chapter": "c3",
+      "type": "gallery",
       "kicker": "Figures 3.4 and 3.5",
-      "title": "CAD drawings", "fit": "contain",
+      "title": "CAD drawings",
+      "fit": "contain",
       "images": [
-        { "src": "media/photos/cad-labelled.webp", "title": "Components setup, labelled" },
-        { "src": "media/photos/cad-three-views.webp", "title": "Three views" },
-        { "src": "media/photos/cad-drawing-sheet.png", "title": "Drawing sheet" }
+        {
+          "src": "media/photos/cad-labelled.webp",
+          "title": "Components setup, labelled"
+        },
+        {
+          "src": "media/photos/cad-three-views.webp",
+          "title": "Three views"
+        },
+        {
+          "src": "media/photos/cad-drawing-sheet.png",
+          "title": "Drawing sheet"
+        }
       ]
     },
     {
-      "id": "schematic", "chapter": "c3", "type": "media", "layout": "split",
+      "id": "schematic",
+      "chapter": "c3",
+      "type": "media",
+      "layout": "split",
       "kicker": "Appendix H.1",
       "title": "Schematic diagram",
       "text": "How every part is wired to the Arduino Mega.",
-      "img": "media/schematic/schematic.png", "fit": "contain", "paper": true
+      "img": "media/schematic/schematic.png",
+      "fit": "contain",
+      "paper": true
     },
     {
-      "id": "pins", "chapter": "c3", "type": "pins",
+      "id": "pins",
+      "chapter": "c3",
+      "type": "pins",
       "kicker": "From the firmware",
       "title": "Mega pin map",
       "rows": [
-        ["A0 / A1", "Tray 1 scale"], ["A2 / A3", "Tray 2 scale"], ["A4 / A5", "Tray 3 scale"], ["A8 / A9", "Tray 4 scale"], ["A6 / A7", "Tray 5 scale"],
-        ["10", "Relay 1: chain toward tray 1"], ["9", "Relay 2: chain toward tray 5"], ["8", "Relay 3: dispenser motor"],
-        ["11", "Buzzer"], ["52 / 50", "Level sensor TRIG / ECHO"], ["49", "Float switch"], ["53", "Home limit switch"],
-        ["51", "End limit switch"], ["16 / 17", "Touch screen RX / TX"], ["20 / 21", "Clock SDA / SCL"], ["14 / 15", "ESP32 GPIO16 / GPIO17"]
+        [
+          "A0 / A1",
+          "Tray 1 scale"
+        ],
+        [
+          "A2 / A3",
+          "Tray 2 scale"
+        ],
+        [
+          "A4 / A5",
+          "Tray 3 scale"
+        ],
+        [
+          "A8 / A9",
+          "Tray 4 scale"
+        ],
+        [
+          "A6 / A7",
+          "Tray 5 scale"
+        ],
+        [
+          "10",
+          "Relay 1: chain toward tray 1"
+        ],
+        [
+          "9",
+          "Relay 2: chain toward tray 5"
+        ],
+        [
+          "8",
+          "Relay 3: dispenser motor"
+        ],
+        [
+          "11",
+          "Buzzer"
+        ],
+        [
+          "52 / 50",
+          "Level sensor TRIG / ECHO"
+        ],
+        [
+          "49",
+          "Float switch"
+        ],
+        [
+          "53",
+          "Home limit switch"
+        ],
+        [
+          "51",
+          "End limit switch"
+        ],
+        [
+          "16 / 17",
+          "Touch screen RX / TX"
+        ],
+        [
+          "20 / 21",
+          "Clock SDA / SCL"
+        ],
+        [
+          "14 / 15",
+          "ESP32 GPIO16 / GPIO17"
+        ]
       ]
     },
     {
-      "id": "cycle", "chapter": "c3", "type": "steps",
+      "id": "cycle",
+      "chapter": "c3",
+      "type": "steps",
       "kicker": "How it works",
       "title": "One feed cycle",
       "steps": [
-        { "t": "Go home", "d": "The hopper rides the chain to tray 1 and stops at the home switch." },
-        { "t": "Weigh every tray", "d": "Each scale reports the feed already there." },
-        { "t": "Pour what is missing", "d": "Over trays 1 to 5, the auger pours only the missing grams." },
-        { "t": "Top up", "d": "Each tray is weighed again and a short pour closes the gap." },
-        { "t": "Return and report", "d": "The hopper goes home and the results go to the app." }
+        {
+          "t": "Go home",
+          "d": "The hopper rides the chain to tray 1 and stops at the home switch."
+        },
+        {
+          "t": "Weigh every tray",
+          "d": "Each scale reports the feed already there."
+        },
+        {
+          "t": "Pour what is missing",
+          "d": "Over trays 1 to 5, the auger pours only the missing grams."
+        },
+        {
+          "t": "Top up",
+          "d": "Each tray is weighed again and a short pour closes the gap."
+        },
+        {
+          "t": "Return and report",
+          "d": "The hopper goes home and the results go to the app."
+        }
       ]
     },
     {
-      "id": "agile", "chapter": "c3", "type": "flow",
-      "kicker": "Project development · Figure 3.6",
+      "id": "agile",
+      "chapter": "c3",
+      "type": "media",
+      "kicker": "Figure 3.6",
       "title": "Agile model",
-      "text": "Each round of building and testing fed the next.",
-      "nodes": [
-        { "t": "Plan", "d": "Farm visits and requirements" },
-        { "t": "Design", "d": "Architecture, circuit, flow" },
-        { "t": "Develop", "d": "Hardware and software" },
-        { "t": "Test", "d": "Modules, then the whole" },
-        { "t": "Deploy", "d": "Install at the farm" },
-        { "t": "Review", "d": "Feedback and fixes" },
-        { "t": "Launch", "d": "Hand over for daily use" }
-      ]
+      "text": "Plan, design, develop, test, deploy and review, in rounds, until the device was ready to launch.",
+      "layout": "split",
+      "img": "media/deck/agile-model.png",
+      "fit": "contain",
+      "paper": true
     },
     {
-      "id": "testing", "chapter": "c3", "type": "points",
+      "id": "testing",
+      "chapter": "c3",
+      "type": "points",
       "kicker": "Testing procedure",
       "title": "Three levels of testing",
       "points": [
-        { "t": "Hardware", "d": "Every board, sensor, relay, motor and the battery, tested on its own." },
-        { "t": "Software", "d": "Schedules, dispensing logic, alerts, logging and the screen." },
-        { "t": "Specific objectives", "d": "Each function checked against its objective, a to j." }
+        {
+          "t": "Hardware",
+          "d": "Every board, sensor, relay, motor and the battery, tested on its own."
+        },
+        {
+          "t": "Software",
+          "d": "Schedules, dispensing logic, alerts, logging and the screen."
+        },
+        {
+          "t": "Specific objectives",
+          "d": "Each function checked against its objective, a to j."
+        }
       ]
     },
     {
-      "id": "likert", "chapter": "c3", "type": "table",
+      "id": "likert",
+      "chapter": "c3",
+      "type": "table",
       "kicker": "Validation criteria · Table 3.1",
       "title": "Five-point Likert scale",
-      "columns": ["Scale", "Mean interval", "Rating"],
+      "columns": [
+        "Scale",
+        "Mean interval",
+        "Rating"
+      ],
       "rows": [
-        ["5", "4.51 to 5.00", "Highly Acceptable"],
-        ["4", "3.51 to 4.50", "Very Acceptable"],
-        ["3", "2.51 to 3.50", "Acceptable"],
-        ["2", "1.51 to 2.50", "Moderately Acceptable"],
-        ["1", "1.50 and below", "Not Acceptable"]
+        [
+          "5",
+          "4.51 to 5.00",
+          "Highly Acceptable"
+        ],
+        [
+          "4",
+          "3.51 to 4.50",
+          "Very Acceptable"
+        ],
+        [
+          "3",
+          "2.51 to 3.50",
+          "Acceptable"
+        ],
+        [
+          "2",
+          "1.51 to 2.50",
+          "Moderately Acceptable"
+        ],
+        [
+          "1",
+          "1.50 and below",
+          "Not Acceptable"
+        ]
       ],
       "foot": "Mean = sum of all responses ÷ number of responses"
     },
     {
-      "id": "evaluation-method", "chapter": "c3", "type": "chips",
-      "kicker": "Project evaluation · ISO/IEC 25010",
-      "title": "Nine qualities we were rated on",
-      "text": "Rated by Computer Engineering practitioners, poultry farm personnel and agricultural specialists.",
-      "items": ["Functional suitability", "Performance efficiency", "Compatibility", "Interaction capability", "Reliability", "Security", "Maintainability", "Flexibility", "Safety"]
-    },
-    {
-      "id": "deploy-plan", "chapter": "c3", "type": "table",
-      "kicker": "Project development plan · Table 3.2",
-      "title": "Deployment plan",
-      "columns": ["Strategy", "Activities", "People", "Time"],
+      "id": "evaluation-method",
+      "chapter": "c3",
+      "type": "table",
+      "kicker": "ISO/IEC 25010",
+      "title": "What the evaluators rated",
+      "text": "Computer Engineering practitioners, poultry farm personnel and agricultural specialists rated each quality on the five-point scale.",
+      "columns": [
+        "Quality",
+        "What it means for HyFePoul"
+      ],
       "rows": [
-        ["Approval", "Letter for the farmers", "Client and developers", "15 min"],
-        ["Hardware assembly", "Set up and test the device", "Developers", "45 min"],
-        ["Distribution", "Manuals and first briefing", "Client and developers", "45 min"],
-        ["Training", "Basics of handling the device", "Client and developers", "1 h 30 min"]
+        [
+          "Functional suitability",
+          "Feeding, monitoring, notification and recording work as specified."
+        ],
+        [
+          "Performance efficiency",
+          "The system performs well under the test conditions."
+        ],
+        [
+          "Compatibility",
+          "Controllers, sensors, display and software work together."
+        ],
+        [
+          "Interaction capability",
+          "The panel and the app are easy to use."
+        ],
+        [
+          "Reliability",
+          "Functions work consistently during testing."
+        ],
+        [
+          "Security",
+          "Access control and data protection in the device, backend and app."
+        ],
+        [
+          "Maintainability",
+          "Hardware and software are easy to inspect, fix and update."
+        ],
+        [
+          "Flexibility",
+          "Targets and schedules can be adjusted without a redesign."
+        ],
+        [
+          "Safety",
+          "Emergency stop and hopper-position stops reduce risk."
+        ]
       ]
     },
-
-    { "id": "c4", "chapter": "c4", "type": "chapter", "img": "media/photos/panel-home-live.jpg" },
     {
-      "id": "machine", "chapter": "c4", "type": "media", "layout": "split",
+      "id": "deploy-plan",
+      "chapter": "c3",
+      "type": "table",
+      "kicker": "Project development plan · Table 3.2",
+      "title": "Deployment plan",
+      "columns": [
+        "Strategy",
+        "Activities",
+        "People",
+        "Time"
+      ],
+      "rows": [
+        [
+          "Approval",
+          "Letter for the farmers",
+          "Client and developers",
+          "15 min"
+        ],
+        [
+          "Hardware assembly",
+          "Set up and test the device",
+          "Developers",
+          "45 min"
+        ],
+        [
+          "Distribution",
+          "Manuals and first briefing",
+          "Client and developers",
+          "45 min"
+        ],
+        [
+          "Training",
+          "Basics of handling the device",
+          "Client and developers",
+          "1 h 30 min"
+        ]
+      ]
+    },
+    {
+      "id": "c4",
+      "chapter": "c4",
+      "type": "chapter",
+      "img": "media/photos/panel-home-live.jpg"
+    },
+    {
+      "id": "machine",
+      "chapter": "c4",
+      "type": "media",
+      "layout": "split",
       "kicker": "Project technical feasibility",
       "title": "The finished machine",
       "text": "Five trays on load cells, a hopper on a chain, a gravity-fed reservoir, and the control box with its 7-inch touch screen.",
-      "img": "media/photos/side-view.jpg", "fit": "contain"
+      "img": "media/photos/side-view.jpg",
+      "fit": "contain"
     },
     {
-      "id": "photos-machine", "chapter": "c4", "type": "gallery",
-      "kicker": "Prototype", "title": "The whole machine",
+      "id": "photos-machine",
+      "chapter": "c4",
+      "type": "gallery",
+      "kicker": "Prototype",
+      "title": "The whole machine",
       "images": [
-        { "src": "media/photos/front-view.jpg", "title": "From the front" },
-        { "src": "media/photos/side-view.jpg", "title": "From the side" },
-        { "src": "media/photos/box-end-view.jpg", "title": "From the control box end" },
-        { "src": "media/photos/box-corner.jpg", "title": "Control box and chain motor" },
-        { "src": "media/photos/box-end-angle.jpg", "title": "Control box end, angled" },
-        { "src": "media/photos/cage-and-switch.jpg", "title": "Cage and power switch" }
+        {
+          "src": "media/photos/front-view.jpg",
+          "title": "From the front"
+        },
+        {
+          "src": "media/photos/side-view.jpg",
+          "title": "From the side"
+        },
+        {
+          "src": "media/photos/box-end-view.jpg",
+          "title": "From the control box end"
+        },
+        {
+          "src": "media/photos/box-corner.jpg",
+          "title": "Control box and chain motor"
+        },
+        {
+          "src": "media/photos/box-end-angle.jpg",
+          "title": "Control box end, angled"
+        },
+        {
+          "src": "media/photos/cage-and-switch.jpg",
+          "title": "Cage and power switch"
+        }
       ]
     },
     {
-      "id": "photos-box", "chapter": "c4", "type": "gallery",
-      "kicker": "Prototype", "title": "The control box",
+      "id": "photos-box",
+      "chapter": "c4",
+      "type": "gallery",
+      "kicker": "Prototype",
+      "title": "The control box",
       "images": [
-        { "src": "media/photos/control-box-inside.jpg", "title": "Inside the control box" },
-        { "src": "media/photos/control-box-open.jpg", "title": "Control box open" },
-        { "src": "media/photos/control-box-wiring.jpg", "title": "Control box wiring" },
-        { "src": "media/photos/panel-wiring.jpg", "title": "Behind the clear door" },
-        { "src": "media/photos/power-supply.jpg", "title": "12 V supply" },
-        { "src": "media/photos/panel-home-live.jpg", "title": "Touch screen running" }
+        {
+          "src": "media/photos/control-box-inside.jpg",
+          "title": "Inside the control box"
+        },
+        {
+          "src": "media/photos/control-box-open.jpg",
+          "title": "Control box open"
+        },
+        {
+          "src": "media/photos/control-box-wiring.jpg",
+          "title": "Control box wiring"
+        },
+        {
+          "src": "media/photos/panel-wiring.jpg",
+          "title": "Behind the clear door"
+        },
+        {
+          "src": "media/photos/power-supply.jpg",
+          "title": "12 V supply"
+        },
+        {
+          "src": "media/photos/panel-home-live.jpg",
+          "title": "Touch screen running"
+        }
       ]
     },
     {
-      "id": "photos-feeding", "chapter": "c4", "type": "gallery",
-      "kicker": "Prototype", "title": "Hopper and dispenser",
+      "id": "photos-feeding",
+      "chapter": "c4",
+      "type": "gallery",
+      "kicker": "Prototype",
+      "title": "Hopper and dispenser",
       "images": [
-        { "src": "media/photos/hopper-open.jpg", "title": "Hopper" },
-        { "src": "media/photos/hopper-open-top.jpg", "title": "Hopper with the cover open" },
-        { "src": "media/photos/hopper-on-rail.jpg", "title": "Hopper on its rollers" },
-        { "src": "media/photos/dispenser.jpg", "title": "Auger and motor" },
-        { "src": "media/photos/ultrasonic.jpg", "title": "Level sensor on the cover" },
-        { "src": "media/photos/feed-pouring.jpg", "title": "Feed pouring" }
+        {
+          "src": "media/photos/hopper-open.jpg",
+          "title": "Hopper"
+        },
+        {
+          "src": "media/photos/hopper-open-top.jpg",
+          "title": "Hopper with the cover open"
+        },
+        {
+          "src": "media/photos/hopper-on-rail.jpg",
+          "title": "Hopper on its rollers"
+        },
+        {
+          "src": "media/photos/dispenser.jpg",
+          "title": "Auger and motor"
+        },
+        {
+          "src": "media/photos/ultrasonic.jpg",
+          "title": "Level sensor on the cover"
+        },
+        {
+          "src": "media/photos/feed-pouring.jpg",
+          "title": "Feed pouring"
+        }
       ]
     },
     {
-      "id": "photos-trays", "chapter": "c4", "type": "gallery",
-      "kicker": "Prototype", "title": "Trays and water",
+      "id": "photos-trays",
+      "chapter": "c4",
+      "type": "gallery",
+      "kicker": "Prototype",
+      "title": "Trays and water",
       "images": [
-        { "src": "media/photos/tray-and-drinkers.jpg", "title": "Tray, cage and drinkers" },
-        { "src": "media/photos/load-cell-under-tray.jpg", "title": "Load cell under a tray" },
-        { "src": "media/photos/reservoir-float.jpg", "title": "Reservoir and float switch" },
-        { "src": "media/photos/reservoir-inside.jpg", "title": "Inside the reservoir" },
-        { "src": "media/photos/float-switch.jpg", "title": "Float switch" },
-        { "src": "media/photos/drinker-line.jpg", "title": "Drinker line" }
+        {
+          "src": "media/photos/tray-and-drinkers.jpg",
+          "title": "Tray, cage and drinkers"
+        },
+        {
+          "src": "media/photos/load-cell-under-tray.jpg",
+          "title": "Load cell under a tray"
+        },
+        {
+          "src": "media/photos/reservoir-float.jpg",
+          "title": "Reservoir and float switch"
+        },
+        {
+          "src": "media/photos/reservoir-inside.jpg",
+          "title": "Inside the reservoir"
+        },
+        {
+          "src": "media/photos/float-switch.jpg",
+          "title": "Float switch"
+        },
+        {
+          "src": "media/photos/drinker-line.jpg",
+          "title": "Drinker line"
+        }
       ]
     },
     {
-      "id": "result-a", "chapter": "c4", "type": "result", "label": "a",
-      "title": "Feeding schedules", "source": "Tables 4.1 and 4.2", "video": "scheduled-feed",
-      "checks": ["Feed weight saved for all trays, on the panel and the app", "Three daily schedules saved", "Times past 24:00 and weights over 1,000 g rejected", "Settings kept after 1 to 2 minutes without power", "The clock starts each feed on time"]
+      "id": "panel-screens",
+      "chapter": "c4",
+      "type": "screens",
+      "kind": "panel",
+      "kicker": "Objective f",
+      "title": "The touch panel"
     },
     {
-      "id": "result-b", "chapter": "c4", "type": "result", "label": "b",
-      "title": "Moving hopper and limit switches", "source": "Table 4.3", "video": "moving-hopper",
-      "checks": ["Hopper found its home position", "Chain carried it along all five trays", "End switch detected at the far end", "Motor stopped, then returned the hopper home"]
+      "id": "app-screens",
+      "chapter": "c4",
+      "type": "screens",
+      "kind": "app",
+      "kicker": "Objective g",
+      "title": "The mobile app"
     },
     {
-      "id": "accuracy", "chapter": "c4", "type": "bars",
-      "kicker": "Objective c · Table 4.4.1.1",
-      "title": "97.60% dispensing accuracy",
-      "text": "Scheduled feed from the touch screen, 60 g target per tray.",
-      "target": 60, "unit": "g",
-      "data": [
-        { "label": "Tray 1", "value": 60.9, "acc": "98.50%" },
-        { "label": "Tray 2", "value": 61.0, "acc": "98.33%" },
-        { "label": "Tray 3", "value": 60.9, "acc": "98.50%" },
-        { "label": "Tray 4", "value": 61.8, "acc": "97.00%" },
-        { "label": "Tray 5", "value": 62.6, "acc": "95.67%" }
+      "id": "testing-intro",
+      "chapter": "c4",
+      "type": "statement",
+      "text": "Every function was tested against its objective.",
+      "sub": "The tables follow the manuscript: the condition, what we expected, what happened, and a photo of the result.",
+      "img": "media/deck/testing-1.jpg"
+    },
+    {
+      "chapter": "c4",
+      "section": "Objective a · Feeding schedules",
+      "notes": "Table 4.1 presents the results of testing the setting of feeding schedules and feed dispensing amounts through the Nextion Display. Overall, the results demonstrate that the Nextion Display provides a functional on-site interface for configuring feeding schedules and feed dispensing amounts, while ensuring data retention and automatic execution of scheduled feeding operations.",
+      "id": "t4-1-1",
+      "type": "doctable",
+      "title": "Feeding schedule and feed weight on the touch panel",
+      "table": "4.1",
+      "caption": "Results of Feeding Schedule and Feed Weight Configuration Through Nextion Display",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
       ],
-      "summary": [["61.44 g", "Average poured"], ["1.44 g", "Average difference"], ["97.60%", "Overall accuracy"]]
+      "rows": [
+        [
+          "Setting feed weight",
+          "Saves the configured feed dispensing amount for all trays.",
+          "Successfully saved the configured feed dispensing for all trays."
+        ],
+        [
+          "Setting feeding schedule (three times a day)",
+          "Saves the three configured feeding schedules in the system.",
+          "Successfully saved all three feeding schedules."
+        ],
+        [
+          "System Check verification",
+          "Displays the previously configured feed dispensing amount.",
+          "Successfully displayed the recorded feed dispensing amount."
+        ]
+      ],
+      "photos": "media/results/table-4-1",
+      "start": 0
     },
     {
-      "id": "result-c", "chapter": "c4", "type": "result", "label": "c",
-      "title": "Pours only what is missing", "source": "Tables 4.4.2 and 4.4.6", "video": "missing-only",
-      "checks": ["Remaining feed in each tray detected", "Only the difference poured", "Each tray reached its target", "Works from the panel and the app"]
+      "chapter": "c4",
+      "notes": "Table 4.1 presents the results of testing the setting of feeding schedules and feed dispensing amounts through the Nextion Display. Overall, the results demonstrate that the Nextion Display provides a functional on-site interface for configuring feeding schedules and feed dispensing amounts, while ensuring data retention and automatic execution of scheduled feeding operations.",
+      "id": "t4-1-2",
+      "type": "doctable",
+      "title": "Feeding schedule and feed weight on the touch panel",
+      "table": "4.1",
+      "caption": "Results of Feeding Schedule and Feed Weight Configuration Through Nextion Display (continued)",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Data retention after restart",
+          "Retains the configured feeding schedule and feed dispensing amount after the device is restarted.",
+          "Successfully retained the configured feeding schedule and feed dispensing amount after restarting the device."
+        ],
+        [
+          "Scheduled feeding activation",
+          "The RTC module detects the configured feeding time and triggers the feeding operation automatically.",
+          "The RTC module accurately detected the scheduled time and triggered the feeding operation."
+        ]
+      ],
+      "photos": "media/results/table-4-1",
+      "start": 3
     },
     {
-      "id": "residue-data", "chapter": "c4", "type": "table",
-      "kicker": "Objective c · Tables 4.4.2.1 and 4.4.6.1",
-      "title": "Residue compensation",
-      "columns": ["Tray", "Target (g)", "Remaining (g)", "Added (g)", "Final (g)", "Accuracy"],
-      "rows": [["Tray 1", "60", "", "", "", ""], ["Tray 2", "60", "", "", "", ""], ["Tray 3", "60", "", "", "", ""], ["Tray 4", "60", "", "", "", ""], ["Tray 5", "60", "", "", "", ""]],
-      "todo": "Fill in the measured values from Table 4.4.2.1"
+      "chapter": "c4",
+      "notes": "Table 4.2 presents the results of testing the setting of feeding schedules and feed dispensing amounts through the mobile application. Overall, the results demonstrate that the mobile application provides a functional interface for remotely configuring and managing feeding schedules and feed dispensing amounts, supports different feed quantities for each scheduled feeding, validates user inputs, and retains the saved configurations despite temporary power interruptions.",
+      "id": "t4-2-1",
+      "type": "doctable",
+      "title": "Feeding schedule and feed weight in the mobile app",
+      "table": "4.2",
+      "caption": "Results of Feeding Schedule and Feed Weight Configuration Through Mobile Application",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Setting manual feed weight",
+          "Saves the configured feed dispensing amount for all trays through the mobile application.",
+          "Successfully saved the configured feed dispensing amount for all trays."
+        ],
+        [
+          "Three schedules, identical feed weights",
+          "Saves the three feeding times with the same feed amount assigned to each schedule.",
+          "Successfully saved all three feeding schedules with identical feed amounts."
+        ],
+        [
+          "Verification after refresh",
+          "Displays all saved schedules and their feed amounts after refreshing the application.",
+          "Successfully displayed all three saved schedules and their feed weights after refreshing."
+        ]
+      ],
+      "photos": "media/results/table-4-2",
+      "start": 0
     },
     {
-      "id": "app-schedules-data", "chapter": "c4", "type": "table",
-      "kicker": "Objective c · Tables 4.4.4.1 and 4.4.5",
-      "title": "Scheduled feeds from the app",
-      "columns": ["Tray", "Schedule 1", "Schedule 2", "Schedule 3", "Accuracy"],
-      "rows": [["Tray 1", "", "", "", ""], ["Tray 2", "", "", "", ""], ["Tray 3", "", "", "", ""], ["Tray 4", "", "", "", ""], ["Tray 5", "", "", "", ""]],
-      "todo": "Fill in the target and actual weights from Tables 4.4.4.1 and 4.4.5.1 to 4.4.5.3"
+      "chapter": "c4",
+      "notes": "Table 4.2 presents the results of testing the setting of feeding schedules and feed dispensing amounts through the mobile application. Overall, the results demonstrate that the mobile application provides a functional interface for remotely configuring and managing feeding schedules and feed dispensing amounts, supports different feed quantities for each scheduled feeding, validates user inputs, and retains the saved configurations despite temporary power interruptions.",
+      "id": "t4-2-2",
+      "type": "doctable",
+      "title": "Feeding schedule and feed weight in the mobile app",
+      "table": "4.2",
+      "caption": "Results of Feeding Schedule and Feed Weight Configuration Through Mobile Application (continued)",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Different feed weight per schedule",
+          "Allows a different feed amount for each of the three schedules.",
+          "Successfully accepted and saved different feed amounts for each schedule."
+        ],
+        [
+          "Verification of updated schedules",
+          "Displays the updated schedules and their feed amounts after refreshing the application.",
+          "Successfully displayed the updated schedules and their feed weights after refreshing."
+        ],
+        [
+          "Validation of feeding time input",
+          "Displays an error message when a feeding time past the 24-hour format is entered.",
+          "Successfully detected the invalid feeding time and displayed an error message."
+        ]
+      ],
+      "photos": "media/results/table-4-2",
+      "start": 3
     },
     {
-      "id": "result-d", "chapter": "c4", "type": "result", "label": "d",
-      "title": "Hopper feed level", "source": "Tables 4.5 and 4.5.1", "video": "low-feed",
-      "checks": ["Full 5 kg level shown on both screens", "Low feed detected at 30%", "Warning on the panel, alert in the app", "At 0%, no feed starts and the buzzer sounds"]
+      "chapter": "c4",
+      "notes": "Table 4.2 presents the results of testing the setting of feeding schedules and feed dispensing amounts through the mobile application. Overall, the results demonstrate that the mobile application provides a functional interface for remotely configuring and managing feeding schedules and feed dispensing amounts, supports different feed quantities for each scheduled feeding, validates user inputs, and retains the saved configurations despite temporary power interruptions.",
+      "id": "t4-2-3",
+      "type": "doctable",
+      "title": "Feeding schedule and feed weight in the mobile app",
+      "table": "4.2",
+      "caption": "Results of Feeding Schedule and Feed Weight Configuration Through Mobile Application (continued)",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Validation of feed weight input",
+          "Displays an error message when a feed amount over 1,000 grams is entered.",
+          "Successfully detected the feed weight over 1,000 grams and displayed an error message."
+        ],
+        [
+          "Data retention after power interruption",
+          "Retains the schedules and feed amounts after the system is off for about 1 to 2 minutes.",
+          "Successfully retained all schedules and feed weights after restoring power."
+        ]
+      ],
+      "photos": "media/results/table-4-2",
+      "start": 6
     },
     {
-      "id": "result-e", "chapter": "c4", "type": "result", "label": "e",
-      "title": "Reservoir water level", "source": "Tables 4.6 and 4.6.1", "video": "low-water",
-      "checks": ["Lifting the float changes the status", "Releasing it shows low water", "Buzzer sounds and the app gets an alert"]
+      "chapter": "c4",
+      "section": "Objective b · Moving hopper",
+      "notes": "Table 4.3 presents the results of testing the chain-driven hopper movement and limit switch functionality along the five feeding trays. Overall, the results demonstrate that the chain-driven hopper mechanism can successfully travel along the five feeding trays, detect its designated movement limits, prevent movement beyond its intended positions, and automatically return to its home position after completing each feeding cycle.",
+      "id": "t4-3-1",
+      "type": "doctable",
+      "title": "Chain-driven hopper and limit switches",
+      "table": "4.3",
+      "caption": "Result of Chain-Driven Hopper Movement and Limit Switch Functionality Testing",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Initial home position detection",
+          "The hopper is at its home position and the home limit switch changes its signal on activation.",
+          "The hopper was at its home position and the home limit switch signal changed on activation."
+        ],
+        [
+          "Chain-driven hopper movement",
+          "The chain moves the hopper along the five feeding trays during the feeding cycle.",
+          "The chain moved the hopper along all five feeding trays."
+        ],
+        [
+          "End limit switch detection",
+          "The end limit switch changes its signal when the hopper reaches its ending position.",
+          "The end limit switch changed its signal at the ending position."
+        ]
+      ],
+      "photos": "media/results/table-4-3",
+      "start": 0
     },
     {
-      "id": "result-f", "chapter": "c4", "type": "result", "label": "f",
-      "title": "Touch panel", "source": "Tables 4.7 to 4.7.2", "video": "nextion-screens",
-      "checks": ["Starts up with the system", "Shows status, weights, schedules and records", "Updates while the machine runs"]
+      "chapter": "c4",
+      "notes": "Table 4.3 presents the results of testing the chain-driven hopper movement and limit switch functionality along the five feeding trays. Overall, the results demonstrate that the chain-driven hopper mechanism can successfully travel along the five feeding trays, detect its designated movement limits, prevent movement beyond its intended positions, and automatically return to its home position after completing each feeding cycle.",
+      "id": "t4-3-2",
+      "type": "doctable",
+      "title": "Chain-driven hopper and limit switches",
+      "table": "4.3",
+      "caption": "Result of Chain-Driven Hopper Movement and Limit Switch Functionality Testing (continued)",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Motor stop and automatic return",
+          "The motor stops its forward movement at the end switch and the hopper starts returning home.",
+          "The motor stopped its forward movement and the hopper returned toward home."
+        ],
+        [
+          "Home switch detection and motor stop",
+          "The home limit switch activates when the hopper reaches home, stopping the return movement.",
+          "The home limit switch detected the hopper and the motor stopped its return movement."
+        ],
+        [
+          "Repeated feeding cycle",
+          "The hopper completes its movement, switch detection, stopping and return during repeated cycles.",
+          "The hopper consistently completed the cycle, with both switches detecting their positions."
+        ]
+      ],
+      "photos": "media/results/table-4-3",
+      "start": 3
     },
-    { "id": "panel-screens", "chapter": "c4", "type": "screens", "kind": "panel", "kicker": "Objective f", "title": "The touch panel" },
     {
-      "id": "result-g", "chapter": "c4", "type": "result", "label": "g",
-      "title": "Mobile app", "source": "Tables 4.8 to 4.8.2", "video": "app-tour",
-      "checks": ["Account created and device linked with its ID and PIN", "Every tested button goes to the right screen", "Device status and history shown", "Schedules set and manual feed started"]
-    },
-    { "id": "app-screens", "chapter": "c4", "type": "screens", "kind": "app", "kicker": "Objective g", "title": "The mobile app" },
-    {
-      "id": "result-h", "chapter": "c4", "type": "result", "label": "h",
-      "title": "Records and Google Sheets log", "source": "Table 4.9", "video": "records-log",
-      "checks": ["Firebase records schedules, feeds, weights, levels and alerts", "Records shown on the supported screens", "Open Logs opens the Google Sheet", "Records copied and sorted by date"]
-    },
-    {
-      "id": "result-i", "chapter": "c4", "type": "result", "label": "i",
-      "title": "Wi-Fi and offline operation", "source": "Table 4.10", "video": "offline",
-      "checks": ["ESP32 connects to Wi-Fi and Firebase", "App shows the updated device data", "Feeding and alarms continue offline", "Pending alerts and records sent on reconnect"]
-    },
-    {
-      "id": "result-j", "chapter": "c4", "type": "result", "label": "j",
-      "title": "Battery backup", "source": "Table 4.11", "video": "battery",
-      "checks": ["Runs normally on mains power", "Battery takes over on its own", "Screen and sensors keep running", "Feeding and alarms continue", "Returns to mains without a restart"]
-    },
-    {
-      "id": "more-videos", "chapter": "c4", "type": "videos",
-      "kicker": "More recordings",
-      "title": "Starting a feed, and stopping safely",
-      "videos": ["panel-feed", "app-feed", "safety-stops"]
+      "chapter": "c4",
+      "section": "Objective c · Weight-based dispensing",
+      "notes": "Table 4.4.1 presents the results of testing scheduled feed dispensing using the Nextion Display. Overall, the results demonstrate that the system can successfully execute scheduled feed dispensing through the Nextion Display using a common feed weight for all five trays.",
+      "id": "t4-4-1",
+      "type": "doctable",
+      "title": "Scheduled feed dispensing from the touch panel",
+      "table": "4.4.1",
+      "caption": "Results of Scheduled Feed Dispensing Using Nextion Display",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Scheduled feed dispensing",
+          "Starts feeding at the configured time and dispenses the common feed weight into each of the five trays.",
+          "Successfully started the scheduled feeding and dispensed the configured weight into all five trays."
+        ]
+      ],
+      "photos": "media/results/table-4-4-1",
+      "start": 0
     },
     {
-      "id": "testing-photos", "chapter": "c4", "type": "gallery",
-      "kicker": "Appendix L.4", "title": "Device testing",
-      "images": [
-        { "src": "media/deck/testing-1.jpg", "title": "Testing the hopper" },
-        { "src": "media/deck/testing-2.jpg", "title": "Checking the trays" },
-        { "src": "media/deck/testing-3.jpg", "title": "Testing on the machine" },
-        { "src": "media/deck/testing-4.jpg", "title": "Load cell work" },
-        { "src": "media/deck/testing-5.jpg", "title": "Running a test" }
+      "chapter": "c4",
+      "notes": "Table 4.4.1.1 presents the results of testing scheduled feed dispensing using the Nextion Display to evaluate the accuracy of the dispensed feed weight in each tray. Overall, the results demonstrate that the scheduled feed dispensing function can deliver the configured feed quantity with an average accuracy of 97.",
+      "id": "g4-4-1-1",
+      "type": "grams",
+      "title": "Weight check, scheduled feed from the touch panel",
+      "table": "4.4.1.1",
+      "caption": "Results of Scheduled Feed Dispensing Using Nextion Display",
+      "mode": "dispense",
+      "rows": [
+        {
+          "tray": "Tray 1",
+          "target": 60,
+          "actual": 60.9
+        },
+        {
+          "tray": "Tray 2",
+          "target": 60,
+          "actual": 61.0
+        },
+        {
+          "tray": "Tray 3",
+          "target": 60,
+          "actual": 60.9
+        },
+        {
+          "tray": "Tray 4",
+          "target": 60,
+          "actual": 61.8
+        },
+        {
+          "tray": "Tray 5",
+          "target": 60,
+          "actual": 62.6
+        }
+      ],
+      "photos": "media/results/table-4-4-1-1"
+    },
+    {
+      "chapter": "c4",
+      "notes": "Table 4.4.2 presents the results of testing feed residue measurement and compensation using the Nextion Display. Overall, the results demonstrate that the system can measure remaining feed and automatically compensate for it during scheduled feeding to achieve the configured target weight.",
+      "id": "t4-4-2",
+      "type": "doctable",
+      "title": "Feed residue compensation from the touch panel",
+      "table": "4.4.2",
+      "caption": "Results of Feed Residue Measurement and Compensation Using Nextion Display",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Feed residue measurement and compensation",
+          "Detects the feed left in the trays and dispenses only the amount needed to reach the target at the next scheduled feeding.",
+          "Successfully detected the remaining feed and dispensed only the additional amount needed."
+        ]
+      ],
+      "photos": "media/results/table-4-4-2",
+      "start": 0
+    },
+    {
+      "chapter": "c4",
+      "id": "g4-4-2-1",
+      "type": "grams",
+      "title": "Weight check, residue compensation from the touch panel",
+      "table": "4.4.2.1",
+      "caption": "Results of Feed Residue Compensation Using Nextion Display",
+      "mode": "residue",
+      "rows": [
+        {
+          "tray": "Tray 1",
+          "target": 60,
+          "actual": null
+        },
+        {
+          "tray": "Tray 2",
+          "target": 60,
+          "actual": null
+        },
+        {
+          "tray": "Tray 3",
+          "target": 60,
+          "actual": null
+        },
+        {
+          "tray": "Tray 4",
+          "target": 60,
+          "actual": null
+        },
+        {
+          "tray": "Tray 5",
+          "target": 60,
+          "actual": null
+        }
+      ],
+      "photos": "media/results/table-4-4-2-1"
+    },
+    {
+      "chapter": "c4",
+      "id": "t4-4-3",
+      "type": "doctable",
+      "title": "Settings kept after a power interruption (touch panel)",
+      "table": "4.4.3",
+      "caption": "Results of Data Retention After Power Interruption Using Nextion Display",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Data retention after power interruption",
+          "Retains the feed amount and schedules after the system is off for about one to two minutes.",
+          "Successfully retained the feed weight and schedules after power was restored."
+        ]
+      ],
+      "photos": "media/results/table-4-4-3",
+      "start": 0
+    },
+    {
+      "chapter": "c4",
+      "id": "t4-4-4",
+      "type": "doctable",
+      "title": "Scheduled feeding with identical weights (app)",
+      "table": "4.4.4",
+      "caption": "Results of Scheduled Feed Dispensing Using Identical Feed Weights Through Mobile Application",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Scheduled dispensing, identical feed weights",
+          "Starts feeding at each configured time and dispenses the same target weight into all five trays.",
+          "Successfully started all three scheduled feeds and dispensed the same amount into all five trays."
+        ]
+      ],
+      "photos": "media/results/table-4-4-4",
+      "start": 0
+    },
+    {
+      "chapter": "c4",
+      "id": "g4-4-4-1",
+      "type": "grams",
+      "title": "Weight check, identical weights from the app",
+      "table": "4.4.4.1",
+      "caption": "Result of Scheduled Feed Dispensing Using Identical Feed Weights Through Mobile Application",
+      "mode": "dispense",
+      "rows": [
+        {
+          "tray": "Tray 1",
+          "target": null,
+          "actual": null
+        },
+        {
+          "tray": "Tray 2",
+          "target": null,
+          "actual": null
+        },
+        {
+          "tray": "Tray 3",
+          "target": null,
+          "actual": null
+        },
+        {
+          "tray": "Tray 4",
+          "target": null,
+          "actual": null
+        },
+        {
+          "tray": "Tray 5",
+          "target": null,
+          "actual": null
+        }
+      ],
+      "photos": "media/results/table-4-4-4-1"
+    },
+    {
+      "chapter": "c4",
+      "id": "t4-4-5",
+      "type": "doctable",
+      "title": "Residue compensation with different weights (app)",
+      "table": "4.4.5",
+      "caption": "Results of Feed Residue Compensation Using Different Feed Weights Through Mobile Application",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Scheduled dispensing, different feed weights",
+          "Detects the feed left in the trays and dispenses only what is needed to reach the next schedule's target.",
+          "Successfully detected the remaining feed and dispensed only the additional amount needed."
+        ]
+      ],
+      "photos": "media/results/table-4-4-5",
+      "start": 0
+    },
+    {
+      "chapter": "c4",
+      "id": "g4-4-5-1",
+      "type": "grams",
+      "title": "Weight check, first schedule (app)",
+      "table": "4.4.5.1",
+      "caption": "First Schedule Feeding",
+      "mode": "dispense",
+      "rows": [
+        {
+          "tray": "Tray 1",
+          "target": null,
+          "actual": null
+        },
+        {
+          "tray": "Tray 2",
+          "target": null,
+          "actual": null
+        },
+        {
+          "tray": "Tray 3",
+          "target": null,
+          "actual": null
+        },
+        {
+          "tray": "Tray 4",
+          "target": null,
+          "actual": null
+        },
+        {
+          "tray": "Tray 5",
+          "target": null,
+          "actual": null
+        }
+      ],
+      "photos": "media/results/table-4-4-5-1"
+    },
+    {
+      "chapter": "c4",
+      "id": "g4-4-5-2",
+      "type": "grams",
+      "title": "Weight check, second schedule (app)",
+      "table": "4.4.5.2",
+      "caption": "Second Schedule Feeding",
+      "mode": "dispense",
+      "rows": [
+        {
+          "tray": "Tray 1",
+          "target": null,
+          "actual": null
+        },
+        {
+          "tray": "Tray 2",
+          "target": null,
+          "actual": null
+        },
+        {
+          "tray": "Tray 3",
+          "target": null,
+          "actual": null
+        },
+        {
+          "tray": "Tray 4",
+          "target": null,
+          "actual": null
+        },
+        {
+          "tray": "Tray 5",
+          "target": null,
+          "actual": null
+        }
+      ],
+      "photos": "media/results/table-4-4-5-2"
+    },
+    {
+      "chapter": "c4",
+      "id": "g4-4-5-3",
+      "type": "grams",
+      "title": "Weight check, third schedule (app)",
+      "table": "4.4.5.3",
+      "caption": "Third Schedule Feeding",
+      "mode": "dispense",
+      "rows": [
+        {
+          "tray": "Tray 1",
+          "target": null,
+          "actual": null
+        },
+        {
+          "tray": "Tray 2",
+          "target": null,
+          "actual": null
+        },
+        {
+          "tray": "Tray 3",
+          "target": null,
+          "actual": null
+        },
+        {
+          "tray": "Tray 4",
+          "target": null,
+          "actual": null
+        },
+        {
+          "tray": "Tray 5",
+          "target": null,
+          "actual": null
+        }
+      ],
+      "photos": "media/results/table-4-4-5-3"
+    },
+    {
+      "chapter": "c4",
+      "id": "t4-4-6",
+      "type": "doctable",
+      "title": "Feed residue compensation from the app",
+      "table": "4.4.6",
+      "caption": "Results of Feed Residue Measurement and Compensation Using Mobile Application",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Feed residue measurement and compensation",
+          "Detects the feed left in the trays and dispenses only the amount needed to reach the target.",
+          "Successfully detected the remaining feed and dispensed only the additional amount needed."
+        ]
+      ],
+      "photos": "media/results/table-4-4-6",
+      "start": 0
+    },
+    {
+      "chapter": "c4",
+      "id": "g4-4-6-1",
+      "type": "grams",
+      "title": "Weight check, residue compensation from the app",
+      "table": "4.4.6.1",
+      "caption": "Results of Feed Residue Compensation Using Mobile Application",
+      "mode": "residue",
+      "rows": [
+        {
+          "tray": "Tray 1",
+          "target": 60,
+          "actual": null
+        },
+        {
+          "tray": "Tray 2",
+          "target": 60,
+          "actual": null
+        },
+        {
+          "tray": "Tray 3",
+          "target": 60,
+          "actual": null
+        },
+        {
+          "tray": "Tray 4",
+          "target": 60,
+          "actual": null
+        },
+        {
+          "tray": "Tray 5",
+          "target": 60,
+          "actual": null
+        }
+      ],
+      "photos": "media/results/table-4-4-6-1"
+    },
+    {
+      "chapter": "c4",
+      "id": "t4-4-7",
+      "type": "doctable",
+      "title": "Settings kept after a power interruption (app)",
+      "table": "4.4.7",
+      "caption": "Results of Data Retention After Power Interruption Using Mobile Application",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Data retention after power interruption",
+          "Retains the feed amount and schedules after the system is off for about one to two minutes.",
+          "Successfully retained the feed weight and schedules after power was restored."
+        ]
+      ],
+      "photos": "media/results/table-4-4-7",
+      "start": 0
+    },
+    {
+      "chapter": "c4",
+      "section": "Objective d · Hopper feed level",
+      "notes": "Table 4.5 presents the results of testing the hopper feed level monitoring functionality using an ultrasonic sensor. Overall, the results demonstrate that the ultrasonic sensor can effectively monitor the available feed level in the storage hopper and that the system can provide appropriate warnings and prevent feeding operations when the feed supply is insufficient.",
+      "id": "t4-5-1",
+      "type": "doctable",
+      "title": "Hopper feed level monitoring",
+      "table": "4.5",
+      "caption": "Result of Hopper Feed Level Monitoring",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Feed level at maximum capacity",
+          "Detects and displays the feed level at the hopper's 5 kg capacity on the panel and the app.",
+          "Successfully detected and displayed the feed level on both interfaces."
+        ],
+        [
+          "Detection of low feed level",
+          "Detects when the feed gradually decreases and reaches the 30% threshold.",
+          "Successfully detected the low-feed condition and updated the displayed level."
+        ],
+        [
+          "Low-level warning and notification",
+          "The panel shows a low-level status and the app receives a low-feed notification.",
+          "Successfully displayed the warning and sent the notification."
+        ]
+      ],
+      "photos": "media/results/table-4-5",
+      "start": 0
+    },
+    {
+      "chapter": "c4",
+      "notes": "Table 4.5 presents the results of testing the hopper feed level monitoring functionality using an ultrasonic sensor. Overall, the results demonstrate that the ultrasonic sensor can effectively monitor the available feed level in the storage hopper and that the system can provide appropriate warnings and prevent feeding operations when the feed supply is insufficient.",
+      "id": "t4-5-2",
+      "type": "doctable",
+      "title": "Hopper feed level monitoring",
+      "table": "4.5",
+      "caption": "Result of Hopper Feed Level Monitoring (continued)",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Feeding blocked at low feed",
+          "Prevents a new feeding cycle at the 0% threshold and activates the buzzer.",
+          "Successfully prevented feeding at 0% and activated the buzzer."
+        ],
+        [
+          "Normal operation after refilling",
+          "Detects the higher level, clears the warning and allows feeding to resume.",
+          "Successfully cleared the warning and restored normal feeding after refilling."
+        ]
+      ],
+      "photos": "media/results/table-4-5",
+      "start": 3
+    },
+    {
+      "chapter": "c4",
+      "notes": "Table 4.5.1 presents the results of testing the system response at different hopper feed levels to determine the activation of warnings, notifications, and feeding prevention mechanisms. Overall, the results demonstrate that the system can respond to decreasing feed levels through appropriate warnings, mobile notifications, audible alerts, and feeding prevention to help avoid feeding operations when the hopper is empty.",
+      "id": "x4-5-1",
+      "type": "doctable",
+      "table": "4.5.1",
+      "photos": "media/results/table-4-5-1",
+      "title": "Response at each feed level",
+      "caption": "System Response at the Low Level Threshold",
+      "columns": [
+        "Trial",
+        "Feed level",
+        "Panel warning",
+        "App notification",
+        "Buzzer",
+        "New feeding"
+      ],
+      "rows": [
+        [
+          "1",
+          "100%",
+          "None",
+          "None",
+          "Not activated",
+          "Not prevented"
+        ],
+        [
+          "2",
+          "80%",
+          "None",
+          "None",
+          "Not activated",
+          "Not prevented"
+        ],
+        [
+          "3",
+          "50%",
+          "None",
+          "None",
+          "Not activated",
+          "Not prevented"
+        ],
+        [
+          "4",
+          "30%",
+          "Low Feed warning displayed",
+          "Low Feed notification sent",
+          "Not activated",
+          "Not prevented"
+        ],
+        [
+          "5",
+          "0%",
+          "Low Feed warning displayed",
+          "Low Feed notification sent",
+          "Activated",
+          "Prevented"
+        ]
       ]
     },
     {
-      "id": "build-photos", "chapter": "c4", "type": "gallery",
-      "kicker": "Hardware and software", "title": "Building it",
-      "images": [
-        { "src": "media/deck/hardware-2.jpg", "title": "Control box wiring" },
-        { "src": "media/deck/hardware-3.jpg", "title": "Control box with the door open" },
-        { "src": "media/deck/hardware-1.jpg", "title": "Wiring close up" },
-        { "src": "media/deck/software-1.jpg", "title": "Firmware work" },
-        { "src": "media/deck/software-2.jpg", "title": "Load cell calibration output" },
-        { "src": "media/deck/software-3.jpg", "title": "Programming the Mega" }
+      "chapter": "c4",
+      "section": "Objective e · Water level",
+      "notes": "Table 4.6 presents the results of testing the float switch functionality and reservoir water level monitoring. Overall, the results demonstrate that the float switch can effectively detect low-water conditions and that the system can provide audible and mobile notifications to inform users when the reservoir needs refilling.",
+      "id": "t4-6",
+      "type": "doctable",
+      "title": "Float switch and reservoir water level",
+      "table": "4.6",
+      "caption": "Result of Float Switch Function and Reservoir Water Level Monitoring",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Float switch functionality",
+          "Lifting the float by hand changes the detected water status.",
+          "Successfully changed the water status when the float was lifted."
+        ],
+        [
+          "Low-water level detection",
+          "Releasing the float makes the system detect and show low water.",
+          "Successfully detected and displayed the low-water status."
+        ],
+        [
+          "Low-water warning and notification",
+          "The buzzer sounds and the app receives a low-water notification.",
+          "Successfully activated the buzzer and sent the app notification."
+        ]
+      ],
+      "photos": "media/results/table-4-6",
+      "start": 0
+    },
+    {
+      "chapter": "c4",
+      "notes": "Table 4.6.1 presents the results of testing the water level status and notification response of the float switch. Overall, the results demonstrate that the float switch can accurately distinguish between low-water and sufficient-water conditions and that the system provides appropriate visual and audible alerts to inform users of the reservoir's water status.",
+      "id": "x4-6-1",
+      "type": "doctable",
+      "table": "4.6.1",
+      "photos": "media/results/table-4-6-1",
+      "title": "Water status and alerts",
+      "caption": "Water Level Status and Notification Response Results",
+      "columns": [
+        "Trial",
+        "Actual water",
+        "Expected status",
+        "Detected status",
+        "Buzzer",
+        "App notification",
+        "Panel shows"
+      ],
+      "rows": [
+        [
+          "1",
+          "No water",
+          "Low level",
+          "Low level",
+          "Activated",
+          "Activated",
+          "WATER LOW - REFILL"
+        ],
+        [
+          "2",
+          "Reservoir with water",
+          "Water okay",
+          "Water okay",
+          "Not activated",
+          "Not activated",
+          "WATER OK"
+        ]
       ]
     },
     {
-      "id": "evaluators", "chapter": "c4", "type": "stats",
-      "kicker": "Evaluation results",
-      "title": "Who evaluated HyFePoul",
-      "text": "Face to face with the device, and online through this website.",
-      "stats": [["6", "CpE practitioners"], ["5", "Poultry farmers"], ["1", "City Veterinarian"]],
-      "notes": "Two parts: software quality based on ISO/IEC 25010, and hardware evaluation of the components, technical details and structure."
+      "chapter": "c4",
+      "section": "Objective f · Touch panel",
+      "notes": "Table 4.7 presents the results of testing the Nextion display interface to evaluate its functionality in presenting system information and monitoring the device's operations. Overall, the results demonstrate that the Nextion display provides a functional on-site monitoring interface for viewing system information and recent operational records.",
+      "id": "t4-7",
+      "type": "doctable",
+      "title": "Touch panel interface",
+      "table": "4.7",
+      "caption": "Result of Nextion Display Interface Functionality Testing",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Display initialization",
+          "The display powers on and initializes with the system.",
+          "Successfully powered on and initialized with the system."
+        ],
+        [
+          "System information and records",
+          "The display shows status, feed weight, schedules and available records.",
+          "Successfully displayed the system information and available records."
+        ],
+        [
+          "Information update responsiveness",
+          "The display reflects changes within an acceptable response time.",
+          "Successfully reflected updated information during operation."
+        ]
+      ],
+      "photos": "media/results/table-4-7",
+      "start": 0
     },
     {
-      "id": "evaluation-photos", "chapter": "c4", "type": "gallery",
-      "kicker": "Appendix L.5", "title": "Evaluation",
-      "images": [
-        { "src": "media/deck/evaluation-1.jpg", "title": "Evaluation session" },
-        { "src": "media/deck/evaluation-2.jpg", "title": "Presenting the device" },
-        { "src": "media/deck/evaluation-3.jpg", "title": "Evaluators at the device" },
-        { "src": "media/deck/evaluation-4.jpg", "title": "Evaluation with a practitioner" },
-        { "src": "media/deck/evaluation-5.jpg", "title": "Evaluation with the farmers" },
-        { "src": "media/deck/client-1.jpg", "title": "Client evaluation" },
-        { "src": "media/deck/client-2.jpg", "title": "Client evaluation" }
+      "chapter": "c4",
+      "notes": "Table 4.7.1 presents the results of testing the Nextion Display's response time when updating system information. Overall, the results demonstrate that the Nextion Display can successfully update and present changes in system information, allowing users to monitor the device's operating conditions.",
+      "id": "x4-7-1",
+      "type": "doctable",
+      "table": "4.7.1",
+      "title": "Touch panel update time",
+      "caption": "Nextion Display Information Update Response Time",
+      "columns": [
+        "Information updated",
+        "Shown before",
+        "Shown after",
+        "Response time"
+      ],
+      "rows": [
+        [
+          "Feed level",
+          "82%",
+          "73%",
+          "5.83 s"
+        ],
+        [
+          "Water level",
+          "LOW",
+          "OK",
+          "2.88 s"
+        ],
+        [
+          "Feed weight",
+          "270 g",
+          "244 g",
+          "11.06 s"
+        ]
+      ],
+      "bars": [
+        [
+          "Water level",
+          2.88
+        ],
+        [
+          "Feed level",
+          5.83
+        ],
+        [
+          "Feed weight",
+          11.06
+        ]
+      ],
+      "unit": "s"
+    },
+    {
+      "chapter": "c4",
+      "id": "x4-7-2",
+      "type": "doctable",
+      "table": "4.7.2",
+      "photos": "media/results/table-4-7-2",
+      "title": "Touch panel sleep and wake",
+      "caption": "Nextion Display Sleep and Wake Function Testing",
+      "columns": [
+        "Trial",
+        "Idle time",
+        "Expected behaviour",
+        "Actual behaviour"
+      ],
+      "rows": [
+        [
+          "1",
+          "1 min",
+          "Wakes upon double-tapping",
+          ""
+        ],
+        [
+          "2",
+          "2 min",
+          "Wakes upon double-tapping",
+          ""
+        ],
+        [
+          "3",
+          "5 min",
+          "Wakes upon double-tapping",
+          ""
+        ],
+        [
+          "4",
+          "10 min",
+          "Wakes upon double-tapping",
+          ""
+        ],
+        [
+          "5",
+          "20 min",
+          "Wakes upon double-tapping",
+          ""
+        ]
       ]
     },
     {
-      "id": "iso-results", "chapter": "c4", "type": "table",
+      "chapter": "c4",
+      "section": "Objective g · Mobile app",
+      "notes": "Table 4.8 presents the results of testing the mobile application functionality and notification system. Overall, the results demonstrate that the mobile application provides authorized users with functional access to device management, remote monitoring, feeding control, historical records, and system notifications, supporting the remote operation and monitoring of the automated poultry feeding system.",
+      "id": "t4-8-1",
+      "type": "doctable",
+      "title": "Mobile application",
+      "table": "4.8",
+      "caption": "Result of Mobile Application Functionality Testing",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Registration and device linking",
+          "Users create an account and link the device with the correct device ID and PIN.",
+          "Successfully registered an account and linked the device."
+        ],
+        [
+          "Navigation and buttons",
+          "Buttons respond and lead to the right screens and functions.",
+          "Successfully navigated the app; tested buttons responded as intended."
+        ],
+        [
+          "Monitoring and historical records",
+          "Shows device information and gives access to records in the app and Google Sheets.",
+          "Successfully displayed device information and gave access to records."
+        ]
+      ],
+      "photos": "media/results/table-4-8",
+      "start": 0
+    },
+    {
+      "chapter": "c4",
+      "notes": "Table 4.8 presents the results of testing the mobile application functionality and notification system. Overall, the results demonstrate that the mobile application provides authorized users with functional access to device management, remote monitoring, feeding control, historical records, and system notifications, supporting the remote operation and monitoring of the automated poultry feeding system.",
+      "id": "t4-8-2",
+      "type": "doctable",
+      "title": "Mobile application",
+      "table": "4.8",
+      "caption": "Result of Mobile Application Functionality Testing (continued)",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Schedules and manual feeding",
+          "Sets up to three daily schedules with identical or different weights and starts a manual feed.",
+          "Successfully saved the schedules and started a manual feed."
+        ]
+      ],
+      "photos": "media/results/table-4-8",
+      "start": 3
+    },
+    {
+      "chapter": "c4",
+      "id": "x4-8-1",
+      "type": "doctable",
+      "table": "4.8.1",
+      "title": "Mobile app update time",
+      "caption": "Mobile Application Information Update Response Time",
+      "columns": [
+        "Information updated",
+        "Shown before",
+        "Shown after",
+        "Response time"
+      ],
+      "rows": [
+        [
+          "Individual tray feed",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Hopper feed level",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Reservoir water status",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Feeding operation status",
+          "",
+          "",
+          ""
+        ]
+      ]
+    },
+    {
+      "chapter": "c4",
+      "id": "x4-8-2",
+      "type": "doctable",
+      "table": "4.8.2",
+      "title": "Notification delivery time",
+      "caption": "Mobile Application Notification Delivery Response Time",
+      "columns": [
+        "Trial",
+        "Low feed → Low-Feed notification",
+        "Low water → Low-Water notification",
+        "Device offline → Offline status"
+      ],
+      "rows": [
+        [
+          "1",
+          "",
+          "",
+          ""
+        ],
+        [
+          "2",
+          "",
+          "",
+          ""
+        ],
+        [
+          "3",
+          "",
+          "",
+          ""
+        ],
+        [
+          "4",
+          "",
+          "",
+          ""
+        ],
+        [
+          "5",
+          "",
+          "",
+          ""
+        ]
+      ],
+      "note": "Delivery time in seconds for each simulated condition."
+    },
+    {
+      "chapter": "c4",
+      "section": "Objective h · Records",
+      "notes": "Table 4.9 presents the results of testing the system's data logging functionality using Firebase Realtime Database and Google Sheets. Overall, the results demonstrate that the system can record, store, and retrieve operational data through Firebase Realtime Database, periodically transfer records to Google Sheets for long-term monitoring, provide authorized users with access to historical logs, and retain essential controller settings and accumulated feeding data despite temporary power interruptions.",
+      "id": "t4-9-1",
+      "type": "doctable",
+      "title": "System data logging",
+      "table": "4.9",
+      "caption": "Result of System Data Logging Functionality Testing",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Recording operational data in Firebase",
+          "Firebase records schedules, feeding activity, tray weights, hopper level, water status, alerts and calibration data.",
+          "Successfully recorded the operational information in Firebase Realtime Database."
+        ],
+        [
+          "Accessibility of operational records",
+          "Records are retrieved and shown on the supported interfaces.",
+          "Successfully accessed and displayed the available records."
+        ],
+        [
+          "Access to the Google Sheets log",
+          "The Open Logs button takes the user to the Google Sheets log.",
+          "Successfully redirected the user to the Google Sheets log."
+        ]
+      ],
+      "photos": "media/results/table-4-9",
+      "start": 0
+    },
+    {
+      "chapter": "c4",
+      "notes": "Table 4.9 presents the results of testing the system's data logging functionality using Firebase Realtime Database and Google Sheets. Overall, the results demonstrate that the system can record, store, and retrieve operational data through Firebase Realtime Database, periodically transfer records to Google Sheets for long-term monitoring, provide authorized users with access to historical logs, and retain essential controller settings and accumulated feeding data despite temporary power interruptions.",
+      "id": "t4-9-2",
+      "type": "doctable",
+      "title": "System data logging",
+      "table": "4.9",
+      "caption": "Result of System Data Logging Functionality Testing (continued)",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Periodic transfer and organization",
+          "Records are copied from Firebase to Google Sheets and sorted by date and time.",
+          "Successfully transferred and organized the records in Google Sheets."
+        ],
+        [
+          "Accuracy of transferred records",
+          "Selected records in Firebase and Google Sheets match with nothing missing.",
+          "Successfully verified the accuracy and completeness of the selected records."
+        ],
+        [
+          "Retention of controller settings",
+          "Schedules, tray calibration and daily feeding totals stay after a power interruption.",
+          "Successfully retained the settings and accumulated totals after power was restored."
+        ]
+      ],
+      "photos": "media/results/table-4-9",
+      "start": 3
+    },
+    {
+      "chapter": "c4",
+      "section": "Objective i · Wi-Fi and offline",
+      "notes": "Table 4.10 presents the results of testing the Wi-Fi communication and offline operation of the system through the ESP32 and Firebase Realtime Database. Overall, the results demonstrate that the system can reliably transmit operational data between the device and cloud database, provide updated information to the registered mobile application, maintain local feeding and safety functions during network interruptions, and synchronize pending alerts and daily operational records once connectivity is restored.",
+      "id": "t4-10-1",
+      "type": "doctable",
+      "title": "Wi-Fi communication and offline operation",
+      "table": "4.10",
+      "caption": "Result of Wi-Fi Communication and Offline Operation Testing",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Wi-Fi and Firebase communication",
+          "The ESP32 connects to Wi-Fi and communicates with Firebase.",
+          "The ESP32 connected to Wi-Fi and communicated with Firebase Realtime Database."
+        ],
+        [
+          "App data synchronization",
+          "The app shows the updated system information from Firebase.",
+          "The app displayed the updated system information."
+        ],
+        [
+          "Offline feeding and safety functions",
+          "Scheduled feeding, low-feed and low-water detection and the buzzer continue without internet.",
+          "The system kept its feeding schedules and local safety functions without internet."
+        ]
+      ],
+      "photos": "media/results/table-4-10",
+      "start": 0
+    },
+    {
+      "chapter": "c4",
+      "notes": "Table 4.10 presents the results of testing the Wi-Fi communication and offline operation of the system through the ESP32 and Firebase Realtime Database. Overall, the results demonstrate that the system can reliably transmit operational data between the device and cloud database, provide updated information to the registered mobile application, maintain local feeding and safety functions during network interruptions, and synchronize pending alerts and daily operational records once connectivity is restored.",
+      "id": "t4-10-2",
+      "type": "doctable",
+      "title": "Wi-Fi communication and offline operation",
+      "table": "4.10",
+      "caption": "Result of Wi-Fi Communication and Offline Operation Testing (continued)",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Reconnection and synchronization",
+          "The ESP32 reconnects and sends the retained alerts and records to Firebase.",
+          "The ESP32 reconnected and sent the retained alerts and records."
+        ],
+        [
+          "Communication reliability",
+          "Online and offline functions work consistently in repeated tests.",
+          "The system consistently performed its communication and offline functions."
+        ]
+      ],
+      "photos": "media/results/table-4-10",
+      "start": 3
+    },
+    {
+      "chapter": "c4",
+      "section": "Objective j · Battery backup",
+      "notes": "Table 4.11 presents the results of testing the battery backup functionality to evaluate the system's ability to maintain operation during interruptions in the main power supply. Overall, the results demonstrate that the battery backup system can automatically provide an alternative power source during electrical interruptions, allowing the device to maintain its essential local feeding, monitoring, display, and safety operations without requiring manual intervention.",
+      "id": "t4-11-1",
+      "type": "doctable",
+      "title": "Battery backup",
+      "table": "4.11",
+      "caption": "Result of Battery Backup Functionality Testing",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Normal main power operation",
+          "All components operate normally on the main power supply.",
+          "The system operated normally on the main power supply."
+        ],
+        [
+          "Automatic battery transition",
+          "The battery takes over when the main supply is disconnected.",
+          "The battery took over and kept the system running without manual intervention."
+        ],
+        [
+          "Display and monitoring",
+          "The panel and monitoring sensors keep working.",
+          "The panel stayed on and the system kept monitoring weights, hopper level and water."
+        ]
+      ],
+      "photos": "media/results/table-4-11",
+      "start": 0
+    },
+    {
+      "chapter": "c4",
+      "notes": "Table 4.11 presents the results of testing the battery backup functionality to evaluate the system's ability to maintain operation during interruptions in the main power supply. Overall, the results demonstrate that the battery backup system can automatically provide an alternative power source during electrical interruptions, allowing the device to maintain its essential local feeding, monitoring, display, and safety operations without requiring manual intervention.",
+      "id": "t4-11-2",
+      "type": "doctable",
+      "title": "Battery backup",
+      "table": "4.11",
+      "caption": "Result of Battery Backup Functionality Testing (continued)",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Feeding and safety functions",
+          "Scheduled feeding, low-feed and low-water detection and the buzzer keep working.",
+          "The system continued its local feeding and safety functions on battery."
+        ],
+        [
+          "Restoration of main power",
+          "The system returns to the main supply without restarting.",
+          "The system returned to main power and continued without a manual restart."
+        ],
+        [
+          "Battery backup reliability",
+          "Power transitions work consistently in repeated tests.",
+          "The battery consistently supplied power during repeated tests."
+        ]
+      ],
+      "photos": "media/results/table-4-11",
+      "start": 3
+    },
+    {
+      "id": "recordings-1",
+      "chapter": "c4",
+      "type": "videos",
+      "title": "Recordings",
+      "videos": [
+        "scheduled-feed",
+        "moving-hopper",
+        "missing-only"
+      ]
+    },
+    {
+      "id": "recordings-2",
+      "chapter": "c4",
+      "type": "videos",
+      "title": "Recordings (continued)",
+      "videos": [
+        "panel-feed",
+        "app-feed",
+        "low-feed"
+      ]
+    },
+    {
+      "id": "recordings-3",
+      "chapter": "c4",
+      "type": "videos",
+      "title": "Recordings (continued)",
+      "videos": [
+        "low-water",
+        "nextion-screens",
+        "app-tour"
+      ]
+    },
+    {
+      "id": "recordings-4",
+      "chapter": "c4",
+      "type": "videos",
+      "title": "Recordings (continued)",
+      "videos": [
+        "records-log",
+        "offline",
+        "battery"
+      ]
+    },
+    {
+      "id": "recordings-5",
+      "chapter": "c4",
+      "type": "videos",
+      "title": "Recordings (continued)",
+      "videos": [
+        "safety-stops"
+      ]
+    },
+    {
+      "id": "testing-photos",
+      "chapter": "c4",
+      "type": "gallery",
+      "kicker": "Appendix L.4",
+      "title": "Device testing",
+      "images": [
+        {
+          "src": "media/deck/testing-1.jpg",
+          "title": "Testing the hopper"
+        },
+        {
+          "src": "media/deck/testing-2.jpg",
+          "title": "Checking the trays"
+        },
+        {
+          "src": "media/deck/testing-3.jpg",
+          "title": "Testing on the machine"
+        },
+        {
+          "src": "media/deck/testing-4.jpg",
+          "title": "Load cell work"
+        },
+        {
+          "src": "media/deck/testing-5.jpg",
+          "title": "Running a test"
+        }
+      ]
+    },
+    {
+      "id": "build-photos",
+      "chapter": "c4",
+      "type": "gallery",
+      "kicker": "Hardware and software",
+      "title": "Building it",
+      "images": [
+        {
+          "src": "media/deck/hardware-2.jpg",
+          "title": "Control box wiring"
+        },
+        {
+          "src": "media/deck/hardware-3.jpg",
+          "title": "Control box with the door open"
+        },
+        {
+          "src": "media/deck/hardware-1.jpg",
+          "title": "Wiring close up"
+        },
+        {
+          "src": "media/deck/software-1.jpg",
+          "title": "Firmware work"
+        },
+        {
+          "src": "media/deck/software-2.jpg",
+          "title": "Load cell calibration output"
+        },
+        {
+          "src": "media/deck/software-3.jpg",
+          "title": "Programming the Mega"
+        }
+      ]
+    },
+    {
+      "id": "evaluators",
+      "chapter": "c4",
+      "type": "statement",
+      "text": "Twelve people evaluated HyFePoul: six CpE practitioners, five poultry farmers and the City Veterinarian.",
+      "notes": "Two parts: software quality based on ISO/IEC 25010, and hardware evaluation of the components, technical details and structure.",
+      "sub": "Face to face with the device, and online through this website.",
+      "img": "media/deck/evaluation-2.jpg"
+    },
+    {
+      "id": "evaluation-photos",
+      "chapter": "c4",
+      "type": "gallery",
+      "kicker": "Appendix L.5",
+      "title": "Evaluation",
+      "images": [
+        {
+          "src": "media/deck/evaluation-1.jpg",
+          "title": "Evaluation session"
+        },
+        {
+          "src": "media/deck/evaluation-2.jpg",
+          "title": "Presenting the device"
+        },
+        {
+          "src": "media/deck/evaluation-3.jpg",
+          "title": "Evaluators at the device"
+        },
+        {
+          "src": "media/deck/evaluation-4.jpg",
+          "title": "Evaluation with a practitioner"
+        },
+        {
+          "src": "media/deck/evaluation-5.jpg",
+          "title": "Evaluation with the farmers"
+        },
+        {
+          "src": "media/deck/client-1.jpg",
+          "title": "Client evaluation"
+        },
+        {
+          "src": "media/deck/client-2.jpg",
+          "title": "Client evaluation"
+        }
+      ]
+    },
+    {
+      "id": "iso-results",
+      "chapter": "c4",
+      "type": "table",
       "kicker": "Software evaluation · ISO/IEC 25010",
       "title": "Evaluation results",
-      "columns": ["Characteristic", "CpE practitioners", "Farmers and vet", "Mean", "Rating"],
-      "rows": [["Functional suitability", "", "", "", ""], ["Performance efficiency", "", "", "", ""], ["Compatibility", "", "", "", ""], ["Interaction capability", "", "", "", ""], ["Reliability", "", "", "", ""], ["Security", "", "", "", ""], ["Maintainability", "", "", "", ""], ["Flexibility", "", "", "", ""], ["Safety", "", "", "", ""]],
+      "columns": [
+        "Characteristic",
+        "CpE practitioners",
+        "Farmers and vet",
+        "Mean",
+        "Rating"
+      ],
+      "rows": [
+        [
+          "Functional suitability",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Performance efficiency",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Compatibility",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Interaction capability",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Reliability",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Security",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Maintainability",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Flexibility",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Safety",
+          "",
+          "",
+          "",
+          ""
+        ]
+      ],
       "todo": "Fill in the means from Appendices G.2 and G.4"
     },
     {
-      "id": "hardware-results", "chapter": "c4", "type": "todo",
+      "id": "hardware-results",
+      "chapter": "c4",
+      "type": "todo",
       "kicker": "Hardware evaluation",
       "title": "Hardware evaluation results",
-      "slots": [{ "kind": "chart", "label": "Hardware evaluation chart or table", "file": "media/deck/hardware-evaluation.png" }]
+      "slots": [
+        {
+          "kind": "chart",
+          "label": "Hardware evaluation chart or table",
+          "file": "media/deck/hardware-evaluation.png"
+        }
+      ]
     },
     {
-      "id": "budget", "chapter": "c4", "type": "budget",
+      "id": "budget",
+      "chapter": "c4",
+      "type": "budget",
       "kicker": "Project economic feasibility · Appendix I",
       "title": "Total budget",
       "total": "₱27,664",
       "rows": [
-        ["Nextion 7-inch display", "1", "7,500"], ["Tubular 1×1 stainless", "5", "3,500"], ["Plain sheet stainless 0.8", "1", "3,000"], ["DC gear motor", "1", "3,000"],
-        ["Battery 12 V 12 Ah", "1", "1,800"], ["Power supply", "1", "1,350"], ["Chain #35", "2", "1,130"], ["Meat grinder #10 (auger)", "1", "1,100"],
-        ["Arduino Mega R3", "1", "1,049"], ["Charge controller", "1", "650"], ["S-matting", "1", "600"], ["Load cell 1 kg", "5", "495"],
-        ["Almazon 1/2×3", "3", "450"], ["ESP32 Type-C", "1", "385"], ["Sprocket 35B10", "2", "290"], ["HX711", "5", "250"],
-        ["6-channel relay", "1", "160"], ["PVC pipe", "1", "160"], ["Bearing", "1", "150"], ["LM2596S step-down", "1", "147"],
-        ["RTC module", "1", "120"], ["Feeder", "5", "115"], ["USB to serial module", "1", "108"], ["Keypad 4×4", "1", "100"],
-        ["PVC elbow", "3", "30"], ["PVC end cap", "1", "25"]
+        [
+          "Nextion 7-inch display",
+          "1",
+          "7,500"
+        ],
+        [
+          "Tubular 1×1 stainless",
+          "5",
+          "3,500"
+        ],
+        [
+          "Plain sheet stainless 0.8",
+          "1",
+          "3,000"
+        ],
+        [
+          "DC gear motor",
+          "1",
+          "3,000"
+        ],
+        [
+          "Battery 12 V 12 Ah",
+          "1",
+          "1,800"
+        ],
+        [
+          "Power supply",
+          "1",
+          "1,350"
+        ],
+        [
+          "Chain #35",
+          "2",
+          "1,130"
+        ],
+        [
+          "Meat grinder #10 (auger)",
+          "1",
+          "1,100"
+        ],
+        [
+          "Arduino Mega R3",
+          "1",
+          "1,049"
+        ],
+        [
+          "Charge controller",
+          "1",
+          "650"
+        ],
+        [
+          "S-matting",
+          "1",
+          "600"
+        ],
+        [
+          "Load cell 1 kg",
+          "5",
+          "495"
+        ],
+        [
+          "Almazon 1/2×3",
+          "3",
+          "450"
+        ],
+        [
+          "ESP32 Type-C",
+          "1",
+          "385"
+        ],
+        [
+          "Sprocket 35B10",
+          "2",
+          "290"
+        ],
+        [
+          "HX711",
+          "5",
+          "250"
+        ],
+        [
+          "6-channel relay",
+          "1",
+          "160"
+        ],
+        [
+          "PVC pipe",
+          "1",
+          "160"
+        ],
+        [
+          "Bearing",
+          "1",
+          "150"
+        ],
+        [
+          "LM2596S step-down",
+          "1",
+          "147"
+        ],
+        [
+          "RTC module",
+          "1",
+          "120"
+        ],
+        [
+          "Feeder",
+          "5",
+          "115"
+        ],
+        [
+          "USB to serial module",
+          "1",
+          "108"
+        ],
+        [
+          "Keypad 4×4",
+          "1",
+          "100"
+        ],
+        [
+          "PVC elbow",
+          "3",
+          "30"
+        ],
+        [
+          "PVC end cap",
+          "1",
+          "25"
+        ]
       ]
     },
     {
-      "id": "comparison", "chapter": "c4", "type": "todo",
+      "id": "comparison",
+      "chapter": "c4",
+      "type": "todo",
       "kicker": "Project benefits",
       "title": "Comparison with manual feeding",
-      "slots": [{ "kind": "table", "label": "Comparison table", "file": "data/deck.json → comparison" }]
+      "slots": [
+        {
+          "kind": "table",
+          "label": "Comparison table",
+          "file": "data/deck.json → comparison"
+        }
+      ]
     },
     {
-      "id": "costs", "chapter": "c4", "type": "todo",
+      "id": "costs",
+      "chapter": "c4",
+      "type": "todo",
       "kicker": "Project economic feasibility",
       "title": "Operational cost and profitability",
-      "slots": [{ "kind": "table", "label": "Operational cost analysis" }, { "kind": "chart", "label": "Potential profitability" }]
+      "slots": [
+        {
+          "kind": "table",
+          "label": "Operational cost analysis"
+        },
+        {
+          "kind": "chart",
+          "label": "Potential profitability"
+        }
+      ]
     },
     {
-      "id": "schedule", "chapter": "c4", "type": "todo",
+      "id": "schedule",
+      "chapter": "c4",
+      "type": "todo",
       "kicker": "Project schedule feasibility · Appendix F",
       "title": "Gantt chart",
-      "slots": [{ "kind": "image", "label": "Gantt chart", "file": "media/deck/gantt.png" }]
+      "slots": [
+        {
+          "kind": "image",
+          "label": "Gantt chart",
+          "file": "media/deck/gantt.png"
+        }
+      ]
     },
-
-    { "id": "c5", "chapter": "c5", "type": "chapter", "img": "media/deck/evaluation-1.jpg", "pos": "center 35%" },
-    { "id": "summary", "chapter": "c5", "type": "todo", "kicker": "Summary", "title": "Summary of findings", "slots": [{ "kind": "text", "label": "Three to five short findings" }] },
-    { "id": "conclusions", "chapter": "c5", "type": "todo", "kicker": "Conclusions", "title": "Conclusions", "slots": [{ "kind": "text", "label": "One line per objective" }] },
-    { "id": "recommendations", "chapter": "c5", "type": "todo", "kicker": "Recommendations", "title": "Recommendations", "slots": [{ "kind": "text", "label": "Three to five recommendations" }] },
     {
-      "id": "panel-actions", "chapter": "c5", "type": "table",
-      "kicker": "From the panel",
-      "title": "Comments and actions done",
-      "columns": ["Recommendation", "Comment", "Action done"],
-      "rows": [["", "", ""], ["", "", ""], ["", "", ""]],
-      "todo": "Add each panel recommendation and what was done about it"
+      "id": "c5",
+      "chapter": "c5",
+      "type": "chapter",
+      "img": "media/deck/evaluation-1.jpg",
+      "pos": "center 35%"
     },
-
     {
-      "id": "journey", "chapter": "end", "type": "timeline",
+      "id": "summary",
+      "chapter": "c5",
+      "type": "todo",
+      "kicker": "Summary",
+      "title": "Summary of findings",
+      "slots": [
+        {
+          "kind": "text",
+          "label": "Three to five short findings"
+        }
+      ]
+    },
+    {
+      "id": "conclusions",
+      "chapter": "c5",
+      "type": "todo",
+      "kicker": "Conclusions",
+      "title": "Conclusions",
+      "slots": [
+        {
+          "kind": "text",
+          "label": "One line per objective"
+        }
+      ]
+    },
+    {
+      "id": "recommendations",
+      "chapter": "c5",
+      "type": "todo",
+      "kicker": "Recommendations",
+      "title": "Recommendations",
+      "slots": [
+        {
+          "kind": "text",
+          "label": "Three to five recommendations"
+        }
+      ]
+    },
+    {
+      "id": "panel-actions",
+      "chapter": "c5",
+      "type": "panel",
+      "title": "What the panel asked, and what we did",
+      "text": "Pre-oral defense, 20 May 2026. Each comment is matched with the change we made and where to find it.",
+      "entries": [
+        {
+          "who": "Engr. Jomar Escobido",
+          "role": "Chairperson",
+          "comment": "",
+          "action": "",
+          "see": ""
+        },
+        {
+          "who": "Engr. Danica Dejesa",
+          "role": "Panelist",
+          "comment": "",
+          "action": "",
+          "see": ""
+        },
+        {
+          "who": "Engr. Kenneth Magampon",
+          "role": "Panelist",
+          "comment": "",
+          "action": "",
+          "see": ""
+        },
+        {
+          "who": "Engr. Angelica C. Samortin, MSECE",
+          "role": "Adviser",
+          "comment": "",
+          "action": "",
+          "see": ""
+        }
+      ],
+      "notes": "Fill each comment and action in data/deck.json under the panel-actions slide. \"see\" can be a slide id, for example t4-3-1, to link to the proof."
+    },
+    {
+      "id": "journey",
+      "chapter": "end",
+      "type": "timeline",
       "kicker": "Appendix L",
       "title": "Our journey",
       "items": [
-        { "date": "18 Mar 2026", "t": "Title proposal", "d": "First idea revised into HyFePoul" },
-        { "date": "20 May 2026", "t": "Pre-oral defense", "d": "Comments guided the build" },
-        { "date": "Oct 2026", "t": "Testing", "d": "Every objective tested on the device" },
-        { "date": "Nov 2026", "t": "Evaluation", "d": "Practitioners, farmers and the City Veterinarian" },
-        { "date": "", "t": "Deployment", "d": "Hand-over at the farm" },
-        { "date": "", "t": "Final defense", "d": "Today" }
+        {
+          "date": "18 Mar 2026",
+          "t": "Title proposal",
+          "d": "First idea revised into HyFePoul"
+        },
+        {
+          "date": "20 May 2026",
+          "t": "Pre-oral defense",
+          "d": "Comments guided the build"
+        },
+        {
+          "date": "Oct 2026",
+          "t": "Testing",
+          "d": "Every objective tested on the device"
+        },
+        {
+          "date": "Nov 2026",
+          "t": "Evaluation",
+          "d": "Practitioners, farmers and the City Veterinarian"
+        },
+        {
+          "date": "",
+          "t": "Deployment",
+          "d": "Hand-over at the farm"
+        },
+        {
+          "date": "",
+          "t": "Final defense",
+          "d": "Today"
+        }
       ]
     },
     {
-      "id": "references", "chapter": "end", "type": "refs",
+      "id": "references",
+      "chapter": "end",
+      "type": "refs",
       "kicker": "References",
       "title": "Studies cited in this presentation",
-      "items": ["Agagu (2024)", "Ajayi et al. (2025)", "Anand et al. (2024)", "Araneta (2025)", "Asri et al. (2024)", "Bist et al. (2026)", "Chaurasia (2024)", "David and Galina (2024)", "Davis (1986)", "De Grano et al. (2025)", "Deni et al. (2026)", "Eda et al. (2023)", "Hermawan (2023)", "Hidzir and Ismail (2022)", "Karun et al. (2024)", "Laksono et al. (2024)", "Mansur (2025)", "Peng et al. (2022)", "Simon and Palaoag (2024)", "Tagacay (2024)", "Velasco (2019)", "Zaharieva and Dunchev (2025)"],
+      "items": [
+        "Agagu (2024)",
+        "Ajayi et al. (2025)",
+        "Anand et al. (2024)",
+        "Araneta (2025)",
+        "Asri et al. (2024)",
+        "Bist et al. (2026)",
+        "Chaurasia (2024)",
+        "David and Galina (2024)",
+        "Davis (1986)",
+        "De Grano et al. (2025)",
+        "Deni et al. (2026)",
+        "Eda et al. (2023)",
+        "Hermawan (2023)",
+        "Hidzir and Ismail (2022)",
+        "Karun et al. (2024)",
+        "Laksono et al. (2024)",
+        "Mansur (2025)",
+        "Peng et al. (2022)",
+        "Simon and Palaoag (2024)",
+        "Tagacay (2024)",
+        "Velasco (2019)",
+        "Zaharieva and Dunchev (2025)"
+      ],
       "text": "Full list in the manuscript's References section."
     },
-    { "id": "thanks", "chapter": "end", "type": "end", "title": "Thank you", "text": "We welcome your questions." }
+    {
+      "id": "thanks",
+      "chapter": "end",
+      "type": "end",
+      "title": "Thank you",
+      "text": "We welcome your questions."
+    }
   ]
 }
