@@ -4,3 +4,4 @@ vercel.json
 .wrangler
 node_modules
 tools
+DECK-GUIDE.md

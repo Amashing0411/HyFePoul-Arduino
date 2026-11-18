@@ -89,7 +89,7 @@ export function wireList(HXU) {
   field('sig', SK, 0.07, ['mega', 'D52'], ['ultrasonic', 'TRIG'], sensor(1), HOP);
   field('sig', GR, 0.07, ['mega', 'D50'], ['ultrasonic', 'ECHO'], sensor(2), HOP);
 
-  // Reservoir end: float and the tray 1 limit switch. The tray 4 limit switch branches off near the box.
+  // Reservoir end: float and the tray 1 limit switch. The tray 5 limit switch branches off near the box.
   const floatRun = ax => run => [{ w: [ax, run.y, run.z] }, { w: [ax, 44.75, run.z] }, { w: [ax, 44.75, 119.9] }];
   field('sig', Y, 0.08, ['mega', 'D49'], ['float', 'a'], floatRun(21.85), { v: 28.5 });
   field('sig', Y, 0.08, ['breadboard', 'g14'], ['float', 'b'], floatRun(22.15));

@@ -73,14 +73,14 @@ export const PARTS = [
     size: [CAD, 'about 211 cm long'], pos: [CAD, 'from the drawing'] },
   { id: 'chainMotor', group: 'feeding', view: 'chain', name: 'Chain motor', short: 'Chain motor',
     what: 'A 12 V geared motor lying along the top of the control box. A grey gearbox turns the sprocket, and two relays decide which way it runs.',
-    connects: 'Relay 1 (Mega pin 10) moves the hopper toward tray 1. Relay 2 (Mega pin 9) moves it toward tray 4. Leads join at a white connector on the box roof.',
+    connects: 'Relay 1 (Mega pin 10) moves the hopper toward tray 1. Relay 2 (Mega pin 9) moves it toward tray 5. Leads join at a white connector on the box roof.',
     size: [EST, 'about 5 cm across, 11 cm long, from photos'], pos: [EST, 'on top of the control box, from photos'] },
   { id: 'limitHome', group: 'feeding', view: 'chain', name: 'Home limit switch', short: 'Home switch',
     what: 'Tells the machine the hopper has reached home, over the middle of tray 1, at the end by the reservoir.',
     connects: 'Mega pin 53. Other leg to ground. Normally open.',
     size: [EST, 'about 2.8 × 1.6 × 1 cm'], pos: [EST, 'on a bracket at the reservoir end of the rail, from photos'] },
-  { id: 'limitEnd', group: 'feeding', view: 'chain', name: 'Tray 4 limit switch', short: 'End switch',
-    what: 'Tells the machine the hopper has reached the far end, over the middle of tray 4, at the control box end.',
+  { id: 'limitEnd', group: 'feeding', view: 'chain', name: 'Tray 5 limit switch', short: 'End switch',
+    what: 'Tells the machine the hopper has reached the far end, over the middle of tray 5, at the control box end.',
     connects: 'Mega pin 51. Other leg to ground. Normally open.',
     size: [EST, 'about 2.8 × 1.6 × 1 cm'], pos: [EST, 'on a bracket at the control box end of the rail, from photos'] },
 
@@ -170,10 +170,10 @@ export const PARTS = [
 ].map((p, i) => ({ ...p, n: i + 1 }));
 
 export const VIEW_PINS = {
-  cycle: ['hopper', 'tray4', 'tray5', 'tray3', 'tray2', 'tray1'],
-  whole: ['frame', 'cage', 'hopper', 'chain', 'tray4', 'tray5', 'tray3', 'tray2', 'tray1', 'reservoir', 'shell'],
+  cycle: ['hopper', 'tray5', 'tray4', 'tray3', 'tray2', 'tray1'],
+  whole: ['frame', 'cage', 'hopper', 'chain', 'tray5', 'tray4', 'tray3', 'tray2', 'tray1', 'reservoir', 'shell'],
   hopper: ['hopper', 'lid', 'ultrasonic', 'auger', 'dispMotor', 'rollers'],
-  trays: ['tray4', 'tray5', 'tray3', 'tray2', 'tray1', 'lc4', 'lc5', 'lc3', 'lc2', 'lc1'],
+  trays: ['tray5', 'tray4', 'tray3', 'tray2', 'tray1', 'lc5', 'lc4', 'lc3', 'lc2', 'lc1'],
   chain: ['chain', 'chainMotor', 'limitHome', 'limitEnd', 'rollers', 'hopper'],
   water: ['reservoir', 'float', 'pipe', 'drinkers'],
   box: ['door', 'nextion', 'charger', 'psu', 'battery', 'buck1', 'buck2', 'breadboard', 'mega', 'esp32', 'rtc', 'hx1', 'hx2', 'hx3', 'hx4', 'hx5', 'relay', 'rocker', 'buzzer'],
