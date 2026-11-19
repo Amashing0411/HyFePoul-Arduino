@@ -976,3 +976,12 @@ html { scrollbar-color: #93aed4 var(--paper); }
 .pip-x { top: 26px; }
 @media (max-width: 760px) { .pip { width: 112px; height: 138px; } }
 .flag, .foot-note, .tcap, .evs { flex-shrink: 0; }
+/* Team: the lanyard rail at its own size (no scaling). On the web page the section grows to fit it. */
+.team-host { display: block !important; overflow-y: auto; overflow-x: hidden; }
+.team-host #teamRoot { width: 100% !important; zoom: 1 !important; }
+.web .band#team .web-frame { aspect-ratio: auto; height: auto; container-type: inline-size; }
+.web .t-team { position: relative; inset: auto; overflow: visible; padding: 0; }
+.web .t-team .team-host { position: relative; inset: auto; overflow: visible; }
+.web .t-team .sh { position: static; padding: calc(var(--u) * 1) 0 calc(var(--u) * 2); }
+.t-team .sh .lead { font-size: calc(var(--u) * 1.2); color: var(--ink-2); text-align: center; margin: 0 auto; }
+.web .t-team .sh { order: 2; }

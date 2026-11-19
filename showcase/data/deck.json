@@ -59,8 +59,8 @@
       "id": "team",
       "chapter": "open",
       "type": "team",
-      "kicker": "Adviser · Engr. Angelica C. Samortin, MSECE",
-      "notes": "Move along the rail to meet each researcher. Pull a badge down or click it to flip it."
+      "notes": "Move along the rail to meet each researcher. Pull a badge down or click it to flip it.",
+      "text": "Adviser: Engr. Angelica C. Samortin, MSECE"
     },
     {
       "id": "agenda",

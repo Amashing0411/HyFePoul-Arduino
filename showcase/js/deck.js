@@ -537,18 +537,10 @@ function watchCycle() {
   }).observe(st, { childList: true, characterData: true, subtree: true, attributes: true });
 }
 
-// The lanyard rail is laid out for about 1120 × 500 px; it is zoomed to fit the slide so every badge shows.
-const TEAM_W = 1120, TEAM_H = 500;
-const teamFit = new ResizeObserver(es => es.forEach(e => {
-  const el = $('teamRoot'), w = e.contentRect.width, h = e.contentRect.height;
-  if (!w || !h || el.parentElement !== e.target) return;
-  el.style.zoom = Math.min(w / TEAM_W, h / TEAM_H);
-}));
+// The lanyard rail runs at its natural size, as on the original page: scaling it upsets its drag physics.
 function dockTeam(host) {
   const el = $('teamRoot'); host.append(el);
-  teamFit.disconnect(); teamFit.observe(host);
-  const r = host.getBoundingClientRect();
-  if (r.width && r.height) el.style.zoom = Math.min(r.width / TEAM_W, r.height / TEAM_H);
+  el.style.zoom = '';
   if (teamMounted) return;
   teamMounted = true;
   import('./team.bundle.js?v=3').then(m => m.mount(el, LIB.team)).catch(e => console.warn(e));
@@ -573,7 +565,7 @@ function go(i, dir) {
   if (old) { old.classList.add('leave'); old.setAttribute('aria-hidden', 'true'); setTimeout(() => old.remove(), reduced ? 0 : 420); }
   history.replaceState(null, '', '#' + (i + 1));
   updateChrome();
-  dispatchEvent(new CustomEvent('hfp-slide', { detail: { slide: s, i, mode: 'slides' } }));
+  dispatchEvent(new CustomEvent('hfp-slide', { detail: { slide: s, i, mode: 'slides', chapter: chap(s.chapter), videos: LIB.videos } }));
   // Warm the next slide's pictures.
   const nx = S()[i + 1];
   if (nx) build(nx, i + 1, true).querySelectorAll('img').forEach(im => { const p = new Image(); p.src = im.getAttribute('src'); });
@@ -766,7 +758,7 @@ function onWebScroll() {
   webT = setTimeout(() => {
     const b = webCurrent(); if (!b) return;
     const i = +b.dataset.i; cur = i;
-    dispatchEvent(new CustomEvent('hfp-slide', { detail: { slide: S()[i], i, mode: 'web' } }));
+    dispatchEvent(new CustomEvent('hfp-slide', { detail: { slide: S()[i], i, mode: 'web', chapter: chap(S()[i].chapter) } }));
     const ch = S()[i].chapter;
     $('webNav').querySelectorAll('a').forEach(a => a.classList.toggle('on', a.dataset.ch === ch));
     const hosts = [...document.querySelectorAll('.band .model-host')];
@@ -804,8 +796,8 @@ function setMode(m, at) {
 // ---------------------------------------------------------------- start
 async function start() {
   [D, LIB] = await Promise.all([
-    fetch('data/deck.json').then(r => r.json()),
-    fetch('data/library.json').then(r => r.json()).catch(() => LIB),
+    fetch('data/deck.json', { cache: 'no-cache' }).then(r => r.json()),
+    fetch('data/library.json', { cache: 'no-cache' }).then(r => r.json()).catch(() => LIB),
   ]);
   LIB.files = LIB.files || [];
   { let sec = null, ch = null; S().forEach(x => { if (x.chapter !== ch) { ch = x.chapter; sec = null; } if (x.section) sec = x.section; x._sec = sec; }); }
@@ -816,7 +808,7 @@ async function start() {
   addEventListener('scroll', onWebScroll, { passive: true });
   const h = location.hash.slice(1);
   document.body.classList.add('ready');
-  import('./pip.js?v=4').then(m => m.initPip()).catch(e => console.warn(e));
+  import('./pip.js?v=6').then(m => { m.initPip(); if (mode === 'slides' && cur >= 0) dispatchEvent(new CustomEvent('hfp-slide', { detail: { slide: S()[cur], i: cur, mode: 'slides', chapter: chap(S()[cur].chapter), videos: LIB.videos } })); }).catch(e => console.warn(e));
   if (/^\d+$/.test(h)) setMode('slides', +h - 1);
   else {
     document.body.classList.add('mode-web'); fit();

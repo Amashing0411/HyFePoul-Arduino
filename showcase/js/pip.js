@@ -39,6 +39,7 @@ function lineFor(s) {
     cycle: 'Press play to watch a feed cycle on the 3D model.',
     device3d: 'Tap a number on the model to read about that part.',
     budget: 'The whole build cost ₱27,664.',
+    comparison: 'Load cells on the trays replace the feed scoop.',
     features: 'Ten functions, each with its own test in Chapter IV.',
     'testing-intro': 'Every function was tested against its objective.',
     'accuracy-all': 'Most tests landed between 96% and 99% accurate.',
@@ -50,7 +51,6 @@ function lineFor(s) {
     thanks: 'Thanks for visiting! Any questions?',
   };
   if (byId[s.id]) return byId[s.id];
-  if (s.type === 'chapter') return null;
   if (s.type === 'grams') {
     const r = s.rows.filter(x => x.target != null && x.actual != null);
     if (!r.length) return null;
@@ -62,8 +62,48 @@ function lineFor(s) {
   if (s.type === 'doctable' && s.columns && s.columns[0] === 'Condition') return `Table ${s.table}: every condition here was met.`;
   if (s.type === 'iso' && s.series) return `CpE practitioners: ${fmt(s.series[0].overall)}. End users: ${fmt(s.series[1].overall)}.`;
   if (s.type === 'hw' && s.series) return `Hardware: ${fmt(s.series[0].overall)} from practitioners, ${fmt(s.series[1].overall)} from end users.`;
-  if (s.type === 'doctable' && s.table) return `This is Table ${s.table} from Chapter IV.`;
-  return null;
+  if (s.type === 'doctable' && s.table) return `Table ${s.table}: ${s.title}.`;
+  return describe(s);
+}
+const short = (t, n = 120) => { t = String(t || '').trim(); if (t.length <= n) return t; const c = t.slice(0, n); return c.slice(0, c.lastIndexOf(' ')).replace(/[,;:]$/, '') + '…'; };
+const human = id => id.replace(/-/g, ' ');
+const words = n => ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'][n] || String(n);
+let CHAPTER = null, VIDEOS = [];
+// A line for any slide, from what is on it.
+function describe(s) {
+  const c = CHAPTER || {};
+  switch (s.type) {
+    case 'chapter': return c.num ? `${c.label}: ${c.title}.` : null;
+    case 'statement': return short(s.sub || s.text);
+    case 'points': return s.points && s.points.length ? short(`${s.title}: ${s.points.map(p => p.t).join('; ')}.`) : short(s.title);
+    case 'terms': return short(`${words(s.items.length)[0].toUpperCase() + words(s.items.length).slice(1)} terms, from ${s.items[0].t} to ${s.items[s.items.length - 1].t}.`);
+    case 'objectives': return short(`Objectives ${s.items[0].label} to ${s.items[s.items.length - 1].label}: ${s.items.map(o => o.t).join('; ')}.`);
+    case 'media': return short(s.text || `${s.kicker ? s.kicker + ': ' : ''}${s.title}.`);
+    case 'gallery': return short(`${s.title}: ${words(s.images.length)} photos. Click one to see it full size.`);
+    case 'flow': return short(s.nodes.map(n => n.t).join(' → ') + '.');
+    case 'chips': return short(`${s.title}: ${words(s.items.length)} in all.`);
+    case 'table': return s.rows && s.rows.length > 1 && s.rows[0][0].length < 40 ? short(`${s.title}: ${words(s.rows.length)} rows, from ${s.rows[0][0]} to ${s.rows[s.rows.length - 1][0]}.`) : short(s.title + '.');
+    case 'pins': return `${words(s.rows.length)[0].toUpperCase() + words(s.rows.length).slice(1)} pin connections, straight from the firmware.`;
+    case 'steps': return short(`${words(s.steps.length)[0].toUpperCase() + words(s.steps.length).slice(1)} steps: ${s.steps.map(x => x.t).join('; ')}.`);
+    case 'screens': return `Screens from ${s.kind === 'app' ? 'the mobile app' : 'the 7-inch touch panel'}. Click one to enlarge it.`;
+    case 'videos': {
+      const t = (s.videos || []).map(id => (VIDEOS.find(v => v.id === id) || {}).title || human(id));
+      return short(`Press play: ${t.join(', ').toLowerCase()}.`);
+    }
+    case 'status': { const n = s.rows.filter(r => r[1] === 'tested').length; return `${words(n)[0].toUpperCase() + words(n).slice(1)} functions built and tested, each with its own table.`; }
+    case 'isodetail': {
+      const all = s.subs.flat(); const hi = all.reduce((a, b) => (b[1] > a[1] ? b : a)); const lo = all.reduce((a, b) => (b[1] < a[1] ? b : a));
+      return `Highest: ${hi[0].toLowerCase()} at ${fmt(hi[1])}. Lowest: ${lo[0].toLowerCase()} at ${fmt(lo[1])}.`;
+    }
+    case 'concl': return short(`${s.title}: ${s.items.length + (s.items2 ? s.items2.length : 0)} points, straight from Chapter V.`);
+    case 'budget': return `The whole build cost ${s.total}.`;
+    case 'timeline': return short(`${s.items[0].t} on ${s.items[0].date}, through to ${s.items[s.items.length - 1].t.toLowerCase()}.`);
+    case 'refs': return `${words(s.items.length)[0].toUpperCase() + words(s.items.length).slice(1)} studies cited in this presentation.`;
+    case 'todo': return `${s.title}: this part is still being added.`;
+    case 'parts': return `${words(s.items.length)[0].toUpperCase() + words(s.items.length).slice(1)} parts. Click one for a closer look.`;
+    case 'bars': return short(s.title);
+    default: return s.title ? short(s.title) : null;
+  }
 }
 function clipFor(s) {
   if (!s) return 'Loco_LookAround';
@@ -217,16 +257,28 @@ async function show() {
   el.classList.add('in');
   size(); startRender();
   play('Web_Appear', 0);
-  if (lastSlide) setTimeout(() => react(lastSlide, true), 1200);
+  setTimeout(() => { if (mode === 'slides' && lastSlide) react(lastSlide); else say('Hi, I\'m PIP! I\'ll keep you company through HyFePoul.', true); }, 1200);
 }
 
-function react(s, force) {
+function react(s) {
   if (!renderer || minimized()) return;
-  const line = lineFor(s) || (Math.random() < 0.35 ? pick(FACTS) : null);
-  if (!line && !force) return;
-  if (!force && performance.now() - lastSay < GAP_MS) return;
   if (!walk) play(clipFor(s));
-  say(line || pick(FACTS), true);
+  say(lineFor(s) || pick(FACTS), true);
+}
+
+// On the web page PIP shares a random fact every 25 to 45 seconds.
+let factT = 0, lastFact = -1;
+function factLoop() {
+  clearTimeout(factT);
+  factT = setTimeout(() => {
+    if (mode === 'web' && renderer && !document.hidden) {
+      let k; do { k = Math.floor(Math.random() * FACTS.length); } while (k === lastFact && FACTS.length > 1);
+      lastFact = k;
+      if (!walk) play(pick(['Pers_Point', 'Pers_Think', 'Pers_HeadTilt', 'Pers_Wave']));
+      say(FACTS[k], true);
+    }
+    factLoop();
+  }, rand(25000, 45000));
 }
 
 export function initPip() {
@@ -237,16 +289,16 @@ export function initPip() {
   new ResizeObserver(size).observe(canvas);
   document.addEventListener('visibilitychange', () => { document.hidden ? stopRender() : startRender(); });
   addEventListener('hfp-slide', e => {
-    const { slide, mode: m } = e.detail || {};
+    const { slide, mode: m, chapter, videos } = e.detail || {};
+    CHAPTER = chapter || null; if (videos) VIDEOS = videos;
     const changedMode = m !== mode; mode = m || mode;
     el.classList.toggle('slides', mode === 'slides');
     if (changedMode) { walk = null; el.style.setProperty('--walk', '0px'); if (pip) pip.rotation.y = 0; size(); }
     if (slide === lastSlide && !changedMode) return;
     lastSlide = slide;
-    // In presenter mode every slide gets its line; on the web page lines are spaced out while scrolling.
-    react(slide, mode === 'slides');
+    if (mode === 'slides') react(slide, true);
   });
   // Arrive shortly after the page settles, so he never slows the first view.
-  const start = () => { show(); idleLoop(); };
+  const start = () => { show(); idleLoop(); factLoop(); };
   if ('requestIdleCallback' in window) requestIdleCallback(() => setTimeout(start, 1500), { timeout: 4000 }); else setTimeout(start, 2500);
 }
