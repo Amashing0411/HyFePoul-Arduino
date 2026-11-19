@@ -51,6 +51,8 @@ const head = (s, cls = '') => `<header class="sh ${cls}">
   ${s.text ? `<p class="lead" data-a>${esc(s.text)}</p>` : ''}
 </header>`;
 
+const evidence = (s, label) => s.evidence && s.evidence.length ? `<div class="evs" data-a><span class="evs-l">${esc(label || 'Documentation from Chapter IV')}</span>${s.evidence.filter(exists).map((f, k) => `<button type="button" data-zoom="${esc(f)}" data-title="Table ${esc(s.table)}, documentation ${k + 1}"><img src="${esc(f)}" alt="Documentation photo ${k + 1} for Table ${esc(s.table)}" loading="lazy"></button>`).join('')}</div>` : '';
+
 // ---------------------------------------------------------------- slide types
 const R = {
   cover: (s, t) => `
@@ -147,7 +149,8 @@ const R = {
         <thead><tr>${s.columns.map(c => `<th>${esc(c)}</th>`).join('')}${photo ? '<th>Actual image result</th>' : ''}</tr></thead>
         <tbody>${s.rows.map((r, k) => `<tr>${r.map(cell).join('')}${photo ? shot((s.start || 0) + k + 1) : ''}</tr>`).join('')}</tbody>
       </table></div>${bars}</div>
-      ${s.note ? `<p class="foot-note">${esc(s.note)}</p>` : ''}`;
+      ${evidence(s)}
+      ${s.note ? `<p class="foot-note">${esc(s.note)}</p>` : ''}${s.flag ? `<p class="flag">${esc(s.flag)}</p>` : ''}`;
   },
 
   // Weight tables: difference and accuracy are worked out from the target and the measured grams.
@@ -155,8 +158,8 @@ const R = {
     const res = s.mode === 'residue';
     const rows = s.rows.map((r, k) => {
       const ok = r.target != null && r.actual != null;
-      const diff = ok ? Math.abs(r.actual - r.target) : null;
-      return { ...r, n: k + 1, diff, acc: ok ? 100 - diff / r.target * 100 : null };
+      const diff = ok ? r.target - r.actual : null;
+      return { ...r, n: k + 1, diff, acc: ok ? 100 - Math.abs(diff) / r.target * 100 : null };
     });
     const have = rows.filter(r => r.acc != null);
     const avg = f => have.length ? have.reduce((a, r) => a + r[f], 0) / have.length : null;
@@ -164,9 +167,9 @@ const R = {
     const cols = res ? ['Tray', 'Target (g)', 'Remaining (g)', 'Added (g)', 'Final (g)', 'Difference (g)', 'Accuracy'] : ['Tray', 'Target (g)', 'Actual (g)', 'Difference (g)', 'Accuracy'];
     const cells = r => res ? [r.tray, g(r.target, 0), g(r.remaining, 1), g(r.added, 1), g(r.actual, 1), g(r.diff), r.acc == null ? '' : g(r.acc) + '%']
       : [r.tray, g(r.target, 0), g(r.actual, 1), g(r.diff), r.acc == null ? '' : g(r.acc) + '%'];
-    const shot = n => { const f = findBase(`${s.photos}-r${n}`); return f ? `<td class="shot"><button type="button" data-zoom="${esc(f)}" data-title="Table ${esc(s.table)}, tray ${n}"><img src="${esc(f)}" alt="Tray ${n} result photo" loading="lazy"></button></td>` : `<td class="shot"><span class="slot">${GUIDE ? esc(`${s.photos}-r${n}.jpg`) : 'Photo'}</span></td>`; };
+    const shot = n => { if (!s.photos) return ''; const f = findBase(`${s.photos}-r${n}`); return f ? `<td class="shot"><button type="button" data-zoom="${esc(f)}" data-title="Table ${esc(s.table)}, tray ${n}"><img src="${esc(f)}" alt="Tray ${n} result photo" loading="lazy"></button></td>` : `<td class="shot"><span class="slot">${GUIDE ? esc(`${s.photos}-r${n}.jpg`) : 'Photo'}</span></td>`; };
     const td = c => `<td${c === '' ? ' class="empty"' : ''}>${c === '' ? '<i></i>' : esc(c)}</td>`;
-    const avgRow = res ? ['Average', g(avg('target'), 0), '', '', g(avg('actual')), g(avg('diff')), have.length ? g(avg('acc')) + '%' : '']
+    const avgRow = res ? ['Average', g(avg('target'), 0), g(avg('remaining'), 1), g(avg('added'), 1), g(avg('actual')), g(avg('diff')), have.length ? g(avg('acc')) + '%' : '']
       : ['Average', g(avg('target'), 0), g(avg('actual')), g(avg('diff')), have.length ? g(avg('acc')) + '%' : ''];
     const target = rows.find(r => r.target != null)?.target;
     const chart = have.length ? (() => {
@@ -178,18 +181,20 @@ const R = {
     })() : '';
     return `<header class="sh"><h2 class="h">${esc(s.title)}</h2></header>
       <p class="tcap" data-a><b>Table ${esc(s.table)}.</b> ${esc(s.caption)}${have.length ? ` <span class="tcap-sum">Average accuracy ${g(avg('acc'))}%</span>` : ''}</p>
-      <div class="dt-wrap${chart ? ' with-chart' : ''}"><div class="tbl-wrap doc" data-a><table class="tbl doc-tbl grams-tbl has-shot">
-        <thead><tr>${cols.map(c => `<th>${esc(c)}</th>`).join('')}<th>Actual image result</th></tr></thead>
+      <div class="dt-wrap${chart ? ' with-chart' : ''}"><div class="tbl-wrap doc" data-a><table class="tbl doc-tbl grams-tbl${s.photos ? ' has-shot' : ''}">
+        <thead><tr>${cols.map(c => `<th>${esc(c)}</th>`).join('')}${s.photos ? '<th>Scale reading</th>' : ''}</tr></thead>
         <tbody>${rows.map(r => `<tr>${cells(r).map(td).join('')}${shot(r.n)}</tr>`).join('')}
-          <tr class="avg">${avgRow.map(td).join('')}<td></td></tr></tbody>
-      </table></div>${chart}</div>`;
+          <tr class="avg">${avgRow.map(td).join('')}${s.photos ? '<td></td>' : ''}</tr></tbody>
+      </table></div>${chart}</div>
+      ${evidence(s, s.mode === 'residue' ? 'Recorded readings' : 'Recorded in the app')}${s.flag ? `<p class="flag">${esc(s.flag)}</p>` : ''}`;
   },
 
   // The components as labelled photos; an empty frame waits for a close-up.
   parts: s => `${head(s)}
     <ul class="parts">${s.items.map(p => `<li data-a>${exists(p.img)
       ? `<button type="button" data-zoom="${esc(p.img)}" data-title="${esc(p.t)}"><img src="${esc(p.img)}" alt="${esc(p.t)}" loading="lazy"></button>`
-      : `<span class="slot">${GUIDE ? esc(p.img) : 'Photo'}</span>`}<b>${esc(p.t)}</b></li>`).join('')}</ul>`,
+      : `<span class="slot">${GUIDE ? esc(p.img) : 'Photo'}</span>`}<b>${esc(p.t)}</b>${p.ref ? `<em>${esc(p.ref)}</em>` : ''}</li>`).join('')}</ul>
+    ${s.items.some(p => p.ref) ? '<p class="foot-note">Labels marked "Product image" use the manufacturer pictures from Chapter IV, Figures 4.1 to 4.17 (sources in the References); the others are photos of our build.</p>' : ''}`,
 
   // Panel comments, each matched with what the team did about it.
   panel: s => `${head(s)}
@@ -200,6 +205,118 @@ const R = {
         const box = (v, l) => v ? `<p>${esc(v)}</p>` : `<p class="blank">${esc(l)}</p>`;
         return `<div class="pnl-r"><div><b>${esc(e.who)}</b><span>${esc(e.role)}</span></div>${box(e.comment, 'Comment to be added')}<div>${box(e.action, 'Action to be added')}${k >= 0 ? `<button type="button" class="pnl-see" data-go="${k}">See slide ${k + 1}</button>` : ''}</div></div>`;
       }).join('')}
+    </div>`,
+
+
+  // System architecture, redrawn from the block diagram (Figure 3.1) and the firmware pin map.
+  arch: s => {
+    const box = (x, y, w, h, t, sub, cls = '') => `<g class="ab ${cls}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="10"/><text x="${x + w / 2}" y="${y + (sub ? h / 2 - 4 : h / 2 + 5)}" text-anchor="middle" class="ab-t">${t}</text>${sub ? `<text x="${x + w / 2}" y="${y + h / 2 + 15}" text-anchor="middle" class="ab-s">${sub}</text>` : ''}</g>`;
+    const line = (d, cls = '') => `<path class="al ${cls}" d="${d}"/>`;
+    return `${head(s)}
+    <figure class="arch" data-a><svg viewBox="0 0 1200 560" role="img" aria-label="${esc(s.alt)}">
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" class="am"/></marker></defs>
+      <text x="20" y="28" class="ag">SENSING</text><text x="470" y="28" class="ag">CONTROL</text><text x="900" y="28" class="ag">ACTION AND DATA</text>
+      ${box(20, 50, 250, 54, '5 load cells → 5 HX711', 'tray weights, pins A0–A9')}
+      ${box(20, 118, 250, 54, 'HC-SR04 ultrasonic', 'hopper feed level')}
+      ${box(20, 186, 250, 54, 'Float switch', 'reservoir water level')}
+      ${box(20, 254, 250, 54, 'Home and end limit switches', 'hopper position')}
+      ${box(20, 322, 250, 54, 'RTC module (I²C)', 'feeding schedule time')}
+      ${box(420, 150, 300, 150, 'Arduino Mega 2560', 'main controller: sensing, feeding, safety', 'main')}
+      ${box(420, 30, 300, 70, 'Nextion 7-inch display', 'on-site status and controls')}
+      ${box(420, 360, 300, 70, 'ESP32', 'Wi-Fi communication controller', 'esp')}
+      ${box(880, 50, 300, 54, '6-channel relay module', '12 V switching')}
+      ${box(880, 118, 140, 54, 'Chain motor', 'two relays')}
+      ${box(1040, 118, 140, 54, 'Dispenser motor', 'DC worm gear')}
+      ${box(880, 186, 300, 54, 'Buzzer', 'local low-feed and low-water alarm')}
+      ${box(880, 300, 300, 54, 'Firebase Realtime Database', 'device data in the cloud', 'cloud')}
+      ${box(880, 372, 140, 54, 'Mobile app', 'monitor and control', 'cloud')}
+      ${box(1040, 372, 140, 54, 'Google Sheets', 'monthly log', 'cloud')}
+      ${line('M270 77 H340 V200 H418')}${line('M270 145 H340')}${line('M270 213 H340')}${line('M270 281 H340 V250 H418')}${line('M270 349 H340 V250')}
+      ${line('M570 148 V102', 'two')}${line('M570 302 V358', 'two')}
+      ${line('M722 200 H800 V77 H878')}${line('M950 106 V116')}${line('M1110 106 V116')}${line('M722 230 H800 V213 H878')}
+      ${line('M722 395 H800 V327 H878', 'two wifi')}${line('M950 356 V370', 'two')}${line('M1110 356 V370')}
+      <g class="pw">
+        ${box(20, 440, 170, 54, '220 V AC → 12 V PSU', '12 V 12.5 A', 'pwr')}
+        ${box(210, 440, 170, 54, 'Charge controller', '12 V 12 Ah battery', 'pwr')}
+        ${box(400, 440, 170, 54, 'Main power switch', '', 'pwr')}
+        ${box(590, 440, 170, 54, 'DC-DC buck converters', '12 V → 5 V logic', 'pwr')}
+        ${line('M190 467 H208')}${line('M380 467 H398')}${line('M570 467 H588')}
+        <text x="20" y="528" class="ag">POWER: 12 V to the motors through the relays, 5 V to the controllers and sensors</text>
+      </g>
+    </svg>
+    <figcaption>${esc(s.caption)}</figcaption></figure>`;
+  },
+
+  // One feeding cycle as the firmware runs it, with the checks that can stop it.
+  workflow: s => `${head(s)}
+    <ol class="wf" data-a>${s.steps.map((x, k) => `<li class="wf-${x.kind || 'step'}">
+      <span class="wf-n">${x.kind === 'check' ? '?' : k + 1 - s.steps.slice(0, k).filter(y => y.kind === 'check').length}</span>
+      <div><b>${esc(x.t)}</b><p>${esc(x.d)}</p>${x.no ? `<p class="wf-no"><span>If not:</span> ${esc(x.no)}</p>` : ''}</div></li>`).join('')}</ol>
+    ${s.side ? `<aside class="wf-side" data-a><b>${esc(s.side.t)}</b>${s.side.items.map(i => `<p>${esc(i)}</p>`).join('')}</aside>` : ''}`,
+
+  // What was built, what was tested, and what is still only proposed.
+  status: s => `${head(s)}
+    <div class="tbl-wrap" data-a><table class="tbl st-tbl tbl-many">
+      <thead><tr><th>Function</th><th>Status</th><th>Evidence</th></tr></thead>
+      <tbody>${s.rows.map(([f, st, e]) => `<tr><td>${esc(f)}</td><td><span class="stt stt-${st}">${esc({ tested: 'Built and tested', partial: 'Built, not separately tested', future: 'Proposed' }[st])}</span></td><td>${esc(e)}</td></tr>`).join('')}</tbody>
+    </table></div>`,
+
+  // Average accuracy of every weight test, recomputed from the measured grams.
+  accsum: s => {
+    const tests = S().filter(x => x.type === 'grams').map(x => {
+      const rows = x.rows.filter(r => r.target != null && r.actual != null);
+      const acc = rows.reduce((a, r) => a + (100 - Math.abs(r.target - r.actual) / r.target * 100), 0) / rows.length;
+      const min = Math.min(...rows.map(r => 100 - Math.abs(r.target - r.actual) / r.target * 100));
+      return { t: x.table, title: x.title, acc, min, i: S().indexOf(x) };
+    });
+    const lo = 85, hi = 100, pc = v => ((v - lo) / (hi - lo) * 100).toFixed(1);
+    const group = (name, list) => `<section><h3>${esc(name)}</h3>
+        <div class="accs-axis"><span style="left:0">85%</span><span style="left:${pc(90)}%">90%</span><span style="left:${pc(95)}%">95%</span><span style="left:100%">100%</span></div>
+        ${list.map(x => `<button type="button" class="accs-r" data-go="${x.i}" aria-label="Table ${esc(x.t)}, ${esc(x.title)}: ${x.acc.toFixed(2)}%"><span class="accs-l">${esc(x.t)}<em>${esc(x.title.replace(/ \((touch panel|app)\)/, ''))}</em></span>
+          <span class="accs-track"><i class="accs-min" style="left:${pc(x.min)}%;width:${(pc(x.acc) - pc(x.min)).toFixed(1)}%"></i><b style="left:${pc(x.acc)}%"></b></span><span class="accs-v">${x.acc.toFixed(2)}%</span></button>`).join('')}</section>`;
+    return `${head(s)}
+      <div class="accs" data-a role="img" aria-label="${esc(tests.map(x => `Table ${x.t}: ${x.acc.toFixed(2)}%`).join('; '))}">
+        ${group('Set on the touch panel', tests.filter(x => !/\(app\)/.test(x.title)))}${group('Set in the mobile app', tests.filter(x => /\(app\)/.test(x.title)))}
+      </div>
+      <p class="foot-note">Dot: average of the five trays. Bar: from the lowest tray to the average. Select a row to open its table.</p>`;
+  },
+
+  // ISO/IEC 25010 means for both evaluator groups on the Likert bands of Table 3.1.
+  iso: s => {
+    const lo = 1, pc = v => ((v - lo) / (5 - lo) * 100).toFixed(1);
+    return `${head(s)}
+      <div class="iso" data-a>
+        <div class="iso-key">${s.series.map((x, k) => `<span class="k${k}"><i></i>${esc(x.label)}: <b>${x.overall.toFixed(2)}</b> (Table ${esc(x.table)})</span>`).join('')}</div>
+        <div class="iso-grid">
+          <div class="iso-band" style="left:${pc(4.505)}%"><span>Highly Acceptable</span></div><div class="iso-band2"><span>Very Acceptable</span></div>
+          ${s.labels.map((l, i) => `<div class="iso-r"><span class="iso-l">${esc(l)}</span><span class="iso-tr">${s.series.map((x, k) => `<i class="k${k}" style="width:${pc(x.values[i])}%"><b>${x.values[i].toFixed(2)}</b></i>`).join('')}</span></div>`).join('')}
+          <div class="iso-ax">${[1, 2, 3, 4, 5].map(v => `<span style="left:${pc(v)}%">${v}</span>`).join('')}</div>
+        </div>
+      </div>
+      <p class="tcap">${esc(s.caption)}. Scale: 4.51–5.00 Highly Acceptable, 3.51–4.50 Very Acceptable.</p>`;
+  },
+
+  isodetail: s => `${head(s)}<p class="tcap"><b>${esc(s.caption)}.</b> Mean of each criterion; the characteristic's overall mean beside its name.</p>
+    <div class="isod" data-a>${s.labels.map((l, i) => `<section><h3>${esc(l)}<b>${s.means[i].toFixed(2)}</b></h3>
+      <dl>${s.subs[i].map(([n, v]) => `<div class="${v >= 4.505 ? 'ha' : 'va'}"><dt>${esc(n)}</dt><dd>${v.toFixed(2)}</dd></div>`).join('')}</dl></section>`).join('')}</div>
+    <p class="foot-note">Bold values are Highly Acceptable (4.51 and above); the rest are Very Acceptable.</p>`,
+
+  hw: s => {
+    const lo = 1, pc = v => ((v - lo) / (5 - lo) * 100).toFixed(1);
+    return `${head(s)}
+      <div class="iso hw" data-a>
+        <div class="iso-key">${s.series.map((x, k) => `<span class="k${k}"><i></i>${esc(x.label)}: <b>${x.overall.toFixed(2)}</b> (Table ${esc(x.table)})</span>`).join('')}</div>
+        <div class="hwc">${s.labels.map((l, i) => `<div class="hwc-c">${s.series.map((x, k) => `<i class="k${k}" style="height:${pc(x.values[i])}%"><b>${x.values[i].toFixed(2)}</b></i>`).join('')}<span>${esc(l)}</span></div>`).join('')}
+          <div class="hwc-line" style="bottom:${pc(4.505)}%"><span>4.51 Highly Acceptable</span></div></div>
+      </div>`;
+  },
+
+  // Conclusions and recommendations, numbered as in Chapter V.
+  concl: s => `${head(s)}
+    <div class="cc${s.items2 ? ' two' : ''}" data-a>
+      <div>${s.lead ? `<p class="cc-lead">${esc(s.lead)}</p>` : ''}<ol>${s.items.map(([n, t]) => `<li><span>${esc(n)}.</span>${esc(t)}</li>`).join('')}</ol>
+        ${(s.after || []).map((t, k) => `<p class="cc-after"><span>${k + 2}.</span>${esc(t)}</p>`).join('')}</div>
+      ${s.items2 ? `<div><p class="cc-lead"><span>3.</span> ${esc(s.lead2)}</p><ol>${s.items2.map(([n, t]) => `<li><span>${esc(n)}.</span>${esc(t)}</li>`).join('')}</ol></div>` : ''}
     </div>`,
 
   pins: s => `${head(s)}
@@ -697,6 +814,7 @@ async function start() {
   addEventListener('scroll', onWebScroll, { passive: true });
   const h = location.hash.slice(1);
   document.body.classList.add('ready');
+  import('./pip.js?v=1').then(m => m.initPip()).catch(e => console.warn(e));
   if (/^\d+$/.test(h)) setMode('slides', +h - 1);
   else {
     document.body.classList.add('mode-web'); fit();

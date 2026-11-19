@@ -447,11 +447,13 @@
       "items": [
         {
           "t": "Arduino Mega 2560",
-          "img": "media/parts/mega.jpg"
+          "img": "media/parts/mega.jpg",
+          "ref": "Product image, Figure 4.1"
         },
         {
           "t": "ESP32",
-          "img": "media/parts/esp32.jpg"
+          "img": "media/parts/esp32.jpg",
+          "ref": "Product image, Figure 4.2"
         },
         {
           "t": "Nextion 7-inch display",
@@ -463,15 +465,18 @@
         },
         {
           "t": "HX711 × 5",
-          "img": "media/parts/hx711.jpg"
+          "img": "media/parts/hx711.jpg",
+          "ref": "Product image, Figure 4.5"
         },
         {
           "t": "6-channel relay",
-          "img": "media/parts/relay.jpg"
+          "img": "media/parts/relay.jpg",
+          "ref": "Product image, Figure 4.6"
         },
         {
           "t": "12 V 12 Ah battery",
-          "img": "media/parts/battery.jpg"
+          "img": "media/parts/battery.jpg",
+          "ref": "Product image, Figure 4.7"
         },
         {
           "t": "12 V 12.5 A power supply",
@@ -479,15 +484,18 @@
         },
         {
           "t": "RTC module",
-          "img": "media/parts/rtc.jpg"
+          "img": "media/parts/rtc.jpg",
+          "ref": "Product image, Figure 4.9"
         },
         {
           "t": "Buzzer",
-          "img": "media/parts/buzzer.jpg"
+          "img": "media/parts/buzzer.jpg",
+          "ref": "Product image, Figure 4.10"
         },
         {
           "t": "Charge controller",
-          "img": "media/parts/charger.jpg"
+          "img": "media/parts/charger.jpg",
+          "ref": "Product image, Figure 4.11"
         },
         {
           "t": "Main power switch",
@@ -495,7 +503,8 @@
         },
         {
           "t": "DC-DC buck converter",
-          "img": "media/parts/buck.jpg"
+          "img": "media/parts/buck.jpg",
+          "ref": "Product image, Figure 4.13"
         },
         {
           "t": "Right-angle float switch",
@@ -514,7 +523,7 @@
           "img": "media/photos/ultrasonic.jpg"
         }
       ],
-      "text": "Photos from our build. Empty frames are waiting for a close-up of that part."
+      "text": "Photos from our build, and manufacturer images for the modules inside the control box."
     },
     {
       "id": "studies-1",
@@ -613,29 +622,12 @@
       "paper": true
     },
     {
-      "id": "roles",
+      "id": "architecture",
       "chapter": "c3",
-      "type": "points",
-      "kicker": "Architecture",
-      "title": "Each part has one job",
-      "points": [
-        {
-          "t": "Arduino Mega 2560",
-          "d": "Reads sensors, runs feeding and safety, keeps the schedule."
-        },
-        {
-          "t": "ESP32",
-          "d": "Wi-Fi bridge between the Mega and Firebase."
-        },
-        {
-          "t": "Nextion display",
-          "d": "Status and controls on the machine."
-        },
-        {
-          "t": "App, Firebase, Sheets",
-          "d": "Monitoring, alerts and the monthly log."
-        }
-      ]
+      "type": "arch",
+      "title": "How the parts connect",
+      "caption": "Redrawn from the block diagram (Figure 3.1) and the Mega pin map. The Mega runs the machine; the ESP32 only carries data.",
+      "alt": "Sensors (five load cells with HX711 boards, ultrasonic sensor, float switch, two limit switches, RTC) feed the Arduino Mega 2560. The Mega talks to the Nextion display and the ESP32, and drives the relay module for the chain and dispenser motors and the buzzer. The ESP32 sends data over Wi-Fi to Firebase Realtime Database, which the mobile app reads and which is copied to Google Sheets. Power comes from a 12 V supply with a charge controller and 12 V battery, a main switch and buck converters."
     },
     {
       "id": "flowchart",
@@ -764,6 +756,49 @@
           "ESP32 GPIO16 / GPIO17"
         ]
       ]
+    },
+    {
+      "id": "workflow",
+      "chapter": "c3",
+      "type": "workflow",
+      "title": "What happens in one feeding cycle",
+      "text": "From the flowchart (Figure 3.2) and the firmware.",
+      "steps": [
+        {
+          "t": "A feed is due",
+          "d": "The clock reaches a saved schedule, or Feed Now is pressed on the panel or in the app."
+        },
+        {
+          "kind": "check",
+          "t": "Is there feed in the hopper?",
+          "d": "The ultrasonic sensor reads the level. At 30% the panel and the app warn.",
+          "no": "At 0% the feed does not start and the buzzer sounds."
+        },
+        {
+          "t": "Go home",
+          "d": "The chain carries the hopper to the home limit switch over tray 1."
+        },
+        {
+          "t": "Weigh every tray",
+          "d": "Each load cell reports the feed still on its tray."
+        },
+        {
+          "t": "Pour what is missing",
+          "d": "Tray by tray, the auger pours the difference to the target, then tops up."
+        },
+        {
+          "t": "Return and report",
+          "d": "The hopper goes back home; weights go to the panel and, through the ESP32, to Firebase and the app."
+        }
+      ],
+      "side": {
+        "t": "Always watched",
+        "items": [
+          "Float switch low: buzzer and app alert to refill the reservoir.",
+          "No Wi-Fi: schedules and alarms keep running; pending alerts and records are sent later.",
+          "Main power out: the battery keeps the device running."
+        ]
+      }
     },
     {
       "id": "cycle",
@@ -1130,9 +1165,74 @@
       "img": "media/deck/testing-1.jpg"
     },
     {
+      "id": "features",
       "chapter": "c4",
-      "section": "Objective a · Feeding schedules",
-      "notes": "Table 4.1 presents the results of testing the setting of feeding schedules and feed dispensing amounts through the Nextion Display. Overall, the results demonstrate that the Nextion Display provides a functional on-site interface for configuring feeding schedules and feed dispensing amounts, while ensuring data retention and automatic execution of scheduled feeding operations.",
+      "type": "status",
+      "title": "What was built, and how it was checked",
+      "rows": [
+        [
+          "Feeding schedules, three a day (a)",
+          "tested",
+          "Tables 4.1, 4.2"
+        ],
+        [
+          "Chain-driven hopper and limit switches (b)",
+          "tested",
+          "Table 4.3"
+        ],
+        [
+          "Weight-based dispensing and residue compensation (c)",
+          "tested",
+          "Tables 4.4.1 to 4.4.7"
+        ],
+        [
+          "Hopper feed level warnings and feed blocking (d)",
+          "tested",
+          "Tables 4.5, 4.5.1"
+        ],
+        [
+          "Water level alerts (e)",
+          "tested",
+          "Tables 4.6, 4.6.1"
+        ],
+        [
+          "Nextion display (f)",
+          "tested",
+          "Tables 4.7 to 4.7.2"
+        ],
+        [
+          "Mobile app and notifications (g)",
+          "tested",
+          "Tables 4.8 to 4.8.2"
+        ],
+        [
+          "Firebase records and Google Sheets log (h)",
+          "tested",
+          "Table 4.9"
+        ],
+        [
+          "Wi-Fi communication and offline operation (i)",
+          "tested",
+          "Table 4.10"
+        ],
+        [
+          "Battery backup (j)",
+          "tested",
+          "Table 4.11"
+        ],
+        [
+          "Motor time limits (stop if a move or pour runs too long)",
+          "partial",
+          "In the firmware; no Chapter IV table covers it"
+        ],
+        [
+          "Egg counting, egg sorting, outlet lid, better load cells, water level in %",
+          "future",
+          "Chapter V, Recommendation 3"
+        ]
+      ]
+    },
+    {
       "id": "t4-1-1",
       "type": "doctable",
       "title": "Feeding schedule and feed weight on the touch panel",
@@ -1160,12 +1260,11 @@
           "Successfully displayed the recorded feed dispensing amount."
         ]
       ],
-      "photos": "media/results/table-4-1",
-      "start": 0
+      "notes": "Table 4.1 presents the results of testing the setting of feeding schedules and feed dispensing amounts through the Nextion Display. The system successfully allowed users to configure a common feed dispensing amount for all five trays and set up to three feeding times per day. Overall, the results demonstrate that the Nextion Display provides a functional on-site interface for configuring feeding schedules and feed dispensing amounts, while ensuring data retention and automatic execution of scheduled feeding operations.",
+      "chapter": "c4",
+      "section": "Objective a · Feeding schedules"
     },
     {
-      "chapter": "c4",
-      "notes": "Table 4.1 presents the results of testing the setting of feeding schedules and feed dispensing amounts through the Nextion Display. Overall, the results demonstrate that the Nextion Display provides a functional on-site interface for configuring feeding schedules and feed dispensing amounts, while ensuring data retention and automatic execution of scheduled feeding operations.",
       "id": "t4-1-2",
       "type": "doctable",
       "title": "Feeding schedule and feed weight on the touch panel",
@@ -1188,12 +1287,18 @@
           "The RTC module accurately detected the scheduled time and triggered the feeding operation."
         ]
       ],
-      "photos": "media/results/table-4-1",
-      "start": 3
+      "notes": "Table 4.1 presents the results of testing the setting of feeding schedules and feed dispensing amounts through the Nextion Display. The system successfully allowed users to configure a common feed dispensing amount for all five trays and set up to three feeding times per day. Overall, the results demonstrate that the Nextion Display provides a functional on-site interface for configuring feeding schedules and feed dispensing amounts, while ensuring data retention and automatic execution of scheduled feeding operations.",
+      "evidence": [
+        "media/results/ev-4-1-1.jpg",
+        "media/results/ev-4-1-2.jpg",
+        "media/results/ev-4-1-3.jpg",
+        "media/results/ev-4-1-4.jpg",
+        "media/results/ev-4-1-5.jpg",
+        "media/results/ev-4-1-6.jpg"
+      ],
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
-      "notes": "Table 4.2 presents the results of testing the setting of feeding schedules and feed dispensing amounts through the mobile application. Overall, the results demonstrate that the mobile application provides a functional interface for remotely configuring and managing feeding schedules and feed dispensing amounts, supports different feed quantities for each scheduled feeding, validates user inputs, and retains the saved configurations despite temporary power interruptions.",
       "id": "t4-2-1",
       "type": "doctable",
       "title": "Feeding schedule and feed weight in the mobile app",
@@ -1221,12 +1326,10 @@
           "Successfully displayed all three saved schedules and their feed weights after refreshing."
         ]
       ],
-      "photos": "media/results/table-4-2",
-      "start": 0
+      "notes": "Table 4.2 presents the results of testing the setting of feeding schedules and feed dispensing amounts through the mobile application. The system successfully allowed users to configure a common feed dispensing amount for all five trays through the Manual Feed interface and assign up to three feeding times per day. Overall, the results demonstrate that the mobile application provides a functional interface for remotely configuring and managing feeding schedules and feed dispensing amounts, supports different feed   quantities for each scheduled feeding, validates user inputs, and retains the saved configurations despite temporary power interruptions.",
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
-      "notes": "Table 4.2 presents the results of testing the setting of feeding schedules and feed dispensing amounts through the mobile application. Overall, the results demonstrate that the mobile application provides a functional interface for remotely configuring and managing feeding schedules and feed dispensing amounts, supports different feed quantities for each scheduled feeding, validates user inputs, and retains the saved configurations despite temporary power interruptions.",
       "id": "t4-2-2",
       "type": "doctable",
       "title": "Feeding schedule and feed weight in the mobile app",
@@ -1254,12 +1357,10 @@
           "Successfully detected the invalid feeding time and displayed an error message."
         ]
       ],
-      "photos": "media/results/table-4-2",
-      "start": 3
+      "notes": "Table 4.2 presents the results of testing the setting of feeding schedules and feed dispensing amounts through the mobile application. The system successfully allowed users to configure a common feed dispensing amount for all five trays through the Manual Feed interface and assign up to three feeding times per day. Overall, the results demonstrate that the mobile application provides a functional interface for remotely configuring and managing feeding schedules and feed dispensing amounts, supports different feed   quantities for each scheduled feeding, validates user inputs, and retains the saved configurations despite temporary power interruptions.",
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
-      "notes": "Table 4.2 presents the results of testing the setting of feeding schedules and feed dispensing amounts through the mobile application. Overall, the results demonstrate that the mobile application provides a functional interface for remotely configuring and managing feeding schedules and feed dispensing amounts, supports different feed quantities for each scheduled feeding, validates user inputs, and retains the saved configurations despite temporary power interruptions.",
       "id": "t4-2-3",
       "type": "doctable",
       "title": "Feeding schedule and feed weight in the mobile app",
@@ -1282,13 +1383,18 @@
           "Successfully retained all schedules and feed weights after restoring power."
         ]
       ],
-      "photos": "media/results/table-4-2",
-      "start": 6
+      "notes": "Table 4.2 presents the results of testing the setting of feeding schedules and feed dispensing amounts through the mobile application. The system successfully allowed users to configure a common feed dispensing amount for all five trays through the Manual Feed interface and assign up to three feeding times per day. Overall, the results demonstrate that the mobile application provides a functional interface for remotely configuring and managing feeding schedules and feed dispensing amounts, supports different feed   quantities for each scheduled feeding, validates user inputs, and retains the saved configurations despite temporary power interruptions.",
+      "evidence": [
+        "media/results/ev-4-2-1.jpg",
+        "media/results/ev-4-2-2.jpg",
+        "media/results/ev-4-2-3.jpg",
+        "media/results/ev-4-2-4.jpg",
+        "media/results/ev-4-2-5.jpg",
+        "media/results/ev-4-2-6.jpg"
+      ],
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
-      "section": "Objective b · Moving hopper",
-      "notes": "Table 4.3 presents the results of testing the chain-driven hopper movement and limit switch functionality along the five feeding trays. Overall, the results demonstrate that the chain-driven hopper mechanism can successfully travel along the five feeding trays, detect its designated movement limits, prevent movement beyond its intended positions, and automatically return to its home position after completing each feeding cycle.",
       "id": "t4-3-1",
       "type": "doctable",
       "title": "Chain-driven hopper and limit switches",
@@ -1316,12 +1422,11 @@
           "The end limit switch changed its signal at the ending position."
         ]
       ],
-      "photos": "media/results/table-4-3",
-      "start": 0
+      "notes": "Table 4.3 presents the results of testing the chain-driven hopper movement and limit switch functionality along the five feeding trays. The chain-driven mechanism successfully moved the hopper across all five trays during the feeding cycle, demonstrating its ability to distribute feed along the designated path. Overall, the results demonstrate that the chain-driven hopper mechanism can successfully travel along the five feeding trays, detect its designated movement limits, prevent movement beyond its intended positions, and automatically return to its home position after completing each feeding cycle.",
+      "chapter": "c4",
+      "section": "Objective b · Moving hopper"
     },
     {
-      "chapter": "c4",
-      "notes": "Table 4.3 presents the results of testing the chain-driven hopper movement and limit switch functionality along the five feeding trays. Overall, the results demonstrate that the chain-driven hopper mechanism can successfully travel along the five feeding trays, detect its designated movement limits, prevent movement beyond its intended positions, and automatically return to its home position after completing each feeding cycle.",
       "id": "t4-3-2",
       "type": "doctable",
       "title": "Chain-driven hopper and limit switches",
@@ -1349,18 +1454,23 @@
           "The hopper consistently completed the cycle, with both switches detecting their positions."
         ]
       ],
-      "photos": "media/results/table-4-3",
-      "start": 3
+      "notes": "Table 4.3 presents the results of testing the chain-driven hopper movement and limit switch functionality along the five feeding trays. The chain-driven mechanism successfully moved the hopper across all five trays during the feeding cycle, demonstrating its ability to distribute feed along the designated path. Overall, the results demonstrate that the chain-driven hopper mechanism can successfully travel along the five feeding trays, detect its designated movement limits, prevent movement beyond its intended positions, and automatically return to its home position after completing each feeding cycle.",
+      "evidence": [
+        "media/results/ev-4-3-1.jpg",
+        "media/results/ev-4-3-2.jpg",
+        "media/results/ev-4-3-3.jpg",
+        "media/results/ev-4-3-4.jpg",
+        "media/results/ev-4-3-5.jpg",
+        "media/results/ev-4-3-6.png"
+      ],
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
-      "section": "Objective c · Weight-based dispensing",
-      "notes": "Table 4.4.1 presents the results of testing scheduled feed dispensing using the Nextion Display. Overall, the results demonstrate that the system can successfully execute scheduled feed dispensing through the Nextion Display using a common feed weight for all five trays.",
       "id": "t4-4-1",
       "type": "doctable",
-      "title": "Scheduled feed dispensing from the touch panel",
+      "title": "Scheduled feeding with identical weights (touch panel)",
       "table": "4.4.1",
-      "caption": "Results of Scheduled Feed Dispensing Using Nextion Display",
+      "caption": "Results of Scheduled Feed Dispensing Using Identical Feed Weights Through Nextion Display",
       "columns": [
         "Condition",
         "Expected result",
@@ -1368,22 +1478,62 @@
       ],
       "rows": [
         [
-          "Scheduled feed dispensing",
-          "Starts feeding at the configured time and dispenses the common feed weight into each of the five trays.",
-          "Successfully started the scheduled feeding and dispensed the configured weight into all five trays."
+          "Scheduled dispensing, identical feed weights",
+          "Starts feeding at each configured time and dispenses the same target weight into all five trays.",
+          "Successfully started the scheduled feeds and dispensed the configured weight into all five trays."
         ]
       ],
-      "photos": "media/results/table-4-4-1",
-      "start": 0
+      "notes": "Table 4.4.1 presents the results of testing scheduled feed dispensing using the Nextion Display. The system successfully initiated the feeding process at the configured time and dispensed the set common feed weight into each of the five trays. Overall, the results demonstrate that the system can successfully execute scheduled feed dispensing through the Nextion Display using a common feed weight for all five trays.",
+      "evidence": [
+        "media/results/ev-4-4-1-1.jpg"
+      ],
+      "chapter": "c4",
+      "section": "Objective c · Weight-based dispensing"
     },
     {
-      "chapter": "c4",
-      "notes": "Table 4.4.1.1 presents the results of testing scheduled feed dispensing using the Nextion Display to evaluate the accuracy of the dispensed feed weight in each tray. Overall, the results demonstrate that the scheduled feed dispensing function can deliver the configured feed quantity with an average accuracy of 97.",
       "id": "g4-4-1-1",
       "type": "grams",
-      "title": "Weight check, scheduled feed from the touch panel",
+      "title": "First schedule, 60 g per tray (touch panel)",
       "table": "4.4.1.1",
-      "caption": "Results of Scheduled Feed Dispensing Using Nextion Display",
+      "caption": "First Scheduled Feeding Using Identical Feed Weights Through the Nextion Display",
+      "mode": "dispense",
+      "rows": [
+        {
+          "tray": "Tray 1",
+          "target": 60,
+          "actual": 59.9
+        },
+        {
+          "tray": "Tray 2",
+          "target": 60,
+          "actual": 56.6
+        },
+        {
+          "tray": "Tray 3",
+          "target": 60,
+          "actual": 60.4
+        },
+        {
+          "tray": "Tray 4",
+          "target": 60,
+          "actual": 58.3
+        },
+        {
+          "tray": "Tray 5",
+          "target": 60,
+          "actual": 59.6
+        }
+      ],
+      "notes": "Table 4.4.1.1 presents the results of the first scheduled feeding using identical feed weights through the Nextion Display. The system successfully dispensed feed across all five trays with a target weight of 60 grams per tray, achieving an average actual dispensing weight of 58.96 grams and an average accuracy of 98%. Overall, the results demonstrate that the system successfully performed the scheduled feeding operation with consistent feed distribution across all five trays.",
+      "photos": "media/results/table-4-4-1-1",
+      "chapter": "c4"
+    },
+    {
+      "id": "g4-4-1-2",
+      "type": "grams",
+      "title": "Second schedule, 60 g per tray (touch panel)",
+      "table": "4.4.1.2",
+      "caption": "Second Scheduled Feeding Using Identical Feed Weights Through the Nextion Display",
       "mode": "dispense",
       "rows": [
         {
@@ -1394,32 +1544,210 @@
         {
           "tray": "Tray 2",
           "target": 60,
-          "actual": 61.0
+          "actual": 58.8
         },
         {
           "tray": "Tray 3",
           "target": 60,
-          "actual": 60.9
+          "actual": 59.0
         },
         {
           "tray": "Tray 4",
           "target": 60,
-          "actual": 61.8
+          "actual": 60.3
         },
         {
           "tray": "Tray 5",
           "target": 60,
-          "actual": 62.6
+          "actual": 60.9
         }
       ],
-      "photos": "media/results/table-4-4-1-1"
+      "notes": "Table 4.4.1.2 presents the results of the second scheduled feeding using identical feed weights through the Nextion Display. The system successfully   dispensed feed across all five trays with a target weight of 60 grams per tray, achieving an average actual dispensing weight of 59.98 grams and an average accuracy of 98.57%. Overall, the results demonstrate that the system maintained consistent feed distribution during the second scheduled feeding operation.",
+      "photos": "media/results/table-4-4-1-2",
+      "chapter": "c4"
     },
     {
+      "id": "g4-4-1-3",
+      "type": "grams",
+      "title": "Third schedule, 60 g per tray (touch panel)",
+      "table": "4.4.1.3",
+      "caption": "Third Scheduled Feeding Using Identical Feed Weights Through the Nextion Display",
+      "mode": "dispense",
+      "rows": [
+        {
+          "tray": "Tray 1",
+          "target": 60,
+          "actual": 60.3
+        },
+        {
+          "tray": "Tray 2",
+          "target": 60,
+          "actual": 62.5
+        },
+        {
+          "tray": "Tray 3",
+          "target": 60,
+          "actual": 61.5
+        },
+        {
+          "tray": "Tray 4",
+          "target": 60,
+          "actual": 61.5
+        },
+        {
+          "tray": "Tray 5",
+          "target": 60,
+          "actual": 60.7
+        }
+      ],
+      "notes": "Table 4.4.1.3 presents the results of the third scheduled feeding using identical feed weights through the Nextion Display. The system successfully dispensed feed across all five trays with a target weight of 60 grams per tray, achieving an average actual dispensing weight of 61.3 grams and an average accuracy of 97.89%. Overall, the results demonstrate that the system successfully completed the third scheduled feeding operation while maintaining a relatively consistent feed distribution across all five trays.",
+      "photos": "media/results/table-4-4-1-3",
       "chapter": "c4",
-      "notes": "Table 4.4.2 presents the results of testing feed residue measurement and compensation using the Nextion Display. Overall, the results demonstrate that the system can measure remaining feed and automatically compensate for it during scheduled feeding to achieve the configured target weight.",
+      "flag": "The manuscript prints 97.89% and a tray 1 difference of −3 g; the measured 60.3 g gives −0.3 g, and the five rows average 97.83%."
+    },
+    {
       "id": "t4-4-2",
       "type": "doctable",
-      "title": "Feed residue compensation from the touch panel",
+      "title": "Scheduled feeding with different weights (touch panel)",
+      "table": "4.4.2",
+      "caption": "Results of Scheduled Feed Dispensing Using Different Feed Weights Through Nextion Display",
+      "columns": [
+        "Condition",
+        "Expected result",
+        "Actual result"
+      ],
+      "rows": [
+        [
+          "Scheduled dispensing, different feed weights",
+          "Dispenses the target weight assigned to each of the three schedules into all five trays.",
+          "Successfully dispensed the assigned weight for each schedule into all five trays."
+        ]
+      ],
+      "notes": "Table 4.4.2 presents the results of scheduled feed dispensing using different feed weights through the Nextion Display. The system successfully   initiated the feeding process at the configured time and dispensed the assigned target feed weights into all five trays.",
+      "evidence": [
+        "media/results/ev-4-4-2-1.jpg"
+      ],
+      "chapter": "c4"
+    },
+    {
+      "id": "g4-4-2-1",
+      "type": "grams",
+      "title": "First schedule, 40 g per tray (touch panel)",
+      "table": "4.4.2.1",
+      "caption": "First Scheduled Feeding Using Different Feed Weights Through the Nextion Display",
+      "mode": "dispense",
+      "rows": [
+        {
+          "tray": "Tray 1",
+          "target": 40,
+          "actual": 40.4
+        },
+        {
+          "tray": "Tray 2",
+          "target": 40,
+          "actual": 42.5
+        },
+        {
+          "tray": "Tray 3",
+          "target": 40,
+          "actual": 41.6
+        },
+        {
+          "tray": "Tray 4",
+          "target": 40,
+          "actual": 39.0
+        },
+        {
+          "tray": "Tray 5",
+          "target": 40,
+          "actual": 42.2
+        }
+      ],
+      "notes": "Table 4.4.2.1 presents the results of the first scheduled feeding using different feed weights through the Nextion Display. The system successfully dispensed the assigned target feed weights across all five trays, achieving an average actual dispensing weight of 41.14 grams and an average accuracy of 97.15%. Overall, the results demonstrate that the system successfully followed the configured feed weight settings during the first scheduled feeding operation.",
+      "photos": "media/results/table-4-4-2-1",
+      "chapter": "c4",
+      "flag": "The manuscript prints 97.15%; the five rows average 96.15%."
+    },
+    {
+      "id": "g4-4-2-2",
+      "type": "grams",
+      "title": "Second schedule, 50 g per tray (touch panel)",
+      "table": "4.4.2.2",
+      "caption": "Second Scheduled Feeding Using Different Feed Weights Through the Nextion Display",
+      "mode": "dispense",
+      "rows": [
+        {
+          "tray": "Tray 1",
+          "target": 50,
+          "actual": 51.4
+        },
+        {
+          "tray": "Tray 2",
+          "target": 50,
+          "actual": 49.4
+        },
+        {
+          "tray": "Tray 3",
+          "target": 50,
+          "actual": 50.4
+        },
+        {
+          "tray": "Tray 4",
+          "target": 50,
+          "actual": 51.4
+        },
+        {
+          "tray": "Tray 5",
+          "target": 50,
+          "actual": 50.0
+        }
+      ],
+      "notes": "Table 4.4.2.2 presents the results of the second scheduled feeding using different feed weights through the Nextion Display. The system successfully dispensed the assigned target feed weights across all five trays, achieving an average actual dispensing weight of 50.52 grams and an average accuracy of 98.48%. Overall, the results demonstrate that the system successfully followed the configured feed weight settings during the second scheduled feeding operation.",
+      "photos": "media/results/table-4-4-2-2",
+      "chapter": "c4"
+    },
+    {
+      "id": "g4-4-2-3",
+      "type": "grams",
+      "title": "Third schedule, 60 g per tray (touch panel)",
+      "table": "4.4.2.3",
+      "caption": "Third Scheduled Feeding Using Different Feed Weights Through the Nextion Display",
+      "mode": "dispense",
+      "rows": [
+        {
+          "tray": "Tray 1",
+          "target": 60,
+          "actual": 60.9
+        },
+        {
+          "tray": "Tray 2",
+          "target": 60,
+          "actual": 60.1
+        },
+        {
+          "tray": "Tray 3",
+          "target": 60,
+          "actual": 61.6
+        },
+        {
+          "tray": "Tray 4",
+          "target": 60,
+          "actual": 60.5
+        },
+        {
+          "tray": "Tray 5",
+          "target": 60,
+          "actual": 60.2
+        }
+      ],
+      "notes": "Table 4.4.2.3 presents the results of the third scheduled feeding using different feed weights through the Nextion Display. The system successfully dispensed the assigned target feed weights across all five trays, achieving an average actual dispensing weight of 60.66 grams and an average accuracy of 98.90%. Overall, the results demonstrate that the system successfully followed the configured feed weight settings during the third scheduled feeding operation.",
+      "photos": "media/results/table-4-4-2-3",
+      "chapter": "c4"
+    },
+    {
+      "id": "t4-4-2-r",
+      "type": "doctable",
+      "title": "Feed residue compensation (touch panel)",
       "table": "4.4.2",
       "caption": "Results of Feed Residue Measurement and Compensation Using Nextion Display",
       "columns": [
@@ -1434,14 +1762,17 @@
           "Successfully detected the remaining feed and dispensed only the additional amount needed."
         ]
       ],
-      "photos": "media/results/table-4-4-2",
-      "start": 0
+      "notes": "Table 4.4.2 presents the results of testing feed residue measurement and compensation using the Nextion Display. The system successfully detected the remaining feed in the trays before the next scheduled feeding and dispensed only the additional quantity needed to reach the configured target weight. Overall, the results demonstrate that the system can measure remaining feed and automatically compensate for it during scheduled feeding to achieve the configured target weight.",
+      "flag": "The manuscript uses the numbers 4.4.2 and 4.4.2.1 twice.",
+      "evidence": [
+        "media/results/ev-4-4-2r-1.jpg"
+      ],
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
-      "id": "g4-4-2-1",
+      "id": "g4-4-2-1-r",
       "type": "grams",
-      "title": "Weight check, residue compensation from the touch panel",
+      "title": "Residue compensation, 60 g target (touch panel)",
       "table": "4.4.2.1",
       "caption": "Results of Feed Residue Compensation Using Nextion Display",
       "mode": "residue",
@@ -1449,33 +1780,50 @@
         {
           "tray": "Tray 1",
           "target": 60,
-          "actual": null
+          "actual": 58,
+          "remaining": 8,
+          "added": 50
         },
         {
           "tray": "Tray 2",
           "target": 60,
-          "actual": null
+          "actual": 61,
+          "remaining": 15,
+          "added": 46
         },
         {
           "tray": "Tray 3",
           "target": 60,
-          "actual": null
+          "actual": 59,
+          "remaining": 5,
+          "added": 54
         },
         {
           "tray": "Tray 4",
           "target": 60,
-          "actual": null
+          "actual": 60,
+          "remaining": 10,
+          "added": 50
         },
         {
           "tray": "Tray 5",
           "target": 60,
-          "actual": null
+          "actual": 58,
+          "remaining": 6,
+          "added": 52
         }
       ],
-      "photos": "media/results/table-4-4-2-1"
+      "notes": "Table 4.4.2.1 presents the results of feed residue compensation testing using the Nextion Display across all five trays. The system successfully detected the remaining feed in each tray and calculated the additional quantity needed to reach the configured target weight of 60 grams. Overall, the results demonstrate that the system can perform   feed residue compensation with a high level of accuracy across all five trays.",
+      "evidence": [
+        "media/results/ev-4-4-2-1r-1.jpg",
+        "media/results/ev-4-4-2-1r-2.jpg",
+        "media/results/ev-4-4-2-1r-3.jpg",
+        "media/results/ev-4-4-2-1r-4.jpg",
+        "media/results/ev-4-4-2-1r-5.jpg"
+      ],
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
       "id": "t4-4-3",
       "type": "doctable",
       "title": "Settings kept after a power interruption (touch panel)",
@@ -1493,11 +1841,14 @@
           "Successfully retained the feed weight and schedules after power was restored."
         ]
       ],
-      "photos": "media/results/table-4-4-3",
-      "start": 0
+      "notes": "Table 4.4.3 presents the results of testing data retention after power interruption using the Nextion Display. The system successfully retained the previously configured feed dispensing amount and feeding schedules after being turned off for approximately one to two minutes and having its power supply restored. Overall, the results demonstrate that the system can retain essential feeding settings and restore its previous configurations when power is resumed.",
+      "evidence": [
+        "media/results/ev-4-4-3-1.jpg",
+        "media/results/ev-4-4-3-2.jpg"
+      ],
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
       "id": "t4-4-4",
       "type": "doctable",
       "title": "Scheduled feeding with identical weights (app)",
@@ -1515,53 +1866,141 @@
           "Successfully started all three scheduled feeds and dispensed the same amount into all five trays."
         ]
       ],
-      "photos": "media/results/table-4-4-4",
-      "start": 0
+      "notes": "Table 4.4.4 presents the results of testing scheduled feed dispensing using identical feed weights through the mobile application. The system successfully executed all three configured feeding schedules and dispensed the same target feed weight into each of the five trays during every scheduled feeding operation. Overall, the results demonstrate that the system can automatically dispense identical feed quantities across all five trays according to the configured feeding schedules.",
+      "evidence": [
+        "media/results/ev-4-4-4-1.jpg"
+      ],
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
       "id": "g4-4-4-1",
       "type": "grams",
-      "title": "Weight check, identical weights from the app",
+      "title": "First schedule, 60 g per tray (app)",
       "table": "4.4.4.1",
-      "caption": "Result of Scheduled Feed Dispensing Using Identical Feed Weights Through Mobile Application",
+      "caption": "First Scheduled Feeding Using Identical Feed Weights Through the Mobile Application",
       "mode": "dispense",
       "rows": [
         {
           "tray": "Tray 1",
-          "target": null,
-          "actual": null
+          "target": 60,
+          "actual": 58
         },
         {
           "tray": "Tray 2",
-          "target": null,
-          "actual": null
+          "target": 60,
+          "actual": 59
         },
         {
           "tray": "Tray 3",
-          "target": null,
-          "actual": null
+          "target": 60,
+          "actual": 59
         },
         {
           "tray": "Tray 4",
-          "target": null,
-          "actual": null
+          "target": 60,
+          "actual": 61
         },
         {
           "tray": "Tray 5",
-          "target": null,
-          "actual": null
+          "target": 60,
+          "actual": 58
         }
       ],
-      "photos": "media/results/table-4-4-4-1"
+      "notes": "Table 4.4.4.1 presents the results of the first scheduled feeding using identical feed weights across all five trays. The system successfully dispensed the configured target weight of 60 grams per tray, achieving an average actual dispensing weight of 59 grams and an average accuracy of 97.67%.",
+      "evidence": [
+        "media/results/ev-4-4-4-1-1.jpg"
+      ],
+      "chapter": "c4",
+      "flag": "The table in the manuscript prints 98.33% (its text says 97.67%); the five rows average 97.67%."
     },
     {
+      "id": "g4-4-4-2",
+      "type": "grams",
+      "title": "Second schedule, 60 g per tray (app)",
+      "table": "4.4.4.2",
+      "caption": "Second Scheduled Feeding Using Identical Feed Weights Through the Mobile Application",
+      "mode": "dispense",
+      "rows": [
+        {
+          "tray": "Tray 1",
+          "target": 60,
+          "actual": 59
+        },
+        {
+          "tray": "Tray 2",
+          "target": 60,
+          "actual": 59
+        },
+        {
+          "tray": "Tray 3",
+          "target": 60,
+          "actual": 58
+        },
+        {
+          "tray": "Tray 4",
+          "target": 60,
+          "actual": 60
+        },
+        {
+          "tray": "Tray 5",
+          "target": 60,
+          "actual": 61
+        }
+      ],
+      "notes": "Table 4.4.4.2 presents the results of the second scheduled feeding using identical feed weights across all five trays. The system successfully dispensed feed according to the configured target weight of 60 grams per tray, achieving an average actual dispensing weight of 59.4 grams and an average accuracy of 99%.",
+      "evidence": [
+        "media/results/ev-4-4-4-2-1.jpg"
+      ],
       "chapter": "c4",
+      "flag": "The manuscript prints 99%; the five rows average 98.33%."
+    },
+    {
+      "id": "g4-4-4-3",
+      "type": "grams",
+      "title": "Third schedule, 60 g per tray (app)",
+      "table": "4.4.4.3",
+      "caption": "Third Scheduled Feeding Using Identical Feed Weights Through the Mobile Application",
+      "mode": "dispense",
+      "rows": [
+        {
+          "tray": "Tray 1",
+          "target": 60,
+          "actual": 68
+        },
+        {
+          "tray": "Tray 2",
+          "target": 60,
+          "actual": 60
+        },
+        {
+          "tray": "Tray 3",
+          "target": 60,
+          "actual": 61
+        },
+        {
+          "tray": "Tray 4",
+          "target": 60,
+          "actual": 56
+        },
+        {
+          "tray": "Tray 5",
+          "target": 60,
+          "actual": 59
+        }
+      ],
+      "notes": "Table 4.4.4.3 presents the results of the third scheduled feeding using identical feed weights across all five trays. The system successfully executed the scheduled feeding operation using the configured target weight of 60 grams per tray, achieving an average actual dispensing weight of 60.8 grams and an average accuracy of 95.33%.",
+      "evidence": [
+        "media/results/ev-4-4-4-3-1.jpg"
+      ],
+      "chapter": "c4",
+      "flag": "The manuscript prints 98.67%; the five rows average 95.33%."
+    },
+    {
       "id": "t4-4-5",
       "type": "doctable",
-      "title": "Residue compensation with different weights (app)",
+      "title": "Scheduled feeding with different weights (app)",
       "table": "4.4.5",
-      "caption": "Results of Feed Residue Compensation Using Different Feed Weights Through Mobile Application",
+      "caption": "Results of Scheduled Feed Dispensing Using Different Feed Weights Through Mobile Application",
       "columns": [
         "Condition",
         "Expected result",
@@ -1570,126 +2009,134 @@
       "rows": [
         [
           "Scheduled dispensing, different feed weights",
-          "Detects the feed left in the trays and dispenses only what is needed to reach the next schedule's target.",
-          "Successfully detected the remaining feed and dispensed only the additional amount needed."
+          "Dispenses the target weight assigned to each of the three schedules into all five trays.",
+          "Successfully dispensed the assigned weight for each schedule into all five trays."
         ]
       ],
-      "photos": "media/results/table-4-4-5",
-      "start": 0
+      "notes": "Table 4.4.5 presents the results of testing scheduled feed dispensing using different feed weights through the mobile application. The system successfully saved the configured feeding schedules and their corresponding target feed weights. Overall, the results demonstrate that the system can perform scheduled feed dispensing using different target weights through the mobile application.",
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
       "id": "g4-4-5-1",
       "type": "grams",
-      "title": "Weight check, first schedule (app)",
+      "title": "First schedule, 40 g per tray (app)",
       "table": "4.4.5.1",
-      "caption": "First Schedule Feeding",
+      "caption": "First Scheduled Feeding Using Different Feed Weights Through the Mobile Application",
       "mode": "dispense",
       "rows": [
         {
           "tray": "Tray 1",
-          "target": null,
-          "actual": null
+          "target": 40,
+          "actual": 37
         },
         {
           "tray": "Tray 2",
-          "target": null,
-          "actual": null
+          "target": 40,
+          "actual": 38
         },
         {
           "tray": "Tray 3",
-          "target": null,
-          "actual": null
+          "target": 40,
+          "actual": 37
         },
         {
           "tray": "Tray 4",
-          "target": null,
-          "actual": null
+          "target": 40,
+          "actual": 38
         },
         {
           "tray": "Tray 5",
-          "target": null,
-          "actual": null
+          "target": 40,
+          "actual": 36
         }
       ],
-      "photos": "media/results/table-4-4-5-1"
+      "notes": "Table 4.4.5.1 presents the results of the first scheduled feeding using different feed weights through the mobile application, with a configured target feed weight of 40 grams per tray. The system successfully dispensed feed into all five trays, achieving an average actual dispensing weight of 37.2 grams and an average accuracy of 93.00%.",
+      "evidence": [
+        "media/results/ev-4-4-5-1-1.jpg"
+      ],
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
       "id": "g4-4-5-2",
       "type": "grams",
-      "title": "Weight check, second schedule (app)",
+      "title": "Second schedule, 50 g per tray (app)",
       "table": "4.4.5.2",
-      "caption": "Second Schedule Feeding",
+      "caption": "Second Scheduled Feeding Using Different Feed Weights Through the Mobile Application",
       "mode": "dispense",
       "rows": [
         {
           "tray": "Tray 1",
-          "target": null,
-          "actual": null
+          "target": 50,
+          "actual": 51
         },
         {
           "tray": "Tray 2",
-          "target": null,
-          "actual": null
+          "target": 50,
+          "actual": 50
         },
         {
           "tray": "Tray 3",
-          "target": null,
-          "actual": null
+          "target": 50,
+          "actual": 50
         },
         {
           "tray": "Tray 4",
-          "target": null,
-          "actual": null
+          "target": 50,
+          "actual": 53
         },
         {
           "tray": "Tray 5",
-          "target": null,
-          "actual": null
+          "target": 50,
+          "actual": 52
         }
       ],
-      "photos": "media/results/table-4-4-5-2"
+      "notes": "Table 4.4.5.2 presents the results of the second scheduled feeding using different feed weights through the mobile application, with a configured target feed weight of 50 grams per tray. The system successfully dispensed feed according to the assigned target weight, achieving an average actual dispensing weight of 51.2 grams and an average accuracy of 97.60%.",
+      "evidence": [
+        "media/results/ev-4-4-5-2-1.jpg"
+      ],
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
       "id": "g4-4-5-3",
       "type": "grams",
-      "title": "Weight check, third schedule (app)",
+      "title": "Third schedule, 60 g per tray (app)",
       "table": "4.4.5.3",
-      "caption": "Third Schedule Feeding",
+      "caption": "Third Scheduled Feeding Using Different Feed Weights Through the Mobile Application",
       "mode": "dispense",
       "rows": [
         {
           "tray": "Tray 1",
-          "target": null,
-          "actual": null
+          "target": 60,
+          "actual": 57
         },
         {
           "tray": "Tray 2",
-          "target": null,
-          "actual": null
+          "target": 60,
+          "actual": 58
         },
         {
           "tray": "Tray 3",
-          "target": null,
-          "actual": null
+          "target": 60,
+          "actual": 58
         },
         {
           "tray": "Tray 4",
-          "target": null,
-          "actual": null
+          "target": 60,
+          "actual": 59
         },
         {
           "tray": "Tray 5",
-          "target": null,
-          "actual": null
+          "target": 60,
+          "actual": 63
         }
       ],
-      "photos": "media/results/table-4-4-5-3"
+      "notes": "Table 4.4.5.3 presents the results of the third scheduled feeding using different feed weights through the mobile application, with a configured target feed weight of 60 grams per tray. The system successfully dispensed the configured feed weight across all five trays, achieving an average actual dispensing weight of 59.0 grams and an average accuracy of 96.33%. Overall, the results of Tables 4.4.5.1 to 4.4.5.3 demonstrate that the mobile application can successfully apply a different target feed weight to each of the three scheduled feedings while maintaining accuracy above 90% in every tray.",
+      "evidence": [
+        "media/results/ev-4-4-5-3-1.jpg"
+      ],
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
       "id": "t4-4-6",
       "type": "doctable",
       "title": "Feed residue compensation from the app",
@@ -1707,14 +2154,16 @@
           "Successfully detected the remaining feed and dispensed only the additional amount needed."
         ]
       ],
-      "photos": "media/results/table-4-4-6",
-      "start": 0
+      "notes": "Table 4.4.6 presents the results of testing feed residue measurement and compensation using the mobile application. The system successfully detected the remaining feed in the trays before the next scheduled feeding and dispensed only the additional quantity needed to reach the configured target weight. Overall, the results demonstrate that the system can measure remaining feed and automatically compensate for it during scheduled feeding through the mobile application.",
+      "evidence": [
+        "media/results/ev-4-4-6-1.jpg"
+      ],
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
       "id": "g4-4-6-1",
       "type": "grams",
-      "title": "Weight check, residue compensation from the app",
+      "title": "Residue compensation, 60 g target (app)",
       "table": "4.4.6.1",
       "caption": "Results of Feed Residue Compensation Using Mobile Application",
       "mode": "residue",
@@ -1722,33 +2171,47 @@
         {
           "tray": "Tray 1",
           "target": 60,
-          "actual": null
+          "actual": 57,
+          "remaining": 10,
+          "added": 47
         },
         {
           "tray": "Tray 2",
           "target": 60,
-          "actual": null
+          "actual": 65,
+          "remaining": 12,
+          "added": 53
         },
         {
           "tray": "Tray 3",
           "target": 60,
-          "actual": null
+          "actual": 64,
+          "remaining": 16,
+          "added": 48
         },
         {
           "tray": "Tray 4",
           "target": 60,
-          "actual": null
+          "actual": 57,
+          "remaining": 16,
+          "added": 41
         },
         {
           "tray": "Tray 5",
           "target": 60,
-          "actual": null
+          "actual": 58,
+          "remaining": 19,
+          "added": 39
         }
       ],
-      "photos": "media/results/table-4-4-6-1"
+      "notes": "Table 4.4.6.1 presents the results of feed residue compensation testing using the mobile application across all five trays. The system successfully detected the remaining feed in each tray, with an average of 14.6 grams, and dispensed an average additional feed of 45.6 grams to approach the configured target weight of 60 grams. Overall, the results demonstrate the system’s ability to perform feed residue compensation through the mobile application with a high level of accuracy across all five trays.",
+      "evidence": [
+        "media/results/ev-4-4-6-1-1.jpg",
+        "media/results/ev-4-4-6-1-2.jpg"
+      ],
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
       "id": "t4-4-7",
       "type": "doctable",
       "title": "Settings kept after a power interruption (app)",
@@ -1766,13 +2229,21 @@
           "Successfully retained the feed weight and schedules after power was restored."
         ]
       ],
-      "photos": "media/results/table-4-4-7",
-      "start": 0
+      "notes": "Table 4.4.7 presents the results of testing data retention after power interruption using the mobile application. The system successfully retained the previously configured feed dispensing amount and feeding schedules after being turned off for approximately one to two minutes and having its power supply restored. Overall, the results demonstrate that the system can retain essential feeding settings configured through the mobile application and restore them when power is resumed.",
+      "evidence": [
+        "media/results/ev-4-4-7-1.jpg"
+      ],
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
-      "section": "Objective d · Hopper feed level",
-      "notes": "Table 4.5 presents the results of testing the hopper feed level monitoring functionality using an ultrasonic sensor. Overall, the results demonstrate that the ultrasonic sensor can effectively monitor the available feed level in the storage hopper and that the system can provide appropriate warnings and prevent feeding operations when the feed supply is insufficient.",
+      "id": "accuracy-all",
+      "type": "accsum",
+      "title": "Dispensing accuracy across every weight test",
+      "text": "Average accuracy of the five trays in each test, worked out from the measured grams in Tables 4.4.1.1 to 4.4.6.1.",
+      "notes": "Accuracy per tray = 100 − |target − actual| ÷ target × 100. The averages here are recomputed from the measured grams, so a few differ from the averages printed in the manuscript (see the accuracy notes).",
+      "chapter": "c4"
+    },
+    {
       "id": "t4-5-1",
       "type": "doctable",
       "title": "Hopper feed level monitoring",
@@ -1800,12 +2271,11 @@
           "Successfully displayed the warning and sent the notification."
         ]
       ],
-      "photos": "media/results/table-4-5",
-      "start": 0
+      "notes": "Table 4.5 presents the results of testing the hopper feed level monitoring functionality using an ultrasonic sensor. The system successfully detected and displayed the available feed level when the storage hopper contained its maximum capacity of five kilograms through both the Nextion Display and mobile application. Overall, the results demonstrate that the ultrasonic sensor can effectively monitor the available feed level in the storage hopper and that the system can provide appropriate warnings and prevent feeding operations when the feed supply is insufficient.",
+      "chapter": "c4",
+      "section": "Objective d · Hopper feed level"
     },
     {
-      "chapter": "c4",
-      "notes": "Table 4.5 presents the results of testing the hopper feed level monitoring functionality using an ultrasonic sensor. Overall, the results demonstrate that the ultrasonic sensor can effectively monitor the available feed level in the storage hopper and that the system can provide appropriate warnings and prevent feeding operations when the feed supply is insufficient.",
       "id": "t4-5-2",
       "type": "doctable",
       "title": "Hopper feed level monitoring",
@@ -1828,17 +2298,22 @@
           "Successfully cleared the warning and restored normal feeding after refilling."
         ]
       ],
-      "photos": "media/results/table-4-5",
-      "start": 3
+      "notes": "Table 4.5 presents the results of testing the hopper feed level monitoring functionality using an ultrasonic sensor. The system successfully detected and displayed the available feed level when the storage hopper contained its maximum capacity of five kilograms through both the Nextion Display and mobile application. Overall, the results demonstrate that the ultrasonic sensor can effectively monitor the available feed level in the storage hopper and that the system can provide appropriate warnings and prevent feeding operations when the feed supply is insufficient.",
+      "evidence": [
+        "media/results/ev-4-5-1.jpg",
+        "media/results/ev-4-5-2.jpg",
+        "media/results/ev-4-5-3.jpg",
+        "media/results/ev-4-5-4.jpg",
+        "media/results/ev-4-5-5.jpg",
+        "media/results/ev-4-5-6.jpg"
+      ],
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
-      "notes": "Table 4.5.1 presents the results of testing the system response at different hopper feed levels to determine the activation of warnings, notifications, and feeding prevention mechanisms. Overall, the results demonstrate that the system can respond to decreasing feed levels through appropriate warnings, mobile notifications, audible alerts, and feeding prevention to help avoid feeding operations when the hopper is empty.",
       "id": "x4-5-1",
       "type": "doctable",
-      "table": "4.5.1",
-      "photos": "media/results/table-4-5-1",
       "title": "Response at each feed level",
+      "table": "4.5.1",
       "caption": "System Response at the Low Level Threshold",
       "columns": [
         "Trial",
@@ -1889,12 +2364,11 @@
           "Activated",
           "Prevented"
         ]
-      ]
+      ],
+      "notes": "Table 4.5.1 presents the results of testing the system response at different hopper feed levels to determine the activation of warnings, notifications, and feeding prevention mechanisms. At feed levels of 100%, 80%, and 50%, the system displayed no warnings or mobile notifications, and the buzzer remained inactive while normal feeding operations were allowed. Overall, the results demonstrate that the system can respond to   decreasing feed levels through appropriate warnings, mobile notifications, audible alerts, and feeding prevention to help avoid feeding operations when the hopper is empty.",
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
-      "section": "Objective e · Water level",
-      "notes": "Table 4.6 presents the results of testing the float switch functionality and reservoir water level monitoring. Overall, the results demonstrate that the float switch can effectively detect low-water conditions and that the system can provide audible and mobile notifications to inform users when the reservoir needs refilling.",
       "id": "t4-6",
       "type": "doctable",
       "title": "Float switch and reservoir water level",
@@ -1922,17 +2396,21 @@
           "Successfully activated the buzzer and sent the app notification."
         ]
       ],
-      "photos": "media/results/table-4-6",
-      "start": 0
+      "notes": "Table 4.6 presents the results of testing the float switch functionality and reservoir water level monitoring. The system successfully detected changes in the water level status based on the position of the float. Overall, the results demonstrate that the float switch can effectively detect low-water conditions and that the system can provide audible and mobile notifications to inform users when the reservoir needs refilling.",
+      "evidence": [
+        "media/results/ev-4-6-1.jpg",
+        "media/results/ev-4-6-2.jpg",
+        "media/results/ev-4-6-3.jpg",
+        "media/results/ev-4-6-4.jpg"
+      ],
+      "chapter": "c4",
+      "section": "Objective e · Water level"
     },
     {
-      "chapter": "c4",
-      "notes": "Table 4.6.1 presents the results of testing the water level status and notification response of the float switch. Overall, the results demonstrate that the float switch can accurately distinguish between low-water and sufficient-water conditions and that the system provides appropriate visual and audible alerts to inform users of the reservoir's water status.",
       "id": "x4-6-1",
       "type": "doctable",
-      "table": "4.6.1",
-      "photos": "media/results/table-4-6-1",
       "title": "Water status and alerts",
+      "table": "4.6.1",
       "caption": "Water Level Status and Notification Response Results",
       "columns": [
         "Trial",
@@ -1962,12 +2440,16 @@
           "Not activated",
           "WATER OK"
         ]
-      ]
+      ],
+      "notes": "Table 4.6.1 presents the results of testing the water level status and notification response of the float switch. During the first trial, when the reservoir contained no water, the system successfully detected the low-water condition, matching the expected water level status.",
+      "evidence": [
+        "media/results/ev-4-6-1-1.jpg",
+        "media/results/ev-4-6-1-2.jpg",
+        "media/results/ev-4-6-1-3.jpg"
+      ],
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
-      "section": "Objective f · Touch panel",
-      "notes": "Table 4.7 presents the results of testing the Nextion display interface to evaluate its functionality in presenting system information and monitoring the device's operations. Overall, the results demonstrate that the Nextion display provides a functional on-site monitoring interface for viewing system information and recent operational records.",
       "id": "t4-7",
       "type": "doctable",
       "title": "Touch panel interface",
@@ -1995,16 +2477,23 @@
           "Successfully reflected updated information during operation."
         ]
       ],
-      "photos": "media/results/table-4-7",
-      "start": 0
+      "notes": "Table 4.7 presents the results of testing the Nextion display interface to evaluate its functionality in presenting system information and monitoring the device's operations. The display successfully powered on and initialized alongside the system, providing a functional interface for accessing the available system information. Overall, the results demonstrate that the Nextion display provides a functional on-site monitoring interface for viewing system information and recent operational records.",
+      "evidence": [
+        "media/results/ev-4-7-1.jpg",
+        "media/results/ev-4-7-2.jpg",
+        "media/results/ev-4-7-3.jpg",
+        "media/results/ev-4-7-4.jpg",
+        "media/results/ev-4-7-5.jpg",
+        "media/results/ev-4-7-6.jpg"
+      ],
+      "chapter": "c4",
+      "section": "Objective f · Touch panel"
     },
     {
-      "chapter": "c4",
-      "notes": "Table 4.7.1 presents the results of testing the Nextion Display's response time when updating system information. Overall, the results demonstrate that the Nextion Display can successfully update and present changes in system information, allowing users to monitor the device's operating conditions.",
       "id": "x4-7-1",
       "type": "doctable",
-      "table": "4.7.1",
       "title": "Touch panel update time",
+      "table": "4.7.1",
       "caption": "Nextion Display Information Update Response Time",
       "columns": [
         "Information updated",
@@ -2046,59 +2535,71 @@
           11.06
         ]
       ],
-      "unit": "s"
+      "unit": "s",
+      "notes": "Table 4.7.1 presents the results of testing the Nextion Display's response time when updating system information. The display successfully reflected changes in feed level, water level status, and feed weight monitoring. Overall, the results demonstrate that the Nextion Display can successfully update and present changes in system information, allowing users to monitor the device's operating conditions.",
+      "evidence": [
+        "media/results/ev-4-7-1-1.jpg",
+        "media/results/ev-4-7-1-2.jpg",
+        "media/results/ev-4-7-1-3.jpg",
+        "media/results/ev-4-7-1-4.jpg",
+        "media/results/ev-4-7-1-5.jpg",
+        "media/results/ev-4-7-1-6.jpg"
+      ],
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
       "id": "x4-7-2",
       "type": "doctable",
-      "table": "4.7.2",
-      "photos": "media/results/table-4-7-2",
       "title": "Touch panel sleep and wake",
+      "table": "4.7.2",
       "caption": "Nextion Display Sleep and Wake Function Testing",
       "columns": [
         "Trial",
         "Idle time",
-        "Expected behaviour",
-        "Actual behaviour"
+        "Expected",
+        "Actual",
+        "After double-tap"
       ],
       "rows": [
         [
           "1",
           "1 min",
-          "Wakes upon double-tapping",
-          ""
+          "Awake",
+          "Awake",
+          "Awake"
         ],
         [
           "2",
           "2 min",
-          "Wakes upon double-tapping",
-          ""
+          "Asleep",
+          "Asleep",
+          "Awake"
         ],
         [
           "3",
           "5 min",
-          "Wakes upon double-tapping",
-          ""
+          "Asleep",
+          "Asleep",
+          "Awake"
         ],
         [
           "4",
           "10 min",
-          "Wakes upon double-tapping",
-          ""
-        ],
-        [
-          "5",
-          "20 min",
-          "Wakes upon double-tapping",
-          ""
+          "Asleep",
+          "Asleep",
+          "Awake"
         ]
-      ]
+      ],
+      "notes": "Table 4.7.2 presents the sleep and wake function testing results for the Nextion display across four trials. In Trial 1, the screen remained awake as expected after 1 minute of inactivity.",
+      "evidence": [
+        "media/results/ev-4-7-2-1.jpg",
+        "media/results/ev-4-7-2-2.jpg",
+        "media/results/ev-4-7-2-3.jpg",
+        "media/results/ev-4-7-2-4.jpg"
+      ],
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
-      "section": "Objective g · Mobile app",
-      "notes": "Table 4.8 presents the results of testing the mobile application functionality and notification system. Overall, the results demonstrate that the mobile application provides authorized users with functional access to device management, remote monitoring, feeding control, historical records, and system notifications, supporting the remote operation and monitoring of the automated poultry feeding system.",
       "id": "t4-8-1",
       "type": "doctable",
       "title": "Mobile application",
@@ -2126,12 +2627,11 @@
           "Successfully displayed device information and gave access to records."
         ]
       ],
-      "photos": "media/results/table-4-8",
-      "start": 0
+      "notes": "Table 4.8 presents the results of testing the mobile application functionality and notification system. The application successfully allowed users to create an account, authenticate their credentials, and link the device using the required device ID and PIN. Overall, the results demonstrate that the mobile application provides authorized users with functional access to device   management, remote monitoring, feeding control, historical records, and system notifications, supporting the remote operation and monitoring of the automated poultry feeding system.",
+      "chapter": "c4",
+      "section": "Objective g · Mobile app"
     },
     {
-      "chapter": "c4",
-      "notes": "Table 4.8 presents the results of testing the mobile application functionality and notification system. Overall, the results demonstrate that the mobile application provides authorized users with functional access to device management, remote monitoring, feeding control, historical records, and system notifications, supporting the remote operation and monitoring of the automated poultry feeding system.",
       "id": "t4-8-2",
       "type": "doctable",
       "title": "Mobile application",
@@ -2149,15 +2649,22 @@
           "Successfully saved the schedules and started a manual feed."
         ]
       ],
-      "photos": "media/results/table-4-8",
-      "start": 3
+      "notes": "Table 4.8 presents the results of testing the mobile application functionality and notification system. The application successfully allowed users to create an account, authenticate their credentials, and link the device using the required device ID and PIN. Overall, the results demonstrate that the mobile application provides authorized users with functional access to device   management, remote monitoring, feeding control, historical records, and system notifications, supporting the remote operation and monitoring of the automated poultry feeding system.",
+      "evidence": [
+        "media/results/ev-4-8-1.jpg",
+        "media/results/ev-4-8-2.jpg",
+        "media/results/ev-4-8-3.jpg",
+        "media/results/ev-4-8-4.jpg",
+        "media/results/ev-4-8-5.jpg",
+        "media/results/ev-4-8-6.jpg"
+      ],
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
       "id": "x4-8-1",
       "type": "doctable",
-      "table": "4.8.1",
       "title": "Mobile app update time",
+      "table": "4.8.1",
       "caption": "Mobile Application Information Update Response Time",
       "columns": [
         "Information updated",
@@ -2168,36 +2675,56 @@
       "rows": [
         [
           "Individual tray feed",
-          "",
-          "",
-          ""
+          "159 g",
+          "59 g",
+          "15 s"
         ],
         [
           "Hopper feed level",
-          "",
-          "",
-          ""
+          "0%",
+          "62%",
+          "14 s"
         ],
         [
           "Reservoir water status",
-          "",
-          "",
-          ""
+          "LOW",
+          "HIGH",
+          "3 s"
         ],
         [
           "Feeding operation status",
-          "",
-          "",
-          ""
+          "IDLE",
+          "FEEDING",
+          "3 s"
         ]
-      ]
+      ],
+      "bars": [
+        [
+          "Water status",
+          3
+        ],
+        [
+          "Feeding status",
+          3
+        ],
+        [
+          "Hopper level",
+          14
+        ],
+        [
+          "Tray feed",
+          15
+        ]
+      ],
+      "unit": "s",
+      "notes": "",
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
       "id": "x4-8-2",
       "type": "doctable",
-      "table": "4.8.2",
       "title": "Notification delivery time",
+      "table": "4.8.2",
       "caption": "Mobile Application Notification Delivery Response Time",
       "columns": [
         "Trial",
@@ -2208,41 +2735,55 @@
       "rows": [
         [
           "1",
-          "",
-          "",
-          ""
+          "5 s",
+          "5 s",
+          "10 s"
         ],
         [
           "2",
-          "",
-          "",
-          ""
+          "3 s",
+          "4 s",
+          "15 s"
         ],
         [
           "3",
-          "",
-          "",
-          ""
+          "5 s",
+          "5 s",
+          "11 s"
         ],
         [
           "4",
-          "",
-          "",
-          ""
+          "5 s",
+          "4 s",
+          "13 s"
         ],
         [
           "5",
-          "",
-          "",
-          ""
+          "5 s",
+          "5 s",
+          "10 s"
         ]
       ],
-      "note": "Delivery time in seconds for each simulated condition."
+      "bars": [
+        [
+          "Low feed (avg)",
+          4.6
+        ],
+        [
+          "Low water (avg)",
+          4.6
+        ],
+        [
+          "Device offline (avg)",
+          11.8
+        ]
+      ],
+      "unit": "s",
+      "note": "Every notification arrived as expected in all five trials. Averages are worked out from the five trials.",
+      "notes": "",
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
-      "section": "Objective h · Records",
-      "notes": "Table 4.9 presents the results of testing the system's data logging functionality using Firebase Realtime Database and Google Sheets. Overall, the results demonstrate that the system can record, store, and retrieve operational data through Firebase Realtime Database, periodically transfer records to Google Sheets for long-term monitoring, provide authorized users with access to historical logs, and retain essential controller settings and accumulated feeding data despite temporary power interruptions.",
       "id": "t4-9-1",
       "type": "doctable",
       "title": "System data logging",
@@ -2270,12 +2811,11 @@
           "Successfully redirected the user to the Google Sheets log."
         ]
       ],
-      "photos": "media/results/table-4-9",
-      "start": 0
+      "notes": "Table 4.9 presents the results of testing the system's data logging functionality using Firebase Realtime Database and Google Sheets. The system successfully recorded the generated operational information in Firebase Realtime Database, including feeding schedules, feeding activities, individual tray feed weights, hopper feed level, reservoir water status, system alerts, and tray calibration data. Overall, the results demonstrate that the system can record, store, and retrieve operational data through Firebase Realtime Database, periodically transfer records to   Google Sheets for long-term monitoring, provide authorized users with access to historical logs, and retain essential controller settings and accumulated feeding data despite temporary power interruptions.",
+      "chapter": "c4",
+      "section": "Objective h · Records"
     },
     {
-      "chapter": "c4",
-      "notes": "Table 4.9 presents the results of testing the system's data logging functionality using Firebase Realtime Database and Google Sheets. Overall, the results demonstrate that the system can record, store, and retrieve operational data through Firebase Realtime Database, periodically transfer records to Google Sheets for long-term monitoring, provide authorized users with access to historical logs, and retain essential controller settings and accumulated feeding data despite temporary power interruptions.",
       "id": "t4-9-2",
       "type": "doctable",
       "title": "System data logging",
@@ -2303,13 +2843,18 @@
           "Successfully retained the settings and accumulated totals after power was restored."
         ]
       ],
-      "photos": "media/results/table-4-9",
-      "start": 3
+      "notes": "Table 4.9 presents the results of testing the system's data logging functionality using Firebase Realtime Database and Google Sheets. The system successfully recorded the generated operational information in Firebase Realtime Database, including feeding schedules, feeding activities, individual tray feed weights, hopper feed level, reservoir water status, system alerts, and tray calibration data. Overall, the results demonstrate that the system can record, store, and retrieve operational data through Firebase Realtime Database, periodically transfer records to   Google Sheets for long-term monitoring, provide authorized users with access to historical logs, and retain essential controller settings and accumulated feeding data despite temporary power interruptions.",
+      "evidence": [
+        "media/results/ev-4-9-1.jpg",
+        "media/results/ev-4-9-2.jpg",
+        "media/results/ev-4-9-3.jpg",
+        "media/results/ev-4-9-4.jpg",
+        "media/results/ev-4-9-5.jpg",
+        "media/results/ev-4-9-6.jpg"
+      ],
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
-      "section": "Objective i · Wi-Fi and offline",
-      "notes": "Table 4.10 presents the results of testing the Wi-Fi communication and offline operation of the system through the ESP32 and Firebase Realtime Database. Overall, the results demonstrate that the system can reliably transmit operational data between the device and cloud database, provide updated information to the registered mobile application, maintain local feeding and safety functions during network interruptions, and synchronize pending alerts and daily operational records once connectivity is restored.",
       "id": "t4-10-1",
       "type": "doctable",
       "title": "Wi-Fi communication and offline operation",
@@ -2337,12 +2882,11 @@
           "The system kept its feeding schedules and local safety functions without internet."
         ]
       ],
-      "photos": "media/results/table-4-10",
-      "start": 0
+      "notes": "Table 4.10 presents the results of testing the Wi-Fi communication and offline operation of the system through the ESP32 and Firebase Realtime Database. The ESP32 successfully connected to the available Wi-Fi network and established communication with Firebase, allowing system information to be transmitted and displayed in the registered mobile application. Overall, the results demonstrate that the system can reliably transmit operational data between the device and cloud database, provide updated information to the registered mobile application, maintain local feeding and safety functions during network interruptions, and synchronize pending alerts and daily operational   records once connectivity is restored.",
+      "chapter": "c4",
+      "section": "Objective i · Wi-Fi and offline"
     },
     {
-      "chapter": "c4",
-      "notes": "Table 4.10 presents the results of testing the Wi-Fi communication and offline operation of the system through the ESP32 and Firebase Realtime Database. Overall, the results demonstrate that the system can reliably transmit operational data between the device and cloud database, provide updated information to the registered mobile application, maintain local feeding and safety functions during network interruptions, and synchronize pending alerts and daily operational records once connectivity is restored.",
       "id": "t4-10-2",
       "type": "doctable",
       "title": "Wi-Fi communication and offline operation",
@@ -2365,13 +2909,16 @@
           "The system consistently performed its communication and offline functions."
         ]
       ],
-      "photos": "media/results/table-4-10",
-      "start": 3
+      "notes": "Table 4.10 presents the results of testing the Wi-Fi communication and offline operation of the system through the ESP32 and Firebase Realtime Database. The ESP32 successfully connected to the available Wi-Fi network and established communication with Firebase, allowing system information to be transmitted and displayed in the registered mobile application. Overall, the results demonstrate that the system can reliably transmit operational data between the device and cloud database, provide updated information to the registered mobile application, maintain local feeding and safety functions during network interruptions, and synchronize pending alerts and daily operational   records once connectivity is restored.",
+      "evidence": [
+        "media/results/ev-4-10-1.jpg",
+        "media/results/ev-4-10-2.jpg",
+        "media/results/ev-4-10-3.jpg",
+        "media/results/ev-4-10-4.jpg"
+      ],
+      "chapter": "c4"
     },
     {
-      "chapter": "c4",
-      "section": "Objective j · Battery backup",
-      "notes": "Table 4.11 presents the results of testing the battery backup functionality to evaluate the system's ability to maintain operation during interruptions in the main power supply. Overall, the results demonstrate that the battery backup system can automatically provide an alternative power source during electrical interruptions, allowing the device to maintain its essential local feeding, monitoring, display, and safety operations without requiring manual intervention.",
       "id": "t4-11-1",
       "type": "doctable",
       "title": "Battery backup",
@@ -2399,12 +2946,11 @@
           "The panel stayed on and the system kept monitoring weights, hopper level and water."
         ]
       ],
-      "photos": "media/results/table-4-11",
-      "start": 0
+      "notes": "Table 4.11 presents the results of testing the battery backup functionality to evaluate the system's ability to maintain operation during interruptions in the main power supply. Under normal operating conditions, all system components functioned properly while connected to the main power source. Overall, the results   demonstrate that the battery backup system can automatically provide an alternative power source during electrical interruptions, allowing the device to maintain its essential local feeding, monitoring, display, and safety operations without requiring manual intervention.",
+      "chapter": "c4",
+      "section": "Objective j · Battery backup"
     },
     {
-      "chapter": "c4",
-      "notes": "Table 4.11 presents the results of testing the battery backup functionality to evaluate the system's ability to maintain operation during interruptions in the main power supply. Overall, the results demonstrate that the battery backup system can automatically provide an alternative power source during electrical interruptions, allowing the device to maintain its essential local feeding, monitoring, display, and safety operations without requiring manual intervention.",
       "id": "t4-11-2",
       "type": "doctable",
       "title": "Battery backup",
@@ -2432,8 +2978,15 @@
           "The battery consistently supplied power during repeated tests."
         ]
       ],
-      "photos": "media/results/table-4-11",
-      "start": 3
+      "notes": "Table 4.11 presents the results of testing the battery backup functionality to evaluate the system's ability to maintain operation during interruptions in the main power supply. Under normal operating conditions, all system components functioned properly while connected to the main power source. Overall, the results   demonstrate that the battery backup system can automatically provide an alternative power source during electrical interruptions, allowing the device to maintain its essential local feeding, monitoring, display, and safety operations without requiring manual intervention.",
+      "evidence": [
+        "media/results/ev-4-11-1.jpg",
+        "media/results/ev-4-11-2.jpg",
+        "media/results/ev-4-11-3.jpg",
+        "media/results/ev-4-11-4.jpg",
+        "media/results/ev-4-11-5.jpg"
+      ],
+      "chapter": "c4"
     },
     {
       "id": "recordings-1",
@@ -2444,7 +2997,8 @@
         "scheduled-feed",
         "moving-hopper",
         "missing-only"
-      ]
+      ],
+      "section": "Recordings"
     },
     {
       "id": "recordings-2",
@@ -2515,7 +3069,8 @@
           "src": "media/deck/testing-5.jpg",
           "title": "Running a test"
         }
-      ]
+      ],
+      "section": "Documentation"
     },
     {
       "id": "build-photos",
@@ -2554,10 +3109,11 @@
       "id": "evaluators",
       "chapter": "c4",
       "type": "statement",
-      "text": "Twelve people evaluated HyFePoul: six CpE practitioners, five poultry farmers and the City Veterinarian.",
+      "text": "Twelve people evaluated HyFePoul: six CpE practitioners, five poultry farmers and the City Agriculturist/Veterinarian of San Pablo City.",
       "notes": "Two parts: software quality based on ISO/IEC 25010, and hardware evaluation of the components, technical details and structure.",
-      "sub": "Face to face with the device, and online through this website.",
-      "img": "media/deck/evaluation-2.jpg"
+      "sub": "In person with the device, and through this website with a simulation of its functions.",
+      "img": "media/deck/evaluation-2.jpg",
+      "section": "Evaluation results"
     },
     {
       "id": "evaluation-photos",
@@ -2597,98 +3153,523 @@
       ]
     },
     {
-      "id": "iso-results",
-      "chapter": "c4",
-      "type": "table",
-      "kicker": "Software evaluation · ISO/IEC 25010",
-      "title": "Evaluation results",
-      "columns": [
-        "Characteristic",
-        "CpE practitioners",
-        "Farmers and vet",
-        "Mean",
-        "Rating"
+      "id": "iso-summary",
+      "type": "iso",
+      "title": "Software quality, rated on ISO/IEC 25010",
+      "text": "Mean ratings on the five-point scale. Overall: 4.65 from the CpE practitioners, 4.38 from the farmers and the City Agriculturist/Veterinarian.",
+      "series": [
+        {
+          "label": "CpE practitioners (n = 6)",
+          "values": [
+            4.78,
+            4.83,
+            4.67,
+            4.67,
+            4.63,
+            4.56,
+            4.67,
+            4.54,
+            4.53
+          ],
+          "overall": 4.65,
+          "table": "4.21"
+        },
+        {
+          "label": "Farmers and Agriculturist/Veterinarian (n = 6)",
+          "values": [
+            4.5,
+            4.44,
+            4.58,
+            4.44,
+            4.29,
+            4.17,
+            4.3,
+            4.33,
+            4.4
+          ],
+          "overall": 4.38,
+          "table": "4.32"
+        }
       ],
-      "rows": [
-        [
-          "Functional suitability",
-          "",
-          "",
-          "",
-          ""
-        ],
-        [
-          "Performance efficiency",
-          "",
-          "",
-          "",
-          ""
-        ],
-        [
-          "Compatibility",
-          "",
-          "",
-          "",
-          ""
-        ],
-        [
-          "Interaction capability",
-          "",
-          "",
-          "",
-          ""
-        ],
-        [
-          "Reliability",
-          "",
-          "",
-          "",
-          ""
-        ],
-        [
-          "Security",
-          "",
-          "",
-          "",
-          ""
-        ],
-        [
-          "Maintainability",
-          "",
-          "",
-          "",
-          ""
-        ],
-        [
-          "Flexibility",
-          "",
-          "",
-          "",
-          ""
-        ],
-        [
-          "Safety",
-          "",
-          "",
-          "",
-          ""
-        ]
+      "labels": [
+        "Functional suitability",
+        "Performance efficiency",
+        "Compatibility",
+        "Interaction capability",
+        "Reliability",
+        "Security",
+        "Maintainability",
+        "Flexibility",
+        "Safety"
       ],
-      "todo": "Fill in the means from Appendices G.2 and G.4"
+      "caption": "Tables 4.21 and 4.32",
+      "notes": "Likert interpretation (Table 3.1): 4.51–5.00 Highly Acceptable, 3.51–4.50 Very Acceptable. The CpE practitioners rated every characteristic Highly Acceptable; the end users rated compatibility Highly Acceptable and the rest Very Acceptable.",
+      "chapter": "c4"
     },
     {
-      "id": "hardware-results",
-      "chapter": "c4",
-      "type": "todo",
-      "kicker": "Hardware evaluation",
-      "title": "Hardware evaluation results",
-      "slots": [
+      "id": "iso-cpe",
+      "type": "isodetail",
+      "title": "Every criterion, CpE practitioners",
+      "caption": "Tables 4.12 to 4.20",
+      "labels": [
+        "Functional suitability",
+        "Performance efficiency",
+        "Compatibility",
+        "Interaction capability",
+        "Reliability",
+        "Security",
+        "Maintainability",
+        "Flexibility",
+        "Safety"
+      ],
+      "means": [
+        4.78,
+        4.83,
+        4.67,
+        4.67,
+        4.63,
+        4.56,
+        4.67,
+        4.54,
+        4.53
+      ],
+      "subs": [
+        [
+          [
+            "Functional completeness",
+            5.0
+          ],
+          [
+            "Functional correctness",
+            4.5
+          ],
+          [
+            "Functional appropriateness",
+            4.83
+          ]
+        ],
+        [
+          [
+            "Time behaviour",
+            4.83
+          ],
+          [
+            "Resource utilization",
+            4.83
+          ],
+          [
+            "Capacity",
+            4.83
+          ]
+        ],
+        [
+          [
+            "Co-existence",
+            4.5
+          ],
+          [
+            "Interoperability",
+            4.83
+          ]
+        ],
+        [
+          [
+            "Appropriateness recognizability",
+            4.67
+          ],
+          [
+            "Learnability",
+            4.67
+          ],
+          [
+            "Operability",
+            4.83
+          ],
+          [
+            "User error protection",
+            4.33
+          ],
+          [
+            "User engagement",
+            4.83
+          ],
+          [
+            "Inclusivity",
+            4.5
+          ],
+          [
+            "User assistance",
+            4.67
+          ],
+          [
+            "Self-descriptiveness",
+            4.83
+          ]
+        ],
+        [
+          [
+            "Faultlessness",
+            4.67
+          ],
+          [
+            "Availability",
+            4.67
+          ],
+          [
+            "Fault tolerance",
+            4.67
+          ],
+          [
+            "Recoverability",
+            4.5
+          ]
+        ],
+        [
+          [
+            "Confidentiality",
+            4.67
+          ],
+          [
+            "Integrity",
+            4.33
+          ],
+          [
+            "Non-repudiation",
+            4.67
+          ],
+          [
+            "Accountability",
+            4.83
+          ],
+          [
+            "Authenticity",
+            4.67
+          ],
+          [
+            "Resistance",
+            4.17
+          ]
+        ],
+        [
+          [
+            "Modularity",
+            4.67
+          ],
+          [
+            "Reusability",
+            4.83
+          ],
+          [
+            "Analysability",
+            4.67
+          ],
+          [
+            "Modifiability",
+            4.5
+          ],
+          [
+            "Testability",
+            4.67
+          ]
+        ],
+        [
+          [
+            "Adaptability",
+            4.67
+          ],
+          [
+            "Scalability",
+            4.5
+          ],
+          [
+            "Installability",
+            4.33
+          ],
+          [
+            "Replaceability",
+            4.67
+          ]
+        ],
+        [
+          [
+            "Operational constraint",
+            4.5
+          ],
+          [
+            "Risk identification",
+            4.5
+          ],
+          [
+            "Fail safe",
+            4.67
+          ],
+          [
+            "Hazard warning",
+            4.33
+          ],
+          [
+            "Safe integration",
+            4.67
+          ]
+        ]
+      ],
+      "chapter": "c4"
+    },
+    {
+      "id": "iso-farm",
+      "type": "isodetail",
+      "title": "Every criterion, end users",
+      "caption": "Tables 4.23 to 4.31, five farmers and the City Agriculturist/Veterinarian",
+      "labels": [
+        "Functional suitability",
+        "Performance efficiency",
+        "Compatibility",
+        "Interaction capability",
+        "Reliability",
+        "Security",
+        "Maintainability",
+        "Flexibility",
+        "Safety"
+      ],
+      "means": [
+        4.5,
+        4.44,
+        4.58,
+        4.44,
+        4.29,
+        4.17,
+        4.3,
+        4.33,
+        4.4
+      ],
+      "subs": [
+        [
+          [
+            "Functional completeness",
+            4.5
+          ],
+          [
+            "Functional correctness",
+            4.5
+          ],
+          [
+            "Functional appropriateness",
+            4.5
+          ]
+        ],
+        [
+          [
+            "Time behaviour",
+            4.67
+          ],
+          [
+            "Resource utilization",
+            4.33
+          ],
+          [
+            "Capacity",
+            4.33
+          ]
+        ],
+        [
+          [
+            "Co-existence",
+            4.33
+          ],
+          [
+            "Interoperability",
+            4.83
+          ]
+        ],
+        [
+          [
+            "Appropriateness recognizability",
+            4.5
+          ],
+          [
+            "Learnability",
+            4.33
+          ],
+          [
+            "Operability",
+            4.67
+          ],
+          [
+            "User error protection",
+            4.5
+          ],
+          [
+            "User engagement",
+            4.5
+          ],
+          [
+            "Inclusivity",
+            4.5
+          ],
+          [
+            "User assistance",
+            4.5
+          ],
+          [
+            "Self-descriptiveness",
+            4.5
+          ]
+        ],
+        [
+          [
+            "Faultlessness",
+            4.0
+          ],
+          [
+            "Availability",
+            4.5
+          ],
+          [
+            "Fault tolerance",
+            4.33
+          ],
+          [
+            "Recoverability",
+            4.33
+          ]
+        ],
+        [
+          [
+            "Confidentiality",
+            4.0
+          ],
+          [
+            "Integrity",
+            4.33
+          ],
+          [
+            "Non-repudiation",
+            3.83
+          ],
+          [
+            "Accountability",
+            4.17
+          ],
+          [
+            "Authenticity",
+            4.5
+          ],
+          [
+            "Resistance",
+            4.17
+          ]
+        ],
+        [
+          [
+            "Modularity",
+            4.17
+          ],
+          [
+            "Reusability",
+            4.33
+          ],
+          [
+            "Analysability",
+            4.17
+          ],
+          [
+            "Modifiability",
+            4.33
+          ],
+          [
+            "Testability",
+            4.5
+          ]
+        ],
+        [
+          [
+            "Adaptability",
+            4.33
+          ],
+          [
+            "Scalability",
+            4.17
+          ],
+          [
+            "Installability",
+            4.5
+          ],
+          [
+            "Replaceability",
+            4.33
+          ]
+        ],
+        [
+          [
+            "Operational constraint",
+            4.5
+          ],
+          [
+            "Risk identification",
+            4.5
+          ],
+          [
+            "Fail safe",
+            4.0
+          ],
+          [
+            "Hazard warning",
+            4.67
+          ],
+          [
+            "Safe integration",
+            4.33
+          ]
+        ]
+      ],
+      "chapter": "c4"
+    },
+    {
+      "id": "hardware-eval",
+      "type": "hw",
+      "title": "Hardware evaluation",
+      "text": "Seven hardware items (Q1 to Q7) on the structure, components and build. The wording of each item is in the evaluation instrument, Appendix G.1.",
+      "series": [
         {
-          "kind": "chart",
-          "label": "Hardware evaluation chart or table",
-          "file": "media/deck/hardware-evaluation.png"
+          "label": "CpE practitioners",
+          "values": [
+            5.0,
+            4.67,
+            4.83,
+            4.5,
+            4.0,
+            4.83,
+            4.83
+          ],
+          "overall": 4.67,
+          "table": "4.22"
+        },
+        {
+          "label": "Farmers and Agriculturist/Veterinarian",
+          "values": [
+            4.5,
+            4.33,
+            4.33,
+            4.33,
+            4.33,
+            4.5,
+            4.83
+          ],
+          "overall": 4.45,
+          "table": "4.33"
         }
-      ]
+      ],
+      "labels": [
+        "Q1",
+        "Q2",
+        "Q3",
+        "Q4",
+        "Q5",
+        "Q6",
+        "Q7"
+      ],
+      "notes": "Practitioners suggested weatherproofing exposed electronic junctions against coop dust, moisture and ammonia (Table 4.22 discussion).",
+      "chapter": "c4"
     },
     {
       "id": "budget",
@@ -2828,21 +3809,34 @@
           "1",
           "25"
         ]
-      ]
+      ],
+      "section": "Economic feasibility"
     },
     {
       "id": "comparison",
+      "type": "table",
+      "kicker": "Table 4.34",
+      "title": "Manual feeding compared with HyFePoul",
+      "columns": [
+        "Manual feeding and watering",
+        "HyFePoul (Arduino Mega and ESP32)"
+      ],
+      "rows": [
+        [
+          "Daily feeding and watering take a lot of manual labour and time.",
+          "Feeding and watering schedules run automatically."
+        ],
+        [
+          "Feed is scooped with a cup, so portions vary and feed is wasted.",
+          "Load cells weigh the leftover feed, so each tray gets a consistent portion."
+        ],
+        [
+          "Farmers must stay on site at feeding times, near manure and strong odours.",
+          "Schedules, target weights and feeding can be set from the touch panel or the app."
+        ]
+      ],
       "chapter": "c4",
-      "type": "todo",
-      "kicker": "Project benefits",
-      "title": "Comparison with manual feeding",
-      "slots": [
-        {
-          "kind": "table",
-          "label": "Comparison table",
-          "file": "data/deck.json → comparison"
-        }
-      ]
+      "section": "Project benefits"
     },
     {
       "id": "costs",
@@ -2853,27 +3847,60 @@
       "slots": [
         {
           "kind": "table",
-          "label": "Operational cost analysis"
+          "label": "Operational cost analysis (heading only in the manuscript)"
         },
         {
           "kind": "chart",
-          "label": "Potential profitability"
+          "label": "Potential profitability analysis (heading only in the manuscript)"
         }
       ]
     },
     {
       "id": "schedule",
       "chapter": "c4",
-      "type": "todo",
-      "kicker": "Project schedule feasibility · Appendix F",
-      "title": "Gantt chart",
-      "slots": [
-        {
-          "kind": "image",
-          "label": "Gantt chart",
-          "file": "media/deck/gantt.png"
-        }
-      ]
+      "type": "table",
+      "kicker": "Table 4.36",
+      "title": "Project development schedule",
+      "columns": [
+        "Phase",
+        "Activity",
+        "Started",
+        "Finished"
+      ],
+      "rows": [
+        [
+          "Requirements",
+          "User, system and hardware requirements",
+          "",
+          ""
+        ],
+        [
+          "Design",
+          "Prototype, module and system design",
+          "",
+          ""
+        ],
+        [
+          "Development",
+          "Components gathering, building and wiring, programming",
+          "",
+          ""
+        ],
+        [
+          "Testing",
+          "Debugging per module, hardware testing per module, effectivity testing",
+          "",
+          ""
+        ],
+        [
+          "Evaluation",
+          "Prototype evaluation",
+          "",
+          ""
+        ]
+      ],
+      "todo": "The dates are still blank in Table 4.36 of the manuscript",
+      "section": "Schedule feasibility"
     },
     {
       "id": "c5",
@@ -2885,39 +3912,144 @@
     {
       "id": "summary",
       "chapter": "c5",
-      "type": "todo",
-      "kicker": "Summary",
+      "type": "points",
       "title": "Summary of findings",
-      "slots": [
+      "points": [
         {
-          "kind": "text",
-          "label": "Three to five short findings"
+          "t": "Evaluators",
+          "d": "Six CpE practitioners, five farmers and one City Agriculturist/Veterinarian from San Pablo City, Laguna."
+        },
+        {
+          "t": "Testing",
+          "d": "Software and hardware worked as intended across the objective tests in Chapter IV."
+        },
+        {
+          "t": "CpE practitioners",
+          "d": "Highly Acceptable: 4.65 for software and 4.67 for hardware."
+        },
+        {
+          "t": "Farmers and Agriculturist",
+          "d": "Very Acceptable: 4.38 for software and 4.45 for hardware."
         }
       ]
     },
     {
       "id": "conclusions",
       "chapter": "c5",
-      "type": "todo",
-      "kicker": "Conclusions",
+      "type": "concl",
       "title": "Conclusions",
-      "slots": [
-        {
-          "kind": "text",
-          "label": "One line per objective"
-        }
+      "lead": "The developed device successfully performed these functions:",
+      "items": [
+        [
+          "a",
+          "Feeding schedules and feed weights set on the Nextion display and the mobile app."
+        ],
+        [
+          "b",
+          "Automatic dispensing through a moving hopper at scheduled times, kept by the clock module."
+        ],
+        [
+          "c",
+          "The hopper stops at its home and end positions and returns home after each cycle, using limit switches."
+        ],
+        [
+          "d",
+          "The right amount of feed dispensed from the weight of unconsumed feed on each tray, using 1 kg load cells and HX711 amplifiers."
+        ],
+        [
+          "e",
+          "Hopper feed level detected with an ultrasonic sensor."
+        ],
+        [
+          "f",
+          "Reservoir water level detected with a float switch."
+        ],
+        [
+          "g",
+          "A Nextion display showing status, tray weights, feed level, water status and schedules, with a manual feed and recent records."
+        ],
+        [
+          "h",
+          "A mobile app with the same functions and more detail, for monitoring off site over Wi-Fi."
+        ],
+        [
+          "i",
+          "Cloud data through the ESP32 and Firebase Realtime Database, synchronized periodically to Google Sheets."
+        ],
+        [
+          "j",
+          "Buzzer and app notifications when feed or water is low."
+        ],
+        [
+          "k",
+          "A battery backup that powers every component when the main supply is interrupted."
+        ]
+      ],
+      "after": [
+        "The device was highly accepted by the CpE practitioners, and accepted by the farmers and the City Agriculturist/Veterinarian, on all nine ISO/IEC 25010 characteristics.",
+        "The deployment at a poultry farm in Barangay Del Remedio, San Pablo City was completed, and the owner signed an acceptance letter."
       ]
     },
     {
       "id": "recommendations",
       "chapter": "c5",
-      "type": "todo",
-      "kicker": "Recommendations",
+      "type": "concl",
       "title": "Recommendations",
-      "slots": [
+      "items": [
+        [
+          "1",
+          "Encourage automated feeding with feed and water monitoring in Barangay Del Remedio, to lessen manual work and feed waste."
+        ],
+        [
+          "2",
+          "Give farmers hands-on training, set-up, user, technical and troubleshooting manuals, and ongoing support."
+        ]
+      ],
+      "lead2": "For future developers:",
+      "items2": [
+        [
+          "a",
+          "A sensor that counts the eggs passing under the feeder."
+        ],
+        [
+          "b",
+          "An egg sorting system that sorts eggs by weight."
+        ],
+        [
+          "c",
+          "A lid on the feed outlet that opens and closes around dispensing, so falling feed does not spoil the weight."
+        ],
+        [
+          "d",
+          "Higher-quality load cells for more precise weighing."
+        ],
+        [
+          "e",
+          "A water sensor that reads the level as a percentage, such as an ultrasonic non-contact or submersible pressure sensor."
+        ]
+      ]
+    },
+    {
+      "id": "limits-found",
+      "chapter": "c5",
+      "type": "points",
+      "title": "What the testing and evaluation showed we should improve",
+      "points": [
         {
-          "kind": "text",
-          "label": "Three to five recommendations"
+          "t": "Weighing spread",
+          "d": "Single trays missed by up to 8 g (Table 4.4.4.3, tray 1); the dispenser outlet can drop extra feed (Recommendation 3c)."
+        },
+        {
+          "t": "Water level is on or off",
+          "d": "The float switch only reports low or okay, not how much water is left (Recommendation 3e)."
+        },
+        {
+          "t": "Lowest ratings",
+          "d": "Security from end users: non-repudiation 3.83, overall 4.17. Hardware item Q5 from practitioners: 4.00."
+        },
+        {
+          "t": "Weatherproofing",
+          "d": "Exposed electronic junctions need protection from dust, moisture and ammonia (Table 4.22 discussion)."
         }
       ]
     },
@@ -2984,12 +4116,12 @@
         {
           "date": "Nov 2026",
           "t": "Evaluation",
-          "d": "Practitioners, farmers and the City Veterinarian"
+          "d": "Six CpE practitioners, five farmers and the City Agriculturist/Veterinarian"
         },
         {
           "date": "",
           "t": "Deployment",
-          "d": "Hand-over at the farm"
+          "d": "Installed at the farm in Barangay Del Remedio; the owner signed an acceptance letter"
         },
         {
           "date": "",

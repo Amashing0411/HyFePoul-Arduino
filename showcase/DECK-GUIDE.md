@@ -54,3 +54,12 @@ to add a "See slide" link to the proof.
 ## Part photos
 
 The slide `components` shows a frame for each part. Save a close-up as `media/parts/<name>.jpg` using the name shown with `?guide=1`.
+
+## Evidence photos and PIP
+
+The small photos under each Chapter IV table are the documentation images embedded in the final Chapter IV PDF. They are low
+resolution because that is how they sit in the PDF. To replace one with the original photo, save it over the same file in
+`media/results/` (for example `media/results/ev-4-3-2.jpg`) and keep the name.
+
+PIP, the mascot, lives in `js/pip.js` and `assets/PIP.glb`. He pops up 20 to 60 seconds after the page opens, at most once
+every two minutes, and never in presenter mode. Add `?pip=now` to the address to see him after two seconds.
