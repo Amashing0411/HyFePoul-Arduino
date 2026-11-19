@@ -6,6 +6,7 @@ import StatusBadge from '../components/StatusBadge';
 import HopperGauge from '../components/HopperGauge';
 import DeviceDataUnavailable from '../components/DeviceDataUnavailable';
 import Button from '../components/Button';
+import PipCompanion from '../components/PipCompanion';
 import { describeCycleStep } from '../utils/feedCycle';
 import { useFirebaseData } from '../context/FirebaseDataContext';
 import { useTheme } from '../context/ThemeContext';
@@ -44,8 +45,10 @@ export default function DashboardScreen() {
   const activeCommand = commands.length > 0 ? commands[0] : null;
 
   return (
+    <View style={{ flex: 1 }}>
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={{ paddingBottom: 150 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
     >
       <Card title={t('deviceStatus')}>
@@ -147,6 +150,8 @@ export default function DashboardScreen() {
         </Card>
       )}
     </ScrollView>
+    <PipCompanion />
+    </View>
   );
 }
 
