@@ -463,7 +463,7 @@ function undock() {
     if (viewer && $('play').textContent === 'Stop') $('play').click();
     $('dock').append(stage);
   }
-  if (team && team.parentElement !== $('dock')) $('dock').append(team);
+  if (team && team.parentElement !== $('dock')) { $('dock').append(team); unfitTeam(); }
 }
 const CAD_BYTES = 273396;
 async function fetchBin(url, onP) {
@@ -538,8 +538,22 @@ function watchCycle() {
 }
 
 // The lanyard rail runs at its natural size, as on the original page: scaling it upsets its drag physics.
+// Presenter mode: the badges grow as large as the slide allows, through the rail's own --badge-max
+// (as on the original page), so the rail keeps its drag physics. The web page keeps the natural size.
+let fitting = 0;
+const frames = n => new Promise(r => { const f = () => (--n <= 0 ? r() : requestAnimationFrame(f)); requestAnimationFrame(f); setTimeout(r, 120 * n); });
+async function fitTeam(host) {
+  const id = ++fitting, root = document.documentElement, el = $('teamRoot');
+  const set = v => root.style.setProperty('--badge-max', Math.round(v));
+  for (let t = 0; t < 30 && !el.querySelector('[data-stage]'); t++) await new Promise(r => setTimeout(r, 150));
+  if (id !== fitting || mode !== 'slides') return;
+  let v = 300; set(v); await frames(3);
+  for (let k = 0; k < 24 && id === fitting && el.scrollHeight > host.clientHeight - 4 && v > 124; k++) { v -= 10; set(v); await frames(2); }
+}
+function unfitTeam() { fitting++; document.documentElement.style.removeProperty('--badge-max'); }
 function dockTeam(host) {
   const el = $('teamRoot'); host.append(el);
+  if (mode === 'slides') fitTeam(host); else unfitTeam();
   el.style.zoom = '';
   if (teamMounted) return;
   teamMounted = true;
@@ -636,6 +650,7 @@ const mobileQ = matchMedia('(max-width: 760px) and (orientation: portrait)');
 function fit() {
   document.body.classList.toggle('mobile', mobileQ.matches);
   if (mode !== 'slides') return;
+  { const th = curEl && curEl.querySelector('.team-host'); if (th) setTimeout(() => fitTeam(th), 60); }
   const v = $('view'), cs = getComputedStyle(v), f = $('frame');
   const r = { width: v.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), height: v.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) };
   let w, h;

@@ -985,3 +985,6 @@ html { scrollbar-color: #93aed4 var(--paper); }
 .web .t-team .sh { position: static; padding: calc(var(--u) * 1) 0 calc(var(--u) * 2); }
 .t-team .sh .lead { font-size: calc(var(--u) * 1.2); color: var(--ink-2); text-align: center; margin: 0 auto; }
 .web .t-team .sh { order: 2; }
+/* Presenter team slide: the rail sits in the middle with room for the adviser line below. */
+.mode-slides .t-team .team-host, .grid .t-team .team-host { bottom: calc(var(--u) * 4.4); display: flex !important; flex-direction: column; justify-content: center; overflow: hidden; }
+.mode-slides .t-team .sh { bottom: calc(var(--u) * 1.2); }
