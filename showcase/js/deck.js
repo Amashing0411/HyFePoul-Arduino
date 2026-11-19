@@ -573,6 +573,7 @@ function go(i, dir) {
   if (old) { old.classList.add('leave'); old.setAttribute('aria-hidden', 'true'); setTimeout(() => old.remove(), reduced ? 0 : 420); }
   history.replaceState(null, '', '#' + (i + 1));
   updateChrome();
+  dispatchEvent(new CustomEvent('hfp-slide', { detail: { slide: s, i, mode: 'slides' } }));
   // Warm the next slide's pictures.
   const nx = S()[i + 1];
   if (nx) build(nx, i + 1, true).querySelectorAll('img').forEach(im => { const p = new Image(); p.src = im.getAttribute('src'); });
@@ -765,6 +766,7 @@ function onWebScroll() {
   webT = setTimeout(() => {
     const b = webCurrent(); if (!b) return;
     const i = +b.dataset.i; cur = i;
+    dispatchEvent(new CustomEvent('hfp-slide', { detail: { slide: S()[i], i, mode: 'web' } }));
     const ch = S()[i].chapter;
     $('webNav').querySelectorAll('a').forEach(a => a.classList.toggle('on', a.dataset.ch === ch));
     const hosts = [...document.querySelectorAll('.band .model-host')];
@@ -814,7 +816,7 @@ async function start() {
   addEventListener('scroll', onWebScroll, { passive: true });
   const h = location.hash.slice(1);
   document.body.classList.add('ready');
-  import('./pip.js?v=1').then(m => m.initPip()).catch(e => console.warn(e));
+  import('./pip.js?v=4').then(m => m.initPip()).catch(e => console.warn(e));
   if (/^\d+$/.test(h)) setMode('slides', +h - 1);
   else {
     document.body.classList.add('mode-web'); fit();

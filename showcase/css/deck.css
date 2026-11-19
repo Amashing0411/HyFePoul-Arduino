@@ -801,7 +801,6 @@ html { scrollbar-color: #93aed4 var(--paper); }
 .pip-x svg { width: 14px; height: 14px; }
 .pip:hover .pip-x, .pip-x:focus-visible, .pip.say .pip-x { opacity: 1; }
 .pip.out .pip-x, .pip.out .pip-say { opacity: 0; }
-.mode-slides .pip { display: none !important; }
 @media (max-width: 760px) {
   .pip { right: auto; left: 8px; bottom: 8px; width: 130px; height: 158px; }
   .pip-say { right: auto; left: 62%; bottom: 80%; max-width: 190px; font-size: 13.5px; border-radius: 14px 14px 14px 4px; transform-origin: 0 100%; }
@@ -957,3 +956,23 @@ html { scrollbar-color: #93aed4 var(--paper); }
 .mobile .main-frame .arch { overflow-x: auto; }
 .mobile .main-frame .arch svg { min-width: 760px; min-height: 0; }
 .mobile .main-frame .arch figcaption { text-align: left; }
+
+/* PIP as a companion: always in the corner, smaller over the slides, tucked into a tab on request */
+.pip { width: 220px; height: 270px; }
+.pip:not(.in) { visibility: hidden; }
+.pip-x { top: 36px; }
+.pip.slides { width: 150px; height: 184px; right: 14px; bottom: 132px; z-index: 35; }
+.present .pip.slides { bottom: 8px; right: 8px; }
+.notes-on .pip.slides { bottom: calc(132px + 24vh); }
+.strip-off .pip.slides { bottom: 14px; }
+.pip.slides .pip-say { font-size: 13.5px; max-width: 250px; }
+.pip-back { position: fixed; right: 16px; bottom: 16px; z-index: 36; display: none; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; background: var(--blue); color: #fff; font: 800 12.5px var(--body); letter-spacing: .04em; box-shadow: 0 6px 16px rgba(3, 18, 58, .3); cursor: pointer; }
+.pip-back:hover { background: var(--blue-2); }
+.pip-min .pip { display: none !important; }
+.pip-min .pip-back { display: block; }
+.mode-slides:not(.present) .pip-back { bottom: 132px; }
+@media (max-width: 760px) { .pip { width: 118px; height: 145px; } .pip-back { right: auto; left: 12px; bottom: 12px; width: 42px; height: 42px; } }
+.pip { width: 180px; height: 222px; }
+.pip-x { top: 26px; }
+@media (max-width: 760px) { .pip { width: 112px; height: 138px; } }
+.flag, .foot-note, .tcap, .evs { flex-shrink: 0; }
