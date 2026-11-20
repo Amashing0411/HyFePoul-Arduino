@@ -38,11 +38,10 @@ function lineFor(s) {
     workflow: 'If the hopper reads 0%, I don\'t start a feed at all.',
     cycle: 'Press play to watch a feed cycle on the 3D model.',
     device3d: 'Tap a number on the model to read about that part.',
-    budget: 'The whole build cost ₱27,664.',
     comparison: 'Load cells on the trays replace the feed scoop.',
     features: 'Ten functions, each with its own test in Chapter IV.',
     'testing-intro': 'Every function was tested against its objective.',
-    'accuracy-all': 'Most tests landed between 96% and 99% accurate.',
+    'accuracy-all': 'Printed average accuracy ranges from 93% to 98.90%.',
     evaluators: 'Twelve evaluators rated me on ISO/IEC 25010.',
     conclusions: 'All ten functions worked in the final tests.',
     recommendations: 'Next: egg counting, egg sorting and better load cells.',
@@ -51,18 +50,18 @@ function lineFor(s) {
     thanks: 'Thanks for visiting! Any questions?',
   };
   if (byId[s.id]) return byId[s.id];
-  if (s.type === 'grams') {
-    const r = s.rows.filter(x => x.target != null && x.actual != null);
-    if (!r.length) return null;
-    const acc = r.map(x => 100 - Math.abs(x.target - x.actual) / x.target * 100);
-    const avg = acc.reduce((a, b) => a + b, 0) / acc.length;
-    const worst = r[acc.indexOf(Math.min(...acc))];
-    return `Table ${s.table}: ${fmt(avg)}% on average. Biggest miss: ${worst.tray}, ${fmt(Math.abs(worst.target - worst.actual), 1)} g.`;
+  if (s.type === 'ptab' && s.parts && s.parts[0]) {
+    const p = s.parts[0];
+    if (p.acc) {
+      const lo = Math.min(...p.accs.map(Number));
+      return `Table ${p.table}: ${p.acc}% average accuracy, as printed. Lowest tray: ${p.accs[p.accs.map(Number).indexOf(lo)]}%.`;
+    }
+    const h = (p.head[0] || []).map(c => typeof c === 'string' ? c : c.t);
+    if (h[0] === 'Condition') return `Table ${p.table}: every condition here was met. Click a photo to see it full size.`;
+    return `Table ${p.table}: ${s.title}.`;
   }
-  if (s.type === 'doctable' && s.columns && s.columns[0] === 'Condition') return `Table ${s.table}: every condition here was met.`;
   if (s.type === 'iso' && s.series) return `CpE practitioners: ${fmt(s.series[0].overall)}. End users: ${fmt(s.series[1].overall)}.`;
   if (s.type === 'hw' && s.series) return `Hardware: ${fmt(s.series[0].overall)} from practitioners, ${fmt(s.series[1].overall)} from end users.`;
-  if (s.type === 'doctable' && s.table) return `Table ${s.table}: ${s.title}.`;
   return describe(s);
 }
 const short = (t, n = 120) => { t = String(t || '').trim(); if (t.length <= n) return t; const c = t.slice(0, n); return c.slice(0, c.lastIndexOf(' ')).replace(/[,;:]$/, '') + '…'; };
@@ -107,11 +106,11 @@ function describe(s) {
 }
 function clipFor(s) {
   if (!s) return 'Loco_LookAround';
-  const t = s.table || '';
-  if (t === '4.6' || t === '4.6.1') return 'Web_LowWater';
-  if (t === '4.5' || t === '4.5.1') return 'Web_LowFeed';
-  if (t === '4.10') return 'Web_DeviceDisconnected';
-  if (s.type === 'grams' || s.id === 'accuracy-all' || s.id === 'conclusions') return 'Web_FeedingComplete';
+  const t = (s.parts && s.parts[0] && s.parts[0].table) || '';
+  if (t === '4.9' || t === '4.9.1') return 'Web_LowWater';
+  if (t === '4.8' || t === '4.8.1') return 'Web_LowFeed';
+  if (t === '4.13') return 'Web_DeviceDisconnected';
+  if ((s.parts && s.parts[0] && s.parts[0].acc) || s.id === 'accuracy-all' || s.id === 'conclusions') return 'Web_FeedingComplete';
   if (s.id === 'limits-found') return 'Pers_Concerned';
   if (s.id === 'cover' || s.id === 'thanks' || s.id === 'team') return 'Pers_Wave';
   return pick(['Pers_Point', 'Pers_Think', 'Pers_HeadTilt', 'Loco_LookAround']);

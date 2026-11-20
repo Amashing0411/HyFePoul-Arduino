@@ -109,6 +109,11 @@ const R = {
        <div class="full-cap"><h2 class="h" data-a>${esc(s.title)}</h2></div>`
     : `<div class="split">${head(s)}<div class="split-img">${pic(s.img, { fit: s.fit, paper: s.paper, title: s.title })}${s.kicker ? `<p class="fig-cap">${esc(s.kicker)}. ${esc(s.title)}</p>` : ''}</div></div>`,
 
+  // A wide drawing (schematic, Gantt chart) as large as the slide allows; select it to zoom.
+  figure: s => `<header class="sh row"><h2 class="h" data-a>${esc(s.title)}</h2>${s.text ? `<p class="lead" data-a>${esc(s.text)}</p>` : ''}</header>
+    <div class="fig-big">${pic(s.img, { fit: 'contain', paper: true, title: s.title, eager: true })}</div>
+    ${s.kicker ? `<p class="fig-cap" data-a>${esc(s.kicker)}. ${esc(s.caption || s.title)}</p>` : ''}`,
+
   gallery: s => {
     const imgs = s.images || [];
     return `${head(s, 'row')}
@@ -124,7 +129,7 @@ const R = {
   chips: s => `${head(s)}<ul class="chips">${s.items.map(c => `<li data-a>${esc(c)}</li>`).join('')}</ul>`,
 
   table: s => `${head(s)}${s.kicker ? `<p class="tcap">${esc(s.kicker)}</p>` : ''}
-    <div class="tbl-wrap" data-a><table class="tbl${s.rows.length > 6 ? ' tbl-many' : ''}">
+    <div class="tbl-wrap" data-a><table class="tbl${s.rows.length > 6 ? ' tbl-many' : ''}${s.cls ? ' ' + esc(s.cls) : ''}">
       <thead><tr>${s.columns.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead>
       <tbody>${s.rows.map(r => `<tr>${r.map(c => `<td${c === '' ? ' class="empty"' : ''}>${c === '' ? '<i></i>' : esc(c)}</td>`).join('')}</tr>`).join('')}</tbody>
     </table></div>
@@ -189,12 +194,65 @@ const R = {
       ${evidence(s, s.mode === 'residue' ? 'Recorded readings' : 'Recorded in the app')}${s.flag ? `<p class="flag">${esc(s.flag)}</p>` : ''}`;
   },
 
+  // Chapter IV tables exactly as printed in the paper, with the photos large enough to read.
+  ptab: s => {
+    const txt = c => c == null ? '' : typeof c === 'string' ? c : c.t;
+    const zoomImg = (f, title, cls = '') => `<button type="button" class="pt-ph${cls}" data-zoom="${esc(f)}" data-title="${esc(title)}"><img src="${esc(f)}" alt="${esc(title)}" loading="lazy" decoding="async"></button>`;
+    const td = (c, tag, p) => {
+      const o = typeof c === 'string' ? { t: c } : c;
+      const imgs = (o.img || []).filter(exists);
+      const at = `${o.rs ? ` rowspan="${o.rs}"` : ''}${o.cs ? ` colspan="${o.cs}"` : ''}`;
+      const body = esc(o.t).replace(/\n/g, '<br>');
+      return `<${tag}${at}${imgs.length ? ' class="pt-imgs"' : ''}>${body}${imgs.length ? `<span class="pt-row" style="--n:${imgs.length}">${imgs.map((f, k) => zoomImg(f, `Table ${p.table}, photo ${k + 1}`)).join('')}</span>` : ''}</${tag}>`;
+    };
+    const chart = p => {
+      if (!p.chart) return '';
+      const { target, data } = p.chart;
+      const max = Math.max(target, ...data.map(d => d[1])) * 1.15, y = v => (v / max * 100).toFixed(2);
+      return `<figure class="pt-chart" role="img" aria-label="${esc(data.map(d => `${d[0]} ${d[1]} g`).join(', '))}; target ${target} g">
+        <div class="pt-plot"><div class="pt-target" style="bottom:${y(target)}%"><span>Target ${target} g</span></div>
+          ${data.map((d, k) => `<div class="pt-bar" style="--h:${y(d[1])}%;--d:${k * 70}ms"><b>${d[1]}</b><i></i></div>`).join('')}</div>
+        <div class="pt-x">${data.map(d => `<span>${esc(d[0].replace('Tray ', 'T'))}<em>${esc(d[2])}%</em></span>`).join('')}</div>
+      </figure>`;
+    };
+    const bars = p => p.bars ? `<div class="hbars pt-hbars">${p.bars.map(([l, v]) => `<div><span>${esc(l)}</span><i style="--w:${(v / Math.max(...p.bars.map(b => b[1])) * 100).toFixed(1)}%"></i><b>${v} ${esc(p.unit || '')}</b></div>`).join('')}</div>` : '';
+    const table = p => `<div class="tbl-wrap doc pt-tw"><table class="tbl doc-tbl pt-tbl cols-${Math.max(...p.head.map(r => r.reduce((a, c) => a + (c.cs || 1), 0)))}${/Image Result$/i.test(txt(p.head[0][p.head[0].length - 1])) ? ' pt-cond' : ''}">
+        <thead>${p.head.map(r => `<tr>${r.map(c => td(c, 'th', p)).join('')}</tr>`).join('')}</thead>
+        <tbody>${p.rows.map(r => `<tr${r.length && /^Average$/.test(txt(r[0])) ? ' class="avg"' : ''}${r.length === 1 && (r[0].cs || 0) > 1 ? ' class="pt-sub"' : ''}>${r.map(c => td(c, 'td', p)).join('')}</tr>`).join('')}</tbody>
+      </table></div>`;
+    const strip = p => p.strip ? `<div class="pt-strip">${p.strip.map(x => `<figure>${zoomImg(x.src, `Table ${p.table}: ${x.cap}`)}<figcaption>${esc(x.cap)}</figcaption></figure>`).join('')}</div>` : '';
+    const figs = p => p.figs ? `<div class="pt-figs n${p.figs.length}">${p.figs.map(x => `<figure>${zoomImg(x.src, x.cap)}<figcaption>${esc(x.cap)}</figcaption></figure>`).join('')}</div>` : '';
+    const block = p => {
+      const side = chart(p) || bars(p);
+      const tall = p.figs && p.figs.length <= 2 && !p.strip;
+      return `<section class="pt-part g${p.groups || 1}${side ? ' has-side' : ''}${tall ? ' has-figs' : ''}${p.strip ? ' has-strip' : ''}" data-a>
+        <p class="tcap"><b>Table ${esc(p.table)}.</b> ${esc(p.caption)}${p.part ? ` <span class="pt-pg">Part ${esc(p.part)}</span>` : ''}${p.acc ? ` <span class="tcap-sum">Average accuracy ${esc(p.acc)}%</span>` : ''}</p>
+        <div class="pt-body">${table(p)}${side}${tall ? figs(p) : ''}</div>
+        ${strip(p)}${tall ? '' : figs(p)}
+      </section>`;
+    };
+    return `<header class="sh"><h2 class="h">${esc(s.title)}</h2></header>
+      <div class="pt${s.side ? ' pt-side' : ''}${s.cls ? ' pt-' + esc(s.cls) : ''}">${s.parts.map(block).join('')}</div>`;
+  },
+
+  // Technology Acceptance Model, drawn as Figure 1.1 of the paper.
+  tam: s => `${head(s)}
+    <figure class="tam" data-a><svg viewBox="0 0 1040 400" role="img" aria-label="Perceived Ease of Use points to Perceived Usefulness and to Intention to Use; Perceived Usefulness points to Intention to Use; Intention to Use points to Actual Use.">
+      <defs><marker id="tam-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" class="tam-am"/></marker></defs>
+      ${[[20, 20, 'Perceived Usefulness'], [20, 260, 'Perceived Ease of Use'], [430, 140, 'Intention to Use'], [790, 140, 'Actual Use']].map(([x, y, t]) => `<g class="tam-b"><rect x="${x}" y="${y}" width="230" height="120" rx="10"/><text x="${x + 115}" y="${y + 66}" text-anchor="middle">${t}</text></g>`).join('')}
+      <path class="tam-l" d="M135 258 V146" marker-end="url(#tam-ah)"/>
+      <path class="tam-l" d="M252 80 L426 196" marker-end="url(#tam-ah)"/>
+      <path class="tam-l" d="M252 320 L426 204" marker-end="url(#tam-ah)"/>
+      <path class="tam-l" d="M662 200 H786" marker-end="url(#tam-ah)"/>
+    </svg>
+    <figcaption><b>${esc(s.figure)}</b><span>${esc(s.source)}</span></figcaption></figure>`,
+
   // The components as labelled photos; an empty frame waits for a close-up.
   parts: s => `${head(s)}
     <ul class="parts">${s.items.map(p => `<li data-a>${exists(p.img)
       ? `<button type="button" data-zoom="${esc(p.img)}" data-title="${esc(p.t)}"><img src="${esc(p.img)}" alt="${esc(p.t)}" loading="lazy"></button>`
       : `<span class="slot">${GUIDE ? esc(p.img) : 'Photo'}</span>`}<b>${esc(p.t)}</b>${p.ref ? `<em>${esc(p.ref)}</em>` : ''}</li>`).join('')}</ul>
-    ${s.items.some(p => p.ref) ? '<p class="foot-note">Labels marked "Product image" use the manufacturer pictures from Chapter IV, Figures 4.1 to 4.17 (sources in the References); the others are photos of our build.</p>' : ''}`,
+    ${s.items.some(p => p.ref) ? '<p class="foot-note">Labels marked "Product image" use the manufacturer pictures from Chapter II, Figures 2.2 to 2.18 (sources in the References); the others are photos of our build.</p>' : ''}`,
 
   // Panel comments, each matched with what the team did about it.
   panel: s => `${head(s)}
@@ -261,24 +319,22 @@ const R = {
       <tbody>${s.rows.map(([f, st, e]) => `<tr><td>${esc(f)}</td><td><span class="stt stt-${st}">${esc({ tested: 'Built and tested', partial: 'Built, not separately tested', future: 'Proposed' }[st])}</span></td><td>${esc(e)}</td></tr>`).join('')}</tbody>
     </table></div>`,
 
-  // Average accuracy of every weight test, recomputed from the measured grams.
+  // Average accuracy of every weight test, as printed in the paper's tables.
   accsum: s => {
-    const tests = S().filter(x => x.type === 'grams').map(x => {
-      const rows = x.rows.filter(r => r.target != null && r.actual != null);
-      const acc = rows.reduce((a, r) => a + (100 - Math.abs(r.target - r.actual) / r.target * 100), 0) / rows.length;
-      const min = Math.min(...rows.map(r => 100 - Math.abs(r.target - r.actual) / r.target * 100));
-      return { t: x.table, title: x.title, acc, min, i: S().indexOf(x) };
+    const tests = S().filter(x => x.type === 'ptab' && x.parts[0].acc).map(x => {
+      const p = x.parts[0];
+      return { t: p.table, title: x.title, acc: +p.acc, min: Math.min(...p.accs.map(Number)), i: S().indexOf(x) };
     });
     const lo = 85, hi = 100, pc = v => ((v - lo) / (hi - lo) * 100).toFixed(1);
     const group = (name, list) => `<section><h3>${esc(name)}</h3>
         <div class="accs-axis"><span style="left:0">85%</span><span style="left:${pc(90)}%">90%</span><span style="left:${pc(95)}%">95%</span><span style="left:100%">100%</span></div>
-        ${list.map(x => `<button type="button" class="accs-r" data-go="${x.i}" aria-label="Table ${esc(x.t)}, ${esc(x.title)}: ${x.acc.toFixed(2)}%"><span class="accs-l">${esc(x.t)}<em>${esc(x.title.replace(/ \((touch panel|app)\)/, ''))}</em></span>
+        ${list.map(x => `<button type="button" class="accs-r" data-go="${x.i}" aria-label="Table ${esc(x.t)}, ${esc(x.title)}: ${x.acc.toFixed(2)}%"><span class="accs-l">${esc(x.t)}<em>${esc(x.title.replace(/ \((Nextion display|mobile app)\)/, ''))}</em></span>
           <span class="accs-track"><i class="accs-min" style="left:${pc(x.min)}%;width:${(pc(x.acc) - pc(x.min)).toFixed(1)}%"></i><b style="left:${pc(x.acc)}%"></b></span><span class="accs-v">${x.acc.toFixed(2)}%</span></button>`).join('')}</section>`;
     return `${head(s)}
       <div class="accs" data-a role="img" aria-label="${esc(tests.map(x => `Table ${x.t}: ${x.acc.toFixed(2)}%`).join('; '))}">
-        ${group('Set on the touch panel', tests.filter(x => !/\(app\)/.test(x.title)))}${group('Set in the mobile app', tests.filter(x => /\(app\)/.test(x.title)))}
+        ${group('Set on the Nextion display', tests.filter(x => !/\(mobile app\)/.test(x.title)))}${group('Set in the mobile app', tests.filter(x => /\(mobile app\)/.test(x.title)))}
       </div>
-      <p class="foot-note">Dot: average of the five trays. Bar: from the lowest tray to the average. Select a row to open its table.</p>`;
+      <p class="foot-note">Dot: average accuracy printed in the table. Bar: from the lowest tray accuracy to the average. Select a row to open its table.</p>`;
   },
 
   // ISO/IEC 25010 means for both evaluator groups on the Likert bands of Table 3.1.
@@ -305,9 +361,9 @@ const R = {
     const lo = 1, pc = v => ((v - lo) / (5 - lo) * 100).toFixed(1);
     return `${head(s)}
       <div class="iso hw" data-a>
-        <div class="iso-key">${s.series.map((x, k) => `<span class="k${k}"><i></i>${esc(x.label)}: <b>${x.overall.toFixed(2)}</b> (Table ${esc(x.table)})</span>`).join('')}</div>
+        <div class="iso-key">${s.series.map((x, k) => `<span class="k${k}"><i></i>${esc(x.label)}: <b>${x.overall.toFixed(2)}</b> (Table ${esc(x.table)})</span>`).join('')}<span class="hwc-key-line"><i></i>4.51 and above: Highly Acceptable</span></div>
         <div class="hwc">${s.labels.map((l, i) => `<div class="hwc-c">${s.series.map((x, k) => `<i class="k${k}" style="height:${pc(x.values[i])}%"><b>${x.values[i].toFixed(2)}</b></i>`).join('')}<span>${esc(l)}</span></div>`).join('')}
-          <div class="hwc-line" style="bottom:${pc(4.505)}%"><span>4.51 Highly Acceptable</span></div></div>
+          <div class="hwc-plot"><div class="hwc-line" style="bottom:${pc(4.505)}%"></div></div></div>
       </div>`;
   },
 
@@ -385,9 +441,26 @@ const R = {
   budget: s => `<div class="bud">
       <div class="bud-side">${head(s)}<p class="bud-total" data-a><span>Total</span><b>${esc(s.total)}</b></p></div>
       <div class="bud-list" data-a>${[s.rows.slice(0, Math.ceil(s.rows.length / 2)), s.rows.slice(Math.ceil(s.rows.length / 2))].map(rows => `<table class="tbl tbl-tight">
-        <thead><tr><th>Part</th><th>Qty</th><th>₱</th></tr></thead>
+        <thead><tr>${(s.cols || ['Part', 'Qty', '₱']).map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead>
         <tbody>${rows.map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join('')}</tbody>
       </table>`).join('')}</div></div>`,
+
+  // Potential profitability, line by line as written in the paper.
+  profit: s => `<div class="prof">
+      <div class="prof-side">${head(s)}<p class="prof-big" data-a><span>${esc(s.big[0])}</span><b>${esc(s.big[1])}</b></p></div>
+      <dl class="prof-list" data-a>${s.lines.map(([l, v]) => `<div><dt>${esc(l)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
+    </div>`,
+
+  // The panel's comment sheet: the photo of the signed sheet and its rows typed out.
+  comments: s => `<header class="sh"><h2 class="h" data-a>${esc(s.title)}</h2><p class="lead cm-title" data-a>${esc(s.sheet)}</p></header>
+    <div class="cm">
+      <div class="tbl-wrap doc" data-a><table class="tbl doc-tbl cm-tbl">
+        <thead><tr>${s.columns.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead>
+        <tbody>${s.rows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody>
+      </table>
+      <p class="cm-prog"><b>Device progress.</b> ${esc(s.progress)}</p></div>
+      <div class="cm-img">${pic(s.img, { fit: 'contain', paper: true, title: 'Comment sheet' })}</div>
+    </div>`,
 
   timeline: s => `${head(s)}
     <ol class="tl">${s.items.map(x => `<li data-a><span class="tl-d">${esc(x.date || 'To be set')}</span><i></i><b>${esc(x.t)}</b><p>${esc(x.d)}</p></li>`).join('')}</ol>`,
@@ -823,7 +896,7 @@ async function start() {
   addEventListener('scroll', onWebScroll, { passive: true });
   const h = location.hash.slice(1);
   document.body.classList.add('ready');
-  import('./pip.js?v=6').then(m => { m.initPip(); if (mode === 'slides' && cur >= 0) dispatchEvent(new CustomEvent('hfp-slide', { detail: { slide: S()[cur], i: cur, mode: 'slides', chapter: chap(S()[cur].chapter), videos: LIB.videos } })); }).catch(e => console.warn(e));
+  import('./pip.js?v=7').then(m => { m.initPip(); if (mode === 'slides' && cur >= 0) dispatchEvent(new CustomEvent('hfp-slide', { detail: { slide: S()[cur], i: cur, mode: 'slides', chapter: chap(S()[cur].chapter), videos: LIB.videos } })); }).catch(e => console.warn(e));
   if (/^\d+$/.test(h)) setMode('slides', +h - 1);
   else {
     document.body.classList.add('mode-web'); fit();
