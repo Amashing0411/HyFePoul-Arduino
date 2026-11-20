@@ -81,46 +81,62 @@
   ],
   "app": [
     {
-      "file": "media/app/app-dashboard",
-      "title": "Dashboard"
+      "file": "media/app/app2-status",
+      "title": "Status"
     },
     {
-      "file": "media/app/app-feeding",
+      "file": "media/app/app2-feeding",
       "title": "Feeding"
     },
     {
-      "file": "media/app/app-water",
+      "file": "media/app/app2-schedules",
+      "title": "Schedules"
+    },
+    {
+      "file": "media/app/app2-water",
       "title": "Water"
     },
     {
-      "file": "media/app/app-history",
+      "file": "media/app/app2-history",
       "title": "History"
     },
     {
-      "file": "media/app/app-notifications",
-      "title": "Alerts"
+      "file": "media/app/app2-alerts",
+      "title": "Notifications"
     }
   ],
   "panel": [
     {
-      "file": "media/panel/panel-home",
+      "file": "media/panel/nx-home",
       "title": "Home"
     },
     {
-      "file": "media/panel/panel-schedule",
-      "title": "Feeding schedule"
+      "file": "media/panel/nx-feed-now",
+      "title": "Feed Now"
     },
     {
-      "file": "media/panel/panel-feed-target",
-      "title": "Feed target"
+      "file": "media/panel/nx-schedule",
+      "title": "Feeding Schedule"
     },
     {
-      "file": "media/panel/panel-history",
-      "title": "Recent history"
+      "file": "media/panel/nx-schedule-1",
+      "title": "Schedule 1 to 3"
     },
     {
-      "file": "media/panel/panel-system-check",
-      "title": "System check"
+      "file": "media/panel/nx-feed-target",
+      "title": "Feed Target"
+    },
+    {
+      "file": "media/panel/nx-history",
+      "title": "Recent History"
+    },
+    {
+      "file": "media/panel/nx-system-check",
+      "title": "System Check"
+    },
+    {
+      "file": "media/panel/nx-logo",
+      "title": "Start-up"
     }
   ],
   "photos": [

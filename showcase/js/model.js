@@ -241,7 +241,7 @@ export function buildModel(cad, parts) {
     [[-8.4, 4.8], [8.4, 4.8], [-8.4, -4.8], [8.4, -4.8]].forEach(([x, y]) => k.cyl(0.28, 0.8, GOLD, x, y, -0.45));
     finishKit('nextion', k);
     ['5V', 'TX', 'RX', 'GND'].forEach((a, i) => anchor('nextion', a, 2.1 + i * 0.6, -5, -1.5, 0, -0.2, -1));
-    const screen = new THREE.TextureLoader().load('img/nextion-home.jpg', () => dispatchEvent(new Event('hfp-render')));
+    const screen = new THREE.TextureLoader().load('img/nextion-home.jpg?v=2', () => dispatchEvent(new Event('hfp-render')));
     screen.colorSpace = THREE.SRGBColorSpace; screen.anisotropy = 4;
     addMesh('nextion', new THREE.PlaneGeometry(17.6, 9.6).translate(0, 0, 0.65), new THREE.MeshBasicMaterial({ map: screen }));
   }

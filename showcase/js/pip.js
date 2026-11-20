@@ -48,6 +48,8 @@ function lineFor(s) {
     'limits-found': 'Being honest: my water sensor only says low or okay.',
     'panel-actions': 'Here is what the panel asked, and what we changed.',
     thanks: 'Thanks for visiting! Any questions?',
+    defended: 'We did it! HyFePoul is defended.',
+    'software-testing': 'First the Nextion would not take the upload. A smaller microSD card fixed it.',
   };
   if (byId[s.id]) return byId[s.id];
   if (s.type === 'ptab' && s.parts && s.parts[0]) {
@@ -107,9 +109,9 @@ function describe(s) {
 function clipFor(s) {
   if (!s) return 'Loco_LookAround';
   const t = (s.parts && s.parts[0] && s.parts[0].table) || '';
-  if (t === '4.9' || t === '4.9.1') return 'Web_LowWater';
-  if (t === '4.8' || t === '4.8.1') return 'Web_LowFeed';
-  if (t === '4.13') return 'Web_DeviceDisconnected';
+  if (t === '4.10' || t === '4.10.1') return 'Web_LowWater';
+  if (t === '4.9' || t === '4.9.1') return 'Web_LowFeed';
+  if (t === '4.14') return 'Web_DeviceDisconnected';
   if ((s.parts && s.parts[0] && s.parts[0].acc) || s.id === 'accuracy-all' || s.id === 'conclusions') return 'Web_FeedingComplete';
   if (s.id === 'limits-found') return 'Pers_Concerned';
   if (s.id === 'cover' || s.id === 'thanks' || s.id === 'team') return 'Pers_Wave';
@@ -341,6 +343,7 @@ export function initPip() {
     CHAPTER = chapter || null; if (videos) VIDEOS = videos;
     const changedMode = m !== mode; mode = m || mode;
     el.classList.toggle('slides', mode === 'slides');
+    el.classList.toggle('hide-here', mode === 'slides' && slide && slide.type === 'defended');
     if (changedMode) { walk = null; el.style.setProperty('--walk', '0px'); if (pip) pip.rotation.y = 0; size(); requestAnimationFrame(restorePlace); }
     if (slide === lastSlide && !changedMode) return;
     lastSlide = slide;

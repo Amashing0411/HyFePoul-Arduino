@@ -1208,3 +1208,58 @@ html { scrollbar-color: #93aed4 var(--paper); }
 .pt-cond.cols-4 th:nth-child(2), .pt-cond.cols-4 th:nth-child(3) { width: 17%; }
 .pt-cond.cols-4 th:last-child { width: 53%; }
 .pt-row { justify-content: center; }
+/* Software Testing Result */
+.swt { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: auto; gap: calc(var(--u) * 1.2) calc(var(--u) * 2); align-content: start; }
+.swt-f { margin: 0; display: flex; flex-direction: column; gap: calc(var(--u) * .5); min-height: 0; }
+.swt-f.wide { grid-column: 1 / -1; }
+.swt-ph { display: block; padding: 0; border: 1px solid var(--line); border-radius: calc(var(--u) * .6); overflow: hidden; background: #fff; cursor: zoom-in; }
+.swt-ph:hover { border-color: var(--blue); }
+.swt-ph img { display: block; width: 100%; height: calc(var(--u) * 21); object-fit: contain; background: #f4f6f9; }
+.swt-f.wide .swt-ph img { height: auto; }
+.swt-f figcaption { font-size: calc(var(--u) * .95); color: var(--ink-2); text-align: center; }
+.swt-f figcaption b { color: var(--navy); }
+.mobile .swt { grid-template-columns: 1fr; }
+.mobile .swt-ph img { height: auto; }
+/* Thesis defended */
+.t-defended { justify-content: center; overflow: hidden; }
+.dfd { position: relative; z-index: 1; flex: 1; display: grid; grid-template-columns: 1.35fr 1fr; align-items: center; gap: calc(var(--u) * 3); }
+.dfd-text { display: flex; flex-direction: column; align-items: flex-start; gap: calc(var(--u) * 1.2); }
+.dfd-logo { width: calc(var(--u) * 5.6); height: calc(var(--u) * 5.6); border-radius: calc(var(--u) * 1.3); box-shadow: 0 calc(var(--u) * .8) calc(var(--u) * 2.4) rgba(0, 0, 0, .3); }
+.dfd-k { font: 700 calc(var(--u) * .95) var(--body); letter-spacing: .14em; text-transform: uppercase; color: #e3eeff; }
+.dfd-title { margin: 0; font: 800 calc(var(--u) * 7.6)/.92 var(--display); letter-spacing: -.045em; color: #fff; }
+.dfd-sub { max-width: 40ch; font-size: calc(var(--u) * 1.55); line-height: 1.4; color: #f0f6ff; }
+.dfd-date { display: inline-block; margin-top: calc(var(--u) * .6) !important; padding: calc(var(--u) * .5) calc(var(--u) * 1.3); border-radius: 99px; background: var(--green); color: #fff; font: 700 calc(var(--u) * 1.05) var(--body); letter-spacing: .04em; }
+.dfd-pip { position: relative; display: grid; place-items: center; }
+.dfd-pip::before { content: ""; position: absolute; width: 78%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 255, 255, .28), rgba(255, 255, 255, 0)); }
+.dfd-pip img { position: relative; width: 100%; max-width: calc(var(--u) * 30); height: auto; filter: drop-shadow(0 calc(var(--u) * 1) calc(var(--u) * 1.6) rgba(0, 18, 60, .35)); }
+.dfd-confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.dfd-confetti i { position: absolute; top: -6%; left: var(--x); width: calc(var(--u) * .7); height: calc(var(--u) * 1.3); border-radius: 2px; background: var(--c); opacity: .85; transform: rotate(var(--r)); animation: dfd-fall 6s linear var(--d) infinite; }
+@keyframes dfd-fall { to { transform: translateY(calc(var(--u) * 62)) rotate(calc(var(--r) + 540deg)); } }
+@media (prefers-reduced-motion: reduce) { .dfd-confetti i { animation: none; top: var(--x); } }
+.mobile .dfd { grid-template-columns: 1fr; }
+.pip.hide-here { display: none !important; }
+.tbl-syn { font-size: calc(var(--u) * 1.15); }
+.tbl-syn th { padding: calc(var(--u) * .7) calc(var(--u) * 1.2); }
+.tbl-syn td { padding: calc(var(--u) * .62) calc(var(--u) * 1.2); }
+.tbl-syn td:first-child { width: 14%; color: var(--navy); }
+.tbl-syn td:nth-child(2) { width: 34%; }
+/* specific objectives: the "1. Design and develop..." line sits above the functions without pushing them off the slide */
+.t-objectives .sh .lead { font-size: calc(var(--u) * 1.18); max-width: none; }
+.t-objectives .sh { gap: calc(var(--u) * .5); }
+/* four objectives on one slide: slightly shorter rows */
+.objs:has(> li:nth-child(4)) .obj { grid-template-columns: calc(var(--u) * 3.4) 1fr calc(var(--u) * 12.5); padding: calc(var(--u) * .8) 0 !important; }
+.pip-x { z-index: 2; }
+/* viewer: pictures laid out at their fitted size by media.js; drag moves them whenever they are larger than the screen */
+.lb-item img { max-width: none !important; max-height: none !important; cursor: zoom-in; }
+.lb.can-pan .lb-item img { cursor: grab; border-radius: 0; }
+.lb.can-pan .lb-item img:active { cursor: grabbing; }
+.lb-gap { display: flex; justify-content: center; min-width: 0; }
+.lb-hint { font: 500 13px var(--body); color: rgba(255, 255, 255, .62); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lb.is-video .lb-hint { display: none; }
+@media (max-width: 760px) { .lb-hint { display: none; } }
+/* eight Nextion pages: four across, two down */
+.scr-panel:has(> :nth-child(7)) .scr-i { width: 22.6%; }
+.scr-panel:has(> :nth-child(7)) .scr-i b { font-size: calc(var(--u) * 1); }
+/* six app screens: each phone takes a sixth of the width, height follows */
+.scr-app:has(> :nth-child(6)) .scr-i { height: auto; width: calc((100% - var(--u) * 10) / 6); flex: none; }
+.scr-app:has(> :nth-child(6)) .scr-frame { width: 100%; flex: none; }
