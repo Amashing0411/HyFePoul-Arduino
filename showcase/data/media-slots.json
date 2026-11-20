@@ -457,16 +457,15 @@
       "id": "tolentino",
       "file": "media/team/tolentino",
       "name": "John Rei R. Tolentino",
-      "role": "Senior Project Manager",
+      "role": "Project Assistant",
       "team": "BSCpE 4D",
       "color": "#1d3a7a",
       "tags": [
-        "Manuscript Writer / Assistant",
-        "Technical Support Representative",
-        "Client & Personnel Liaison",
-        "Data Collector / Research Assistant"
+        "On-site Testing",
+        "Paperwork and Documentation",
+        "Client & Personnel Liaison"
       ],
-      "bio": "Manages communications with research advisers, oversees data collection, and conducts project testing to ensure smooth execution and successful project completion."
+      "bio": "Goes to the client’s farm to run on-site tests, and handles paperwork and documentation for the project."
     },
     {
       "id": "eserjose",
@@ -487,17 +486,17 @@
       "id": "ramos",
       "file": "media/team/ramos",
       "name": "Brylle Edward A. Ramos",
-      "role": "Project Assistant",
+      "role": "QA and Testing Lead",
       "team": "BSCpE 4D",
       "color": "#e8811c",
       "tags": [
-        "Device QA Lead",
+        "Device Testing",
+        "Troubleshooting and Fixes",
+        "Quality Assurance",
         "Device Wiring",
-        "Documentation Lead",
-        "Project Testing Assistant",
-        "Financing Assistant"
+        "Documentation"
       ],
-      "bio": "Assisting device control, quality assurance, and documentation. Handles device wiring and components functionality for the project's successful execution."
+      "bio": "Leads device testing and quality assurance, tracking down and fixing problems in the wiring and components so the machine runs reliably. Also helps with documentation and project finances."
     }
   ]
 }

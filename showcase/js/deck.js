@@ -630,7 +630,7 @@ function dockTeam(host) {
   el.style.zoom = '';
   if (teamMounted) return;
   teamMounted = true;
-  import('./team.bundle.js?v=3').then(m => m.mount(el, LIB.team)).catch(e => console.warn(e));
+  import('./team.bundle.js?v=4').then(m => { TEAM = m.mount(el, LIB.team); }).catch(e => console.warn(e));
 }
 
 // ---------------------------------------------------------------- navigation
@@ -642,6 +642,7 @@ function go(i, dir) {
   const s = S()[i], frame = $('frame'), old = curEl;
   if (old) { pauseWithin(old); undock(); }
   cur = i;
+  if (s.type === 'team' && TEAM) TEAM.show(dir < 0 ? TEAM.count - 1 : null);
   const el = build(s, i, false);
   el.classList.add('enter'); el.style.setProperty('--dir', dir);
   frame.append(el); curEl = el;
@@ -657,7 +658,17 @@ function go(i, dir) {
   const nx = S()[i + 1];
   if (nx) build(nx, i + 1, true).querySelectorAll('img').forEach(im => { const p = new Image(); p.src = im.getAttribute('src'); });
 }
-const next = () => go(cur + 1, 1), prev = () => go(cur - 1, -1);
+// On the team slide the arrows first bring each person forward, one by one, then move on.
+let TEAM = null;
+const onTeam = () => mode === 'slides' && TEAM && S()[cur] && S()[cur].type === 'team';
+const next = () => {
+  if (onTeam()) { const a = TEAM.active(); if (a === null || a < TEAM.count - 1) { TEAM.show(a === null ? 0 : a + 1); return; } }
+  go(cur + 1, 1);
+};
+const prev = () => {
+  if (onTeam()) { const a = TEAM.active(); if (a !== null) { TEAM.show(a > 0 ? a - 1 : null); return; } }
+  go(cur - 1, -1);
+};
 
 function updateChrome() {
   const s = S()[cur], c = chap(s.chapter), n = S().length;
@@ -896,7 +907,7 @@ async function start() {
   addEventListener('scroll', onWebScroll, { passive: true });
   const h = location.hash.slice(1);
   document.body.classList.add('ready');
-  import('./pip.js?v=7').then(m => { m.initPip(); if (mode === 'slides' && cur >= 0) dispatchEvent(new CustomEvent('hfp-slide', { detail: { slide: S()[cur], i: cur, mode: 'slides', chapter: chap(S()[cur].chapter), videos: LIB.videos } })); }).catch(e => console.warn(e));
+  import('./pip.js?v=9').then(m => { m.initPip(); if (mode === 'slides' && cur >= 0) dispatchEvent(new CustomEvent('hfp-slide', { detail: { slide: S()[cur], i: cur, mode: 'slides', chapter: chap(S()[cur].chapter), videos: LIB.videos } })); }).catch(e => console.warn(e));
   if (/^\d+$/.test(h)) setMode('slides', +h - 1);
   else {
     document.body.classList.add('mode-web'); fit();

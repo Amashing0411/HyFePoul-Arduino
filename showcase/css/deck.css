@@ -83,8 +83,8 @@ img { max-width: 100%; }
 .pill span { padding: 0 8px; font: 600 13px var(--body); font-variant-numeric: tabular-nums; color: #dbe2ec; }
 
 /* grid overview */
-.grid { position: fixed; inset: 0; z-index: 30; background: rgba(9, 12, 18, .97); overflow: auto; opacity: 0; transition: opacity .2s; }
-.grid.open { opacity: 1; }
+#grid { position: fixed; inset: 0; z-index: 30; background: rgba(9, 12, 18, .97); overflow: auto; opacity: 0; transition: opacity .2s; }
+#grid.open { opacity: 1; }
 .grid-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; padding: 14px 28px; background: rgba(9, 12, 18, .92); backdrop-filter: blur(10px); border-bottom: 1px solid var(--chrome-line); }
 .grid-head h2 { margin: 0; font: 700 20px var(--display); color: #fff; }
 .grid-body { padding: 8px 28px 48px; max-width: 1500px; margin: 0 auto; }
@@ -93,7 +93,7 @@ img { max-width: 100%; }
 .grid-body h3 span { font: 700 12px var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--amber); }
 .grid-body h3 em { font: 500 13px var(--body); color: var(--chrome-dim); margin-left: auto; }
 .grid-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 16px 14px; }
-.grid .thumb { width: 100%; }
+#grid .thumb { width: 100%; }
 
 /* ------------------------------------------------------------------ slide base */
 .slide {
@@ -986,7 +986,7 @@ html { scrollbar-color: #93aed4 var(--paper); }
 .t-team .sh .lead { font-size: calc(var(--u) * 1.2); color: var(--ink-2); text-align: center; margin: 0 auto; }
 .web .t-team .sh { order: 2; }
 /* Presenter team slide: the rail sits in the middle with room for the adviser line below. */
-.mode-slides .t-team .team-host, .grid .t-team .team-host { bottom: calc(var(--u) * 4.4); display: flex !important; flex-direction: column; justify-content: center; overflow: hidden; }
+.mode-slides .t-team .team-host, #grid .t-team .team-host { bottom: calc(var(--u) * 4.4); display: flex !important; flex-direction: column; justify-content: center; overflow: hidden; }
 .mode-slides .t-team .sh { bottom: calc(var(--u) * 1.2); }
 
 /* ================================================================== Chapter IV tables as printed in the paper */
@@ -1160,3 +1160,15 @@ html { scrollbar-color: #93aed4 var(--paper); }
 .mobile .cm-img { height: 120cqw; }
 .mobile .tbl-power { min-width: 760px; }
 .mobile .tam svg { max-height: none; }
+/* PIP can be dragged */
+.pip { transform: translate(calc(var(--walk) + var(--dx, 0px)), var(--dy, 0px)); }
+.pip-c { cursor: grab; touch-action: none; }
+.pip.dragging .pip-c { cursor: grabbing; }
+.pip.dragging .pip-say { opacity: 0; }
+.pip.left .pip-say { right: auto; left: 54%; border-radius: 14px 14px 14px 4px; transform-origin: 0 100%; }
+.pip.left .pip-x { right: auto; left: 6px; }
+/* team slide: room for the person panel under the rail */
+.t-team [data-slot="team-lanyard-rail"] > header { padding-top: 10px; }
+.t-team [data-slot="team-lanyard-rail"] > div:last-child { padding-top: 4px; padding-bottom: 6px; gap: 4px; }
+.t-team [data-person-panel] { max-width: 64rem; }
+.t-team [data-person-panel] [data-panel] { padding: 10px 18px; }

@@ -621,7 +621,7 @@
       "kicker": "Project design · Figure 3.4",
       "title": "Flowchart",
       "text": "Select the chart to open it full size. Zoom with the wheel or a pinch.",
-      "img": "media/schematic/flowchart.png",
+      "img": "media/schematic/flowchart.svg",
       "fit": "contain",
       "paper": true
     },
@@ -5470,7 +5470,7 @@
       "text": "Twelve people evaluated HyFePoul: six CpE practitioners, five poultry farmers and the City Agriculturist/Veterinarian of San Pablo City.",
       "notes": "Two parts: software quality based on ISO/IEC 25010, and hardware evaluation of the components, technical details and structure.",
       "sub": "In person with the device, and through this website with a simulation of its functions.",
-      "img": "media/deck/evaluation-2.jpg",
+      "img": "media/deck/evaluation-demo.jpg",
       "section": "Evaluation results"
     },
     {
@@ -5485,7 +5485,7 @@
           "title": "Evaluation session"
         },
         {
-          "src": "media/deck/evaluation-2.jpg",
+          "src": "media/deck/evaluation-demo.jpg",
           "title": "Presenting the device"
         },
         {

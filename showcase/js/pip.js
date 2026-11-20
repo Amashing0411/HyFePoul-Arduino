@@ -126,7 +126,7 @@ function buildDom() {
   el.innerHTML = `
     <p class="pip-say" role="status" aria-live="polite"></p>
     <button class="pip-x" type="button" aria-label="Tuck PIP away"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" d="M6 12h12"/></svg></button>
-    <canvas class="pip-c" aria-label="PIP, the HyFePoul mascot. Click him for a fact." role="img"></canvas>`;
+    <canvas class="pip-c" aria-label="PIP, the HyFePoul mascot. Click him for a fact, or drag him out of the way." role="img"></canvas>`;
   restore = document.createElement('button');
   restore.className = 'pip-back'; restore.type = 'button';
   restore.innerHTML = '<span aria-hidden="true">PIP</span>';
@@ -135,10 +135,59 @@ function buildDom() {
   canvas = el.querySelector('canvas'); bubble = el.querySelector('.pip-say');
   el.querySelector('.pip-x').addEventListener('click', () => setMin(true));
   restore.addEventListener('click', () => setMin(false));
+  dragInit();
   canvas.addEventListener('click', () => {
+    if (performance.now() - dragEnd < 250) return;   // the end of a drag is not a click
     say(pick(FACTS), true);
     if (!reduced && !walk) play(Math.random() < 0.5 ? 'Pers_HappyJump' : 'Pers_Celebrate');
   });
+}
+
+// PIP can be dragged anywhere on the screen, so he never sits on top of something you need.
+// Where you put him is kept for this visit, one place for the web page and one for presenter mode.
+let drag = null, dragEnd = 0;
+const POS_KEY = 'hfp-pip-pos';
+const offsets = () => { try { return JSON.parse(sessionStorage.getItem(POS_KEY)) || {}; } catch { return {}; } };
+function placeAt(dx, dy, save) {
+  // Keep him on screen: measure where the box sits with no offset, then clamp the offset.
+  const r = el.getBoundingClientRect();
+  const cx = parseFloat(el.style.getPropertyValue('--dx')) || 0, cy = parseFloat(el.style.getPropertyValue('--dy')) || 0;
+  const walkX = parseFloat(el.style.getPropertyValue('--walk')) || 0;
+  const left0 = r.left - cx - walkX, top0 = r.top - cy;
+  dx = Math.max(-left0 - r.width * 0.25, Math.min(innerWidth - left0 - r.width * 0.75, dx));
+  dy = Math.max(-top0 - r.height * 0.2, Math.min(innerHeight - top0 - r.height * 0.85, dy));
+  el.style.setProperty('--dx', `${dx.toFixed(0)}px`); el.style.setProperty('--dy', `${dy.toFixed(0)}px`);
+  el.classList.toggle('left', left0 + dx + r.width / 2 < innerWidth / 2);
+  el.classList.toggle('moved', Math.abs(dx) > 2 || Math.abs(dy) > 2);
+  if (save) { const o = offsets(); o[mode] = [dx, dy]; try { sessionStorage.setItem(POS_KEY, JSON.stringify(o)); } catch {} }
+}
+function restorePlace() { const [dx, dy] = offsets()[mode] || [0, 0]; placeAt(dx, dy, false); }
+function dragInit() {
+  canvas.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: parseFloat(el.style.getPropertyValue('--dx')) || 0, dy: parseFloat(el.style.getPropertyValue('--dy')) || 0, moved: false };
+  });
+  addEventListener('pointermove', e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const mx = e.clientX - drag.x, my = e.clientY - drag.y;
+    if (!drag.moved && Math.hypot(mx, my) < 6) return;
+    if (!drag.moved) {
+      drag.moved = true; el.classList.add('dragging');
+      if (walk) { walk = null; if (pip) pip.rotation.y = 0; }
+      el.style.setProperty('--walk', '0px');
+      if (renderer && !reduced) play('Pers_HappyJump', 0.2);
+    }
+    placeAt(drag.dx + mx, drag.dy + my, false);
+  });
+  const end = e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    if (drag.moved) { dragEnd = performance.now(); el.classList.remove('dragging'); placeAt(parseFloat(el.style.getPropertyValue('--dx')) || 0, parseFloat(el.style.getPropertyValue('--dy')) || 0, true); }
+    drag = null;
+  };
+  addEventListener('pointerup', end);
+  addEventListener('pointercancel', end);
+  addEventListener('resize', () => restorePlace());
 }
 
 function setMin(on) {
@@ -216,7 +265,7 @@ function frame() {
   requestAnimationFrame(frame);
 }
 function startRender() {
-  if (rendering || !renderer || reduced || document.hidden || minimized()) return;
+  if (rendering || !renderer || !clock || reduced || document.hidden || minimized()) return;
   rendering = true; clock.getDelta(); requestAnimationFrame(frame);
 }
 function stopRender() { rendering = false; }
@@ -236,7 +285,7 @@ function say(text, force) {
 function idleLoop() {
   clearTimeout(idleT);
   idleT = setTimeout(() => {
-    if (!reduced && rendering && !walk && mode === 'web' && !el.classList.contains('say')) {
+    if (!reduced && rendering && !walk && !drag && mode === 'web' && !el.classList.contains('say') && !el.classList.contains('moved')) {
       const home = parseFloat(el.style.getPropertyValue('--walk')) || 0;
       // Walk towards the middle of the screen and back: left from the right corner, right from the left corner on phones.
       const out = matchMedia('(max-width: 760px)').matches ? 1 : -1;
@@ -254,7 +303,7 @@ async function show() {
   if (minimized()) { document.body.classList.add('pip-min'); return; }
   await load();
   el.classList.add('in');
-  size(); startRender();
+  size(); restorePlace(); startRender();
   play('Web_Appear', 0);
   setTimeout(() => { if (mode === 'slides' && lastSlide) react(lastSlide); else say('Hi, I\'m PIP! I\'ll keep you company through HyFePoul.', true); }, 1200);
 }
@@ -292,7 +341,7 @@ export function initPip() {
     CHAPTER = chapter || null; if (videos) VIDEOS = videos;
     const changedMode = m !== mode; mode = m || mode;
     el.classList.toggle('slides', mode === 'slides');
-    if (changedMode) { walk = null; el.style.setProperty('--walk', '0px'); if (pip) pip.rotation.y = 0; size(); }
+    if (changedMode) { walk = null; el.style.setProperty('--walk', '0px'); if (pip) pip.rotation.y = 0; size(); requestAnimationFrame(restorePlace); }
     if (slide === lastSlide && !changedMode) return;
     lastSlide = slide;
     if (mode === 'slides') react(slide, true);
