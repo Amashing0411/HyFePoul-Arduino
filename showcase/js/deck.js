@@ -198,12 +198,13 @@ const R = {
   ptab: s => {
     const txt = c => c == null ? '' : typeof c === 'string' ? c : c.t;
     const zoomImg = (f, title, cls = '') => `<button type="button" class="pt-ph${cls}" data-zoom="${esc(f)}" data-title="${esc(title)}"><img src="${esc(f)}" alt="${esc(title)}" loading="lazy" decoding="async"></button>`;
-    const td = (c, tag, p) => {
+    const td = (c, tag, p, col) => {
       const o = typeof c === 'string' ? { t: c } : c;
       const imgs = (o.img || []).filter(exists);
       const at = `${o.rs ? ` rowspan="${o.rs}"` : ''}${o.cs ? ` colspan="${o.cs}"` : ''}`;
       const body = esc(o.t).replace(/\n/g, '<br>');
-      return `<${tag}${at}${imgs.length ? ' class="pt-imgs"' : ''}>${body}${imgs.length ? `<span class="pt-row" style="--n:${imgs.length}">${imgs.map((f, k) => zoomImg(f, `Table ${p.table}, photo ${k + 1}`)).join('')}</span>` : ''}</${tag}>`;
+      const cls = [imgs.length ? 'pt-imgs' : '', col === 0 ? 'c0' : ''].filter(Boolean).join(' ');
+      return `<${tag}${at}${cls ? ` class="${cls}"` : ''}>${body}${imgs.length ? `<span class="pt-row" style="--n:${imgs.length}">${imgs.map((f, k) => zoomImg(f, `Table ${p.table}, photo ${k + 1}`)).join('')}</span>` : ''}</${tag}>`;
     };
     const chart = p => {
       if (!p.chart) return '';
@@ -216,16 +217,38 @@ const R = {
       </figure>`;
     };
     const bars = p => p.bars ? `<div class="hbars pt-hbars">${p.bars.map(([l, v]) => `<div><span>${esc(l)}</span><i style="--w:${(v / Math.max(...p.bars.map(b => b[1])) * 100).toFixed(1)}%"></i><b>${v} ${esc(p.unit || '')}</b></div>`).join('')}</div>` : '';
+    // Rows as printed. Merged cells push later cells to the right, so each cell's real column is tracked
+    // (only the first column is set in bold).
+    const rowsHtml = p => {
+      let carry = [];
+      return p.rows.map(r => {
+        const busy = carry.map(v => v > 0), next = carry.map(v => Math.max(0, v - 1));
+        let col = 0;
+        const cells = r.map(c => {
+          while (busy[col]) col++;
+          const o = typeof c === 'string' ? {} : c, cs = o.cs || 1, at = col;
+          if ((o.rs || 1) > 1) for (let k = 0; k < cs; k++) next[at + k] = Math.max(next[at + k] || 0, o.rs - 1);
+          col += cs;
+          return td(c, 'td', p, at);
+        }).join('');
+        carry = next;
+        const cls = r.length && /^Average$/.test(txt(r[0])) ? ' class="avg"' : r.length === 1 && (r[0].cs || 0) > 1 ? ' class="pt-sub"' : '';
+        return `<tr${cls}>${cells}</tr>`;
+      }).join('');
+    };
     const table = p => `<div class="tbl-wrap doc pt-tw"><table class="tbl doc-tbl pt-tbl cols-${Math.max(...p.head.map(r => r.reduce((a, c) => a + (c.cs || 1), 0)))}${/Image Result$/i.test(txt(p.head[0][p.head[0].length - 1])) ? ' pt-cond' : ''}">
         <thead>${p.head.map(r => `<tr>${r.map(c => td(c, 'th', p)).join('')}</tr>`).join('')}</thead>
-        <tbody>${p.rows.map(r => `<tr${r.length && /^Average$/.test(txt(r[0])) ? ' class="avg"' : ''}${r.length === 1 && (r[0].cs || 0) > 1 ? ' class="pt-sub"' : ''}>${r.map(c => td(c, 'td', p)).join('')}</tr>`).join('')}</tbody>
+        <tbody>${rowsHtml(p)}</tbody>
       </table></div>`;
     const strip = p => p.strip ? `<div class="pt-strip">${p.strip.map(x => `<figure>${zoomImg(x.src, `Table ${p.table}: ${x.cap}`)}<figcaption>${esc(x.cap)}</figcaption></figure>`).join('')}</div>` : '';
     const figs = p => p.figs ? `<div class="pt-figs n${p.figs.length}">${p.figs.map(x => `<figure>${zoomImg(x.src, x.cap)}<figcaption>${esc(x.cap)}</figcaption></figure>`).join('')}</div>` : '';
     const block = p => {
       const side = chart(p) || bars(p);
       const tall = p.figs && p.figs.length <= 2 && !p.strip;
-      return `<section class="pt-part g${p.groups || 1}${side ? ' has-side' : ''}${tall ? ' has-figs' : ''}${p.strip ? ' has-strip' : ''}" data-a>
+      // A table with no photos or chart fills the slide: the fewer the rows, the larger the type.
+      const plain = !p.chart && !p.figs && !p.strip && !p.rows.some(r => r.some(c => c && c.img && c.img.length));
+      const n = p.rows.length, pf = n <= 5 ? 1.55 : n <= 8 ? 1.4 : n <= 11 ? 1.22 : n <= 13 ? 1.08 : 0.95;
+      return `<section class="pt-part g${p.groups || 1}${side ? ' has-side' : ''}${tall ? ' has-figs' : ''}${p.strip ? ' has-strip' : ''}${plain ? ' plain' : ''}"${plain ? ` style="--pf:${pf}"` : ''} data-a>
         <p class="tcap"><b>Table ${esc(p.table)}.</b> ${esc(p.caption)}${p.part ? ` <span class="pt-pg">Part ${esc(p.part)}</span>` : ''}${p.acc ? ` <span class="tcap-sum">Average accuracy ${esc(p.acc)}%</span>` : ''}</p>
         <div class="pt-body">${table(p)}${side}${tall ? figs(p) : ''}</div>
         ${strip(p)}${tall ? '' : figs(p)}
@@ -453,13 +476,13 @@ const R = {
 
   // The panel's comment sheet: the photo of the signed sheet and its rows typed out.
   comments: s => `<header class="sh"><h2 class="h" data-a>${esc(s.title)}</h2><p class="lead cm-title" data-a>${esc(s.sheet)}</p></header>
-    <div class="cm">
+    <div class="cm${s.img ? '' : ' cm-full'}">
       <div class="tbl-wrap doc" data-a><table class="tbl doc-tbl cm-tbl">
         <thead><tr>${s.columns.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead>
         <tbody>${s.rows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody>
       </table>
       <p class="cm-prog"><b>Device progress.</b> ${esc(s.progress)}</p></div>
-      <div class="cm-img">${pic(s.img, { fit: 'contain', paper: true, title: 'Comment sheet' })}</div>
+      ${s.img ? `<div class="cm-img">${pic(s.img, { fit: 'contain', paper: true, title: 'Comment sheet' })}</div>` : ''}
     </div>`,
 
   timeline: s => `${head(s)}
@@ -500,7 +523,39 @@ function build(s, i, thumb) {
 function zoomItems(root) {
   return [...root.querySelectorAll('[data-zoom]')].map(b => ({ type: 'image', src: b.dataset.zoom, title: b.dataset.title, detail: b.dataset.detail }));
 }
+// Chapter IV photos inside a table grow until the table just fills the slide, so no space is left empty.
+function fitPhotos(el) {
+  if (document.body.classList.contains('mobile')) return;
+  const parts = [...el.querySelectorAll('.pt-part')].filter(p => p.querySelector('.pt-row, .has-figs .pt-figs'));
+  if (!parts.length) return;
+  const u = el.getBoundingClientRect().width / 100;
+  if (!u) return;
+  const pt = el.querySelector('.pt');
+  const fits = () => {
+    const box = pt.getBoundingClientRect();
+    return [...el.querySelectorAll('.pt-tw')].every(w => w.scrollHeight <= w.clientHeight)
+      && [...pt.querySelectorAll('.pt-part, .pt-figs figure, .pt-strip figure')].every(c => c.getBoundingClientRect().bottom <= box.bottom + 1);
+  };
+  parts.forEach(p => {
+    const figs = p.classList.contains('has-figs');
+    const prop = figs ? '--fh' : '--ph';
+    let v = parseFloat(getComputedStyle(p).getPropertyValue(prop)) || (figs ? 15 * u : 9 * u);
+    const max = 34 * u;
+    while (!fits() && v > 5 * u) { v -= u * 0.5; p.style.setProperty(prop, `${v.toFixed(1)}px`); }
+    while (v + u * 0.5 <= max) {
+      p.style.setProperty(prop, `${(v + u * 0.5).toFixed(1)}px`);
+      if (!fits()) { p.style.setProperty(prop, `${v.toFixed(1)}px`); break; }
+      v += u * 0.5;
+    }
+  });
+}
+
 function hydrate(el, s) {
+  if (s.type === 'ptab') {
+    requestAnimationFrame(() => fitPhotos(el));
+    // Again once the web font and the entrance animation have settled, since both change the text height.
+    document.fonts?.ready.then(() => setTimeout(() => fitPhotos(el), 700));
+  }
   el.querySelectorAll('[data-zoom]').forEach((b, k) => b.addEventListener('click', () => openViewer(zoomItems(el), k)));
   el.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => (mode === 'web' ? scrollToSlide(+b.dataset.go) : go(+b.dataset.go))));
   el.querySelectorAll('[data-play]').forEach(b => b.addEventListener('click', () => { const v = video(b.dataset.play); if (v) openViewer([v]); }));

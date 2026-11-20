@@ -381,8 +381,8 @@ img { max-width: 100%; }
 .tl li { display: flex; flex-direction: column; gap: calc(var(--u) * .7); }
 .tl-d { font: 700 calc(var(--u) * 1) var(--body); color: var(--blue); min-height: calc(var(--u) * 1.4); letter-spacing: .04em; }
 .tl i { position: relative; width: calc(var(--u) * 1.6); height: calc(var(--u) * 1.6); border-radius: 50%; background: var(--paper); border: calc(var(--u) * .35) solid var(--blue); margin: calc(var(--u) * .3) 0 calc(var(--u) * .6); }
-.tl li:nth-last-child(-n+2) i { border-color: var(--amber); }
-.tl li:nth-last-child(-n+2) .tl-d { color: var(--muted); }
+.tl li:last-child i { border-color: var(--amber); }
+.tl li:last-child .tl-d { color: var(--muted); }
 .tl b { font: 700 calc(var(--u) * 1.5)/1.15 var(--display); }
 .tl p { font-size: calc(var(--u) * 1.08); color: var(--ink-2); }
 .refs { list-style: none; margin: auto 0 0; padding: 0; columns: 3; column-gap: calc(var(--u) * 3); font-size: calc(var(--u) * 1.18); }
@@ -1172,3 +1172,39 @@ html { scrollbar-color: #93aed4 var(--paper); }
 .t-team [data-slot="team-lanyard-rail"] > div:last-child { padding-top: 4px; padding-bottom: 6px; gap: 4px; }
 .t-team [data-person-panel] { max-width: 64rem; }
 .t-team [data-person-panel] [data-panel] { padding: 10px 18px; }
+/* tables fill their slide; only the real first column is bold */
+.pt-body > .pt-tw { flex: 1 1 auto; }
+.pt-tbl td:first-child { font-weight: inherit; }
+.pt-tbl td.c0 { font-weight: 700; }
+.pt-part.plain .pt-body { flex: 1; min-height: 0; }
+.pt-part.plain .pt-tw { align-self: stretch; display: flex; }
+.pt-part.plain .pt-tbl { font-size: calc(var(--u) * var(--pf)); height: 100%; }
+.pt-part.plain .pt-tbl th { font-size: calc(var(--u) * var(--pf) * .72); padding: calc(var(--u) * var(--pf) * .55) calc(var(--u) * 1.1); }
+.pt-part.plain .pt-tbl td { padding: calc(var(--u) * var(--pf) * .3) calc(var(--u) * 1.1); vertical-align: middle; }
+.pt-side .pt-part.plain .pt-tbl { height: auto; }
+.mobile .pt-part.plain .pt-tbl { height: auto; font-size: calc(var(--u) * 1.1); }
+/* comment sheet without the photo: the table takes the full width */
+.cm.cm-full { grid-template-columns: 1fr; }
+.cm-full .cm-tbl { font-size: calc(var(--u) * 1.08); }
+.cm-full .cm-tbl th { font-size: calc(var(--u) * .82); }
+.cm-full .cm-tbl td { padding: calc(var(--u) * .62) calc(var(--u) * 1.1); }
+.cm-full .cm-prog { font-size: calc(var(--u) * 1.02); padding: 0 calc(var(--u) * 1.1) calc(var(--u) * .8); }
+.cm-full .cm-tbl { font-size: calc(var(--u) * 1.22); }
+.cm-full .cm-tbl th { font-size: calc(var(--u) * .9); padding: calc(var(--u) * .8) calc(var(--u) * 1.2); }
+.cm-full .cm-tbl td { padding: calc(var(--u) * .78) calc(var(--u) * 1.2); }
+.cm-full .cm-prog { font-size: calc(var(--u) * 1.12); }
+/* figures beside a table: height set by fitPhotos (--fh) */
+.has-figs .pt-figs .pt-ph img { height: var(--fh, calc(var(--u) * 33)); }
+.has-figs .pt-figs.n2 .pt-ph img { height: calc(var(--fh, calc(var(--u) * 31.2)) / 2); }
+/* a plain table with a bar chart beside it: the table keeps its natural height */
+.pt-part.plain.has-side .pt-tbl { height: auto; }
+.pt-part.plain.has-side .pt-body { align-items: center; }
+.pt-part.plain .pt-hbars div { font-size: calc(var(--u) * 1.2); grid-template-columns: calc(var(--u) * 13) 1fr calc(var(--u) * 5); }
+.pt-part.plain .pt-hbars i { height: calc(var(--u) * 2.2); }
+/* the frame hugs the photo: as tall as --ph allows, never wider than its share of the cell */
+.pt-row .pt-ph img { height: auto; max-height: var(--ph); width: auto; max-width: 100%; }
+.pt-row { align-items: flex-start; }
+.pt-cond.cols-4 th:nth-child(1) { width: 13%; }
+.pt-cond.cols-4 th:nth-child(2), .pt-cond.cols-4 th:nth-child(3) { width: 17%; }
+.pt-cond.cols-4 th:last-child { width: 53%; }
+.pt-row { justify-content: center; }

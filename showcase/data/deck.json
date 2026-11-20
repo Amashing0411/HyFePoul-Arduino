@@ -75,7 +75,7 @@
       "kicker": "HyFePoul in one line",
       "text": "It weighs every tray and pours only the feed that is missing.",
       "sub": "Five trays, five scales and one moving hopper, set from the touch screen or a phone.",
-      "img": "media/photos/tray-and-drinkers.jpg"
+      "img": "media/photos/feed-pouring.jpg"
     },
     {
       "id": "c1",
@@ -681,7 +681,7 @@
       "caption": "Digital Schematic Diagram of HyFePoul"
     },
     {
-      "id": "pins",
+      "id": "pin-map",
       "chapter": "c3",
       "type": "pins",
       "kicker": "From the firmware",
@@ -6688,7 +6688,6 @@
       "type": "comments",
       "title": "Panel comments and actions taken",
       "sheet": "HYFEPOUL: A GSM-ENABLED PRECISION POULTRY MANAGEMENT SYSTEM WITH WEIGHT-SENSING FEEDERS AND AUTOMATED HYDRATION MONITORING DEVICE",
-      "img": "media/deck/comment-sheet.jpg",
       "columns": [
         "Comments",
         "Action done",
@@ -6762,14 +6761,14 @@
           "d": "Six CpE practitioners, five farmers and the City Agriculturist/Veterinarian"
         },
         {
-          "date": "",
-          "t": "Deployment",
-          "d": "Installed at the farm in Barangay Del Remedio; the owner signed an acceptance letter"
-        },
-        {
-          "date": "",
+          "date": "21 Nov 2026",
           "t": "Final defense",
           "d": "Today"
+        },
+        {
+          "date": "After the final defense",
+          "t": "Deployment",
+          "d": "At the poultry farm in Barangay Del Remedio, San Pablo City"
         }
       ]
     },
