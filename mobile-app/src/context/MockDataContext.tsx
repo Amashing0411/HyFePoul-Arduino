@@ -14,7 +14,6 @@ interface MockDataContextType {
   error: string | null;
   
   refreshData: () => Promise<void>;
-  toggleEmergencyStop: () => void;
   updateSchedule: (schedule: FeedSchedule) => void;
   addSchedule: (schedule: FeedSchedule) => void;
   deleteSchedule: (id: string) => void;
@@ -57,21 +56,6 @@ export const MockDataProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const toggleEmergencyStop = () => {
-    const newState = !systemData.emergencyStopActive;
-    setSystemData(prev => ({
-      ...prev,
-      emergencyStopActive: newState,
-      timestamp: new Date().toISOString(),
-    }));
-    if (newState) {
-      setAlerts(prev => [
-        { id: Math.random().toString(), type: 'EMERGENCY_STOP', timestamp: new Date().toISOString(), resolved: false },
-        ...prev,
-      ]);
-    }
-  };
-
   const updateSchedule = (updatedSchedule: FeedSchedule) => {
     setSchedules(prev => prev.map(s => (s.id === updatedSchedule.id ? updatedSchedule : s)));
   };
@@ -100,7 +84,6 @@ export const MockDataProvider = ({ children }: { children: ReactNode }) => {
         refreshing,
         error,
         refreshData,
-        toggleEmergencyStop,
         updateSchedule,
         addSchedule,
         deleteSchedule,

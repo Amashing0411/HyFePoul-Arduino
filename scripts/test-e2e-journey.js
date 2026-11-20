@@ -131,7 +131,6 @@ async function runE2E() {
         cycleStep: "IDLE",
         currentTray: 0,
         feedingActive: false,
-        emergencyStopActive: false,
         targetFeedGrams: 50
       }
     };
@@ -234,7 +233,6 @@ async function runE2E() {
       cycleStep: "IDLE",
       currentTray: 0,
       feedingActive: false,
-      emergencyStopActive: false,
       targetFeedGrams: 50
     });
     console.log("[Device] History written.");

@@ -91,7 +91,7 @@ Confirm the dedicated account can authenticate and its UID matches deviceAuthUid
 
 ### Mega link checks - technician
 
-If the ESP32 is online but the controller is NOT RESPONDING, inspect Mega power, UART wiring and baud rates. Isolate power before changing wires. Confirm Mega TX1 18 reaches ESP32 RX2 16 through appropriate level protection, and ESP32 TX2 17 reaches Mega RX1 19. Check grounds and the actual signal levels.
+If the ESP32 is online but the controller is NOT RESPONDING, inspect Mega power, UART wiring and baud rates. Isolate power before changing wires. Confirm Mega TX3 14 reaches ESP32 RX2 16 through appropriate level protection, and ESP32 TX2 17 reaches Mega RX3 15. Check grounds and the actual signal levels.
 
 The ESP32 marks the controller absent after 30 seconds of Mega silence. The Mega expires ESP32 status after 15 seconds. Capture redacted complete lines and check newline framing. Do not diagnose reliability from one successful packet: run the disconnect/reconnect and prolonged-link checks in HIT-04.
 
@@ -141,7 +141,7 @@ Source: Feeding.ino; ESP32Communication.ino; HyFePoul_ESP32.ino; ScheduleStorage
 | Wrong direction / overshoot | Relay polarity, motor wiring, limits, travel timing. | Stop; repeat unloaded safety check. |
 | Nextion blank or buttons fail | Panel power, TX/RX, ground, 9600 baud, matching TFT and IDs. | HIT-12: check live values and touch controls with actuators disconnected. |
 | Recent History empty / unavailable | History requires the ESP32 Wi-Fi/Firebase link and at least one valid `/systemData` snapshot; the page shows the latest four. | HIT-12: compare p3 values and ordering with the app's Recent History screen; test Refresh online and offline. SD CSV events are logged separately and are not shown here. |
-| App and Nextion schedules differ | Panel saves EEPROM; cloud restore can replace it. No write-back yet (R-54). | Use app for a schedule that must match remotely. |
+| App and Nextion schedules differ | A panel save waits for Wi-Fi/Firebase before the app sees it (R-54). | Check Wi-Fi and the ESP32 link; the panel resends every 30 s. The newest change wins once online. |
 
 ### Weight changes after a feed
 

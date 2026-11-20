@@ -88,7 +88,6 @@ async function runTests() {
         cycleStep: "IDLE",
         currentTray: 0,
         feedingActive: false,
-        emergencyStopActive: false,
         timestamp: Date.now()
       }
     });

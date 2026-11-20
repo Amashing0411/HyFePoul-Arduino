@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { ScrollView, View, Text, StyleSheet, Switch, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Card from '../components/Card';
-import ProgressBar from '../components/ProgressBar';
+import HopperGauge from '../components/HopperGauge';
 import StatusBadge from '../components/StatusBadge';
 import DeviceDataUnavailable from '../components/DeviceDataUnavailable';
 import Button from '../components/Button';
@@ -32,7 +32,7 @@ const DEFAULT_TRAY_TARGET_GRAMS = 50;
 const MAX_TRAY_TARGET_GRAMS = 1000;
 
 export default function FeedingScreen() {
-  const { deviceData, systemData, deviceOnline, controllerResponding, schedules, scheduleStatus, commands, loading, issueCommand, updateSchedule } = useFirebaseData();
+  const { deviceData, systemData, deviceOnline, controllerResponding, schedules, scheduleStatus, commands, loading, issueCommand, updateSchedule, deleteSchedule: removeSchedule } = useFirebaseData();
   const { colors, typography } = useTheme();
   const { t } = useLanguage();
 
@@ -48,6 +48,13 @@ export default function FeedingScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const scrollViewHeight = useRef(0);
   const scrollOffset = useRef(0);
+
+  // The device reports its saved Feed Target while idle (set on the panel),
+  // so new feeds and schedules start from the same grams as the machine.
+  const deviceTarget = (): number => {
+    const g = systemData?.targetFeedGrams;
+    return typeof g === 'number' && g >= 1 && g <= MAX_TRAY_TARGET_GRAMS ? Math.round(g) : DEFAULT_TRAY_TARGET_GRAMS;
+  };
 
   const formatTime = (h: number, m: number) => {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
@@ -68,7 +75,7 @@ export default function FeedingScreen() {
     } else {
       setNewHour('07');
       setNewMin('00');
-      setNewTarget(String(DEFAULT_TRAY_TARGET_GRAMS));
+      setNewTarget(String(deviceTarget()));
     }
     setEditingIndex(index);
   };
@@ -123,12 +130,8 @@ export default function FeedingScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              // "Delete" disables the slot and resets it to 00:00. updateSchedule
-              // also queues the matching SCHEDULE_SET for the Mega.
-              await updateSchedule({
-                scheduleId: `sched_${index}`,
-                hour: 0, minute: 0, targetGrams: DEFAULT_TRAY_TARGET_GRAMS, enabled: false, daysOfWeek: [1,2,3,4,5,6,7]
-              });
+              // Turns the slot off on the Mega and empties it in the app.
+              await removeSchedule(index);
             } catch {
               Alert.alert("Error", "Failed to delete schedule.");
             }
@@ -196,7 +199,6 @@ export default function FeedingScreen() {
     return <DeviceDataUnavailable />;
   }
 
-  const feedColor = systemData.hopperLevelPercent < 20 ? colors.error : colors.warning;
 
   const activeCommand = commands.length > 0 ? commands[0] : null;
   // Block a second manual feed until the first one has finished.
@@ -204,7 +206,7 @@ export default function FeedingScreen() {
   // An offline device would only pick a feed up later (or let it go stale),
   // so manual feeding is blocked until heartbeats resume.
   // The same applies when the ESP32 is online but no longer hears the Mega.
-  const manualFeedBlocked = systemData.emergencyStopActive || systemData.feedingActive || manualFeedInFlight || !controllerResponding;
+  const manualFeedBlocked = systemData.feedingActive || manualFeedInFlight || !controllerResponding;
   // Find if there is a pending sync command for schedules
   const pendingSyncCmd = commands.find(c => c.command === 'SCHEDULE_SET' && (c.status === 'queued' || c.status === 'acknowledged' || c.status === 'executing'));
 
@@ -256,18 +258,15 @@ export default function FeedingScreen() {
             )}
           </View>
           <View style={[styles.progressContainer, { borderTopColor: colors.border }]}>
-            <View style={styles.row}>
-              <Text style={typography.caption}>{t('hopperLevel')}</Text>
-              <Text style={[typography.body, { fontWeight: 'bold' }]}>{systemData.hopperLevelPercent.toFixed(0)}%</Text>
-            </View>
-            <ProgressBar progress={systemData.hopperLevelPercent} color={feedColor} />
+            <Text style={typography.caption}>{t('hopperLevel')}</Text>
+            <HopperGauge percent={systemData.hopperLevelPercent} />
           </View>
 
           <View style={{ marginTop: spacing.md }}>
             {manualTarget === null ? (
               <Button
                 title={t('manualFeed')}
-                onPress={() => setManualTarget(String(DEFAULT_TRAY_TARGET_GRAMS))}
+                onPress={() => setManualTarget(String(deviceTarget()))}
                 variant="outline"
                 disabled={manualFeedBlocked}
                 accessibilityLabel={t('manualFeed')}

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d57cf">
+<title>HyFePoul: Presentation</title>
+<meta name="description" content="HyFePoul, an automated poultry feeder that weighs every tray and pours only what is missing. The full design project presentation, Chapters I to V.">
+<link rel="icon" href="img/favicon.png">
+<link rel="apple-touch-icon" href="img/app-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400..800&display=swap">
+<link rel="stylesheet" href="css/team.css?v=3">
+<link rel="stylesheet" href="css/deck.css?v=29">
+<script type="importmap">
+{"imports":{"three":"./vendor/three.module.min.js","three/orbit":"./vendor/OrbitControls.js","three/bgu":"./vendor/BufferGeometryUtils.js","three/gltf":"./vendor/GLTFLoader.js"}}
+</script>
+</head>
+<body>
+<header class="wbar" id="webBar">
+  <a class="wbrand" href="#cover"><img src="img/app-icon.png" width="40" height="40" alt=""><span>HyFePoul</span></a>
+  <nav class="wnav" id="webNav" aria-label="Chapters"></nav>
+  <button class="btn green wpresent" id="toSlides" type="button" title="Presenter mode (P)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M12 16v4M8 20h8"/></svg><span>Presenter mode</span></button>
+  <div class="wprogress" aria-hidden="true"><i id="webProgress"></i></div>
+</header>
+<main class="web" id="webBody"></main>
+<footer class="wfoot"><img src="img/app-icon.png" width="40" height="40" alt="" loading="lazy"><p>HyFePoul · Group 3 · BSCpE 4D · Dalubhasaan ng Lungsod ng San Pablo</p></footer>
+
+<div class="app">
+  <header class="bar">
+    <a class="brand" href="#1" aria-label="HyFePoul, first slide"><img src="img/app-icon.png" width="32" height="32" alt=""><span>HyFePoul</span></a>
+    <div class="crumb"><span id="crumbChap"></span><b id="crumbTitle"></b></div>
+    <div class="bar-tools">
+      <button class="tb" id="toWeb" type="button" title="Back to the web page (Esc)"><svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10"/></svg><span>Web view</span></button>
+      <span class="sep"></span>
+      <button class="tb" id="prevBtn" type="button" aria-label="Previous slide" title="Previous (←)"><svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="m14.5 6-6 6 6 6"/></svg></button>
+      <span class="count" id="count" aria-live="polite"></span>
+      <button class="tb" id="nextBtn" type="button" aria-label="Next slide" title="Next (→)"><svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="m9.5 6 6 6-6 6"/></svg></button>
+      <span class="sep"></span>
+      <button class="tb" id="gridBtn" type="button" aria-pressed="false" aria-label="All slides" title="All slides (G)"><svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></g></svg><span>Slides</span></button>
+      <button class="tb" id="notesBtn" type="button" aria-pressed="false" aria-label="Speaker notes" title="Speaker notes (N)"><svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M6 4h12a1.5 1.5 0 0 1 1.5 1.5v13A1.5 1.5 0 0 1 18 20H6a1.5 1.5 0 0 1-1.5-1.5v-13A1.5 1.5 0 0 1 6 4zM8 9h8M8 13h8M8 17h5"/></svg><span>Notes</span></button>
+      <button class="tb hide-sm" id="stripBtn" type="button" aria-pressed="true" aria-label="Thumbnail strip" title="Thumbnail strip"><svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="4" width="17" height="10" rx="1.5"/><path d="M4 18h3.5M10.25 18h3.5M16.5 18H20" stroke-linecap="round"/></g></svg></button>
+      <button class="tb tb-main" id="presentBtn" type="button" aria-pressed="false" title="Present full screen (F)"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M8 5.6v12.8a1 1 0 0 0 1.5.86l10.4-6.4a1 1 0 0 0 0-1.72L9.5 4.74A1 1 0 0 0 8 5.6z"/></svg><span>Present</span></button>
+    </div>
+  </header>
+
+  <main class="view" id="view">
+    <div class="frame main-frame" id="frame" tabindex="-1" aria-roledescription="slide" aria-live="polite"></div>
+  </main>
+
+  <aside class="notes" id="notes" aria-label="Speaker notes"><b>Speaker notes</b><p id="notesBody"></p></aside>
+
+  <nav class="strip-wrap" aria-label="Slides">
+    <div class="progress" aria-hidden="true"><i id="progress"></i></div>
+    <div class="strip" id="strip"></div>
+  </nav>
+</div>
+
+<div class="pill" aria-label="Presentation controls">
+  <button id="pillPrev" type="button" aria-label="Previous slide"><svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="m14.5 6-6 6 6 6"/></svg></button>
+  <span id="pillCount"></span>
+  <button id="pillNext" type="button" aria-label="Next slide"><svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="m9.5 6 6 6-6 6"/></svg></button>
+  <button id="pillGrid" type="button" aria-label="All slides"><svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></g></svg></button>
+  <button id="pillExit" type="button" aria-label="Exit presenting"><svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="m6 6 12 12M18 6 6 18"/></svg></button>
+</div>
+
+<div class="grid" id="grid" hidden role="dialog" aria-modal="true" aria-label="All slides">
+  <div class="grid-head"><h2>All slides</h2><button class="tb" id="gridClose" type="button" aria-label="Close"><svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+  <div class="grid-body" id="gridBody"></div>
+</div>
+
+<!-- The 3D model and the team rail live here and move into whichever slide needs them. -->
+<div id="dock" hidden>
+  <div class="stage" id="stage">
+    <div class="pins" id="pins"></div>
+    <div class="stage-head"><p id="hint">Drag to turn. Scroll or pinch to zoom. Tap a number to learn about that part.</p></div>
+    <div class="loader" id="loader" role="status"><div class="lbar"><span id="loadbar"></span></div><p id="loadtext">Loading the 3D model…</p></div>
+    <div class="cycle-status" id="cycleStatus" hidden aria-live="polite"></div>
+    <div class="tools" id="tools">
+      <div class="group views" role="group" aria-label="Camera">
+        <button data-view="whole" aria-pressed="true">Whole</button>
+        <button data-view="box" aria-pressed="false">Control box</button>
+        <button data-view="hopper" aria-pressed="false">Hopper</button>
+        <button data-view="trays" aria-pressed="false">Trays</button>
+        <button data-view="chain" aria-pressed="false">Chain</button>
+        <button data-view="water" aria-pressed="false">Water</button>
+      </div>
+      <div class="group toggles" role="group" aria-label="Show or hide">
+        <button id="tWalls" aria-pressed="true">Covers</button>
+        <button id="t12" aria-pressed="true"><i style="background:#e0413a"></i>12 V</button>
+        <button id="t5" aria-pressed="true"><i style="background:#f29a1c"></i>5 V</button>
+        <button id="tSig" aria-pressed="true"><i style="background:#2f95dc"></i>Signal</button>
+        <button id="tLabels" aria-pressed="true">Labels</button>
+      </div>
+      <div class="group end">
+        <label class="slider">Explode <input id="explode" type="range" min="0" max="1" step="0.02" value="0"></label>
+        <button id="play" class="play">Play feed cycle</button>
+      </div>
+    </div>
+  </div>
+  <div id="teamRoot"></div>
+</div>
+
+<noscript><p style="padding:24px;color:#fff">This presentation needs JavaScript. <a href="classic.html" style="color:#9cc3ff">Open the classic page</a>.</p></noscript>
+<script type="module" src="js/deck.js?v=24"></script>
+</body>
+</html>

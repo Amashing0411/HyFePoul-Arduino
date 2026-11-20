@@ -1,0 +1,618 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1690" height="1040" viewBox="30 36 1690 1040">
+<rect x="30" y="36" width="1690" height="1040" fill="#fff"/>
+<rect x="700" y="310" width="106.6" height="203.2" rx="0" fill="none" stroke="#000" stroke-width="2.2" />
+<text x="757.3" y="411.6" font-family="Arial, Helvetica, sans-serif" font-size="11.5" text-anchor="middle" font-weight="bold" fill="#000" transform="rotate(-90 757.3 411.6)">ARDUINO MEGA 2560 · U1</text>
+<polyline points="688,328 700,328" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="705" y="331.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">A0</text>
+<polyline points="688,346 700,346" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="705" y="349.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">A1</text>
+<polyline points="688,364 700,364" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="705" y="367.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">A2</text>
+<polyline points="688,382 700,382" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="705" y="385.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">A3</text>
+<polyline points="688,400 700,400" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="705" y="403.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">A4</text>
+<polyline points="688,418 700,418" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="705" y="421.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">A5</text>
+<polyline points="688,436 700,436" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="705" y="439.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">A6</text>
+<polyline points="688,454 700,454" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="705" y="457.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">A7</text>
+<polyline points="688,472 700,472" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="705" y="475.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">A8</text>
+<polyline points="688,490 700,490" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="705" y="493.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">A9</text>
+<polyline points="806.6,328 818.6,328" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="801.6" y="331.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="end" font-weight="normal" fill="#000">D20 SDA</text>
+<polyline points="806.6,346 818.6,346" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="801.6" y="349.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="end" font-weight="normal" fill="#000">D21 SCL</text>
+<polyline points="806.6,364 818.6,364" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="801.6" y="367.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="end" font-weight="normal" fill="#000">D15 RX3</text>
+<polyline points="806.6,382 818.6,382" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="801.6" y="385.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="end" font-weight="normal" fill="#000">D14 TX3</text>
+<polyline points="806.6,400 818.6,400" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="801.6" y="403.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="end" font-weight="normal" fill="#000">D16 TX2</text>
+<polyline points="806.6,418 818.6,418" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="801.6" y="421.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="end" font-weight="normal" fill="#000">D17 RX2</text>
+<polyline points="806.6,436 818.6,436" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="801.6" y="439.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="end" font-weight="normal" fill="#000">D11</text>
+<polyline points="806.6,454 818.6,454" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="801.6" y="457.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="end" font-weight="normal" fill="#000">D10</text>
+<polyline points="806.6,472 818.6,472" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="801.6" y="475.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="end" font-weight="normal" fill="#000">D9</text>
+<polyline points="806.6,490 818.6,490" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="801.6" y="493.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="end" font-weight="normal" fill="#000">D8</text>
+<polyline points="712,513.2 712,525.2" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="715.5" y="508.20000000000005" font-family="Arial, Helvetica, sans-serif" font-size="9.5" text-anchor="start" font-weight="normal" fill="#000" transform="rotate(-90 715.5 508.20000000000005)"></text>
+<polyline points="733,513.2 733,525.2" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="736.5" y="508.20000000000005" font-family="Arial, Helvetica, sans-serif" font-size="9.5" text-anchor="start" font-weight="normal" fill="#000" transform="rotate(-90 736.5 508.20000000000005)"></text>
+<polyline points="754,513.2 754,525.2" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="757.5" y="508.20000000000005" font-family="Arial, Helvetica, sans-serif" font-size="9.5" text-anchor="start" font-weight="normal" fill="#000" transform="rotate(-90 757.5 508.20000000000005)"></text>
+<polyline points="775,513.2 775,525.2" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="778.5" y="508.20000000000005" font-family="Arial, Helvetica, sans-serif" font-size="9.5" text-anchor="start" font-weight="normal" fill="#000" transform="rotate(-90 778.5 508.20000000000005)"></text>
+<polyline points="796,513.2 796,525.2" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="799.5" y="508.20000000000005" font-family="Arial, Helvetica, sans-serif" font-size="9.5" text-anchor="start" font-weight="normal" fill="#000" transform="rotate(-90 799.5 508.20000000000005)"></text>
+<text x="709" y="529.2" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000" transform="rotate(-90 709 529.2)">D52</text>
+<text x="730" y="529.2" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000" transform="rotate(-90 730 529.2)">D50</text>
+<text x="751" y="529.2" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000" transform="rotate(-90 751 529.2)">D49</text>
+<text x="772" y="529.2" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000" transform="rotate(-90 772 529.2)">D51</text>
+<text x="793" y="529.2" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000" transform="rotate(-90 793 529.2)">D53</text>
+<polyline points="725,298 725,310" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="728.5" y="315" font-family="Arial, Helvetica, sans-serif" font-size="9.5" text-anchor="end" font-weight="normal" fill="#000" transform="rotate(-90 728.5 315)"></text>
+<polyline points="785,298 785,310" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="788.5" y="315" font-family="Arial, Helvetica, sans-serif" font-size="9.5" text-anchor="end" font-weight="normal" fill="#000" transform="rotate(-90 788.5 315)"></text>
+<polyline points="725,298 725,286" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="718,286 732,286" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="725" y="281" font-family="Arial, Helvetica, sans-serif" font-size="10" text-anchor="middle" font-weight="bold" fill="#000">+5V</text>
+<polyline points="785,298 785,288" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="785" y="284" font-family="Arial, Helvetica, sans-serif" font-size="9" text-anchor="middle" font-weight="bold" fill="#000">GND</text>
+<rect x="70" y="208" width="160.0" height="25.4" rx="0" fill="none" stroke="#000" stroke-width="1.8" />
+<text x="132" y="224" font-family="Arial, Helvetica, sans-serif" font-size="8.5" text-anchor="middle" font-weight="bold" fill="#000">LOAD CELL · TRAY 1</text>
+<polygon points="214,213.5 221,220.5 214,227.5 207,220.5" fill="none" stroke="#000" stroke-width="1.1"/>
+<rect x="270" y="200" width="68.0" height="42.0" rx="0" fill="none" stroke="#000" stroke-width="1.8" />
+<text x="304" y="218" font-family="Arial, Helvetica, sans-serif" font-size="9" text-anchor="middle" font-weight="bold" fill="#000">HX711</text>
+<text x="304" y="229" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="middle" font-weight="normal" fill="#000">U2</text>
+<polyline points="260,206 270,206" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="275" y="209.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">E+</text>
+<polyline points="260,216 270,216" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="275" y="219.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">E−</text>
+<polyline points="260,226 270,226" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="275" y="229.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">A−</text>
+<polyline points="260,236 270,236" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="275" y="239.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">A+</text>
+<polyline points="230,213 240,213 240,206 260,206" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="258" y="204" font-family="Arial, Helvetica, sans-serif" font-size="5.5" text-anchor="end" font-weight="normal" fill="#000">RED</text>
+<polyline points="230,217 260,217" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="258" y="214" font-family="Arial, Helvetica, sans-serif" font-size="5.5" text-anchor="end" font-weight="normal" fill="#000">BLK</text>
+<polyline points="230,221 240,221 240,226 260,226" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="258" y="224" font-family="Arial, Helvetica, sans-serif" font-size="5.5" text-anchor="end" font-weight="normal" fill="#000">WHT</text>
+<polyline points="230,225 236,225 236,236 260,236" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="258" y="234" font-family="Arial, Helvetica, sans-serif" font-size="5.5" text-anchor="end" font-weight="normal" fill="#000">GRN</text>
+<polyline points="338,214 350,214" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="333" y="217.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000">DT</text>
+<polyline points="338,228 350,228" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="333" y="231.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000">SCK</text>
+<polyline points="285,242 285,250" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="288.5" y="237" font-family="Arial, Helvetica, sans-serif" font-size="9.5" text-anchor="start" font-weight="normal" fill="#000" transform="rotate(-90 288.5 237)"></text>
+<polyline points="325,242 325,250" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="328.5" y="237" font-family="Arial, Helvetica, sans-serif" font-size="9.5" text-anchor="start" font-weight="normal" fill="#000" transform="rotate(-90 328.5 237)"></text>
+<polyline points="325,250 333,250" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="333,244 333,256" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="337" y="254" font-family="Arial, Helvetica, sans-serif" font-size="10" text-anchor="start" font-weight="bold" fill="#000">+5V</text>
+<polyline points="285,250 285,252" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="277.0,252 293.0,252" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="280.0,256 290.0,256" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="283.0,260 287.0,260" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="281" y="260" font-family="Arial, Helvetica, sans-serif" font-size="6" text-anchor="end" font-weight="normal" fill="#000">GND</text>
+<text x="321" y="260" font-family="Arial, Helvetica, sans-serif" font-size="6" text-anchor="end" font-weight="normal" fill="#000">VCC</text>
+<polyline points="350,214 660,214 660,328 688,328" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="350,228 650,228 650,346 688,346" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="70" y="298" width="160.0" height="25.4" rx="0" fill="none" stroke="#000" stroke-width="1.8" />
+<text x="132" y="314" font-family="Arial, Helvetica, sans-serif" font-size="8.5" text-anchor="middle" font-weight="bold" fill="#000">LOAD CELL · TRAY 2</text>
+<polygon points="214,303.5 221,310.5 214,317.5 207,310.5" fill="none" stroke="#000" stroke-width="1.1"/>
+<rect x="270" y="290" width="68.0" height="42.0" rx="0" fill="none" stroke="#000" stroke-width="1.8" />
+<text x="304" y="308" font-family="Arial, Helvetica, sans-serif" font-size="9" text-anchor="middle" font-weight="bold" fill="#000">HX711</text>
+<text x="304" y="319" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="middle" font-weight="normal" fill="#000">U3</text>
+<polyline points="260,296 270,296" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="275" y="299.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">E+</text>
+<polyline points="260,306 270,306" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="275" y="309.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">E−</text>
+<polyline points="260,316 270,316" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="275" y="319.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">A−</text>
+<polyline points="260,326 270,326" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="275" y="329.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">A+</text>
+<polyline points="230,303 240,303 240,296 260,296" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="258" y="294" font-family="Arial, Helvetica, sans-serif" font-size="5.5" text-anchor="end" font-weight="normal" fill="#000">RED</text>
+<polyline points="230,307 260,307" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="258" y="304" font-family="Arial, Helvetica, sans-serif" font-size="5.5" text-anchor="end" font-weight="normal" fill="#000">BLK</text>
+<polyline points="230,311 240,311 240,316 260,316" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="258" y="314" font-family="Arial, Helvetica, sans-serif" font-size="5.5" text-anchor="end" font-weight="normal" fill="#000">WHT</text>
+<polyline points="230,315 236,315 236,326 260,326" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="258" y="324" font-family="Arial, Helvetica, sans-serif" font-size="5.5" text-anchor="end" font-weight="normal" fill="#000">GRN</text>
+<polyline points="338,304 350,304" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="333" y="307.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000">DT</text>
+<polyline points="338,318 350,318" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="333" y="321.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000">SCK</text>
+<polyline points="285,332 285,340" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="288.5" y="327" font-family="Arial, Helvetica, sans-serif" font-size="9.5" text-anchor="start" font-weight="normal" fill="#000" transform="rotate(-90 288.5 327)"></text>
+<polyline points="325,332 325,340" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="328.5" y="327" font-family="Arial, Helvetica, sans-serif" font-size="9.5" text-anchor="start" font-weight="normal" fill="#000" transform="rotate(-90 328.5 327)"></text>
+<polyline points="325,340 333,340" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="333,334 333,346" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="337" y="344" font-family="Arial, Helvetica, sans-serif" font-size="10" text-anchor="start" font-weight="bold" fill="#000">+5V</text>
+<polyline points="285,340 285,342" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="277.0,342 293.0,342" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="280.0,346 290.0,346" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="283.0,350 287.0,350" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="281" y="350" font-family="Arial, Helvetica, sans-serif" font-size="6" text-anchor="end" font-weight="normal" fill="#000">GND</text>
+<text x="321" y="350" font-family="Arial, Helvetica, sans-serif" font-size="6" text-anchor="end" font-weight="normal" fill="#000">VCC</text>
+<polyline points="350,304 640,304 640,364 688,364" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="350,318 630,318 630,382 688,382" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="70" y="388" width="160.0" height="25.4" rx="0" fill="none" stroke="#000" stroke-width="1.8" />
+<text x="132" y="404" font-family="Arial, Helvetica, sans-serif" font-size="8.5" text-anchor="middle" font-weight="bold" fill="#000">LOAD CELL · TRAY 3</text>
+<polygon points="214,393.5 221,400.5 214,407.5 207,400.5" fill="none" stroke="#000" stroke-width="1.1"/>
+<rect x="270" y="380" width="68.0" height="42.0" rx="0" fill="none" stroke="#000" stroke-width="1.8" />
+<text x="304" y="398" font-family="Arial, Helvetica, sans-serif" font-size="9" text-anchor="middle" font-weight="bold" fill="#000">HX711</text>
+<text x="304" y="409" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="middle" font-weight="normal" fill="#000">U4</text>
+<polyline points="260,386 270,386" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="275" y="389.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">E+</text>
+<polyline points="260,396 270,396" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="275" y="399.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">E−</text>
+<polyline points="260,406 270,406" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="275" y="409.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">A−</text>
+<polyline points="260,416 270,416" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="275" y="419.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">A+</text>
+<polyline points="230,393 240,393 240,386 260,386" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="258" y="384" font-family="Arial, Helvetica, sans-serif" font-size="5.5" text-anchor="end" font-weight="normal" fill="#000">RED</text>
+<polyline points="230,397 260,397" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="258" y="394" font-family="Arial, Helvetica, sans-serif" font-size="5.5" text-anchor="end" font-weight="normal" fill="#000">BLK</text>
+<polyline points="230,401 240,401 240,406 260,406" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="258" y="404" font-family="Arial, Helvetica, sans-serif" font-size="5.5" text-anchor="end" font-weight="normal" fill="#000">WHT</text>
+<polyline points="230,405 236,405 236,416 260,416" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="258" y="414" font-family="Arial, Helvetica, sans-serif" font-size="5.5" text-anchor="end" font-weight="normal" fill="#000">GRN</text>
+<polyline points="338,394 350,394" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="333" y="397.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000">DT</text>
+<polyline points="338,408 350,408" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="333" y="411.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000">SCK</text>
+<polyline points="285,422 285,430" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="288.5" y="417" font-family="Arial, Helvetica, sans-serif" font-size="9.5" text-anchor="start" font-weight="normal" fill="#000" transform="rotate(-90 288.5 417)"></text>
+<polyline points="325,422 325,430" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="328.5" y="417" font-family="Arial, Helvetica, sans-serif" font-size="9.5" text-anchor="start" font-weight="normal" fill="#000" transform="rotate(-90 328.5 417)"></text>
+<polyline points="325,430 333,430" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="333,424 333,436" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="337" y="434" font-family="Arial, Helvetica, sans-serif" font-size="10" text-anchor="start" font-weight="bold" fill="#000">+5V</text>
+<polyline points="285,430 285,432" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="277.0,432 293.0,432" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="280.0,436 290.0,436" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="283.0,440 287.0,440" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="281" y="440" font-family="Arial, Helvetica, sans-serif" font-size="6" text-anchor="end" font-weight="normal" fill="#000">GND</text>
+<text x="321" y="440" font-family="Arial, Helvetica, sans-serif" font-size="6" text-anchor="end" font-weight="normal" fill="#000">VCC</text>
+<polyline points="350,394 620,394 620,400 688,400" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="350,408 610,408 610,418 688,418" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="70" y="478" width="160.0" height="25.4" rx="0" fill="none" stroke="#000" stroke-width="1.8" />
+<text x="132" y="494" font-family="Arial, Helvetica, sans-serif" font-size="8.5" text-anchor="middle" font-weight="bold" fill="#000">LOAD CELL · TRAY 5</text>
+<polygon points="214,483.5 221,490.5 214,497.5 207,490.5" fill="none" stroke="#000" stroke-width="1.1"/>
+<rect x="270" y="470" width="68.0" height="42.0" rx="0" fill="none" stroke="#000" stroke-width="1.8" />
+<text x="304" y="488" font-family="Arial, Helvetica, sans-serif" font-size="9" text-anchor="middle" font-weight="bold" fill="#000">HX711</text>
+<text x="304" y="499" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="middle" font-weight="normal" fill="#000">U5</text>
+<polyline points="260,476 270,476" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="275" y="479.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">E+</text>
+<polyline points="260,486 270,486" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="275" y="489.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">E−</text>
+<polyline points="260,496 270,496" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="275" y="499.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">A−</text>
+<polyline points="260,506 270,506" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="275" y="509.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">A+</text>
+<polyline points="230,483 240,483 240,476 260,476" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="258" y="474" font-family="Arial, Helvetica, sans-serif" font-size="5.5" text-anchor="end" font-weight="normal" fill="#000">RED</text>
+<polyline points="230,487 260,487" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="258" y="484" font-family="Arial, Helvetica, sans-serif" font-size="5.5" text-anchor="end" font-weight="normal" fill="#000">BLK</text>
+<polyline points="230,491 240,491 240,496 260,496" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="258" y="494" font-family="Arial, Helvetica, sans-serif" font-size="5.5" text-anchor="end" font-weight="normal" fill="#000">WHT</text>
+<polyline points="230,495 236,495 236,506 260,506" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="258" y="504" font-family="Arial, Helvetica, sans-serif" font-size="5.5" text-anchor="end" font-weight="normal" fill="#000">GRN</text>
+<polyline points="338,484 350,484" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="333" y="487.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000">DT</text>
+<polyline points="338,498 350,498" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="333" y="501.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000">SCK</text>
+<polyline points="285,512 285,520" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="288.5" y="507" font-family="Arial, Helvetica, sans-serif" font-size="9.5" text-anchor="start" font-weight="normal" fill="#000" transform="rotate(-90 288.5 507)"></text>
+<polyline points="325,512 325,520" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="328.5" y="507" font-family="Arial, Helvetica, sans-serif" font-size="9.5" text-anchor="start" font-weight="normal" fill="#000" transform="rotate(-90 328.5 507)"></text>
+<polyline points="325,520 333,520" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="333,514 333,526" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="337" y="524" font-family="Arial, Helvetica, sans-serif" font-size="10" text-anchor="start" font-weight="bold" fill="#000">+5V</text>
+<polyline points="285,520 285,522" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="277.0,522 293.0,522" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="280.0,526 290.0,526" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="283.0,530 287.0,530" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="281" y="530" font-family="Arial, Helvetica, sans-serif" font-size="6" text-anchor="end" font-weight="normal" fill="#000">GND</text>
+<text x="321" y="530" font-family="Arial, Helvetica, sans-serif" font-size="6" text-anchor="end" font-weight="normal" fill="#000">VCC</text>
+<polyline points="350,484 600,484 600,436 688,436" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="350,498 612,498 612,454 688,454" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="70" y="568" width="160.0" height="25.4" rx="0" fill="none" stroke="#000" stroke-width="1.8" />
+<text x="132" y="584" font-family="Arial, Helvetica, sans-serif" font-size="8.5" text-anchor="middle" font-weight="bold" fill="#000">LOAD CELL · TRAY 4</text>
+<polygon points="214,573.5 221,580.5 214,587.5 207,580.5" fill="none" stroke="#000" stroke-width="1.1"/>
+<rect x="270" y="560" width="68.0" height="42.0" rx="0" fill="none" stroke="#000" stroke-width="1.8" />
+<text x="304" y="578" font-family="Arial, Helvetica, sans-serif" font-size="9" text-anchor="middle" font-weight="bold" fill="#000">HX711</text>
+<text x="304" y="589" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="middle" font-weight="normal" fill="#000">U6</text>
+<polyline points="260,566 270,566" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="275" y="569.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">E+</text>
+<polyline points="260,576 270,576" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="275" y="579.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">E−</text>
+<polyline points="260,586 270,586" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="275" y="589.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">A−</text>
+<polyline points="260,596 270,596" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="275" y="599.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">A+</text>
+<polyline points="230,573 240,573 240,566 260,566" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="258" y="564" font-family="Arial, Helvetica, sans-serif" font-size="5.5" text-anchor="end" font-weight="normal" fill="#000">RED</text>
+<polyline points="230,577 260,577" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="258" y="574" font-family="Arial, Helvetica, sans-serif" font-size="5.5" text-anchor="end" font-weight="normal" fill="#000">BLK</text>
+<polyline points="230,581 240,581 240,586 260,586" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="258" y="584" font-family="Arial, Helvetica, sans-serif" font-size="5.5" text-anchor="end" font-weight="normal" fill="#000">WHT</text>
+<polyline points="230,585 236,585 236,596 260,596" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="258" y="594" font-family="Arial, Helvetica, sans-serif" font-size="5.5" text-anchor="end" font-weight="normal" fill="#000">GRN</text>
+<polyline points="338,574 350,574" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="333" y="577.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000">DT</text>
+<polyline points="338,588 350,588" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="333" y="591.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000">SCK</text>
+<polyline points="285,602 285,610" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="288.5" y="597" font-family="Arial, Helvetica, sans-serif" font-size="9.5" text-anchor="start" font-weight="normal" fill="#000" transform="rotate(-90 288.5 597)"></text>
+<polyline points="325,602 325,610" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="328.5" y="597" font-family="Arial, Helvetica, sans-serif" font-size="9.5" text-anchor="start" font-weight="normal" fill="#000" transform="rotate(-90 328.5 597)"></text>
+<polyline points="325,610 333,610" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="333,604 333,616" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="337" y="614" font-family="Arial, Helvetica, sans-serif" font-size="10" text-anchor="start" font-weight="bold" fill="#000">+5V</text>
+<polyline points="285,610 285,612" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="277.0,612 293.0,612" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="280.0,616 290.0,616" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="283.0,620 287.0,620" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="281" y="620" font-family="Arial, Helvetica, sans-serif" font-size="6" text-anchor="end" font-weight="normal" fill="#000">GND</text>
+<text x="321" y="620" font-family="Arial, Helvetica, sans-serif" font-size="6" text-anchor="end" font-weight="normal" fill="#000">VCC</text>
+<polyline points="350,574 624,574 624,472 688,472" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="350,588 636,588 636,490 688,490" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="1000" y="70" width="76.0" height="44.0" rx="0" fill="none" stroke="#000" stroke-width="1.8" />
+<text x="1038" y="64" font-family="Arial, Helvetica, sans-serif" font-size="8.5" text-anchor="middle" font-weight="bold" fill="#000">RTC DS3231 · U7</text>
+<polyline points="988,84 1000,84" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1005" y="87.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="start" font-weight="normal" fill="#000">SDA</text>
+<polyline points="988,102 1000,102" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1005" y="105.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="start" font-weight="normal" fill="#000">SCL</text>
+<polyline points="1076,84 1088,84" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1071" y="87.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000">VCC</text>
+<polyline points="1076,102 1088,102" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1071" y="105.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000">GND</text>
+<polyline points="1088,84 1096,84" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1096,78 1096,90" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1100" y="88" font-family="Arial, Helvetica, sans-serif" font-size="10" text-anchor="start" font-weight="bold" fill="#000">+5V</text>
+<polyline points="1088,102 1088,102" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1080.0,102 1096.0,102" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1083.0,106 1093.0,106" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1086.0,110 1090.0,110" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="1000" y="140" width="110.0" height="56.0" rx="0" fill="none" stroke="#000" stroke-width="1.8" />
+<text x="1055" y="134" font-family="Arial, Helvetica, sans-serif" font-size="8.5" text-anchor="middle" font-weight="bold" fill="#000">ESP32 38-PIN · U9</text>
+<polyline points="988,154 1000,154" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1005" y="157.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">GPIO17 TX2</text>
+<polyline points="988,172 1000,172" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1005" y="175.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">GPIO16 RX2</text>
+<polyline points="1110,154 1122,154" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1105" y="157.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="end" font-weight="normal" fill="#000">VIN</text>
+<polyline points="1110,172 1122,172" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1105" y="175.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="end" font-weight="normal" fill="#000">GND</text>
+<text x="1055" y="189" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="middle" font-weight="normal" fill="#000">Wi-Fi bridge</text>
+<polyline points="1122,154 1130,154" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1130,148 1130,160" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1134" y="158" font-family="Arial, Helvetica, sans-serif" font-size="10" text-anchor="start" font-weight="bold" fill="#000">+5V</text>
+<polyline points="1122,172 1122,172" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1114.0,172 1130.0,172" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1117.0,176 1127.0,176" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1120.0,180 1124.0,180" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="1180" y="60" width="362.0" height="216.0" rx="0" fill="none" stroke="#000" stroke-width="1.8" />
+<rect x="1206.8" y="82.0" width="308.4" height="171.8" rx="0" fill="none" stroke="#000" stroke-width="1" stroke-dasharray="5 4"/>
+<text x="1361.0" y="162.0" font-family="Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" font-weight="bold" fill="#000">NEXTION NX8048T070-011</text>
+<text x="1361.0" y="178.0" font-family="Arial, Helvetica, sans-serif" font-size="9" text-anchor="middle" font-weight="normal" fill="#000">7.0" 800×480 HMI · U8</text>
+<polyline points="1168,250 1180,250" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1185" y="253.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="start" font-weight="normal" fill="#000">RX</text>
+<polyline points="1168,268 1180,268" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1185" y="271.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="start" font-weight="normal" fill="#000">TX</text>
+<polyline points="1542.0,250 1554.0,250" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1537.0" y="253.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000">+5V</text>
+<polyline points="1542.0,268 1554.0,268" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1537.0" y="271.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000">GND</text>
+<polyline points="1554.0,250 1562.0,250" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1562.0,244 1562.0,256" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1566.0" y="254" font-family="Arial, Helvetica, sans-serif" font-size="10" text-anchor="start" font-weight="bold" fill="#000">+5V</text>
+<polyline points="1554.0,268 1554.0,268" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1546.0,268 1562.0,268" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1549.0,272 1559.0,272" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1552.0,276 1556.0,276" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="818.6,328 845,328 845,84 988,84" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="818.6,346 853,346 853,102 988,102" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="818.6,364 861,364 861,154 988,154" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="818.6,400 877,400 877,250 1168,250" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="818.6,418 885,418 885,268 1168,268" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="818.6,382 869,382 869,172 895,172" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="895" y="166" width="40" height="12" rx="0" fill="#fff" stroke="#000" stroke-width="1.6" />
+<text x="915.0" y="162" font-family="Arial, Helvetica, sans-serif" font-size="10" text-anchor="middle" font-weight="bold" fill="#000">R1 1kΩ</text>
+<polyline points="935,172 988,172" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="960" cy="172" r="3.2" fill="#000" stroke="#000" stroke-width="0"/>
+<polyline points="960,172 960,180" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="954" y="180" width="12" height="26" rx="0" fill="#fff" stroke="#000" stroke-width="1.6" />
+<text x="950" y="197" font-family="Arial, Helvetica, sans-serif" font-size="9" text-anchor="end" font-weight="bold" fill="#000">R2 2kΩ</text>
+<polyline points="960,206 960,210" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="952.0,210 968.0,210" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="955.0,214 965.0,214" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="958.0,218 962.0,218" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="1000" y="410" width="64.0" height="26.0" rx="0" fill="none" stroke="#000" stroke-width="1.8" />
+<text x="1032" y="404" font-family="Arial, Helvetica, sans-serif" font-size="8.5" text-anchor="middle" font-weight="bold" fill="#000">BUZZER · LOW TRIGGER · BZ1</text>
+<polyline points="988,423 1000,423" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1005" y="426.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">I/O</text>
+<polyline points="1064,416 1076,416" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1059" y="419.5" font-family="Arial, Helvetica, sans-serif" font-size="6.5" text-anchor="end" font-weight="normal" fill="#000">VCC</text>
+<polyline points="1064,430 1076,430" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1059" y="433.5" font-family="Arial, Helvetica, sans-serif" font-size="6.5" text-anchor="end" font-weight="normal" fill="#000">GND</text>
+<polyline points="1076,416 1084,416" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1084,410 1084,422" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1088" y="420" font-family="Arial, Helvetica, sans-serif" font-size="10" text-anchor="start" font-weight="bold" fill="#000">+5V</text>
+<polyline points="1076,430 1076,430" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1068.0,430 1084.0,430" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1071.0,434 1081.0,434" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1074.0,438 1078.0,438" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="818.6,436 895,436 895,423 988,423" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="1000" y="470" width="276.0" height="112.0" rx="0" fill="none" stroke="#000" stroke-width="1.8" />
+<text x="1138.0" y="462" font-family="Arial, Helvetica, sans-serif" font-size="9" text-anchor="middle" font-weight="bold" fill="#000">RELAY MODULE · 6-CH, 5V, ACTIVE LOW</text>
+<polyline points="988,486 1000,486" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1005" y="489.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">IN1</text>
+<polyline points="988,504 1000,504" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1005" y="507.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">IN2</text>
+<polyline points="988,522 1000,522" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1005" y="525.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">IN3</text>
+<polyline points="988,540 1000,540" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1005" y="543.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">IN4–6</text>
+<polyline points="988,558 1000,558" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1005" y="561.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">VCC</text>
+<polyline points="988,576 1000,576" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1005" y="579.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">GND</text>
+<text x="985" y="544" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="end" font-weight="normal" fill="#000">n.c.</text>
+<polyline points="988,558 980,558" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="980,552 980,564" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="976" y="562" font-family="Arial, Helvetica, sans-serif" font-size="10" text-anchor="end" font-weight="bold" fill="#000">+5V</text>
+<polyline points="988,576 988,576" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="980.0,576 996.0,576" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="983.0,580 993.0,580" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="986.0,584 990.0,584" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="818.6,454 930,454 930,486 988,486" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="818.6,472 920,472 920,504 988,504" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="818.6,490 910,490 910,522 988,522" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1276.0,478 1288.0,478" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1271.0" y="481.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000">K1 NO</text>
+<polyline points="1276.0,490 1288.0,490" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1271.0" y="493.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000">K1 COM</text>
+<polyline points="1276.0,502 1288.0,502" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1271.0" y="505.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000">K1 NC</text>
+<polyline points="1276.0,514 1288.0,514" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1271.0" y="517.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000">K2 NO</text>
+<polyline points="1276.0,526 1288.0,526" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1271.0" y="529.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000">K2 COM</text>
+<polyline points="1276.0,538 1288.0,538" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1271.0" y="541.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000">K2 NC</text>
+<polyline points="1276.0,550 1288.0,550" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1271.0" y="553.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000">K3 NO</text>
+<polyline points="1276.0,562 1288.0,562" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1271.0" y="565.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000">K3 COM</text>
+<polyline points="1276.0,574 1288.0,574" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1271.0" y="577.5" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="end" font-weight="normal" fill="#000">K3 NC</text>
+<polyline points="1288.0,478 1294.0,478" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1294.0,472 1294.0,484" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1298.0" y="482" font-family="Arial, Helvetica, sans-serif" font-size="10" text-anchor="start" font-weight="bold" fill="#000">+12V</text>
+<polyline points="1288.0,502 1288.0,502" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1280.0,502 1296.0,502" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1283.0,506 1293.0,506" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1286.0,510 1290.0,510" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1288.0,514 1294.0,514" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1294.0,508 1294.0,520" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1298.0" y="518" font-family="Arial, Helvetica, sans-serif" font-size="10" text-anchor="start" font-weight="bold" fill="#000">+12V</text>
+<polyline points="1288.0,538 1288.0,538" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1280.0,538 1296.0,538" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1283.0,542 1293.0,542" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1286.0,546 1290.0,546" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1288.0,550 1294.0,550" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1294.0,544 1294.0,556" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1298.0" y="554" font-family="Arial, Helvetica, sans-serif" font-size="10" text-anchor="start" font-weight="bold" fill="#000">+12V</text>
+<polyline points="1288.0,574 1288.0,574" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1280.0,574 1296.0,574" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1283.0,578 1293.0,578" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1286.0,582 1290.0,582" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="1050" y="508" width="18" height="18" rx="0" fill="none" stroke="#000" stroke-width="1.1" />
+<polyline points="1050,526 1068,508" fill="none" stroke="#000" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1059" y="538" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="middle" font-weight="normal" fill="#000">K1</text>
+<rect x="1080" y="508" width="18" height="18" rx="0" fill="none" stroke="#000" stroke-width="1.1" />
+<polyline points="1080,526 1098,508" fill="none" stroke="#000" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1089" y="538" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="middle" font-weight="normal" fill="#000">K2</text>
+<rect x="1110" y="508" width="18" height="18" rx="0" fill="none" stroke="#000" stroke-width="1.1" />
+<polyline points="1110,526 1128,508" fill="none" stroke="#000" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1119" y="538" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="middle" font-weight="normal" fill="#000">K3</text>
+<rect x="1140" y="508" width="18" height="18" rx="0" fill="none" stroke="#000" stroke-width="1.1" />
+<polyline points="1140,526 1158,508" fill="none" stroke="#000" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1149" y="538" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="middle" font-weight="normal" fill="#000">K4</text>
+<rect x="1170" y="508" width="18" height="18" rx="0" fill="none" stroke="#000" stroke-width="1.1" />
+<polyline points="1170,526 1188,508" fill="none" stroke="#000" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1179" y="538" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="middle" font-weight="normal" fill="#000">K5</text>
+<rect x="1200" y="508" width="18" height="18" rx="0" fill="none" stroke="#000" stroke-width="1.1" />
+<polyline points="1200,526 1218,508" fill="none" stroke="#000" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1209" y="538" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="middle" font-weight="normal" fill="#000">K6</text>
+<rect x="1420" y="440" width="210.0" height="80.0" rx="0" fill="none" stroke="#000" stroke-width="1.8" />
+<circle cx="1458" cy="480" r="19" fill="#fff" stroke="#000" stroke-width="1.8"/>
+<text x="1458" y="486" font-family="Arial, Helvetica, sans-serif" font-size="17" text-anchor="middle" font-weight="bold" fill="#000">M</text>
+<text x="1472" y="471" font-family="Arial, Helvetica, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#000">+</text>
+<text x="1486" y="474" font-family="Arial, Helvetica, sans-serif" font-size="9.5" text-anchor="start" font-weight="bold" fill="#000">CHAIN MOTOR  M1</text>
+<text x="1486" y="487" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">12V DC WORM GEAR</text>
+<text x="1486" y="499" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">REVERSED BY K1 / K2</text>
+<polyline points="1408,465 1420,465" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1425" y="468.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">+</text>
+<polyline points="1408,495 1420,495" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1425" y="498.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">−</text>
+<rect x="1420" y="560" width="210.0" height="80.0" rx="0" fill="none" stroke="#000" stroke-width="1.8" />
+<circle cx="1458" cy="600" r="19" fill="#fff" stroke="#000" stroke-width="1.8"/>
+<text x="1458" y="606" font-family="Arial, Helvetica, sans-serif" font-size="17" text-anchor="middle" font-weight="bold" fill="#000">M</text>
+<text x="1472" y="591" font-family="Arial, Helvetica, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#000">+</text>
+<text x="1486" y="594" font-family="Arial, Helvetica, sans-serif" font-size="9.5" text-anchor="start" font-weight="bold" fill="#000">DISPENSER MOTOR  M2</text>
+<text x="1486" y="607" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">12V DC WORM GEAR</text>
+<text x="1486" y="619" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">SWITCHED BY K3</text>
+<polyline points="1408,585 1420,585" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1425" y="588.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">+</text>
+<polyline points="1408,615 1420,615" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1425" y="618.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">−</text>
+<polyline points="1288,490 1395,490 1395,465 1408,465" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1288,526 1385,526 1385,495 1408,495" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1288,562 1395,562 1395,585 1408,585" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1408,615 1395,615" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1395,615 1395,621" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1387.0,621 1403.0,621" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1390.0,625 1400.0,625" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1393.0,629 1397.0,629" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="687" y="640" width="90.0" height="40.0" rx="0" fill="none" stroke="#000" stroke-width="1.8" />
+<text x="732" y="671" font-family="Arial, Helvetica, sans-serif" font-size="7.5" text-anchor="middle" font-weight="bold" fill="#000">ULTRASONIC HC-SR04</text>
+<polyline points="712,628 712,640" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="715.5" y="645" font-family="Arial, Helvetica, sans-serif" font-size="6.5" text-anchor="end" font-weight="normal" fill="#000" transform="rotate(-90 715.5 645)">TRIG</text>
+<polyline points="733,628 733,640" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="736.5" y="645" font-family="Arial, Helvetica, sans-serif" font-size="6.5" text-anchor="end" font-weight="normal" fill="#000" transform="rotate(-90 736.5 645)">ECHO</text>
+<polyline points="697,680 697,688" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="700.5" y="675" font-family="Arial, Helvetica, sans-serif" font-size="9.5" text-anchor="start" font-weight="normal" fill="#000" transform="rotate(-90 700.5 675)"></text>
+<polyline points="767,680 767,688" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="770.5" y="675" font-family="Arial, Helvetica, sans-serif" font-size="9.5" text-anchor="start" font-weight="normal" fill="#000" transform="rotate(-90 770.5 675)"></text>
+<polyline points="697,688 697,696" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="690,696 704,696" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="697" y="709" font-family="Arial, Helvetica, sans-serif" font-size="10" text-anchor="middle" font-weight="bold" fill="#000">+5V</text>
+<polyline points="767,688 767,690" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="759.0,690 775.0,690" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="762.0,694 772.0,694" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="765.0,698 769.0,698" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="712,525 712,628" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="733,525 733,628" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="754,525 754,624 830,624 830,650" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="830,650 830,662" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="830" cy="664" r="2.5" fill="#fff" stroke="#000" stroke-width="1.6"/>
+<circle cx="830" cy="686" r="2.5" fill="#fff" stroke="#000" stroke-width="1.6"/>
+<polyline points="830,688 830,700" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="830,684 818,668" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="830,700 830,708" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="822.0,708 838.0,708" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="825.0,712 835.0,712" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="828.0,716 832.0,716" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="830" y="736" font-family="Arial, Helvetica, sans-serif" font-size="9" text-anchor="middle" font-weight="bold" fill="#000">FLOAT SWITCH  S1</text>
+<text x="830" y="749" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="middle" font-weight="normal" fill="#000">RIGHT ANGLE · RESERVOIR</text>
+<polyline points="775,525 775,612 930,612 930,650" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="930,650 930,662" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="930" cy="664" r="2.5" fill="#fff" stroke="#000" stroke-width="1.6"/>
+<circle cx="930" cy="686" r="2.5" fill="#fff" stroke="#000" stroke-width="1.6"/>
+<polyline points="930,688 930,700" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="930,684 918,668" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="930,700 930,708" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="922.0,708 938.0,708" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="925.0,712 935.0,712" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="928.0,716 932.0,716" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="930" y="736" font-family="Arial, Helvetica, sans-serif" font-size="9" text-anchor="middle" font-weight="bold" fill="#000">LIMIT SW LEFT  S2</text>
+<text x="930" y="749" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="middle" font-weight="normal" fill="#000">TRAY 4 SIDE</text>
+<polyline points="796,525 796,600 1030,600 1030,650" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1030,650 1030,662" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1030" cy="664" r="2.5" fill="#fff" stroke="#000" stroke-width="1.6"/>
+<circle cx="1030" cy="686" r="2.5" fill="#fff" stroke="#000" stroke-width="1.6"/>
+<polyline points="1030,688 1030,700" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1030,684 1018,668" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1030,700 1030,708" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1022.0,708 1038.0,708" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1025.0,712 1035.0,712" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1028.0,716 1032.0,716" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1030" y="736" font-family="Arial, Helvetica, sans-serif" font-size="9" text-anchor="middle" font-weight="bold" fill="#000">LIMIT SW RIGHT  S3</text>
+<text x="1030" y="749" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="middle" font-weight="normal" fill="#000">TRAY 1 SIDE · HOME</text>
+<rect x="1120" y="700" width="86.0" height="42.0" rx="0" fill="none" stroke="#000" stroke-width="1.8" />
+<text x="1163" y="694" font-family="Arial, Helvetica, sans-serif" font-size="8.5" text-anchor="middle" font-weight="bold" fill="#000">STEP-DOWN 12V → 5V · U10</text>
+<polyline points="1108,714 1120,714" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1125" y="717.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">IN+</text>
+<polyline points="1108,730 1120,730" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1125" y="733.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="start" font-weight="normal" fill="#000">IN−</text>
+<polyline points="1206,714 1218,714" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1201" y="717.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="end" font-weight="normal" fill="#000">OUT+</text>
+<polyline points="1206,730 1218,730" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1201" y="733.5" font-family="Arial, Helvetica, sans-serif" font-size="7" text-anchor="end" font-weight="normal" fill="#000">OUT−</text>
+<polyline points="1108,714 1100,714" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1100,708 1100,720" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1096" y="718" font-family="Arial, Helvetica, sans-serif" font-size="10" text-anchor="end" font-weight="bold" fill="#000">+12V</text>
+<polyline points="1108,730 1108,730" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1100.0,730 1116.0,730" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1103.0,734 1113.0,734" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1106.0,738 1110.0,738" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1218,714 1226,714" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1226,708 1226,720" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1230" y="718" font-family="Arial, Helvetica, sans-serif" font-size="10" text-anchor="start" font-weight="bold" fill="#000">+5V</text>
+<polyline points="1218,730 1218,730" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1210.0,730 1226.0,730" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1213.0,734 1223.0,734" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1216.0,738 1220.0,738" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="1380" y="700" width="266.0" height="140.0" rx="0" fill="none" stroke="#000" stroke-width="1.8" />
+<text x="1513.0" y="764" font-family="Arial, Helvetica, sans-serif" font-size="10" text-anchor="middle" font-weight="bold" fill="#000">SOLAR CHARGE CONTROLLER</text>
+<text x="1513.0" y="778" font-family="Arial, Helvetica, sans-serif" font-size="8.5" text-anchor="middle" font-weight="normal" fill="#000">PWM · U11</text>
+<polyline points="1368,720 1380,720" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1385" y="723.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">PV+</text>
+<polyline points="1368,738 1380,738" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1385" y="741.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">PV−</text>
+<polyline points="1368,770 1380,770" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1385" y="773.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">BAT+</text>
+<polyline points="1368,790 1380,790" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1385" y="793.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">BAT−</text>
+<text x="1364" y="724" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="end" font-weight="normal" fill="#000">n.c.</text>
+<text x="1364" y="742" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="end" font-weight="normal" fill="#000">n.c.</text>
+<polyline points="1646.0,760 1658.0,760" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1641.0" y="763.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="end" font-weight="normal" fill="#000">LOAD+</text>
+<polyline points="1646.0,790 1658.0,790" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1641.0" y="793.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="end" font-weight="normal" fill="#000">LOAD−</text>
+<polyline points="1658.0,760 1666.0,760" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1666.0,754 1666.0,766" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1670.0" y="764" font-family="Arial, Helvetica, sans-serif" font-size="10" text-anchor="start" font-weight="bold" fill="#000">+12V</text>
+<polyline points="1658.0,790 1658.0,790" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1650.0,790 1666.0,790" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1653.0,794 1663.0,794" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1656.0,798 1660.0,798" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="1380" y="870" width="302.0" height="190.0" rx="0" fill="none" stroke="#000" stroke-width="1.8" />
+<polyline points="1500,948.0 1500,982.0" fill="none" stroke="#000" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1510,956.0 1510,974.0" fill="none" stroke="#000" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1530,948.0 1530,982.0" fill="none" stroke="#000" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1540,956.0 1540,974.0" fill="none" stroke="#000" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1470,965 1500,965" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1540,965 1570,965" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1531" y="1010" font-family="Arial, Helvetica, sans-serif" font-size="10" text-anchor="middle" font-weight="bold" fill="#000">BATTERY BT1 · 12V 12Ah</text>
+<text x="1531" y="1024" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="middle" font-weight="normal" fill="#000">SEALED LEAD-ACID</text>
+<polyline points="1368,920 1380,920" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1385" y="923.5" font-family="Arial, Helvetica, sans-serif" font-size="9" text-anchor="start" font-weight="normal" fill="#000">−</text>
+<polyline points="1368,960 1380,960" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1385" y="963.5" font-family="Arial, Helvetica, sans-serif" font-size="9" text-anchor="start" font-weight="normal" fill="#000">+</text>
+<polyline points="1368,770 1330,770 1330,960 1368,960" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1368,790 1340,790 1340,920 1368,920" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="900" y="800" width="398.0" height="196.0" rx="0" fill="none" stroke="#000" stroke-width="1.8" />
+<text x="1099.0" y="892" font-family="Arial, Helvetica, sans-serif" font-size="11" text-anchor="middle" font-weight="bold" fill="#000">SWITCHING POWER SUPPLY</text>
+<text x="1099.0" y="908" font-family="Arial, Helvetica, sans-serif" font-size="9" text-anchor="middle" font-weight="normal" fill="#000">220V AC → 12V 12.5A (150W)</text>
+<polyline points="888,840 900,840" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="905" y="843.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">L</text>
+<polyline points="888,870 900,870" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="905" y="873.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="start" font-weight="normal" fill="#000">N</text>
+<text x="884" y="859" font-family="Arial, Helvetica, sans-serif" font-size="9" text-anchor="end" font-weight="bold" fill="#000">AC</text>
+<polyline points="1298.0,830 1310.0,830" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1293.0" y="833.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="end" font-weight="normal" fill="#000">+V</text>
+<polyline points="1298.0,860 1310.0,860" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1293.0" y="863.5" font-family="Arial, Helvetica, sans-serif" font-size="8" text-anchor="end" font-weight="normal" fill="#000">−V</text>
+<polyline points="1310,830 1330,830" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1330" cy="830" r="3.2" fill="#000" stroke="#000" stroke-width="0"/>
+<polyline points="1310,860 1340,860" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1340" cy="860" r="3.2" fill="#000" stroke="#000" stroke-width="0"/>
+<rect x="40" y="670" width="560" height="205" rx="0" fill="none" stroke="#000" stroke-width="1.4" />
+<text x="50" y="688" font-family="Arial, Helvetica, sans-serif" font-size="11.5" text-anchor="start" font-weight="bold" fill="#000">NOTES:</text>
+<text x="50" y="708" font-family="Arial, Helvetica, sans-serif" font-size="10.5" text-anchor="start" font-weight="normal" fill="#000">1. Pin numbers follow firmware Config.ino. Trays 1–5 run along the machine.</text>
+<text x="50" y="726" font-family="Arial, Helvetica, sans-serif" font-size="10.5" text-anchor="start" font-weight="normal" fill="#000">2. All grounds are common (12V side and 5V side).</text>
+<text x="50" y="744" font-family="Arial, Helvetica, sans-serif" font-size="10.5" text-anchor="start" font-weight="normal" fill="#000">3. Relay module is active LOW. K1 and K2 swap the chain motor's polarity;</text>
+<text x="50" y="762" font-family="Arial, Helvetica, sans-serif" font-size="10.5" text-anchor="start" font-weight="normal" fill="#000">    the firmware never turns both on together.</text>
+<text x="50" y="780" font-family="Arial, Helvetica, sans-serif" font-size="10.5" text-anchor="start" font-weight="normal" fill="#000">4. ESP32 RX2 is fed through R1/R2 (1k/2k) to bring 5V down to 3.3V.</text>
+<text x="50" y="798" font-family="Arial, Helvetica, sans-serif" font-size="10.5" text-anchor="start" font-weight="normal" fill="#000">5. Float and limit switches close to GND; Mega uses INPUT_PULLUP.</text>
+<text x="50" y="816" font-family="Arial, Helvetica, sans-serif" font-size="10.5" text-anchor="start" font-weight="normal" fill="#000">6. Water is gravity-fed from the reservoir. There is no water pump.</text>
+<text x="50" y="834" font-family="Arial, Helvetica, sans-serif" font-size="10.5" text-anchor="start" font-weight="normal" fill="#000">7. The PSU charges the battery side; the controller's LOAD output is +12V.</text>
+<text x="50" y="852" font-family="Arial, Helvetica, sans-serif" font-size="10.5" text-anchor="start" font-weight="normal" fill="#000">8. Blocks are drawn to the real part sizes (1 mm = 2 px).</text>
+</svg>

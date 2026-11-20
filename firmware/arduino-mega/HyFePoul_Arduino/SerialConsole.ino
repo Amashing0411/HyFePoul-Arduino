@@ -20,14 +20,19 @@
     STOP                 stop a bench move at once
     WDTEST               stop the program to prove the watchdog restarts
                          the Mega (only while nothing moves; Watchdog.ino)
-    RESET                clear a latched E-stop (Safety.ino)
+    LIVE <seconds>       unfiltered grams of all 5 trays, 5 times a second,
+                         for 1-60 s (press tests; refused during a feed)
+    TRACE [ON|OFF]       test bench: live status lines while the machine
+                         keeps working normally (no command needed to run it)
+  EVENT lines are always printed: limit switches, float, water state,
+  buzzer, auger, chain and the low feed / low water alerts, as they change.
 
-  Safety: motor commands are refused while the E-stop is latched, a feed
-  cycle runs, or another bench move is active. Moves are non-blocking (the
-  loop, the E-stop and the ESP32 link keep running) and go through the
+  Safety: motor commands are refused while a feed cycle runs or another
+  bench move is active. STOP ends a bench move only, not a feed cycle. Moves
+  are non-blocking (the loop and the ESP32 link keep running) and go through the
   normal chain driver, so the relay interlock, dead time and limit switches
   still apply. A feed cycle cannot start during a bench move.
-  WEIGH, TARE and CAL block for about a second while they average readings.
+  WEIGH, TARE and CAL block for a few seconds while they average readings.
 */
 
 enum BenchMove { BENCH_IDLE, BENCH_JOG, BENCH_HOME, BENCH_DISPENSE };
@@ -45,7 +50,7 @@ bool benchMoveActive() {
   return benchMove != BENCH_IDLE;
 }
 
-// Called from handleLocalConsole() for every line except RESET.
+// Called from handleLocalConsole() for every line.
 void handleBenchCommand(String line) {
   line.trim();
   line.toUpperCase();
@@ -82,6 +87,12 @@ void handleBenchCommand(String line) {
     benchStop("stopped by STOP");
   } else if (cmd == "WDTEST") {
     benchWatchdogTest();
+  } else if (cmd == "LIVE") {
+    benchLive(args);
+  } else if (cmd == "TRACE") {
+    traceOn = args == "ON" ? true : args == "OFF" ? false : !traceOn;
+    Serial.print(F("TRACE "));
+    Serial.println(traceOn ? F("ON: status every 1 s (0.5 s while a motor runs). TRACE OFF to stop.") : F("OFF"));
   } else {
     Serial.print(F("Unknown command: "));
     Serial.println(line);
@@ -91,12 +102,13 @@ void handleBenchCommand(String line) {
 
 void benchHelp() {
   Serial.println(F("Bench commands: STATUS, WEIGH, TARE <1-5|ALL>, CAL <1-5> <grams>,"));
-  Serial.println(F("FACTORS, JOG <F|R> <ms>, HOME, DISP <ms>, FEED <grams>, STOP, WDTEST, RESET"));
+  Serial.println(F("FACTORS, JOG <F|R> <ms>, HOME, DISP <ms>, FEED <grams>, STOP, WDTEST,"));
+  Serial.println(F("TRACE [ON|OFF] (live status lines; the machine keeps working)"));
+  Serial.println(F("LIVE <seconds> (unfiltered tray grams 5x a second; idle only)"));
 }
 
 // Returns NULL when a motor command may run, otherwise why not.
 const char* benchMotorBlocked() {
-  if (emergencyStopActive) return "E-stop latched (release it and type RESET)";
   if (feedingActive) return "a feed cycle is running";
   if (benchMoveActive()) return "another bench move is running (STOP first)";
   return NULL;
@@ -138,24 +150,30 @@ int benchParseTray(const String& s) {
 
 void benchStatus() {
   Serial.println(F("--- STATUS ---"));
-  Serial.print(F("E-stop button: "));
-  Serial.print(digitalRead(EMERGENCY_STOP_PIN) == ESTOP_PRESSED ? F("PRESSED") : F("released"));
-  Serial.print(F("  latch: "));
-  Serial.println(emergencyStopActive ? F("LATCHED") : F("clear"));
   Serial.print(F("Home switch: "));
   Serial.print(isHomeSwitchPressed() ? F("PRESSED") : F("open"));
   Serial.print(F("  End switch: "));
   Serial.println(isEndSwitchPressed() ? F("PRESSED") : F("open"));
   Serial.print(F("Reservoir float: "));
   Serial.println(isWaterLow() ? F("LOW") : F("ok"));
+  // The filtered distance is what the level uses; the fresh ping shows the
+  // noise.
   float cm = readUltrasonicDistanceCm();
-  Serial.print(F("Hopper: "));
+  Serial.print(F("Hopper: filtered "));
+  if (hopperSampleCount > 0) {
+    Serial.print(medianHopperDistanceCm(), 1);
+    Serial.print(F(" cm"));
+  } else {
+    Serial.print(F("none"));
+  }
+  Serial.print(F(" (ping "));
   if (cm < 0) {
     Serial.print(F("no echo"));
   } else {
     Serial.print(cm, 1);
     Serial.print(F(" cm"));
   }
+  Serial.print(')');
   Serial.print(F(" -> "));
   Serial.print(currentHopperLevelPercent, 0);
   Serial.println(F(" %"));
@@ -172,14 +190,17 @@ void benchStatus() {
   Serial.print(F("Trays (g):"));
   for (uint8_t i = 0; i < TRAY_COUNT; i++) {
     Serial.print(' ');
-    Serial.print(trayWeightsGrams[i], 1);
+    Serial.print(lround(trayWeightsGrams[i]));
+    if (trayScaleFault[i]) Serial.print(F("(FAULT)"));
   }
-  Serial.println();
+  Serial.print(F("  total "));
+  Serial.println(lround(currentFeedWeightGrams));
 }
 
 void benchWeigh() {
   Serial.println(F("--- WEIGH (5 samples per tray) ---"));
   for (uint8_t i = 0; i < TRAY_COUNT; i++) {
+    feedWatchdog(); // all 5 trays together take longer than the watchdog limit
     Serial.print(F("Tray "));
     Serial.print(i + 1);
     Serial.print(F(": "));
@@ -190,7 +211,12 @@ void benchWeigh() {
     long raw = trayScales[i].read_average(5);
     float grams = (raw - trayScales[i].get_offset()) / trayScales[i].get_scale();
     Serial.print(grams, 1);
-    Serial.print(F(" g   raw "));
+    Serial.print(F(" g   shown "));
+    Serial.print(lround(trayWeightsGrams[i]));
+    Serial.print(F(" g   median "));
+    Serial.print(trayMedianGrams[i], 1);
+    if (trayScaleFault[i]) Serial.print(F("   SCALE FAULT"));
+    Serial.print(F("   raw "));
     Serial.print(raw);
     Serial.print(F("   factor "));
     Serial.println(trayScales[i].get_scale(), 1);
@@ -209,16 +235,22 @@ void benchTare(const String& args) {
     first = last = t;
   }
   for (uint8_t i = first; i <= last; i++) {
+    feedWatchdog(); // TARE ALL takes longer than the watchdog limit
     Serial.print(F("Tare tray "));
     Serial.print(i + 1);
     if (trayScales[i].wait_ready_timeout(500)) {
       trayScales[i].tare(10);
       trayWeightsGrams[i] = 0.0f;
+      resetTrayFilter(i, 0.0f);
+      trayScaleFault[i] = false;
       Serial.println(F(": done"));
     } else {
       Serial.println(F(": NOT READY"));
     }
   }
+  // Kept for every later reset: trays now read the feed actually in them.
+  saveTrayZeros();
+  Serial.println(F("Tray zeros saved (EEPROM). Only TARE with EMPTY trays."));
 }
 
 void benchCalibrate(const String& args) {
@@ -250,6 +282,7 @@ void benchCalibrate(const String& args) {
   }
   float factor = value / grams;
   trayScales[t].set_scale(factor);
+  resetTrayFilter(t, grams);
   LOAD_CELL_CALIBRATION_FACTORS[t] = factor;
   Serial.print(F("Tray "));
   Serial.print(t + 1);
@@ -354,11 +387,6 @@ void benchStop(const char* why) {
 void updateBench() {
   if (benchMove == BENCH_IDLE) return;
 
-  if (emergencyStopActive) {
-    benchStop("E-stop");
-    return;
-  }
-
   if (benchMove == BENCH_DISPENSE) {
     if (millis() - benchStartMillis >= benchDurationMs) {
       benchStop("time up");
@@ -413,4 +441,136 @@ void updateBench() {
     Serial.println(F(" ms."));
     benchMove = BENCH_IDLE;
   }
+}
+
+// --- Test bench trace (TRACE ON) ---
+// The machine runs exactly as normal; this only prints what it is doing.
+// Idle: one full line a second. While a motor runs: a short line every
+// half second (long lines would stall the loop on the 64-byte serial buffer).
+void updateTrace() {
+  static unsigned long last = 0;
+  if (!traceOn) return;
+  bool moving = motorRunning();
+  if (millis() - last < (moving ? TRACE_MOTOR_MS : TRACE_IDLE_MS)) return;
+  last = millis();
+
+  Serial.print(F("TRACE "));
+  Serial.print(millis() / 1000.0f, 1);
+  Serial.print(F("s "));
+  Serial.print(feedingActive ? getCycleStepName(cycleStep) : "IDLE");
+  if (currentTray > 0) {
+    Serial.print(F(" t")); Serial.print(currentTray);
+    Serial.print(F(" s")); Serial.print(currentSpot + 1);
+  }
+  if (moving) {
+    if (currentTray > 0) {
+      Serial.print(F(" | ")); Serial.print(trayWeightsGrams[currentTray - 1], 1);
+      Serial.print(F("g of ")); Serial.print(lround(activeFeedTargetGrams));
+    }
+    Serial.print(F(" | chain "));
+    Serial.print(chainDirection == CHAIN_FORWARD ? F("FWD") : chainDirection == CHAIN_REVERSE ? F("REV") : F("off"));
+    Serial.print(F(" auger "));
+    Serial.println(digitalRead(DISPENSER_RELAY_PIN) == RELAY_ON ? F("ON") : F("off"));
+    return;
+  }
+  Serial.print(F(" | g"));
+  for (uint8_t i = 0; i < TRAY_COUNT; i++) { Serial.print(' '); Serial.print(lround(trayWeightsGrams[i])); }
+  Serial.print(F(" = ")); Serial.print(lround(currentFeedWeightGrams));
+  Serial.print(F(" | med"));
+  for (uint8_t i = 0; i < TRAY_COUNT; i++) { Serial.print(' '); Serial.print(trayMedianGrams[i], 1); }
+  Serial.print(F(" | flt "));
+  for (uint8_t i = 0; i < TRAY_COUNT; i++) Serial.print(trayScaleFault[i] ? "X" : "-");
+  Serial.print(F(" | hop ")); Serial.print(currentHopperLevelPercent, 0); Serial.print("%");
+  Serial.print(F(" | water ")); Serial.print(waterLow ? F("LOW") : F("OK"));
+  Serial.print(F(" | H")); Serial.print(isHomeSwitchPressed() ? 1 : 0);
+  Serial.print(F(" E")); Serial.print(isEndSwitchPressed() ? 1 : 0);
+  Serial.print(F(" | esp ")); Serial.println(esp32Online ? F("on") : F("off"));
+}
+
+// --- Input and output events (always printed) ---
+// One line whenever something changes, so the serial monitor shows every
+// switch press, the float, the buzzer, the auger and the chain as they happen.
+// The buzzer is reported per sounding (start and stop), not per beep.
+void printEvents() {
+  static bool first = true;
+  static bool home, end, floatLow, water, auger, lowFeed, lowWater;
+  static ChainDirection chain;
+  static bool buzzerSounding = false;
+  static unsigned long buzzerChangeMillis = 0;
+  static bool buzzerPinWas = false;
+
+  bool h = isHomeSwitchPressed();
+  bool e = isEndSwitchPressed();
+  bool fl = isWaterLow();
+  bool a = digitalRead(DISPENSER_RELAY_PIN) == RELAY_ON;
+  bool bz = digitalRead(BUZZER_PIN) == BUZZER_ON;
+
+  if (first) {
+    first = false;
+    home = h; end = e; floatLow = fl; water = waterLow; auger = a; chain = chainDirection;
+    lowFeed = lowFeedAlertSent; lowWater = lowWaterAlertSent;
+    buzzerPinWas = bz; buzzerSounding = bz; buzzerChangeMillis = millis();
+    return;
+  }
+
+  if (h != home) { home = h; Serial.println(h ? F("EVENT home limit switch PRESSED") : F("EVENT home limit switch released")); }
+  if (e != end) { end = e; Serial.println(e ? F("EVENT end limit switch PRESSED") : F("EVENT end limit switch released")); }
+  if (fl != floatLow) { floatLow = fl; Serial.println(fl ? F("EVENT float switch: down (reads LOW)") : F("EVENT float switch: up (reads OK)")); }
+  if (waterLow != water) { water = waterLow; Serial.println(waterLow ? F("EVENT water state -> LOW (after debounce)") : F("EVENT water state -> OK")); }
+  if (a != auger) { auger = a; Serial.println(a ? F("EVENT auger ON") : F("EVENT auger off")); }
+  if (chainDirection != chain) {
+    chain = chainDirection;
+    Serial.println(chain == CHAIN_FORWARD ? F("EVENT chain FORWARD") : chain == CHAIN_REVERSE ? F("EVENT chain REVERSE") : F("EVENT chain stopped"));
+  }
+  if (lowFeedAlertSent != lowFeed) { lowFeed = lowFeedAlertSent; Serial.println(lowFeed ? F("EVENT LOW FEED alert on (buzzer reminders start)") : F("EVENT LOW FEED cleared")); }
+  if (lowWaterAlertSent != lowWater) { lowWater = lowWaterAlertSent; Serial.println(lowWater ? F("EVENT LOW WATER alert on (buzzer reminders start)") : F("EVENT LOW WATER cleared")); }
+
+  // Buzzer: beeps inside a burst are 200 ms apart, so a sounding only ends
+  // after 1 s of silence.
+  if (bz != buzzerPinWas) { buzzerPinWas = bz; buzzerChangeMillis = millis(); }
+  if (bz && !buzzerSounding) {
+    buzzerSounding = true;
+    Serial.print(F("EVENT buzzer sounding ("));
+    if (buzzerActive) Serial.print(F("fault beep"));
+    else if (lowFeedAlertSent && lowWaterAlertSent) Serial.print(F("low feed + low water reminder"));
+    else if (lowFeedAlertSent) Serial.print(F("low feed reminder"));
+    else if (lowWaterAlertSent) Serial.print(F("low water reminder"));
+    else Serial.print(F("other"));
+    Serial.println(F(")"));
+  } else if (!bz && buzzerSounding && millis() - buzzerChangeMillis > 1000UL) {
+    buzzerSounding = false;
+    Serial.println(F("EVENT buzzer quiet"));
+  }
+}
+
+// Unfiltered tray readings for press tests: every sample, no median, no hold.
+// Blocks for the given time, so it is refused while a feed cycle runs.
+void benchLive(const String& args) {
+  if (feedingActive || benchMoveActive()) {
+    Serial.println(F("Refused: the machine is busy."));
+    return;
+  }
+  long secs = args.toInt();
+  if (secs < 1 || secs > 60) secs = 20;
+  Serial.print(F("LIVE for ")); Serial.print(secs); Serial.println(F(" s (grams, trays 1-5, unfiltered):"));
+  unsigned long start = millis();
+  while (millis() - start < (unsigned long)secs * 1000UL) {
+    feedWatchdog();
+    unsigned long t0 = millis();
+    Serial.print(F("LIVE "));
+    Serial.print((t0 - start) / 1000.0f, 1);
+    Serial.print('s');
+    for (uint8_t i = 0; i < TRAY_COUNT; i++) {
+      Serial.print(' ');
+      if (trayScales[i].wait_ready_timeout(150)) {
+        long raw = trayScales[i].read();
+        Serial.print(((float)raw - (float)trayScales[i].get_offset()) / trayScales[i].get_scale(), 0);
+      } else {
+        Serial.print(F("--"));
+      }
+    }
+    Serial.println();
+    while (millis() - t0 < 200UL) { feedWatchdog(); }
+  }
+  Serial.println(F("LIVE done"));
 }

@@ -21,6 +21,7 @@ Arduino Mega 2560 (primary controller)
 - `SDLogging.ino` — CSV data logging, one file per month, 24-month cleanup
 - `DailyStats.ino` — per-day totals (feed, cycles, problems) kept in EEPROM and sent as `SUMMARY` lines
 - `Safety.ino` — emergency stop (latched until reset) and buzzer
+- `ScheduleSync.ino` — R-54: schedule times saved on the Nextion are sent to the cloud (`SCHED_LOCAL` / `SCHED_SYNCED`), kept pending in EEPROM until confirmed; an older cloud restore cannot undo them
 - `ScheduleStorage.ino` — feeding schedules saved to and loaded from EEPROM (survive power loss)
 - `Watchdog.ino` — hardware watchdog: restarts the Mega within 2 s if the program stops; logs `WATCHDOG_RESET`; bench check with `WDTEST`
 - `SerialConsole.ino` — bench commissioning commands on the USB serial monitor (`HELP`): status, load-cell tare/calibration, chain jog/home, dispenser test, local feed. See `docs/hardware-commissioning-procedure.md` §7a
@@ -58,27 +59,29 @@ Install the required libraries through Arduino IDE's Library Manager where neces
 
 The full, current specification is [`docs/mega-esp32-protocol.md`](../../../docs/mega-esp32-protocol.md). In short:
 
-ESP32 → Mega (each line at most 63 characters + `\n`, because `Serial1` has a 64-byte receive buffer):
+ESP32 → Mega (each line at most 63 characters + `\n`, because `Serial3` has a 64-byte receive buffer):
 - `TIME|YYYY-MM-DD|HH:MM:SS` (UTC)
 - `STATUS|ONLINE` / `STATUS|OFFLINE` (every 10 s; also the link heartbeat)
 - `CMD|ID:<C0-C9 or R0-R2>|ACTION:<action>|…`
 
 Mega → ESP32:
-- `DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|estop|timeSource` (every 10 s; tray grams, target per tray, cycle step and tray)
+- `DATA|t1|t2|t3|t4|t5|target|hopper|waterLow|feeding|step|tray|timeSource` (every 10 s; tray grams, target per tray, cycle step and tray)
 - `EVENT|<name>` (including `SYSTEM_START` at boot)
 - `CMD_ACK|ID:<id>|STATUS:ACCEPTED|REJECTED[|REASON:…]` and `CMD_DONE|ID:<id>|STATUS:SUCCESS|FAILED[|REASON:…]`
-- `SUMMARY|YYYY-MM-DD|feedG|done|incomplete|trayTimeouts|chainFaults|lowWater|lowFeed|estops` (today and yesterday, after each feed cycle, at the day change and every 30 min)
+- `SUMMARY|YYYY-MM-DD|feedG|done|incomplete|trayTimeouts|chainFaults|lowWater|lowFeed` (today and yesterday, after each feed cycle, at the day change and every 30 min)
 
 ## Calibration sketches
 
 Four small stand-alone sketches sit next to this one, for the bench. Upload one instead of the full firmware; each prints `RESULT` lines to paste into `Config.ino`. Then upload `HyFePoul_Arduino` again. Run them in this order:
 
-1. `../Inputs_Calibration/` — no motors driven. Switch polarity (`REST`, `WATCH`): limit switches, float switch, E-stop; ultrasonic `EMPTY` / `FULL` hopper distances; `NEXTION` finds the display's baud rate. Results: `LIMIT_SWITCH_PRESSED`, `WATER_LOW_LEVEL`, `ESTOP_PRESSED`, `HOPPER_EMPTY/FULL_DISTANCE_CM`, Nextion baud.
-2. `../Outputs_Calibration/` — motor power off first. `LEVEL HIGH|LOW` (relay board polarity), `PULSE` each relay, `FLOW` + `GRAMS` (dispenser grams per second), `BUZZ`/`TONE`. Results: `RELAY_ON`, `TRAY_DISPENSE_TIMEOUT_MS`, buzzer type.
+1. `../Inputs_Calibration/` — no motors driven. Switch polarity (`REST`, `WATCH`): limit switches, float switch; ultrasonic `EMPTY` / `FULL` hopper distances; `NEXTION` finds the display's baud rate. Results: `LIMIT_SWITCH_PRESSED`, `WATER_LOW_LEVEL`, `HOPPER_EMPTY/FULL_DISTANCE_CM`, Nextion baud.
+2. `../Outputs_Calibration/` — hopper mid-chain, hand on the motor power switch. `PROBE` and `LEVEL HIGH|LOW` (relay board polarity), `PULSE` each relay, `FLOW` + `GRAMS` (dispenser grams per second), `BUZZ`/`TONE`. Results: `RELAY_ON`, `TRAY_DISPENSE_TIMEOUT_MS`, buzzer type.
 3. `../HX711_Calibration/` — the 5 tray load cells: `TARE`, `CAL <tray> <grams>`, `READ`, `WATCH`, `CHAN <tray> <A|B>`; `FACTORS` prints the `LOAD_CELL_CALIBRATION_FACTORS` line.
-4. `../Chain_Calibration/` — chain direction and timing (copy `RELAY_ON`, `LIMIT_SWITCH_PRESSED`, `ESTOP_PRESSED` into it first): `SIDE <L|R>` (start side), `JOG`/`SWAP` (which relay moves which way), `HOME`, then `GO` and `M` at each tray, `NEXT` to the far limit switch; `PLAY` replays the times; `RESULT` prints `HOPPER_START_SIDE`, the relay pins, `TRAY_TRAVEL_MS` and the chain timeouts.
+4. `../Chain_Calibration/` — chain direction and timing (copy `RELAY_ON`, `LIMIT_SWITCH_PRESSED` into it first): `SIDE <L|R>` (start side), `SPOTS <n>` (feed spots per tray), `JOG`/`SWAP` (which relay moves which way), `HOME`, then `GO`, with `M` and `NEXT` at each tray's first and last spot, then `NEXT` to the far limit switch; `PLAY` replays the run spot by spot; `SET` and `SPAN` adjust it; `RESULT` prints `HOPPER_START_SIDE`, the relay pins, `TRAY_SPOT_COUNT`, `TRAY_TRAVEL_MS`, `TRAY_SPAN_MS` and the chain timeouts.
 
-Chain setup in `Config.ino`: `HOPPER_START_SIDE` (left or right) picks which limit switch is the start ("home") and which relay moves the hopper away from it. Trays keep their numbers (1-5, left to right) and their own load cells whichever side the hopper starts from; from the right, the cycle visits tray 5 first. `TRAY_TRAVEL_MS` is in travel order from the start side.
+Chain setup in `Config.ino`: `HOPPER_START_SIDE` (left or right) picks which limit switch is the start ("home") and which relay moves the hopper away from it. From the front of the device the trays are, left to right, 4, 5, 3, 2, 1 (`TRAY_AT_POSITION`). They keep their numbers and their own load cells whichever side the hopper starts from; from the right, the cycle visits 1, 2, 3, 5, 4. `TRAY_TRAVEL_MS` and `TRAY_SPAN_MS` are in travel order from the start side.
+
+Dispensing: at each tray the hopper stops at `TRAY_SPOT_COUNT` spots across the tray and feeds up to a running target (with 5 spots and 50 g: 10, 20, 30, 40, then 50 g), so an overshoot is taken off the next spot. There is no emergency stop: cutting the motor power is the only way to stop a running cycle by hand.
 
 ## CSV log
 
@@ -90,7 +93,7 @@ The Mega writes one file per local month (UTC+8): `HFyyyymm.CSV`, for example `H
 
 ## Daily totals
 
-`DailyStats.ino` counts, per local day: feed dispensed (each tray's load-cell reading when its dispensing ends, including a partial tray after a timeout, an empty hopper or an E-stop), feed cycles completed and incomplete, tray timeouts, chain faults, low-water and low-feed episodes, and E-stops. Today's and yesterday's records are kept in EEPROM at address 64 (2 × 26 bytes; the schedule store uses 0–24), so a restart keeps the day. Counts made before the clock is set are kept for the first valid date. The ESP32 writes each `SUMMARY` to `dailySummary/{deviceId}/{date}`, which the app's History → Monthly view reads.
+`DailyStats.ino` counts, per local day: feed dispensed (each tray's load-cell reading when its dispensing ends, including a partial tray after a timeout or an empty hopper), feed cycles completed and incomplete, tray timeouts, chain faults, low-water and low-feed episodes. Today's and yesterday's records are kept in EEPROM at address 64 (2 × 26 bytes; the schedule store uses 0–24), so a restart keeps the day. Counts made before the clock is set are kept for the first valid date. The ESP32 writes each `SUMMARY` to `dailySummary/{deviceId}/{date}`, which the app's History → Monthly view reads.
 
 Excel can open CSV directly. The Arduino is not generating a native `.xlsx` file.
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import { sortAlerts } from '../alerts';
+import { sortAlerts, isRetiredAlert } from '../alerts';
 import { Alert } from '../../types';
 
 const alert = (id: string, minutesAgo: number, resolved: boolean): Alert => ({
@@ -24,5 +24,12 @@ describe('sortAlerts', () => {
     const input = [alert('a', 1, true), alert('b', 2, false)];
     sortAlerts(input);
     expect(input.map(a => a.id)).toEqual(['a', 'b']);
+  });
+});
+
+describe('isRetiredAlert', () => {
+  it('hides old emergency stop records only', () => {
+    expect(isRetiredAlert('EMERGENCY_STOP')).toBe(true);
+    expect(isRetiredAlert('LOW_FEED')).toBe(false);
   });
 });

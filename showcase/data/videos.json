@@ -1,0 +1,10 @@
+[
+  {"id": "app-feed", "title": "Manual feed from the app", "text": "Setting an amount in the mobile app and starting a feed.", "src": null},
+  {"id": "scheduled-feed", "title": "Scheduled feed", "text": "The machine starting a feed by itself at the saved time.", "src": null},
+  {"id": "panel-feed", "title": "Feed Now on the panel", "text": "Starting a feed from the touch screen on the machine.", "src": null},
+  {"id": "missing-only", "title": "Pouring only the missing amount", "text": "Each tray is weighed first and receives only what it lacks.", "src": null},
+  {"id": "low-water", "title": "Low-water alert", "text": "The float drops and the alert reaches the app.", "src": null},
+  {"id": "low-feed", "title": "Low-feed alert", "text": "The hopper runs low and the alert reaches the app.", "src": null},
+  {"id": "nextion-screens", "title": "Touch screen tour", "text": "A walk through the screens on the machine.", "src": null},
+  {"id": "app-tour", "title": "Mobile app tour", "text": "A walk through the mobile app.", "src": null}
+]

@@ -22,7 +22,7 @@ void loop() {
   // Proves the program is still running (Watchdog.ino).
   feedWatchdog();
 
-  // Safety is checked first so an emergency stop can take priority.
+  // Limit switches are checked first, whatever the cycle is doing.
   handleSafety();
   handleLocalConsole();
   handleNextionInput();
@@ -41,11 +41,17 @@ void loop() {
   // Commissioning moves started from the USB serial monitor.
   updateBench();
 
+  // Test bench status lines (TRACE ON on the serial monitor).
+  updateTrace();
+
   // Communicate with ESP32.
   handleESP32Communication();
 
-  // Update local HMI.
-  updateNextion();
+  // Update local HMI. Display writes can block for tens of milliseconds, so
+  // they wait while the chain or dispenser is running on a timed or weighed stop.
+  if (!motorRunning()) {
+    updateNextion();
+  }
 
   // Save periodic system data/events.
   handleSDLogging();
@@ -56,7 +62,12 @@ void loop() {
   // Non-blocking alarm handling.
   updateBuzzer();
 
+  // One serial line per switch, float, buzzer, auger or chain change.
+  printEvents();
+
   // Small loop interval. The wait keeps reading the ESP32 UART so command
   // lines longer than the 64-byte receive buffer are not cut off.
-  waitServicingESP32(MAIN_LOOP_DELAY_MS);
+  // Motors running: keep the loop tight so timed moves and weight stops are
+  // accurate.
+  waitServicingESP32(motorRunning() ? MOTOR_LOOP_DELAY_MS : MAIN_LOOP_DELAY_MS);
 }

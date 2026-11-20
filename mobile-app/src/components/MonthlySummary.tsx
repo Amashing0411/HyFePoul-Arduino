@@ -37,11 +37,9 @@ export default function MonthlySummary() {
     language === 'tl' ? 'fil-PH' : 'en-US',
     { month: 'long', year: 'numeric', timeZone: 'UTC' }
   );
-  const fileMonth = `${month.year}${String(month.month).padStart(2, '0')}`;
   const problems = [
     { label: t('monthLowWater'), value: totals.lowWaterAlerts },
     { label: t('monthLowFeed'), value: totals.lowFeedAlerts },
-    { label: t('monthEstops'), value: totals.emergencyStops },
     { label: t('monthTrayTimeouts'), value: totals.trayTimeouts },
     { label: t('monthChainFaults'), value: totals.chainFaults },
   ];
@@ -144,7 +142,6 @@ export default function MonthlySummary() {
               <Text style={typography.caption}>1</Text>
               <Text style={typography.caption}>{bars.length}</Text>
             </View>
-            <Text style={[typography.caption, { marginTop: spacing.xs }]}>{t('monthDetailHint', { month: fileMonth })}</Text>
           </View>
         </>
       )}

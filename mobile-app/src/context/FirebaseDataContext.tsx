@@ -25,6 +25,7 @@ interface FirebaseDataContextType {
   error: string | null;
   issueCommand: (command: RTDBCommandAction, parameters?: Record<string, any>) => Promise<string | null>;
   updateSchedule: (schedule: RTDBSchedule) => Promise<void>;
+  deleteSchedule: (index: number) => Promise<void>;
 }
 
 const FirebaseDataContext = createContext<FirebaseDataContextType | undefined>(undefined);
@@ -191,8 +192,29 @@ export const FirebaseDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
+  // Turns the slot off on the Mega, then removes it so the app shows the
+  // slot as empty ("Add Schedule"). Before, Delete only disabled the slot and
+  // reset it to 00:00, so the card stayed and looked undeleted.
+  const deleteSchedule = async (index: number): Promise<void> => {
+    if (!ownedDevices || ownedDevices.length === 0 || !user) return;
+    try {
+      const activeDeviceId = ownedDevices[0].id;
+      await rtdbService.createCommand(activeDeviceId, 'SCHEDULE_SET', user.uid, {
+        index,
+        hour: 0,
+        minute: 0,
+        targetGrams: 50, // unused while disabled; the Mega needs 1-1000 g
+        enabled: false
+      });
+      await rtdbService.removeSchedule(activeDeviceId, `sched_${index}`);
+    } catch (e) {
+      console.error("Failed to delete schedule:", e);
+      throw e;
+    }
+  };
+
   return (
-    <FirebaseDataContext.Provider value={{ deviceData, systemData, deviceOnline, controllerResponding, nowMs, commands, schedules, scheduleStatus, loading, error, issueCommand, updateSchedule }}>
+    <FirebaseDataContext.Provider value={{ deviceData, systemData, deviceOnline, controllerResponding, nowMs, commands, schedules, scheduleStatus, loading, error, issueCommand, updateSchedule, deleteSchedule }}>
       {children}
     </FirebaseDataContext.Provider>
   );

@@ -1,0 +1,33 @@
+/* Only the theme and utilities: Tailwind's global reset would restyle the rest of the site. */
+@import "tailwindcss/theme.css";
+@import "tailwindcss/utilities.css";
+@source "../components/ui/team-lanyard-rail.tsx";
+
+@theme static {
+  --color-background: #e8eff8;
+  --color-foreground: #14233f;
+  --color-card: #ffffff;
+  --color-card-foreground: #14233f;
+  --color-muted: #e3edfb;
+  --color-muted-foreground: #4d5d78;
+  --color-border: #d5e0ee;
+  --color-ring: #0d57cf;
+  --color-chart-1: #0d57cf;
+  --color-chart-2: #08875f;
+  --color-chart-3: #2f95dc;
+  --color-chart-4: #12306b;
+  --color-chart-5: #e0851a;
+}
+
+/* The small part of the reset this component relies on, kept inside it. */
+[data-slot="team-lanyard-rail"],
+[data-slot="team-lanyard-rail"] *,
+[data-slot="team-lanyard-rail"] ::before,
+[data-slot="team-lanyard-rail"] ::after {
+  box-sizing: border-box;
+  border: 0 solid;
+}
+[data-slot="team-lanyard-rail"] p,
+[data-slot="team-lanyard-rail"] h2 { margin: 0; }
+[data-slot="team-lanyard-rail"] button { background: none; font: inherit; color: inherit; }
+[data-slot="team-lanyard-rail"] img { max-width: none; }

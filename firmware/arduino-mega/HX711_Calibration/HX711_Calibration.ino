@@ -37,28 +37,33 @@
 
 const uint8_t TRAY_COUNT = 5;
 
+// Tray numbers are the trays' own labels. From the front of the device, left
+// to right, they are 4, 5, 3, 2, 1. Each HX711 uses two analog pins as plain
+// digital pins.
+
 // Tray 1 HX711
-const uint8_t TRAY1_HX711_SCK_PIN = 22;
-const uint8_t TRAY1_HX711_DT_PIN  = 24;
+const uint8_t TRAY1_HX711_SCK_PIN = A1;
+const uint8_t TRAY1_HX711_DT_PIN  = A0;
 
 // Tray 2 HX711
-const uint8_t TRAY2_HX711_SCK_PIN = 26;
-const uint8_t TRAY2_HX711_DT_PIN  = 28;
+const uint8_t TRAY2_HX711_SCK_PIN = A3;
+const uint8_t TRAY2_HX711_DT_PIN  = A2;
 
 // Tray 3 HX711
-const uint8_t TRAY3_HX711_SCK_PIN = 30;
-const uint8_t TRAY3_HX711_DT_PIN  = 32;
+const uint8_t TRAY3_HX711_SCK_PIN = A5;
+const uint8_t TRAY3_HX711_DT_PIN  = A4;
 
 // Tray 4 HX711
-const uint8_t TRAY4_HX711_SCK_PIN = 34;
-const uint8_t TRAY4_HX711_DT_PIN  = 36;
+const uint8_t TRAY4_HX711_SCK_PIN = A7;
+const uint8_t TRAY4_HX711_DT_PIN  = A6;
 
 // Tray 5 HX711
-const uint8_t TRAY5_HX711_SCK_PIN = 38;
-const uint8_t TRAY5_HX711_DT_PIN  = 40;
+const uint8_t TRAY5_HX711_SCK_PIN = A9;
+const uint8_t TRAY5_HX711_DT_PIN  = A8;
 
-// Starting factors: the current values in Config.ino (placeholders).
-float factors[TRAY_COUNT] = { -7050.0f, -7050.0f, -7050.0f, -7050.0f, -7050.0f };
+// Starting factors: 1.0 = not calibrated yet, so "g" shows counts above zero
+// until CAL sets the real factor. Never 0: grams = counts / factor.
+float factors[TRAY_COUNT] = { 1787.856f, 1960.0f, 384.628f, 1959.096f, 1866.02f };
 
 const uint8_t SAMPLES = 10;            // readings averaged for TARE / CAL / READ
 const unsigned long READY_TIMEOUT_MS = 1000;
@@ -70,6 +75,10 @@ unsigned long lastWatchMillis = 0;
 String inputLine = "";
 
 void setup() {
+  // Low-trigger buzzer module on pin 11: hold it HIGH so it stays quiet.
+  digitalWrite(11, HIGH);
+  pinMode(11, OUTPUT);
+
   Serial.begin(115200);
   Serial.println();
   Serial.println(F("HyFePoul HX711 calibration (5 trays)"));
@@ -197,13 +206,18 @@ void printTray(uint8_t tray, uint8_t samples) {
   if (!trayReady(tray)) return;
   HX711& scale = trayScales[tray - 1];
   long raw = scale.read_average(samples);
-  float grams = (raw - scale.get_offset()) / scale.get_scale();
+  float factor = scale.get_scale();
 
   Serial.print(F("Tray "));
   Serial.print(tray);
   Serial.print(F(": "));
-  Serial.print(grams, 1);
-  Serial.print(F(" g   raw "));
+  if (factor == 0.0f) {
+    Serial.print(F("-- (factor 0, run CAL)"));
+  } else {
+    Serial.print((raw - scale.get_offset()) / factor, 1);
+    Serial.print(F(" g"));
+  }
+  Serial.print(F("   raw "));
   Serial.print(raw);
   Serial.print(F("   factor "));
   Serial.println(scale.get_scale(), 2);

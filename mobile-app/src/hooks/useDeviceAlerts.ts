@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Alert, AlertType } from '../types';
 import { rtdbService } from '../services/rtdbService';
-import { sortAlerts } from '../utils/alerts';
+import { isRetiredAlert, sortAlerts } from '../utils/alerts';
 
 export function useDeviceAlerts() {
   const { ownedDevices } = useAuth();
@@ -32,7 +32,7 @@ export function useDeviceAlerts() {
         return;
       }
 
-      const mappedData: Alert[] = records.map(d => ({
+      const mappedData: Alert[] = records.filter(d => !isRetiredAlert(d.name)).map(d => ({
         id: d.eventId,
         type: d.name as AlertType,
         timestamp: new Date(d.timestamp).toISOString(),

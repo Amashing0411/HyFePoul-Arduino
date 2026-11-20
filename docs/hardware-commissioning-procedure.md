@@ -176,7 +176,7 @@ The Mega firmware has commissioning commands on the USB serial monitor (115200 b
 **Nextion**: Verify boot and baud rate. Verify feed/water data mirrors Mega state. Disconnect UART, verify screen handles timeout gracefully.
 
 **Nextion onsite panel (R-20 / HIT-12):** the checked-in project and Mega code have page/component mappings; do not re-enter IDs unless physical evidence shows a mismatch. The phone app is for the owner when away; it does not communicate directly with the Mega.
-1. Keep actuator loads disconnected. Confirm the actual panel model, common ground, UART levels, wiring and 9600-baud setting. The current source is `Nextion/ChickenFeederV1 (1).hmi`; use the matching compiled `Nextion/ChickenFeederV1 (1).tft` only after verifying the panel model and resolution. Record the observed version before flashing.
+1. Keep actuator loads disconnected. Confirm the actual panel model, common ground, UART levels, wiring and 9600-baud setting. The current source is `Nextion/HyFePoul.hmi`; use the matching compiled `Nextion/HyFePoul.tft` only after verifying the panel model and resolution. Record the observed version before flashing.
 2. With the Mega USB serial monitor open at 115200, navigate Home, Schedule, Recent History (HMI page named `Log`), System Check, Feed Target and all three schedule editors. Confirm the Mega reports the expected page and touch IDs from `Nextion/Nextion_IDs.txt`.
 3. Confirm Home feed, water, status and local-time fields update. On System Check, verify hopper, water, ESP32 link and target values; press Refresh and confirm the summary updates.
 4. Connect the ESP32 to Firebase and change time, target grams and enabled state in the app. Confirm page 2 reflects all three fields. Compare the four newest p3 History rows with the app, press Refresh, and verify newest-first order. Test empty and offline states. Adjust each HMI schedule time, save it, and confirm the value remains after a Mega power cycle. The HMI edit is local and may be replaced by cloud restore (R-54).
@@ -189,7 +189,7 @@ The Mega firmware has commissioning commands on the USB serial monitor (115200 b
 3. With the ESP32 connected and online, change a schedule in the app, power-cycle only the Mega, and verify the ESP32 log shows `Schedule restore complete.` and that the Mega slots match the app (including deleted slots staying disabled).
 4. Delete all schedules in the app, power-cycle the Mega, and verify that no feed happens at 07:00, 12:00 or 18:00.
 5. **UART line integrity (F26):** send 20 schedule edits from the app while the Mega is idle and 10 while feeding. Record how many `SCHEDULE_SET` commands end in `UART_TIMEOUT`, and confirm each one is followed by `Schedule restore complete.`
-6. Record the current R-54 limitation: app schedule changes appear on the Nextion, but a schedule time changed onsite is stored in EEPROM only, and Firebase restore may replace it. Do not present onsite edits as writing back to the app until the conflict-safe path is implemented and retested.
+6. **Panel → app (R-54):** change slot 1's time in the Nextion editor and Save. Within about 10 s the app shows the new time and "On device", and the serial monitor prints `Panel schedule edit saved to the cloud`. Repeat with Wi-Fi off: the app keeps the old time, the panel keeps the new one; power-cycle the Mega, then restore Wi-Fi and check the panel time is not undone and reaches the app. Finally change the same slot in the app right after a panel save: both must end on the app's value.
 
 ## 10. Software/Hardware Discrepancy Procedure
 

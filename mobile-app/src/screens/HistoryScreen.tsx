@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FlatList, View, Text, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
+import { Alert, FlatList, Linking, View, Text, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDeviceHistory } from '../hooks/useDeviceHistory';
 import { useTheme } from '../context/ThemeContext';
@@ -9,6 +9,8 @@ import EmptyState from '../components/EmptyState';
 import Skeleton from '../components/Skeleton';
 import Card from '../components/Card';
 import MonthlySummary from '../components/MonthlySummary';
+import Button from '../components/Button';
+import { LOGS_SHEET_URL } from '../config/links';
 import { spacing, layout } from '../theme';
 
 type HistoryView = 'recent' | 'monthly';
@@ -35,8 +37,17 @@ export default function HistoryScreen() {
     );
   };
 
+  const openLogs = () => {
+    Linking.openURL(LOGS_SHEET_URL).catch(() => {
+      Alert.alert(t('openLogs'), t('openLogsFailed'));
+    });
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.openLogs}>
+        <Button title={t('openLogs')} onPress={openLogs} variant="outline" accessibilityLabel={t('openLogs')} />
+      </View>
       <View style={styles.segmentedControl} accessibilityRole="tablist">
         {tab('recent', t('historyRecent'))}
         {tab('monthly', t('historyMonthly'))}
@@ -122,6 +133,7 @@ function RecentHistory() {
 }
 
 const styles = StyleSheet.create({
+  openLogs: { paddingHorizontal: spacing.md, paddingTop: spacing.sm },
   container: { flex: 1 },
   segmentedControl: { flexDirection: 'row', paddingHorizontal: spacing.md, paddingTop: spacing.md },
   segmentButton: {

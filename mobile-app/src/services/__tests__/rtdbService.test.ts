@@ -62,7 +62,7 @@ describe('rtdbService - validation functions', () => {
     const validState: RTDBDeviceState = {
       feedWeightGrams: 500, targetFeedGrams: 50, hopperLevelPercent: 50,
       trayWeightsGrams: [50, 50, 50, 50, 50], waterLow: false, cycleStep: 'DISPENSING', currentTray: 3,
-      feedingActive: true, emergencyStopActive: false, timestamp: 1690000000,
+      feedingActive: true, timestamp: 1690000000,
     };
     expect(isValidDeviceState(validState)).toBe(true);
     expect(isValidDeviceState(null)).toBe(false);
@@ -113,7 +113,7 @@ describe('rtdbService - owner data access (emulator)', () => {
     await adminPut(`devices/${deviceIds.listener}`, { ...device(ownerUid), status: 'weird', lastHeartbeat: 'not_a_number' });
 
     const snapshot = (feedWeightGrams: number, timestamp: number): RTDBDeviceState => ({
-      feedWeightGrams, targetFeedGrams: 50, hopperLevelPercent: 50, trayWeightsGrams: [50, 50, 50, 50, 50], waterLow: false, cycleStep: 'DISPENSING', currentTray: 3, feedingActive: true, emergencyStopActive: false, timestamp,
+      feedWeightGrams, targetFeedGrams: 50, hopperLevelPercent: 50, trayWeightsGrams: [50, 50, 50, 50, 50], waterLow: false, cycleStep: 'DISPENSING', currentTray: 3, feedingActive: true, timestamp,
     });
     await adminPut(`systemData/${deviceIds.owned}`, {
       push1: snapshot(500, 1000),
@@ -129,7 +129,7 @@ describe('rtdbService - owner data access (emulator)', () => {
 
     const day = (date: string, feedGrams: number) => ({
       date, feedGrams, cyclesCompleted: 3, cyclesIncomplete: 0, trayTimeouts: 0, chainFaults: 0,
-      lowWaterAlerts: 0, lowFeedAlerts: 0, emergencyStops: 0, updatedAt: 1,
+      lowWaterAlerts: 0, lowFeedAlerts: 0, updatedAt: 1,
     });
     await adminPut(`dailySummary/${deviceIds.owned}`, {
       '2026-09-30': day('2026-09-30', 100),

@@ -16,7 +16,6 @@ export interface MonthTotals {
   chainFaults: number;
   lowWaterAlerts: number;
   lowFeedAlerts: number;
-  emergencyStops: number;
   daysReported: number;
 }
 
@@ -63,12 +62,11 @@ export const summarizeMonth = (days: RTDBDailySummary[]): MonthTotals =>
       chainFaults: t.chainFaults + d.chainFaults,
       lowWaterAlerts: t.lowWaterAlerts + d.lowWaterAlerts,
       lowFeedAlerts: t.lowFeedAlerts + d.lowFeedAlerts,
-      emergencyStops: t.emergencyStops + d.emergencyStops,
       daysReported: t.daysReported + 1,
     }),
     {
       feedGrams: 0, cyclesCompleted: 0, cyclesIncomplete: 0, trayTimeouts: 0, chainFaults: 0,
-      lowWaterAlerts: 0, lowFeedAlerts: 0, emergencyStops: 0, daysReported: 0,
+      lowWaterAlerts: 0, lowFeedAlerts: 0, daysReported: 0,
     }
   );
 

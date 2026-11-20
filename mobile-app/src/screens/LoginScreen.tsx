@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
+import Pip from '../components/Pip';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../navigation/AppNavigator';
 
@@ -17,6 +19,7 @@ export default function LoginScreen({ navigation }: Props) {
   
   const { signIn, resetPassword } = useAuth();
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -84,6 +87,12 @@ export default function LoginScreen({ navigation }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.formContainer}>
+        <View style={styles.pipRow}>
+          <Pip clip="Pers_Wave" size={78} />
+          <View style={[styles.pipSay, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.pipSayText, { color: colors.text }]}>{t('pipLogin')}</Text>
+          </View>
+        </View>
         <Text style={[styles.title, { color: colors.text }]}>HyFePoul</Text>
         <Text style={[styles.subtitle, { color: colors.neutral }]}>Sign in to continue</Text>
         
@@ -148,6 +157,9 @@ export default function LoginScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
+  pipRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  pipSay: { flexShrink: 1, maxWidth: 220, marginLeft: 6, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 14, borderBottomLeftRadius: 4, borderWidth: 1 },
+  pipSayText: { fontSize: 13.5, lineHeight: 18, fontWeight: '600' },
   container: {
     flex: 1,
   },
