@@ -221,6 +221,7 @@ function buildViewer() {
   const fit = () => {
     if (!S.img || !S.img.naturalWidth) return false;
     const { w, h } = room(), nw = S.img.naturalWidth, nh = S.img.naturalHeight;
+    if (w < 40 || h < 40) return false;   // the viewer is not laid out yet
     const k = Math.min(w / nw, h / nh);
     S.fw = nw * k; S.fh = nh * k;
     S.img.style.width = `${S.fw}px`; S.img.style.height = `${S.fh}px`;
@@ -271,14 +272,15 @@ function buildViewer() {
       host.append(img); S.img = img;
       // A very tall or very wide drawing (flowchart, schematic) opens filling the screen from its top-left,
       // so it is readable straight away; drag to move around, Fit shows all of it.
-      const start = () => {
-        if (S.img !== img || !fit()) return;
-        if (S.fill > 1.6) { S.s = Math.min(S.fill, 8); clamp(); const { w: cw, h: ch } = room(); S.x = Math.max(0, (S.fw * S.s - cw) / 2 + 24); S.y = Math.max(0, (S.fh * S.s - ch) / 2 + 24); }
+      const start = (tries = 0) => {
+        if (S.img !== img) return;
+        if (!fit()) { if (tries < 30) requestAnimationFrame(() => start(tries + 1)); return; }
+        if (S.fill > 3) { S.s = Math.min(S.fill, 8); clamp(); const { w: cw, h: ch } = room(); S.x = Math.max(0, (S.fw * S.s - cw) / 2 + 24); S.y = Math.max(0, (S.fh * S.s - ch) / 2 + 24); }
         apply(false);
       };
-      img.addEventListener('load', start, { once: true });
+      img.addEventListener('load', () => start(), { once: true });
       img.src = it.src;
-      if (img.complete) start();
+      if (img.complete) requestAnimationFrame(() => start());
     }
     q('.lb-count').textContent = n > 1 ? `${S.i + 1} / ${n}` : '';
     q('.lb-cap b').textContent = it.title || '';
@@ -367,7 +369,11 @@ function buildViewer() {
     } else return;
     e.preventDefault(); e.stopPropagation();
   });
-  addEventListener('resize', () => { if (!el.hidden && S.img) { fit(); clamp(); apply(false); } });
+  // Whenever the viewing area changes size (window, full screen, the caption settling in), fit again,
+  // keeping the zoom, so the picture is never left larger than the space and clipped.
+  const refit = () => { if (!el.hidden && S.img && fit()) { clamp(); apply(false); } };
+  addEventListener('resize', refit);
+  if ('ResizeObserver' in window) new ResizeObserver(refit).observe(stage);
   document.addEventListener('fullscreenchange', () => { if (!el.hidden && S.img) setTimeout(() => { fit(); clamp(); apply(false); }, 60); });
   return S;
 }
