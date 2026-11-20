@@ -191,7 +191,7 @@ function buildViewer() {
     <div class="lb-back"></div>
     <div class="lb-top">
       <span class="lb-count"></span>
-      <span class="lb-gap"></span>
+      <span class="lb-gap"><span class="lb-hint">Drag to move · Scroll or pinch to zoom · Click to zoom in</span></span>
       <div class="lb-zoom">
         <button class="lb-btn lb-out" type="button" aria-label="Zoom out">${ICON.minus}</button>
         <span class="lb-pct">100%</span>
@@ -213,21 +213,38 @@ function buildViewer() {
   const S = { el, items: [], i: 0, s: 1, x: 0, y: 0, player: null, img: null, opener: null };
   const stage = q('.lb-stage'), host = q('.lb-item');
 
+  // Images are laid out at the size that fits the stage (S.fw x S.fh); S.s zooms from there.
+  const room = () => {
+    const cs = getComputedStyle(stage);
+    return { w: stage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), h: stage.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) };
+  };
+  const fit = () => {
+    if (!S.img || !S.img.naturalWidth) return false;
+    const { w, h } = room(), nw = S.img.naturalWidth, nh = S.img.naturalHeight;
+    const k = Math.min(w / nw, h / nh);
+    S.fw = nw * k; S.fh = nh * k;
+    S.img.style.width = `${S.fw}px`; S.img.style.height = `${S.fh}px`;
+    S.fill = Math.max(w / S.fw, h / S.fh);   // the zoom at which the image fills the whole stage
+    return true;
+  };
+  const overflows = () => S.img && (S.fw * S.s > room().w + 2 || S.fh * S.s > room().h + 2);
   const apply = (anim) => {
     if (!S.img) return;
     S.img.style.transition = anim && !reduced ? 'transform .28s cubic-bezier(.2,.8,.2,1)' : 'none';
     S.img.style.transform = `translate(${S.x}px, ${S.y}px) scale(${S.s})`;
     q('.lb-pct').textContent = `${Math.round(S.s * 100)}%`;
     el.classList.toggle('is-zoomed', S.s > 1.01);
+    el.classList.toggle('can-pan', !!overflows());
   };
+  // Keep the picture on screen: when it is larger than the stage you can reach every edge, with a small margin.
   const clamp = () => {
     if (!S.img) return;
-    const r = stage.getBoundingClientRect(), w = S.img.offsetWidth * S.s, h = S.img.offsetHeight * S.s;
-    const mx = Math.max(0, (w - r.width) / 2 + 40), my = Math.max(0, (h - r.height) / 2 + 40);
+    const { w: cw, h: ch } = room(), w = S.fw * S.s, h = S.fh * S.s;
+    const mx = w > cw ? (w - cw) / 2 + 24 : 0, my = h > ch ? (h - ch) / 2 + 24 : 0;
     S.x = Math.max(-mx, Math.min(mx, S.x)); S.y = Math.max(-my, Math.min(my, S.y));
   };
   const zoomTo = (ns, cx, cy, anim) => {
-    ns = Math.max(1, Math.min(6, ns));
+    ns = Math.max(1, Math.min(8, ns));
     const r = stage.getBoundingClientRect();
     const px = (cx ?? r.left + r.width / 2) - (r.left + r.width / 2), py = (cy ?? r.top + r.height / 2) - (r.top + r.height / 2);
     S.x = px - (px - S.x) * ns / S.s; S.y = py - (py - S.y) * ns / S.s; S.s = ns;
@@ -249,9 +266,19 @@ function buildViewer() {
     } else {
       el.classList.remove('is-video');
       const img = document.createElement('img');
-      img.src = it.src; img.alt = it.alt || it.title || ''; img.draggable = false;
+      img.alt = it.alt || it.title || ''; img.draggable = false;
       img.decoding = 'async';
-      host.append(img); S.img = img; apply(false);
+      host.append(img); S.img = img;
+      // A very tall or very wide drawing (flowchart, schematic) opens filling the screen from its top-left,
+      // so it is readable straight away; drag to move around, Fit shows all of it.
+      const start = () => {
+        if (S.img !== img || !fit()) return;
+        if (S.fill > 1.6) { S.s = Math.min(S.fill, 8); clamp(); const { w: cw, h: ch } = room(); S.x = Math.max(0, (S.fw * S.s - cw) / 2 + 24); S.y = Math.max(0, (S.fh * S.s - ch) / 2 + 24); }
+        apply(false);
+      };
+      img.addEventListener('load', start, { once: true });
+      img.src = it.src;
+      if (img.complete) start();
     }
     q('.lb-count').textContent = n > 1 ? `${S.i + 1} / ${n}` : '';
     q('.lb-cap b').textContent = it.title || '';
@@ -274,11 +301,15 @@ function buildViewer() {
   q('.lb-fs').addEventListener('click', () => { document.fullscreenElement ? document.exitFullscreen() : el.requestFullscreen?.().catch(() => {}); });
   stage.addEventListener('click', e => { if (e.target === stage && S.s === 1) closeViewer(); });
 
+  // Wheel or pinch zooms at the pointer. A click on the picture zooms in there; at the closest zoom it goes back to Fit.
   stage.addEventListener('wheel', e => {
     if (!S.img) return; e.preventDefault();
     zoomTo(S.s * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0018)), e.clientX, e.clientY, false);
   }, { passive: false });
-  stage.addEventListener('dblclick', e => { if (!S.img) return; S.s > 1.01 ? S.reset() : zoomTo(2.5, e.clientX, e.clientY, true); });
+  stage.addEventListener('click', e => {
+    if (!S.img || e.target !== S.img || S.dragged) return;
+    S.s >= 7.9 ? S.reset() : zoomTo(S.s * 2, e.clientX, e.clientY, true);
+  });
 
   // Pointers: one finger pans (or swipes to the next item at 100%), two fingers pinch.
   const pts = new Map(); let g = null;
@@ -300,14 +331,15 @@ function buildViewer() {
     } else if (!g.pinch) {
       const dx = e.clientX - g.sx, dy = e.clientY - g.sy;
       if (Math.abs(dx) + Math.abs(dy) > 4) g.moved = true;
-      if (S.s > 1.01) { S.x = g.x + dx; S.y = g.y + dy; clamp(); apply(false); }
+      if (overflows()) { S.x = g.x + dx; S.y = g.y + dy; clamp(); apply(false); }
       else { S.img.style.transition = 'none'; S.img.style.transform = `translate(${dx}px, 0)`; S.img.style.opacity = String(1 - Math.min(0.5, Math.abs(dx) / 600)); }
     }
   });
   const up = e => {
     if (!pts.has(e.pointerId)) return;
     pts.delete(e.pointerId);
-    if (g && !g.pinch && S.s <= 1.01 && S.img) {
+    S.dragged = !!(g && (g.moved || g.pinch));
+    if (g && !g.pinch && !overflows() && S.img) {
       const dx = e.clientX - g.sx;
       S.img.style.opacity = '';
       if (Math.abs(dx) > 70 && S.items.length > 1) show(S.i + (dx < 0 ? 1 : -1), dx < 0 ? 1 : -1);
@@ -335,7 +367,8 @@ function buildViewer() {
     } else return;
     e.preventDefault(); e.stopPropagation();
   });
-  addEventListener('resize', () => { if (!el.hidden) { clamp(); apply(false); } });
+  addEventListener('resize', () => { if (!el.hidden && S.img) { fit(); clamp(); apply(false); } });
+  document.addEventListener('fullscreenchange', () => { if (!el.hidden && S.img) setTimeout(() => { fit(); clamp(); apply(false); }, 60); });
   return S;
 }
 

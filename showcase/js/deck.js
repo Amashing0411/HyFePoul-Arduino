@@ -1,5 +1,5 @@
 // HyFePoul presentation: slides come from data/deck.json; photos and videos from data/library.json.
-import { createPlayer, openViewer, viewerOpen, pauseWithin, pauseAll, ICON } from './media.js?v=3';
+import { createPlayer, openViewer, viewerOpen, pauseWithin, pauseAll, ICON } from './media.js?v=4';
 import { GROUPS } from './parts.js?v=3';
 
 const $ = id => document.getElementById(id);
@@ -258,6 +258,12 @@ const R = {
       <div class="pt${s.side ? ' pt-side' : ''}${s.cls ? ' pt-' + esc(s.cls) : ''}">${s.parts.map(block).join('')}</div>`;
   },
 
+  // Software Testing Result: the paper's Figures 4.35 to 4.38, screenshots side by side, compile logs full width.
+  swtest: s => `${head(s)}
+    <div class="swt">${s.figures.map(f => `<figure class="swt-f${f.wide ? ' wide' : ''}" data-a>
+      <button type="button" class="swt-ph" data-zoom="${esc(f.src)}" data-title="Figure ${esc(f.figure)}. ${esc(f.cap)}"><img src="${esc(f.src)}" alt="${esc(f.cap)}" loading="lazy" decoding="async"></button>
+      <figcaption><b>Figure ${esc(f.figure)}.</b> ${esc(f.cap)}</figcaption></figure>`).join('')}</div>`,
+
   // Technology Acceptance Model, drawn as Figure 1.1 of the paper.
   tam: s => `${head(s)}
     <figure class="tam" data-a><svg viewBox="0 0 1040 400" role="img" aria-label="Perceived Ease of Use points to Perceived Usefulness and to Intention to Use; Perceived Usefulness points to Intention to Use; Intention to Use points to Actual Use.">
@@ -496,11 +502,24 @@ const R = {
       <img class="end-logo" src="img/app-icon.png" alt="" width="96" height="96" data-a>
       <h2 class="end-title" data-a>${esc(s.title)}</h2>
       <p class="end-sub" data-a>${esc(s.text)}</p>
-      <p class="end-meta" data-a>HyFePoul · Group 3 · BSCpE 4D</p>
+      <p class="end-meta" data-a>HyFePoul · Group 2 · BSCpE 4D</p>
+    </div>`,
+
+  // The closing page: thesis defended, with PIP celebrating.
+  defended: (s, t) => `<div class="dfd-confetti" aria-hidden="true">${Array.from({ length: 28 }, (_, k) => `<i style="--x:${(k * 37) % 100}%;--d:${(k * 0.37) % 4}s;--r:${(k * 53) % 360}deg;--c:${['#ffffff', '#7fd3ff', '#08875f', '#ffc94d'][k % 4]}"></i>`).join('')}</div>
+    <div class="dfd">
+      <div class="dfd-text">
+        <img class="dfd-logo" src="img/app-icon.png" alt="" width="80" height="80" data-a>
+        <p class="dfd-k" data-a>Dalubhasaan ng Lungsod ng San Pablo · BSCpE 4D · Group 2</p>
+        <h2 class="dfd-title" data-a>${esc(s.title)}</h2>
+        <p class="dfd-sub" data-a>${esc(s.text)}</p>
+        <p class="dfd-date" data-a>Final oral defense · ${esc(s.date)}</p>
+      </div>
+      <div class="dfd-pip" data-a><img src="${esc(s.img)}" alt="PIP, the HyFePoul mascot, celebrating" width="360" height="414"></div>
     </div>`,
 };
 // One theme, the original site's: blue bands (sky, deep) and light bands (ice, white) that alternate.
-const THEME = { cover: 'sky', chapter: 'sky', end: 'sky', model: 'deep', steps: 'deep', videos: 'deep', team: 'ice' };
+const THEME = { cover: 'sky', chapter: 'sky', end: 'sky', defended: 'sky', model: 'deep', steps: 'deep', videos: 'deep', team: 'ice' };
 const themeOf = (s, i) => s.theme || (s.type === 'media' && s.layout === 'full' ? 'deep' : THEME[s.type] || (i % 2 ? 'white' : 'ice'));
 
 function build(s, i, thumb) {
@@ -613,7 +632,7 @@ function ensureViewer() {
     const test = document.createElement('canvas');
     if (!(test.getContext('webgl2') || test.getContext('webgl'))) { modelFail('This browser cannot show the 3D model.'); return null; }
     try {
-      const [THREE, mod] = await Promise.all([import('three'), import('./viewer.js')]);
+      const [THREE, mod] = await Promise.all([import('three'), import('./viewer.js?v=2')]);
       const bar = (f, msg) => { $('loadbar').style.width = Math.round(f * 100) + '%'; if (msg) $('loadtext').textContent = msg; };
       bar(0.05);
       const json = await fetch('data/assembly.json').then(r => r.json());
@@ -962,7 +981,7 @@ async function start() {
   addEventListener('scroll', onWebScroll, { passive: true });
   const h = location.hash.slice(1);
   document.body.classList.add('ready');
-  import('./pip.js?v=9').then(m => { m.initPip(); if (mode === 'slides' && cur >= 0) dispatchEvent(new CustomEvent('hfp-slide', { detail: { slide: S()[cur], i: cur, mode: 'slides', chapter: chap(S()[cur].chapter), videos: LIB.videos } })); }).catch(e => console.warn(e));
+  import('./pip.js?v=10').then(m => { m.initPip(); if (mode === 'slides' && cur >= 0) dispatchEvent(new CustomEvent('hfp-slide', { detail: { slide: S()[cur], i: cur, mode: 'slides', chapter: chap(S()[cur].chapter), videos: LIB.videos } })); }).catch(e => console.warn(e));
   if (/^\d+$/.test(h)) setMode('slides', +h - 1);
   else {
     document.body.classList.add('mode-web'); fit();

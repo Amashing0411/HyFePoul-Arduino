@@ -298,7 +298,17 @@ export function init({ cad, onSelect, onFail }) {
 
   // --- Selection ---
   const hlCache = new WeakMap();
-  const highlight = (m, big) => { let h = hlCache.get(m); if (!h) { h = m.clone(); h.emissive = new THREE.Color(0xffffff); h.emissiveIntensity = big ? 0.06 : 0.2; hlCache.set(m, h); } return h; };
+  // Lit materials glow a little when selected. Unlit ones (the Nextion screen picture) have no emissive
+  // uniform, and giving them one makes three.js throw on every frame, so they keep their own look.
+  const highlight = (m, big) => {
+    let h = hlCache.get(m);
+    if (!h) {
+      h = m.clone();
+      if (m.emissive !== undefined) { h.emissive = new THREE.Color(0xffffff); h.emissiveIntensity = big ? 0.06 : 0.2; }
+      hlCache.set(m, h);
+    }
+    return h;
+  };
   function select(id, focus) {
     if (selected) P[selected].meshes.forEach(m => { m.material = m.userData.base; });
     selected = id;
