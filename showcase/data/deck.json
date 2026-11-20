@@ -663,7 +663,7 @@
       "kicker": "Figure 3.5 · Appendix H.1",
       "title": "Schematic Diagram of HyFePoul",
       "text": "Select the drawing to open it full size. Zoom with the wheel or a pinch.",
-      "img": "media/schematic/schematic-2026.png",
+      "img": "media/schematic/schematic-2026b.png",
       "fit": "contain",
       "paper": true,
       "caption": "Schematic Diagram of HyFePoul"
@@ -675,7 +675,7 @@
       "kicker": "Figure 3.5",
       "title": "Digital Schematic Diagram of HyFePoul",
       "text": "Select the drawing to open it full size. Zoom with the wheel or a pinch.",
-      "img": "media/schematic/wiring-pictorial.png",
+      "img": "media/schematic/wiring-pictorial-2026b.png",
       "fit": "contain",
       "paper": true,
       "caption": "Digital Schematic Diagram of HyFePoul"
