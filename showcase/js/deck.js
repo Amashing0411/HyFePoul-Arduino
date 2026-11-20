@@ -1,5 +1,5 @@
 // HyFePoul presentation: slides come from data/deck.json; photos and videos from data/library.json.
-import { createPlayer, openViewer, viewerOpen, pauseWithin, pauseAll, ICON } from './media.js?v=4';
+import { createPlayer, openViewer, viewerOpen, pauseWithin, pauseAll, ICON } from './media.js?v=6';
 import { GROUPS } from './parts.js?v=3';
 
 const $ = id => document.getElementById(id);
@@ -350,18 +350,25 @@ const R = {
 
   // Average accuracy of every weight test, as printed in the paper's tables.
   accsum: s => {
+    // A short name for each weight table, taken from its caption: which schedule, what kind of test, the target.
+    const label = p => {
+      const c = p.caption, n = (c.match(/^(First|Second|Third)/) || [])[1];
+      const kind = /Remaining/i.test(c) ? 'Remaining feed' : /Different/i.test(c) ? 'Different weights' : 'Identical weights';
+      const tgt = p.chart && p.chart.target ? `, ${p.chart.target} g` : '';
+      return n ? `${n} schedule · ${kind}${tgt}` : `${kind}${tgt}`;
+    };
     const tests = S().filter(x => x.type === 'ptab' && x.parts[0].acc).map(x => {
       const p = x.parts[0];
-      return { t: p.table, title: x.title, acc: +p.acc, min: Math.min(...p.accs.map(Number)), i: S().indexOf(x) };
+      return { t: p.table, title: label(p), app: /Mobile Application/i.test(p.caption), acc: +p.acc, min: Math.min(...p.accs.map(Number)), i: S().indexOf(x) };
     });
     const lo = 85, hi = 100, pc = v => ((v - lo) / (hi - lo) * 100).toFixed(1);
     const group = (name, list) => `<section><h3>${esc(name)}</h3>
         <div class="accs-axis"><span style="left:0">85%</span><span style="left:${pc(90)}%">90%</span><span style="left:${pc(95)}%">95%</span><span style="left:100%">100%</span></div>
-        ${list.map(x => `<button type="button" class="accs-r" data-go="${x.i}" aria-label="Table ${esc(x.t)}, ${esc(x.title)}: ${x.acc.toFixed(2)}%"><span class="accs-l">${esc(x.t)}<em>${esc(x.title.replace(/ \((Nextion display|mobile app)\)/, ''))}</em></span>
+        ${list.map(x => `<button type="button" class="accs-r" data-go="${x.i}" aria-label="Table ${esc(x.t)}, ${esc(x.title)}: ${x.acc.toFixed(2)}%"><span class="accs-l">${esc(x.t)}<em>${esc(x.title)}</em></span>
           <span class="accs-track"><i class="accs-min" style="left:${pc(x.min)}%;width:${(pc(x.acc) - pc(x.min)).toFixed(1)}%"></i><b style="left:${pc(x.acc)}%"></b></span><span class="accs-v">${x.acc.toFixed(2)}%</span></button>`).join('')}</section>`;
     return `${head(s)}
       <div class="accs" data-a role="img" aria-label="${esc(tests.map(x => `Table ${x.t}: ${x.acc.toFixed(2)}%`).join('; '))}">
-        ${group('Set on the Nextion display', tests.filter(x => !/\(mobile app\)/.test(x.title)))}${group('Set in the mobile app', tests.filter(x => /\(mobile app\)/.test(x.title)))}
+        ${group('Set on the Nextion display', tests.filter(x => !x.app))}${group('Set in the mobile application', tests.filter(x => x.app))}
       </div>
       <p class="foot-note">Dot: average accuracy printed in the table. Bar: from the lowest tray accuracy to the average. Select a row to open its table.</p>`;
   },
